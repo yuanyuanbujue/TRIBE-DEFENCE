@@ -1,20 +1,2603 @@
 <!DOCTYPE html>
-<html>
+<html lang="en">
 <head>
-    <title>Tribe Defence</title>
+<meta charset="UTF-8">
+<title>Tribe Defence</title>
+<style>
+  html,body{margin:0;padding:0;overflow:hidden;background:#0a0e14;font-family:'Segoe UI',Tahoma,sans-serif;user-select:none;-webkit-user-select:none;-webkit-touch-callout:none;}
+  canvas{display:block;cursor:crosshair;background:#3a5a3a;}
+
+  #ui{position:fixed;top:0;left:0;width:100%;height:100%;pointer-events:none;color:#fff;}
+  .panel{position:absolute;background:rgba(15,18,25,0.78);border:2px solid #444d5c;border-radius:8px;padding:8px 12px;box-shadow:0 2px 8px rgba(0,0,0,0.5);}
+
+  #topbar{position:static;display:block;}
+
+  #healthWrap{top:10px;left:10px;width:220px;}
+  #hpLabel{font-size:12px;font-weight:bold;color:#ffb3b3;margin-bottom:3px;text-shadow:1px 1px 2px #000;}
+  #hpBarBg{width:100%;height:18px;background:#3a1414;border-radius:4px;border:1px solid #661;overflow:hidden;}
+  #defReadout{font-size:11px;color:#9fc9ff;margin-top:3px;}
+  #hpBarFill{height:100%;width:100%;background:linear-gradient(90deg,#ff4d4d,#ff8080);transition:width .15s;}
+
+  #resources{top:82px;left:10px;display:flex;flex-wrap:wrap;gap:12px;font-size:13px;font-weight:600;max-width:260px;}
+  #resources div{display:flex;align-items:center;gap:5px;text-shadow:1px 1px 2px #000;}
+  #wbStatus{border-left:none !important;padding-left:0 !important;width:100%;margin-top:4px;padding-top:6px;border-top:1px solid #445 !important;}
+
+  #dayInfo{top:10px;right:190px;text-align:right;font-size:13px;text-shadow:1px 1px 2px #000;}
+  #dayInfo b{font-size:16px;}
+
+  #hotbarWrap{position:absolute;bottom:14px;left:50%;transform:translateX(-50%);display:flex;flex-direction:column;align-items:center;gap:6px;pointer-events:auto;}
+  #placingTag{background:rgba(255,210,77,0.15);border:1px solid #ffd24d;color:#ffd24d;font-size:12px;padding:4px 10px;border-radius:6px;}
+  #tooltip{background:rgba(10,12,18,0.92);border:1px solid #556;border-radius:6px;padding:6px 12px;font-size:13px;color:#eef;min-height:16px;text-align:center;opacity:0;transition:opacity .15s;pointer-events:none;white-space:nowrap;}
+  #tooltip .tt-cost{color:#ffd24d;margin-left:6px;}
+  #tooltip .tt-lock{color:#ff8080;margin-left:6px;}
+  .hotrow{display:flex;gap:6px;}
+  .slot{width:58px;height:58px;background:rgba(20,24,32,0.85);border:2px solid #556;border-radius:8px;display:flex;flex-direction:column;align-items:center;justify-content:center;font-size:20px;cursor:pointer;position:relative;transition:transform .08s,border-color .15s;}
+  .slot:hover{transform:translateY(-3px);}
+  .slot{cursor:grab;}
+  .slot.dragging{opacity:0.35;}
+  .slot.dragOver{border-color:#8ecbff;box-shadow:0 0 10px #8ecbff88;}
+  .slot.active{border-color:#ffd24d;box-shadow:0 0 10px #ffd24d88;}
+  .slot.locked{opacity:0.45;cursor:not-allowed;}
+  .slot.empty{opacity:0.35;cursor:not-allowed;background:repeating-linear-gradient(45deg,rgba(255,255,255,0.03),rgba(255,255,255,0.03) 6px,transparent 6px,transparent 12px);border-style:dashed;}
+  .slot .num{position:absolute;top:2px;left:4px;font-size:9px;color:#aab;}
+  .slot .costrow{position:absolute;bottom:2px;font-size:8px;color:#bcd;display:flex;gap:3px;}
+  .slot .lockicon{position:absolute;top:2px;right:4px;font-size:10px;}
+
+  #msg{position:absolute;top:70px;left:50%;transform:translateX(-50%);font-size:15px;background:rgba(0,0,0,0.6);padding:6px 14px;border-radius:6px;opacity:0;transition:opacity .3s;text-align:center;}
+
+  #hint{position:absolute;bottom:90px;left:50%;transform:translateX(-50%);font-size:12px;color:#cdd;text-shadow:1px 1px 2px #000;text-align:center;line-height:1.5;transition:opacity 0.8s ease;}
+
+  #inventoryModal{position:absolute;top:0;left:0;width:100%;height:100%;background:rgba(5,5,10,0.75);display:none;align-items:center;justify-content:center;pointer-events:auto;z-index:20;}
+  #invPanel{background:#161a24;border:2px solid #556;border-radius:12px;padding:18px 22px;width:min(760px,90vw);max-height:85vh;overflow:auto;box-shadow:0 8px 30px rgba(0,0,0,0.6);}
+  #invHeader{display:flex;justify-content:space-between;align-items:center;margin-bottom:12px;}
+  #invHeader h2{margin:0;color:#ffd24d;font-size:20px;}
+  #invCloseBtn{background:rgba(255,255,255,0.08);border:1px solid #556;color:#eee;border-radius:6px;width:32px;height:32px;font-size:16px;cursor:pointer;}
+  #invCloseBtn:hover{background:rgba(255,80,80,0.3);}
+  #invBody{display:flex;gap:20px;flex-wrap:wrap;}
+  #invLeft{flex:1 1 320px;}
+  #invRight{flex:1 1 280px;}
+  .invSectionLabel{font-size:12px;color:#8ab;letter-spacing:0.5px;margin:10px 0 6px;text-transform:uppercase;}
+  #invGrid{display:grid;grid-template-columns:repeat(9,1fr);gap:6px;}
+  .invSlot{aspect-ratio:1;background:rgba(255,255,255,0.05);border:1px solid #445;border-radius:6px;display:flex;align-items:center;justify-content:center;position:relative;font-size:18px;}
+  .invSlot.clickable{cursor:pointer;border-color:#6a6;}
+  .invSlot.clickable:hover{background:rgba(159,220,159,0.15);}
+  .invIcon{pointer-events:none;}
+  .invCount{position:absolute;bottom:1px;right:3px;font-size:10px;color:#ddd;text-shadow:1px 1px 1px #000;}
+  #armorSlots{display:flex;flex-direction:column;gap:6px;}
+  .armorSlot{display:flex;align-items:center;gap:10px;background:rgba(255,255,255,0.05);border:1px solid #445;border-radius:6px;padding:8px 10px;}
+  .armorSlot.filled{border-color:#ffd24d;cursor:pointer;background:rgba(255,210,77,0.08);}
+  .armorSlot .invIcon{font-size:20px;width:26px;text-align:center;}
+  .armorLabel{font-size:13px;color:#ccd;}
+  #craftList{display:flex;flex-direction:column;gap:6px;}
+  .craftRow{display:flex;align-items:center;gap:10px;background:rgba(255,255,255,0.05);border:1px solid #445;border-radius:6px;padding:6px 10px;}
+  .craftRow.disabled{opacity:0.45;}
+  .craftIcon{font-size:20px;width:26px;text-align:center;}
+  .craftInfo{flex:1;}
+  .craftName{font-size:13px;color:#eee;}
+  .craftCost{font-size:11px;color:#ffd24d;}
+  .craftBtn{padding:6px 12px;font-size:12px;background:#4d8f4d;border:none;border-radius:5px;color:#fff;cursor:pointer;font-weight:bold;}
+  .craftBtn:hover{background:#5fa85f;}
+  .craftBtn:disabled{background:#555;cursor:not-allowed;}
+  #invHint{margin-top:14px;font-size:11px;color:#89a;text-align:center;}
+
+  #gameover{position:absolute;top:0;left:0;width:100%;height:100%;background:rgba(5,5,10,0.88);display:none;flex-direction:column;align-items:center;justify-content:center;pointer-events:auto;}
+  #gameover h1{color:#ff6666;font-size:48px;margin-bottom:6px;}
+  #gameover p{font-size:18px;margin:4px;color:#ddd;}
+  #restartBtn{margin-top:20px;padding:12px 28px;font-size:18px;background:#4d8f4d;border:none;border-radius:6px;color:#fff;cursor:pointer;font-weight:bold;}
+  #restartBtn:hover{background:#5fa85f;}
+
+  #startScreen{position:absolute;top:0;left:0;width:100%;height:100%;background:rgba(5,5,10,0.9);display:flex;flex-direction:column;align-items:center;justify-content:center;pointer-events:auto;text-align:center;}
+  #startScreen h1{font-size:44px;color:#ffd24d;margin-bottom:6px;text-shadow:2px 2px 4px #000;}
+  #startScreen p{color:#ccd;max-width:560px;line-height:1.6;font-size:15px;}
+  #startBtn{margin-top:22px;padding:14px 36px;font-size:20px;background:#4d8f4d;border:none;border-radius:6px;color:#fff;cursor:pointer;font-weight:bold;}
+  #startBtn:hover{background:#5fa85f;}
+
+  #diffGrid{display:flex;gap:10px;margin-top:22px;flex-wrap:wrap;justify-content:center;max-width:620px;}
+  .diffBtn{padding:12px 16px;border-radius:8px;border:2px solid #556;background:rgba(30,34,44,0.85);color:#ddd;cursor:pointer;width:110px;text-align:center;transition:transform .1s,border-color .15s;}
+  .diffBtn:hover{transform:translateY(-2px);}
+  .diffBtn.selected{border-color:#ffd24d;box-shadow:0 0 10px #ffd24d66;}
+  .diffBtn .dname{font-weight:bold;font-size:15px;margin-bottom:4px;}
+  .diffBtn .ddesc{font-size:11px;color:#aab;line-height:1.4;}
+  .diffBtn[data-id="sandbox"] .dname{color:#8ecbff;}
+  .diffBtn[data-id="easy"] .dname{color:#9fdc9f;}
+  .diffBtn[data-id="medium"] .dname{color:#ffd24d;}
+  .diffBtn[data-id="hard"] .dname{color:#ff9955;}
+  .diffBtn[data-id="hardcore"] .dname{color:#ff5555;}
+
+  #continueBtn{margin-top:14px;padding:9px 20px;font-size:14px;background:#3a5580;border:none;border-radius:6px;color:#fff;cursor:pointer;}
+  #continueBtn:hover{background:#4a6aa0;}
+
+  #frontScreen{position:absolute;top:0;left:0;width:100%;height:100%;background:rgba(5,5,10,0.95);display:flex;flex-direction:column;align-items:center;justify-content:center;pointer-events:auto;text-align:center;padding:20px;box-sizing:border-box;z-index:70;}
+  #frontScreen h1{font-size:44px;color:#ffd24d;margin-bottom:16px;text-shadow:2px 2px 4px #000;}
+  #frontTabs{display:flex;gap:10px;margin-bottom:14px;}
+  .frontTab{background:rgba(255,255,255,0.08);border:2px solid #556;color:#ccd;border-radius:8px;padding:9px 20px;font-size:14px;font-weight:bold;cursor:pointer;}
+  .frontTab.active{background:rgba(255,210,77,0.15);border-color:#ffd24d;color:#ffd24d;}
+  .frontTab:hover{border-color:#8ecbff;}
+  #frontBody{background:rgba(255,255,255,0.04);border:1px solid #445;border-radius:10px;padding:20px 26px;max-width:600px;width:100%;max-height:48vh;overflow-y:auto;text-align:left;color:#ccd;font-size:14px;line-height:1.7;}
+  #frontBody h3{color:#8ecbff;margin:14px 0 6px;font-size:15px;}
+  #frontBody h3:first-child{margin-top:0;}
+  #frontBody ul{margin:4px 0 10px 20px;padding:0;}
+  #frontPanel-updates{display:none;color:#789;text-align:center;padding:30px 0;}
+  #proceedBtn{margin-top:22px;padding:14px 40px;font-size:20px;background:#4d8f4d;border:none;border-radius:6px;color:#fff;cursor:pointer;font-weight:bold;}
+  #proceedBtn:hover{background:#5fa85f;}
+
+  #saveWrap{position:absolute;bottom:14px;left:14px;pointer-events:auto;display:flex;flex-direction:column;align-items:flex-start;gap:4px;}
+  #saveBtn{padding:9px 14px;font-size:13px;background:rgba(20,24,32,0.85);border:2px solid #556;border-radius:8px;color:#ddd;cursor:pointer;font-weight:600;}
+  #saveBtn:hover{border-color:#8ecbff;}
+  #saveBtn.disabled{opacity:0.4;cursor:not-allowed;}
+  #saveNote{font-size:11px;color:#aab;max-width:140px;}
+  #diffTag{position:absolute;top:8px;left:50%;transform:translateX(-50%);font-size:11px;padding:3px 10px;border-radius:10px;background:rgba(0,0,0,0.5);letter-spacing:0.5px;}
+
+  #slotModal{position:absolute;top:0;left:0;width:100%;height:100%;background:rgba(5,5,10,0.75);display:none;align-items:center;justify-content:center;pointer-events:auto;z-index:30;}
+  #slotPanel{background:#161a24;border:2px solid #556;border-radius:12px;padding:18px 22px;width:min(560px,90vw);max-height:85vh;overflow:auto;box-shadow:0 8px 30px rgba(0,0,0,0.6);}
+  #slotHeader{display:flex;justify-content:space-between;align-items:center;margin-bottom:12px;}
+  #slotHeader h2{margin:0;color:#ffd24d;font-size:20px;}
+  #slotCloseBtn{background:rgba(255,255,255,0.08);border:1px solid #556;color:#eee;border-radius:6px;width:32px;height:32px;font-size:16px;cursor:pointer;}
+  #slotCloseBtn:hover{background:rgba(255,80,80,0.3);}
+  #slotGrid{display:flex;flex-direction:column;gap:8px;}
+  .slotRow{display:flex;align-items:center;gap:10px;background:rgba(255,255,255,0.05);border:1px solid #445;border-radius:8px;padding:10px 12px;cursor:pointer;transition:border-color .15s,background .15s;}
+  .slotRow:hover{border-color:#8ecbff;background:rgba(142,203,255,0.08);}
+  .slotRow.empty{opacity:0.6;}
+  .slotNum{font-weight:bold;color:#ffd24d;width:26px;text-align:center;font-size:15px;}
+  .slotInfo{flex:1;}
+  .slotInfo .sTitle{font-size:14px;color:#eee;font-weight:600;}
+  .slotInfo .sSub{font-size:11px;color:#9ab;margin-top:2px;}
+  .slotDelBtn{background:rgba(255,80,80,0.15);border:1px solid #a55;color:#ffb3b3;border-radius:6px;width:30px;height:30px;font-size:13px;cursor:pointer;}
+  .slotDelBtn:hover{background:rgba(255,80,80,0.35);}
+  #slotHint{margin-top:14px;font-size:11px;color:#89a;text-align:center;}
+
+  #equipList{display:flex;flex-direction:column;gap:6px;}
+  .equipRow{background:rgba(255,255,255,0.05);border:1px solid #445;border-radius:6px;padding:8px 10px;}
+  .equipRow.disabled{opacity:0.5;}
+  .equipTop{display:flex;align-items:center;gap:10px;}
+  .equipIcon{font-size:18px;width:24px;text-align:center;}
+  .equipInfo{flex:1;}
+  .equipName{font-size:13px;color:#eee;}
+  .equipCost{font-size:11px;color:#ffd24d;}
+  .equipBtn{padding:5px 10px;font-size:11px;background:#3a5580;border:none;border-radius:5px;color:#fff;cursor:pointer;font-weight:bold;}
+  .equipBtn:hover{background:#4a6aa0;}
+  .equipBtn:disabled{background:#555;cursor:not-allowed;}
+
+  #chatToggleBtn{position:absolute;bottom:14px;right:10px;z-index:15;pointer-events:auto;background:rgba(20,24,32,0.9);border:2px solid #556;border-radius:8px;color:#8ecbff;font-weight:bold;font-size:13px;padding:8px 14px;cursor:pointer;}
+  #chatToggleBtn:hover{border-color:#8ecbff;}
+  #chatWrap{top:auto;bottom:56px;right:10px;width:250px;max-height:300px;display:none;flex-direction:column;pointer-events:auto;}
+  .chatTabs{display:flex;gap:4px;margin-bottom:6px;}
+  .chatTab{flex:1;padding:5px 4px;font-size:11px;background:rgba(255,255,255,0.06);border:1px solid #445;border-radius:5px;color:#ccd;cursor:pointer;font-weight:600;}
+  .chatTab:hover{border-color:#8ecbff;}
+  .chatTab.active{border-color:#ffd24d;color:#ffd24d;background:rgba(255,210,77,0.1);}
+  #chatMessages{flex:1;overflow-y:auto;max-height:170px;min-height:60px;font-size:12px;display:flex;flex-direction:column;gap:3px;padding-right:2px;}
+  .chatMsg{line-height:1.35;word-break:break-word;}
+  .chatMsg .chatName{color:#8ecbff;font-weight:600;}
+  .chatMsg.mine .chatName{color:#ffd24d;}
+  .chatEmpty{color:#789;font-size:11px;font-style:italic;}
+  #chatInputRow{display:flex;gap:5px;margin-top:6px;}
+  #chatInput{flex:1;width:0;background:rgba(0,0,0,0.35);border:1px solid #445;border-radius:5px;color:#eee;font-size:12px;padding:5px 7px;}
+  #chatInput:disabled{opacity:0.4;cursor:not-allowed;}
+  #chatSendBtn{background:#3a5580;border:none;border-radius:5px;color:#fff;font-size:11px;padding:5px 9px;cursor:pointer;font-weight:600;}
+  #chatSendBtn:hover{background:#4a6aa0;}
+  #chatSendBtn:disabled{background:#555;cursor:not-allowed;}
+  #chatLockNote{font-size:10px;color:#ff9955;margin-top:5px;line-height:1.4;}
+  #chatInfoNote{font-size:9px;color:#678;margin-top:5px;line-height:1.3;}
+
+  #lbToggleBtn{position:absolute;top:10px;right:10px;z-index:60;pointer-events:auto;background:rgba(20,24,32,0.9);border:2px solid #556;border-radius:8px;color:#ffd24d;font-weight:bold;font-size:13px;padding:8px 14px;cursor:pointer;white-space:nowrap;}
+  #lbToggleBtn:hover{border-color:#ffd24d;}
+  #lbWrap{top:100px;right:10px;width:480px;max-width:92vw;pointer-events:auto;display:none;z-index:60;}
+  #lbTitleRow{display:flex;justify-content:space-between;align-items:center;}
+  #lbTitleRow b{color:#ffd24d;font-size:13px;}
+  #lbNameBtn{background:rgba(255,255,255,0.08);border:1px solid #556;color:#eee;border-radius:5px;font-size:10px;padding:3px 6px;cursor:pointer;}
+  #lbNameBtn:hover{border-color:#8ecbff;}
+  #lbList{font-size:11px;margin-top:6px;color:#ddd;overflow-x:auto;}
+  #lbTable{width:100%;border-collapse:collapse;font-size:11px;}
+  #lbTable th{text-align:left;color:#8ecbff;font-size:10px;letter-spacing:0.3px;text-transform:uppercase;padding:4px 6px;border-bottom:1px solid #445;white-space:nowrap;}
+  #lbTable td{padding:4px 6px;border-bottom:1px solid rgba(255,255,255,0.06);white-space:nowrap;}
+  #lbTable tr.lbRow.mine td{color:#ffd24d;font-weight:600;}
+  #lbTable tr.lbRow.justUpdated{animation:lbFlash 0.9s ease;}
+  @keyframes lbFlash{ 0%{background:rgba(255,210,77,0.45);} 100%{background:transparent;} }
+  #lbTable td.lbName{white-space:normal;word-break:break-word;}
+  #lbTable td.lbRank{color:#ffd24d;font-weight:bold;text-align:center;}
+  #lbSubmitBtn{margin-top:8px;width:100%;padding:6px;font-size:11px;background:#3a5580;border:none;border-radius:5px;color:#fff;cursor:pointer;font-weight:bold;}
+  #lbSubmitBtn:hover{background:#4a6aa0;}
+  #lbNameRow{display:flex;}
+  #lbNameInput{flex:1;min-width:0;background:rgba(0,0,0,0.35);border:1px solid #556;border-radius:5px;color:#eee;font-size:11px;padding:5px 7px;}
+  #lbNameInput:focus{outline:none;border-color:#8ecbff;}
+  #lbNameSaveBtn{background:#3a5580;border:none;border-radius:5px;color:#fff;font-size:11px;padding:5px 9px;cursor:pointer;font-weight:bold;}
+  #lbNameSaveBtn:hover{background:#4a6aa0;}
+
+  #towerPopup{position:absolute;display:none;background:#161a24;border:2px solid #556;border-radius:8px;padding:10px;z-index:40;pointer-events:auto;box-shadow:0 6px 20px rgba(0,0,0,0.6);min-width:170px;transform:translate(-50%,-110%);}
+  #towerPopupTitle{color:#ffd24d;font-size:13px;font-weight:bold;margin-bottom:6px;text-align:center;}
+  #towerPopup button{display:block;width:100%;padding:7px 8px;margin-top:5px;font-size:12px;border:none;border-radius:5px;cursor:pointer;font-weight:600;}
+  #towerUpgradeBtn{background:#4d8f4d;color:#fff;}
+  #towerUpgradeBtn:hover{background:#5fa85f;}
+  #towerUpgradeBtn:disabled{background:#555;cursor:not-allowed;}
+  #towerBreakBtn{background:rgba(255,80,80,0.25);color:#ffb3b3;border:1px solid #a55 !important;}
+  #towerBreakBtn:hover{background:rgba(255,80,80,0.4);}
+  #towerCancelBtn{background:rgba(255,255,255,0.08);color:#ccd;border:1px solid #556 !important;}
+
+  #chestModal{position:absolute;top:0;left:0;width:100%;height:100%;background:rgba(5,5,10,0.75);display:none;align-items:center;justify-content:center;pointer-events:auto;z-index:25;}
+  #chestPanel{background:#161a24;border:2px solid #556;border-radius:12px;padding:18px 22px;width:min(420px,90vw);box-shadow:0 8px 30px rgba(0,0,0,0.6);}
+  #chestHeader{display:flex;justify-content:space-between;align-items:center;margin-bottom:12px;}
+  #chestHeader h2{margin:0;color:#ffd24d;font-size:20px;}
+  #chestCloseBtn{background:rgba(255,255,255,0.08);border:1px solid #556;color:#eee;border-radius:6px;width:32px;height:32px;font-size:16px;cursor:pointer;}
+  #chestCloseBtn:hover{background:rgba(255,80,80,0.3);}
+  #chestGrid{display:flex;flex-direction:column;gap:6px;}
+  .chestRow{display:flex;align-items:center;gap:8px;background:rgba(255,255,255,0.05);border:1px solid #445;border-radius:6px;padding:6px 10px;}
+  .chestIcon{font-size:20px;width:26px;text-align:center;}
+  .chestInfo{flex:1;}
+  .chestName{font-size:13px;color:#eee;text-transform:capitalize;}
+  .chestCounts{font-size:11px;color:#9ab;}
+  .chestBtn{padding:6px 9px;font-size:11px;background:#3a5580;border:none;border-radius:5px;color:#fff;cursor:pointer;font-weight:bold;}
+  .chestBtn:hover{background:#4a6aa0;}
+  #chestHint{margin-top:12px;font-size:11px;color:#89a;text-align:center;}
+
+  #furnaceModal{position:absolute;top:0;left:0;width:100%;height:100%;background:rgba(5,5,10,0.75);display:none;align-items:center;justify-content:center;pointer-events:auto;z-index:25;}
+  #furnacePanel{background:#161a24;border:2px solid #556;border-radius:12px;padding:18px 22px;width:min(460px,90vw);box-shadow:0 8px 30px rgba(0,0,0,0.6);}
+  #furnaceHeader{display:flex;justify-content:space-between;align-items:center;margin-bottom:12px;}
+  #furnaceHeader h2{margin:0;color:#ffd24d;font-size:20px;}
+  #furnaceCloseBtn{background:rgba(255,255,255,0.08);border:1px solid #556;color:#eee;border-radius:6px;width:32px;height:32px;font-size:16px;cursor:pointer;}
+  #furnaceCloseBtn:hover{background:rgba(255,80,80,0.3);}
+  #furnaceGrid{display:flex;flex-direction:column;gap:6px;}
+  #furnaceHint{margin-top:12px;font-size:11px;color:#89a;text-align:center;}
+
+  #workbenchModal{position:absolute;top:0;left:0;width:100%;height:100%;background:rgba(5,5,10,0.75);display:none;align-items:center;justify-content:center;pointer-events:auto;z-index:25;}
+  #workbenchPanel{background:#161a24;border:2px solid #556;border-radius:12px;padding:18px 22px;width:min(760px,90vw);max-height:85vh;overflow:auto;box-shadow:0 8px 30px rgba(0,0,0,0.6);}
+  #workbenchHeader{display:flex;justify-content:space-between;align-items:center;margin-bottom:12px;}
+  #workbenchHeader h2{margin:0;color:#ffd24d;font-size:20px;}
+  #workbenchCloseBtn{background:rgba(255,255,255,0.08);border:1px solid #556;color:#eee;border-radius:6px;width:32px;height:32px;font-size:16px;cursor:pointer;}
+  #workbenchCloseBtn:hover{background:rgba(255,80,80,0.3);}
+  #workbenchBody{display:flex;gap:20px;flex-wrap:wrap;}
+  #wbLeft{flex:1 1 320px;}
+  #wbRight{flex:1 1 280px;}
+  #workbenchHint{margin-top:14px;font-size:11px;color:#89a;text-align:center;}
+</style>
 </head>
+<body>
 
-<body style="font-family:Arial; background:#222; color:white; text-align:center;">
+<canvas id="game"></canvas>
 
-<h1>Tribe Defence</h1>
+<div id="ui">
+  <div id="topbar">
+    <div class="panel" id="healthWrap">
+      <div id="hpLabel">HEALTH</div>
+      <div id="hpBarBg"><div id="hpBarFill"></div></div>
+      <div id="defReadout">🛡 Defense: <span id="defVal">0</span></div>
+    </div>
+    <div class="panel" id="resources">
+      <div>🪵 <span id="rWood">0</span></div>
+      <div>🪨 <span id="rStone">0</span></div>
+      <div>⛓ <span id="rIron">0</span></div>
+      <div>🔩 <span id="rIronBar">0</span></div>
+      <div>✨ <span id="rGold">0</span></div>
+      <div>🟡 <span id="rGoldBar">0</span></div>
+      <div>💎 <span id="rDiamond">0</span></div>
+      <div id="wbStatus" style="border-left:1px solid #445;padding-left:12px;">🛠 <span id="wbText">No Workbench</span></div>
+    </div>
+    <div class="panel" id="dayInfo">
+      <div><b id="dayNum">Day 1</b></div>
+      <div id="phase">☀ Daytime</div>
+      <div id="kills">Kills: 0</div>
+    </div>
+  </div>
 
-<p>
-is empty cause im still waiting for the dude to complete his project
-</p>
+  <div id="msg"></div>
+  <div id="diffTag"></div>
+  <div id="hint">WASD/Arrows move · Number keys (1-9) or click slots to select · Left click to mine/attack (auto) or build — left click any placed block/tower to break it · Right click a chest/furnace/workbench to use it, or right click a tower for Upgrade/Break options · Furnace &amp; Chest are built from the Workbench panel · Hold Shift to block with your Shield (once crafted) · E for Inventory &amp; equipping armor</div>
 
-<button onclick="location.href='index.html'">
-Back to Home
-</button>
+  <button id="chatToggleBtn" type="button">💬 Chat</button>
+  <div class="panel" id="chatWrap">
+    <div class="chatTabs">
+      <button class="chatTab active" data-tab="global" type="button">🌍 Global</button>
+      <button class="chatTab" data-tab="elite" type="button">🏆 Top 3</button>
+    </div>
+    <div id="chatMessages"></div>
+    <div id="chatInputRow">
+      <input id="chatInput" type="text" maxlength="140" placeholder="Message global chat...">
+      <button id="chatSendBtn" type="button">Send</button>
+    </div>
+    <div id="chatLockNote"></div>
+    <div id="chatInfoNote">Chat is local to this browser — open a 2nd tab of this page to talk to "another player" live.</div>
+  </div>
 
+  <button id="lbToggleBtn" type="button">🏆 Leaderboard</button>
+  <div class="panel" id="lbWrap">
+    <div id="lbTitleRow">
+      <b>🏆 Leaderboard</b>
+      <button id="lbNameBtn" type="button">✏ Name</button>
+    </div>
+    <div id="lbNameRow" style="display:none;margin-top:6px;gap:5px;">
+      <input id="lbNameInput" type="text" maxlength="18" placeholder="Enter a name">
+      <button id="lbNameSaveBtn" type="button">Save</button>
+    </div>
+    <div id="lbList"></div>
+    <button id="lbSubmitBtn" type="button">📨 Submit Score</button>
+  </div>
+
+  <div id="saveWrap">
+    <button id="saveBtn">💾 Save Game</button>
+    <div id="saveNote"></div>
+  </div>
+
+  <div id="hotbarWrap">
+    <div id="tooltip"></div>
+    <div id="placingTag" style="display:none;"></div>
+    <div class="hotrow" id="hotrowTools"></div>
+    <div class="hotrow" id="hotrowBuild"></div>
+  </div>
+
+  <div id="inventoryModal">
+    <div id="invPanel">
+      <div id="invHeader">
+        <h2>🎒 Inventory &amp; Armor</h2>
+        <button id="invCloseBtn">✕</button>
+      </div>
+      <div id="invBody">
+        <div id="invLeft">
+          <div class="invSectionLabel">Items (27 slots)</div>
+          <div id="invGrid"></div>
+        </div>
+        <div id="invRight">
+          <div class="invSectionLabel">Equipped Armor · Defense: <span id="totalDefense">0</span></div>
+          <div id="armorSlots"></div>
+        </div>
+      </div>
+      <div id="invHint">Click a spare armor piece to equip it · Click an equipped piece to unequip · Crafting and upgrades happen at the Workbench (right-click it) · Press E or Esc to close</div>
+    </div>
+  </div>
+
+  <div id="workbenchModal">
+    <div id="workbenchPanel">
+      <div id="workbenchHeader">
+        <h2>🛠 Workbench</h2>
+        <button id="workbenchCloseBtn">✕</button>
+      </div>
+      <div id="workbenchBody">
+        <div id="wbLeft">
+          <div class="invSectionLabel">Craft Armor &amp; Shield</div>
+          <div id="craftList"></div>
+          <div class="invSectionLabel">Craft Defence Towers</div>
+          <div id="towerCraftList"></div>
+          <div class="invSectionLabel">Build Structures</div>
+          <div id="buildList"></div>
+        </div>
+        <div id="wbRight">
+          <div class="invSectionLabel">Upgrade Equipment</div>
+          <div id="equipList"></div>
+        </div>
+      </div>
+      <div id="workbenchHint">Crafted armor goes to your inventory — open Inventory (E) and click it to equip · Click Build then tap a tile to place a structure · Press Esc to close</div>
+    </div>
+  </div>
+
+
+  <div id="gameover">
+    <h1>YOU DIED</h1>
+    <p id="goStats"></p>
+    <button id="restartBtn">Try Again</button>
+    <button id="goSubmitBtn" style="margin-top:10px;padding:9px 20px;font-size:14px;background:#3a5580;border:none;border-radius:6px;color:#fff;cursor:pointer;">📨 Submit Score</button>
+  </div>
+
+  <div id="towerPopup">
+    <div id="towerPopupTitle"></div>
+    <button id="towerUpgradeBtn" type="button"></button>
+    <button id="towerBreakBtn" type="button">💥 Break (50% refund)</button>
+    <button id="towerCancelBtn" type="button">Cancel</button>
+  </div>
+
+  <div id="chestModal">
+    <div id="chestPanel">
+      <div id="chestHeader">
+        <h2>📦 Chest</h2>
+        <button id="chestCloseBtn">✕</button>
+      </div>
+      <div id="chestGrid"></div>
+      <div id="chestHint">Click Deposit/Withdraw to move 10 at a time · Shift-click to move all</div>
+    </div>
+  </div>
+
+  <div id="furnaceModal">
+    <div id="furnacePanel">
+      <div id="furnaceHeader">
+        <h2>🏭 Furnace</h2>
+        <button id="furnaceCloseBtn">✕</button>
+      </div>
+      <div id="furnaceGrid"></div>
+      <div id="furnaceHint">Smelting an ore consumes 1 wood as fuel · Stone and Diamond are used raw, no smelting needed</div>
+    </div>
+  </div>
+
+  <div id="frontScreen">
+    <h1>⛏ TRIBE DEFENCE ⚔</h1>
+    <div id="frontTabs">
+      <button class="frontTab active" data-panel="howto" type="button">📖 How to Play</button>
+      <button class="frontTab" data-panel="updates" type="button">📰 Updates</button>
+    </div>
+    <div id="frontBody">
+      <div id="frontPanel-howto">
+        <h3>Goal</h3>
+        <p>Mine trees and rocks for wood and stone. Dig deeper into the wilds for iron, gold and diamond ore (an iron pickaxe or better is needed for diamonds). Iron and gold ore must be smelted into bars at a Furnace (requires a Workbench first, and costs 8 stone to build) before they can be used — stone and diamond are used raw. Build walls, upgrade your towers, pickaxe, sword and armor, and swing your sword to survive the night. How many days can you last?</p>
+        <h3>Controls</h3>
+        <ul>
+          <li>WASD / Arrow keys — move</li>
+          <li>Number keys or click a slot — select a tool/item</li>
+          <li>Drag a hotbar slot onto another — swap their positions to rearrange your hotbar</li>
+          <li>Left click — mine/attack (auto), build, or break a placed block/tower directly under the cursor</li>
+          <li>Right click — open a chest or furnace, craft/upgrade/build at a workbench, or choose Upgrade/Break on a tower</li>
+          <li>Furnace and Chest must be built from the Workbench panel (right-click a workbench) — everything else stays on the 9-slot hotbar (keys 1-9), locked until you've built a workbench</li>
+          <li>Hold Shift — block with your Shield (once crafted; works offhand regardless of which slot is selected)</li>
+          <li>E — open Inventory, Armor &amp; Equipment</li>
+        </ul>
+        <h3>Day and Night</h3>
+        <p>Days are safe — no mobs spawn, so use the daylight to gather wood, stone and ore, build up your base, and craft gear. Once night falls, mobs start spawning and keep coming until dawn. Small mobs are weaker but numerous; big mobs hit harder and have far more HP, so gear up and fortify before the sun goes down.</p>
+        <h3>Leaderboard &amp; Chat</h3>
+        <p>Submit your score (days survived + kills) from the 🏆 Leaderboard panel any time. Only the top 3 submitted scores can post in the "Top 3" chat tab.</p>
+        <h3>Biomes</h3>
+        <p>Survive to Day 50 and Day 100 to trigger a border expansion into tougher new biomes with stronger enemies.</p>
+      </div>
+      <div id="frontPanel-updates">Nothing here yet — check back soon!</div>
+    </div>
+    <button id="proceedBtn" type="button">Proceed ➜</button>
+  </div>
+
+  <div id="startScreen" style="display:none;">
+    <h1>⛏ TRIBE DEFENCE ⚔</h1>
+    <p>Mine trees and rocks for wood and stone. Dig deeper into the wilds for iron, gold and diamond ore (iron pickaxe or better needed for diamonds). Build walls, upgrade your towers, pickaxe, sword and armor, and swing your sword to survive the night. How many days can you last?</p>
+    <div id="diffGrid"></div>
+    <button id="startBtn">Start Game</button>
+    <button id="continueBtn" style="display:none;">📂 Load Game</button>
+  </div>
+
+  <div id="slotModal">
+    <div id="slotPanel">
+      <div id="slotHeader">
+        <h2 id="slotTitle">Save Game</h2>
+        <button id="slotCloseBtn">✕</button>
+      </div>
+      <div id="slotGrid"></div>
+      <div id="slotHint">Click a slot to save or load · 🗑 deletes that slot · 8 slots max</div>
+    </div>
+  </div>
+</div>
+
+<script>
+(function(){
+"use strict";
+
+const canvas = document.getElementById('game');
+const ctx = canvas.getContext('2d');
+function resize(){canvas.width=window.innerWidth;canvas.height=window.innerHeight;}
+window.addEventListener('resize',resize);
+resize();
+
+// ---------- CONSTANTS ----------
+const TILE = 40;
+let COLS = 70, ROWS = 70;
+let WORLD_W = COLS*TILE, WORLD_H = ROWS*TILE;
+const BASE_COLS = 70, BASE_ROWS = 70;
+// biome expansion thresholds — border expands and tougher mobs appear at these days
+const BIOME_THRESHOLDS = [50, 100];
+const BIOME_NAMES = ['Wilds','Scorched Frontier','Void Reaches'];
+const PLAYER_SIZE = 26;
+const PLAYER_SPEED = 190; // px/sec
+const MINE_REACH = 105;
+const BUILD_REACH = 140;
+const ATTACK_RANGE = 78;
+const ATTACK_COOLDOWN = 0.42;
+const DAY_LENGTH = 75; // seconds per full day/night cycle
+const NIGHT_START = 0.58; // fraction of day when night begins
+
+// ---------- TOOL TIERS (pickaxe & weapon upgrades) ----------
+const TOOL_TIER_NAMES = ['Wood','Stone','Iron','Diamond'];
+const MAX_TOOL_TIER = TOOL_TIER_NAMES.length-1;
+const PICKAXE_POWER = [1, 1.6, 2.4, 3.4]; // mining "hits" contributed per swing, by tier
+const WEAPON_DAMAGE = [24, 34, 48, 68]; // attack damage, by tier
+// minimum pickaxe tier required to mine each ore (undefined = any pickaxe works)
+const TIER_REQUIRED_FOR_TILE = { ore_iron:1, ore_gold:2, ore_diamond:2 };
+// cost to upgrade FROM tier i TO tier i+1
+const PICKAXE_UPGRADE_COST = [ {wood:3,stone:5}, {stone:6,ironBar:6}, {ironBar:10,goldBar:6} ];
+const WEAPON_UPGRADE_COST = [ {wood:4,stone:6}, {stone:6,ironBar:9}, {ironBar:12,goldBar:8} ];
+
+// ---------- ARMOR UPGRADE LEVELS ----------
+const ARMOR_MAX_LEVEL = 2;
+const ARMOR_LEVEL_BONUS = 2; // extra defense per level
+function armorUpgradeCost(slot, targetLevel){
+  const base = ARMOR_INFO[slot].defense;
+  if(targetLevel===1) return {ironBar: base+3, stone:4};
+  if(targetLevel===2) return {ironBar: base+6, goldBar:3};
+  return null;
+}
+
+// ---------- TOWER UPGRADE CHAIN ----------
+const TURRET_UPGRADE_ORDER = ['turret_wood','turret_stone','turret_iron'];
+const TURRET_UPGRADE_COST = {
+  turret_wood: {stone:8},
+  turret_stone: {ironBar:10, wood:4}
+};
+
+const SOLID_TILES = new Set(['tree','rock','ore_iron','ore_gold','ore_diamond','wall_wood','wall_stone','workbench','turret_wood','turret_stone','turret_iron','chest','furnace']);
+const WALKABLE_BUILD_TILES = new Set(['slab','torch']); // non-solid placeables
+
+const TILE_INFO = {
+  tree:{hp:3,color:'#2f6b2f',accent:'#1c4d1c',yield:{wood:[1,3]}},
+  rock:{hp:4,color:'#7d7d7d',accent:'#5c5c5c',yield:{stone:[1,3]}},
+  ore_iron:{hp:5,color:'#8a7a6a',accent:'#5c4f42',yield:{iron:[1,2]}},
+  ore_gold:{hp:7,color:'#9a8a4a',accent:'#6b5e2f',yield:{gold:[1,1]}},
+  ore_diamond:{hp:9,color:'#7ec8e3',accent:'#3f92b0',yield:{diamond:[1,1]}},
+  wall_wood:{hp:8,color:'#a9773f',accent:'#7a5527'},
+  wall_stone:{hp:14,color:'#9a9a9a',accent:'#6f6f6f'},
+  workbench:{hp:12,color:'#c98a4b',accent:'#8a5b2b'},
+  slab:{hp:6,color:'#b5b0a0',accent:'#8a8575'},
+  torch:{hp:2,color:'#e8a23a',accent:'#a8621a'},
+  turret_wood:{hp:10,color:'#7a9e5a',accent:'#4c6b34'},
+  turret_stone:{hp:16,color:'#8f8f9e',accent:'#54545e'},
+  turret_iron:{hp:22,color:'#6f7c8f',accent:'#37404d'},
+  chest:{hp:10,color:'#c98a4b',accent:'#7a4a1f'},
+  furnace:{hp:14,color:'#5a5a5a',accent:'#e8763a'}
+};
+
+// stats for turret types: damage, range, fireRate (seconds between shots), color
+const TURRET_STATS = {
+  turret_wood:{damage:8, range:190, rate:0.75, projColor:'#c9a066', name:'Arrow Turret'},
+  turret_stone:{damage:15, range:170, rate:1.3, projColor:'#cfcfcf', name:'Bolt Turret'},
+  turret_iron:{damage:28, range:260, rate:1.6, projColor:'#ffdd66', name:'Cannon Turret'}
+};
+
+const BUILD_COSTS = {
+  wall_wood:{wood:5},
+  wall_stone:{stone:5,wood:2},
+  workbench:{wood:4},
+  slab:{stone:2},
+  torch:{wood:1},
+  turret_wood:{wood:8},
+  turret_stone:{stone:10},
+  turret_iron:{ironBar:12,wood:5},
+  chest:{wood:6,stone:2},
+  furnace:{stone:8}
+};
+
+// items that require a workbench to be built somewhere in the world first
+const NEEDS_WORKBENCH = new Set(['turret_wood','turret_stone','turret_iron','chest','furnace']);
+
+const SHIELD_RECIPE = {wood:6, ironBar:4};
+
+// Mine/Attack share one slot (auto-detects target).
+// Tower upgrading/breaking is no longer a hotbar slot — right-click a tower in the world for options.
+// Shield is offhand equipment (not a hotbar slot) — once crafted, hold Shift anytime to block.
+// The hotbar always shows exactly 9 slots (keys 1-9, no 0 or -). Furnace and Chest (which used
+// to sit on the 0/- keys) are built from the Workbench panel instead — see WORKBENCH_BUILDABLES.
+const HOTBAR_TOOLS = [
+  {id:'action', key:'1', icon:'⛏', label:'Mine / Attack'}
+];
+const HOTBAR_BUILD = [
+  {id:'wall_wood', key:'2', icon:'🪵', label:'Wood Wall'},
+  {id:'wall_stone', key:'3', icon:'🧱', label:'Stone Wall'},
+  {id:'workbench', key:'4', icon:'🛠', label:'Workbench'},
+  {id:'slab', key:'5', icon:'▪', label:'Slab'},
+  {id:'torch', key:'6', icon:'🔥', label:'Torch'},
+  {id:'turret_wood', key:'7', icon:'🏹', label:'Arrow Turret'},
+  {id:'turret_stone', key:'8', icon:'🗼', label:'Bolt Turret'},
+  {id:'turret_iron', key:'9', icon:'💣', label:'Cannon Turret'}
+];
+// Furnace and Chest are built from the Workbench panel's "Build Structures" list instead of
+// the hotbar, so the hotbar can stay at exactly 9 slots without needing 0 or - keys.
+const WORKBENCH_BUILDABLES = [
+  {id:'furnace', icon:'🏭', label:'Furnace'},
+  {id:'chest', icon:'📦', label:'Chest'}
+];
+const HOTBAR = HOTBAR_TOOLS.concat(HOTBAR_BUILD);
+// The hotbar can be rearranged by dragging one slot onto another — the two swap places.
+// Keys 1-9 stay bound to the slot POSITION, not the item, so after a swap the number
+// key now selects whatever was dragged into that spot. Only slots 1-9 exist — no 0 or -.
+const HOTBAR_ROW_LENS = [HOTBAR_TOOLS.length, HOTBAR_BUILD.length];
+const HOTBAR_KEYS = ['1','2','3','4','5','6','7','8','9'];
+let hotbarLayout = HOTBAR.slice();
+let dragFromPos = null;
+
+const DIFFICULTIES = [
+  {id:'sandbox', name:'Sandbox', desc:'Light enemy spawns. Free build & mine.'},
+  {id:'easy', name:'Easy', desc:'Fewer, weaker enemies.'},
+  {id:'medium', name:'Medium', desc:'Balanced challenge.'},
+  {id:'hard', name:'Hard', desc:'More, tougher enemies.'},
+  {id:'hardcore', name:'Hardcore', desc:'One life. No saving. Death is final.'}
+];
+const DIFFICULTY_SETTINGS = {
+  sandbox: {spawnMult:0.5, hpMult:0.8, dmgMult:0.7, startBonus:{wood:15,stone:10,iron:5,gold:2}, allowSave:true, hardcore:false, regenDelay:10},
+  easy:    {spawnMult:0.6, hpMult:0.75, dmgMult:0.65, startBonus:{}, allowSave:true, hardcore:false, regenDelay:15},
+  medium:  {spawnMult:1, hpMult:1, dmgMult:1, startBonus:{}, allowSave:true, hardcore:false, regenDelay:20},
+  hard:    {spawnMult:1.5, hpMult:1.35, dmgMult:1.4, startBonus:{}, allowSave:true, hardcore:false, regenDelay:30},
+  hardcore:{spawnMult:1.9, hpMult:1.5, dmgMult:1.6, startBonus:{}, allowSave:false, hardcore:true, regenDelay:30}
+};
+const PLAYER_BUILT = new Set(['wall_wood','wall_stone','workbench','slab','torch','turret_wood','turret_stone','turret_iron','chest']);
+
+const ARMOR_SLOTS = ['helmet','chestplate','handguard','leggings','boots'];
+const ARMOR_INFO = {
+  helmet:{icon:'⛑️', name:'Helmet', defense:2},
+  chestplate:{icon:'🦺', name:'Chestplate', defense:4},
+  handguard:{icon:'🧤', name:'Hand Guard', defense:1},
+  leggings:{icon:'👖', name:'Leggings', defense:3},
+  boots:{icon:'🥾', name:'Boots', defense:2}
+};
+const ARMOR_RECIPES = {
+  helmet:{ironBar:6, wood:2},
+  chestplate:{ironBar:10, wood:2},
+  handguard:{ironBar:5, wood:1},
+  leggings:{ironBar:8, wood:2},
+  boots:{ironBar:5, wood:1}
+};
+const INVENTORY_SLOTS = 27;
+
+let difficulty = 'medium';
+const SAVE_SLOT_COUNT = 8;
+const SAVE_PREFIX = 'tribeDefenceSave_slot_';
+function slotKey(i){ return SAVE_PREFIX+i; }
+
+// ---------- STATE ----------
+let grid, player, enemies, projectiles, floaters, turretsList, particles, torchesList, chestsList, furnacesList;
+let furnaceOpenTile = null; // furnace currently shown in the furnace modal
+let workbenchOpenTile = null; // workbench currently shown in the workbench (craft/upgrade) modal
+let workbenchBuilt = false;
+let biomeTier = 0;
+let popupTile = null; // tower currently shown in the upgrade/break popup
+let chestOpenTile = null; // chest currently shown in the chest modal
+let keys = {};
+let mouse = {x:0,y:0,down:false};
+let camera = {x:0,y:0};
+let elapsed = 0;
+let running = false;
+let selected = 'action';
+let kills = 0;
+let killPoints = 0;
+const KILL_POINTS = {
+  sandbox:  {small:5,  big:7},
+  easy:     {small:6,  big:9},
+  medium:   {small:7,  big:10},
+  hard:     {small:9,  big:12},
+  hardcore: {small:10, big:15}
+};
+let day = 1;
+let resourceRegrowTimer = 0;
+let enemySpawnTimer = 0;
+let invOpen = false;
+let currentSlot = null; // which save slot this session is bound to, once saved/loaded
+let slotModalMode = 'save'; // 'save' or 'load'
+
+function rand(a,b){return a+Math.random()*(b-a);}
+function randi(a,b){return Math.floor(rand(a,b+1));}
+function dist(x1,y1,x2,y2){return Math.hypot(x1-x2,y1-y2);}
+
+// ---------- WORLD GEN ----------
+function genWorld(){
+  grid = new Array(COLS*ROWS).fill('grass');
+  for(let y=0;y<ROWS;y++){
+    for(let x=0;x<COLS;x++){
+      const r = Math.random();
+      let t = 'grass';
+      if(r < 0.07) t='tree';
+      else if(r < 0.12) t='rock';
+      else if(r < 0.145) t='ore_iron';
+      else if(r < 0.155) t='ore_gold';
+      else if(r < 0.159) t='ore_diamond';
+      grid[y*COLS+x] = t;
+    }
+  }
+  // clear spawn area
+  const cx = Math.floor(COLS/2), cy = Math.floor(ROWS/2);
+  for(let y=cy-5;y<=cy+5;y++){
+    for(let x=cx-5;x<=cx+5;x++){
+      if(x>=0&&x<COLS&&y>=0&&y<ROWS) grid[y*COLS+x]='grass';
+    }
+  }
+  // guarantee a few starter resources just outside
+  for(let i=0;i<6;i++){
+    const ang = Math.random()*Math.PI*2;
+    const rr = rand(6,8);
+    const x = Math.floor(cx+Math.cos(ang)*rr);
+    const y = Math.floor(cy+Math.sin(ang)*rr);
+    if(x>=0&&x<COLS&&y>=0&&y<ROWS) grid[y*COLS+x] = Math.random()<0.6?'tree':'rock';
+  }
+  return {cx,cy};
+}
+
+// Expands the map border outward and fills the new ring with a tougher biome
+// (denser ore, more trees/rock) whenever the player crosses a day threshold.
+function expandWorld(){
+  const growBy = 30;
+  const oldCols = COLS, oldRows = ROWS;
+  const newCols = oldCols+growBy*2, newRows = oldRows+growBy*2;
+  const newGrid = new Array(newCols*newRows).fill('grass');
+  for(let y=0;y<newRows;y++){
+    for(let x=0;x<newCols;x++){
+      const inOldZone = x>=growBy && x<growBy+oldCols && y>=growBy && y<growBy+oldRows;
+      if(inOldZone){
+        newGrid[y*newCols+x] = grid[(y-growBy)*oldCols+(x-growBy)];
+      } else {
+        const r = Math.random();
+        let t='grass';
+        if(r<0.10) t='tree';
+        else if(r<0.19) t='rock';
+        else if(r<0.26) t='ore_iron';
+        else if(r<0.33) t='ore_gold';
+        else if(r<0.40) t='ore_diamond';
+        newGrid[y*newCols+x] = t;
+      }
+    }
+  }
+  const dx = growBy*TILE, dy = growBy*TILE;
+  turretsList.forEach(t=>{t.tx+=growBy; t.ty+=growBy; t.x+=dx; t.y+=dy;});
+  torchesList.forEach(t=>{t.tx+=growBy; t.ty+=growBy; t.x+=dx; t.y+=dy;});
+  chestsList.forEach(t=>{t.tx+=growBy; t.ty+=growBy; t.x+=dx; t.y+=dy;});
+  furnacesList.forEach(t=>{t.tx+=growBy; t.ty+=growBy; t.x+=dx; t.y+=dy;});
+  enemies.forEach(e=>{e.x+=dx; e.y+=dy;});
+  projectiles.forEach(p=>{p.x+=dx; p.y+=dy;});
+  player.x += dx; player.y += dy;
+  COLS = newCols; ROWS = newRows; grid = newGrid;
+  WORLD_W = COLS*TILE; WORLD_H = ROWS*TILE;
+  showMsg('🌋 The border has expanded! Welcome to the '+BIOME_NAMES[biomeTier]+' — stronger enemies roam beyond the old lands.');
+}
+
+// Recomputes workbenchBuilt by scanning the live grid for any workbench tile, rather than
+// trusting a flag that only ever got set to true — this way, once every workbench you've
+// placed has been destroyed, workbench-gated crafting/building correctly locks again.
+function recomputeWorkbenchBuilt(){
+  workbenchBuilt = grid.includes('workbench');
+  if(!workbenchBuilt && WORKBENCH_BUILDABLES.some(b=>b.id===selected)){
+    // cancel a pending placement for a structure that needs a workbench we no longer have
+    selected = 'action';
+  }
+  updateWorkbenchStatus();
+  updateHotbarUI();
+}
+
+function tileAt(tx,ty){
+  if(tx<0||ty<0||tx>=COLS||ty>=ROWS) return 'wall_stone';
+  return grid[ty*COLS+tx];
+}
+function setTile(tx,ty,val){
+  if(tx<0||ty<0||tx>=COLS||ty>=ROWS) return;
+  grid[ty*COLS+tx]=val;
+}
+function isSolidAt(tx,ty){return SOLID_TILES.has(tileAt(tx,ty));}
+
+// ---------- ENTITIES ----------
+function resetGame(){
+  COLS = BASE_COLS; ROWS = BASE_ROWS; WORLD_W = COLS*TILE; WORLD_H = ROWS*TILE;
+  biomeTier = 0;
+  const spawn = genWorld();
+  const settings = DIFFICULTY_SETTINGS[difficulty];
+  player = {
+    x: spawn.cx*TILE+TILE/2, y: spawn.cy*TILE+TILE/2,
+    hp:100, maxHp:100,
+    wood:0, stone:0, iron:0, gold:0, diamond:0, ironBar:0, goldBar:0,
+    attackTimer:0, swingTimer:0,
+    hurtFlash:0, facing:{x:0,y:1},
+    pickaxeTier:0, weaponTier:0,
+    armorInv:{helmet:0,chestplate:0,handguard:0,leggings:0,boots:0},
+    equipped:{helmet:false,chestplate:false,handguard:false,leggings:false,boots:false},
+    armorLevel:{helmet:0,chestplate:0,handguard:0,leggings:0,boots:0},
+    towerInv:{turret_wood:0, turret_stone:0, turret_iron:0},
+    shieldOwned:false, blocking:false, timeSinceHit:9999
+  };
+  for(const res in settings.startBonus) player[res] = settings.startBonus[res];
+  enemies = [];
+  projectiles = [];
+  floaters = [];
+  particles = [];
+  turretsList = [];
+  torchesList = [];
+  chestsList = [];
+  furnacesList = [];
+  workbenchBuilt = false;
+  invOpen = false;
+  closeTowerPopup();
+  closeChest();
+  closeFurnace();
+  closeWorkbench();
+  currentSlot = null;
+  elapsed = 0; day=1; kills=0; killPoints=0;
+  enemySpawnTimer = 2;
+  resourceRegrowTimer = 6;
+  selected='action';
+  updateHotbarUI();
+  updateWorkbenchStatus();
+  updateDifficultyTag();
+  updateSaveUI();
+}
+
+function updateDifficultyTag(){
+  const tag = document.getElementById('diffTag');
+  const info = DIFFICULTIES.find(d=>d.id===difficulty);
+  tag.textContent = info ? info.name.toUpperCase()+' MODE' : '';
+  tag.style.color = {sandbox:'#8ecbff',easy:'#9fdc9f',medium:'#ffd24d',hard:'#ff9955',hardcore:'#ff5555'}[difficulty]||'#fff';
+}
+
+function updateSaveUI(){
+  const settings = DIFFICULTY_SETTINGS[difficulty];
+  const btn = document.getElementById('saveBtn');
+  const note = document.getElementById('saveNote');
+  if(settings.allowSave){
+    btn.classList.remove('disabled');
+    note.textContent = currentSlot!==null ? ('Slot '+(currentSlot+1)+' · shift-click to switch') : 'Pick a slot to save';
+  } else {
+    btn.classList.add('disabled');
+    note.textContent = 'Saving disabled in Hardcore';
+  }
+}
+
+function spawnEnemy(){
+  // spawn at random position on a ring around player, outside view-ish
+  const ang = Math.random()*Math.PI*2;
+  const r = rand(520,700);
+  let x = player.x+Math.cos(ang)*r;
+  let y = player.y+Math.sin(ang)*r;
+  x = Math.max(20,Math.min(WORLD_W-20,x));
+  y = Math.max(20,Math.min(WORLD_H-20,y));
+  const isNight = isNightTime();
+  const strong = day>=3 && Math.random()<(0.35+biomeTier*0.2);
+  const settings = DIFFICULTY_SETTINGS[difficulty];
+  const tierMult = 1 + biomeTier*0.85;
+  const baseHp = (strong?75:25)*tierMult;
+  const baseDmg = (strong?20:8)*tierMult;
+  enemies.push({
+    x,y,
+    hp: Math.round(baseHp*settings.hpMult),
+    maxHp: Math.round(baseHp*settings.hpMult),
+    speed: (strong?95:120)+biomeTier*8,
+    damage: Math.round(baseDmg*settings.dmgMult),
+    radius: strong?16:12,
+    big: strong,
+    color: biomeTier>=2 ? (strong?'#7a1fb2':'#a13fd1') : (biomeTier>=1 ? (strong?'#b2661f':'#d18a3f') : (strong?'#b23a3a':'#d1594f')),
+    contactCooldown:0,
+    wanderTarget:null,
+    wanderTimer:0
+  });
+}
+
+function isNightTime(){
+  const t = (elapsed % DAY_LENGTH)/DAY_LENGTH;
+  return t > NIGHT_START;
+}
+
+function addFloater(x,y,text,color){
+  floaters.push({x,y,text,color:color||'#fff',life:1.0});
+}
+function addParticles(x,y,color,n){
+  for(let i=0;i<n;i++){
+    particles.push({x,y,vx:rand(-60,60),vy:rand(-60,60),life:0.5,color});
+  }
+}
+
+// ---------- INPUT ----------
+window.addEventListener('keydown',e=>{
+  if(e.target && (e.target.tagName==='INPUT'||e.target.tagName==='TEXTAREA')) return; // typing in chat, don't drive the game
+  keys[e.key.toLowerCase()]=true;
+  if(e.key.toLowerCase()==='e' && running && !chestOpenTile && !furnaceOpenTile && !workbenchOpenTile){ toggleInventory(); return; }
+  if(e.key==='Escape' && invOpen){ toggleInventory(); return; }
+  if(e.key==='Escape' && WORKBENCH_BUILDABLES.some(b=>b.id===selected)){ selected='action'; updateHotbarUI(); return; }
+  if(invOpen || chestOpenTile || furnaceOpenTile || workbenchOpenTile) return;
+  const pos = HOTBAR_KEYS.indexOf(e.key);
+  const found = pos>=0 ? hotbarLayout[pos] : null;
+  if(found){selected=found.id; updateHotbarUI();}
+});
+window.addEventListener('keyup',e=>{
+  if(e.target && (e.target.tagName==='INPUT'||e.target.tagName==='TEXTAREA')) return;
+  keys[e.key.toLowerCase()]=false;
+});
+canvas.addEventListener('mousemove',e=>{mouse.x=e.clientX;mouse.y=e.clientY;});
+canvas.addEventListener('mousedown',e=>{
+  mouse.down=true;
+  if(invOpen || chestOpenTile || furnaceOpenTile || workbenchOpenTile) return;
+  if(popupTile){ closeTowerPopup(); if(e.button!==2) return; }
+  if(e.button===2){
+    const w = screenToWorld(mouse.x,mouse.y);
+    const {tx,ty} = worldToTile(w.x,w.y);
+    const t = tileAt(tx,ty);
+    // Right-click a chest to open it, a furnace to smelt, a workbench to craft/upgrade, right-click a tower to choose Upgrade/Break.
+    if(t==='chest') openChest(tx,ty);
+    else if(t==='furnace') openFurnace(tx,ty);
+    else if(t==='workbench') openWorkbench(tx,ty);
+    else if(TURRET_UPGRADE_ORDER.includes(t)) openTowerPopup(tx,ty,e.clientX,e.clientY);
+  }
+  else doAction();
+});
+canvas.addEventListener('mouseup',e=>{mouse.down=false;});
+canvas.addEventListener('contextmenu',e=>e.preventDefault());
+document.addEventListener('contextmenu',e=>e.preventDefault());
+
+function screenToWorld(sx,sy){return {x:sx+camera.x, y:sy+camera.y};}
+
+function worldToTile(wx,wy){return {tx:Math.floor(wx/TILE), ty:Math.floor(wy/TILE)};}
+
+// ---------- ACTIONS ----------
+function doAction(){
+  if(!running || invOpen || chestOpenTile || furnaceOpenTile || workbenchOpenTile) return;
+  const w = screenToWorld(mouse.x,mouse.y);
+  const {tx,ty} = worldToTile(w.x,w.y);
+  const t = tileAt(tx,ty);
+  // Left click always breaks a placed block/tower directly under the cursor.
+  if(PLAYER_BUILT.has(t)){ tryDestroy(w); return; }
+  if(selected==='action') tryActionAuto(w);
+  else tryBuild(w, selected);
+}
+
+// Auto-detects intent for the merged Mine/Attack slot: mine whatever
+// resource tile is under the cursor, otherwise swing at nearby enemies.
+function tryActionAuto(w){
+  const {tx,ty} = worldToTile(w.x,w.y);
+  const info = TILE_INFO[tileAt(tx,ty)];
+  if(info && info.yield) tryMine(w);
+  else tryAttack();
+}
+
+function tryDestroy(w){
+  if(!running || invOpen) return;
+  const {tx,ty} = worldToTile(w.x,w.y);
+  const t = tileAt(tx,ty);
+  if(!PLAYER_BUILT.has(t)){ showMsg('Nothing to destroy there'); return; }
+  const tileCenter = {x:tx*TILE+TILE/2, y:ty*TILE+TILE/2};
+  if(dist(player.x,player.y,tileCenter.x,tileCenter.y) > BUILD_REACH){ showMsg('Too far away'); return; }
+  const cost = BUILD_COSTS[t];
+  if(cost){
+    for(const res in cost){
+      const refund = Math.floor(cost[res]*0.5);
+      if(refund>0){
+        player[res]+=refund;
+        addFloater(tileCenter.x,tileCenter.y-10,'+'+refund+' '+res,resColor(res));
+      }
+    }
+  }
+  setTile(tx,ty,'grass');
+  turretsList = turretsList.filter(tt=>!(tt.tx===tx && tt.ty===ty));
+  torchesList = torchesList.filter(tt=>!(tt.tx===tx && tt.ty===ty));
+  if(chestOpenTile && chestOpenTile.tx===tx && chestOpenTile.ty===ty) closeChest();
+  chestsList = chestsList.filter(cc=>!(cc.tx===tx && cc.ty===ty));
+  if(furnaceOpenTile && furnaceOpenTile.tx===tx && furnaceOpenTile.ty===ty) closeFurnace();
+  if(workbenchOpenTile && workbenchOpenTile.tx===tx && workbenchOpenTile.ty===ty) closeWorkbench();
+  furnacesList = furnacesList.filter(ff=>!(ff.tx===tx && ff.ty===ty));
+  addParticles(tileCenter.x,tileCenter.y,'#ff8888',8);
+  if(t==='workbench') recomputeWorkbenchBuilt();
+  showMsg('Destroyed (50% refunded)');
+}
+
+function tryMine(w){
+  const {tx,ty} = worldToTile(w.x,w.y);
+  const t = tileAt(tx,ty);
+  const info = TILE_INFO[t];
+  if(!info || !info.yield) return; // not a resource
+  const tileCenter = {x:tx*TILE+TILE/2, y:ty*TILE+TILE/2};
+  if(dist(player.x,player.y,tileCenter.x,tileCenter.y) > MINE_REACH) {
+    showMsg('Too far away');
+    return;
+  }
+  const reqTier = TIER_REQUIRED_FOR_TILE[t];
+  if(reqTier!==undefined && player.pickaxeTier < reqTier){
+    showMsg('Need a '+TOOL_TIER_NAMES[reqTier]+' pickaxe or better');
+    return;
+  }
+  const key = tx+','+ty;
+  hitCounters[key] = (hitCounters[key]||0)+PICKAXE_POWER[player.pickaxeTier];
+  addParticles(tileCenter.x,tileCenter.y, info.accent, 6);
+  if(hitCounters[key] >= info.hp){
+    delete hitCounters[key];
+    setTile(tx,ty,'grass');
+    for(const res in info.yield){
+      const amt = randi(info.yield[res][0], info.yield[res][1]);
+      player[res]+=amt;
+      addFloater(tileCenter.x, tileCenter.y-10, '+'+amt+' '+res, resColor(res));
+    }
+  } else {
+    addFloater(tileCenter.x, tileCenter.y-10, 'hit', '#fff');
+  }
+  player.swingTimer = 0.15;
+  lastSwingType = 'mine';
+}
+let hitCounters = {};
+let lastSwingType = 'mine'; // 'mine' or 'attack' — drives the swing-effect visual since both share one hotbar slot
+
+function resColor(res){
+  return {wood:'#c9a066', stone:'#cfcfcf', iron:'#dfa3a3', gold:'#ffe27a', diamond:'#7ec8e3', ironBar:'#c9c9d9', goldBar:'#ffcf4d'}[res]||'#fff';
+}
+
+function tryAttack(){
+  if(player.attackTimer>0) return;
+  player.attackTimer = ATTACK_COOLDOWN;
+  player.swingTimer = 0.18;
+  lastSwingType = 'attack';
+  const dmg = WEAPON_DAMAGE[player.weaponTier];
+  let hitAny=false;
+  for(const e of enemies){
+    if(dist(player.x,player.y,e.x,e.y) <= ATTACK_RANGE + e.radius){
+      e.hp -= dmg;
+      hitAny=true;
+      addFloater(e.x,e.y-10,'-'+dmg,'#ff8888');
+      addParticles(e.x,e.y,'#ff5555',5);
+      // knockback
+      const ang = Math.atan2(e.y-player.y,e.x-player.x);
+      e.x += Math.cos(ang)*14; e.y += Math.sin(ang)*14;
+    }
+  }
+  if(!hitAny) showMsg('No target in range');
+}
+
+function tryUpgradeTurret(w){
+  if(!workbenchBuilt){ showMsg('Requires a Workbench first'); return; }
+  const {tx,ty} = worldToTile(w.x,w.y);
+  const t = tileAt(tx,ty);
+  const idx = TURRET_UPGRADE_ORDER.indexOf(t);
+  if(idx===-1){ showMsg('Point at a tower to upgrade it'); return; }
+  const tileCenter = {x:tx*TILE+TILE/2, y:ty*TILE+TILE/2};
+  if(dist(player.x,player.y,tileCenter.x,tileCenter.y) > BUILD_REACH){ showMsg('Too far away'); return; }
+  if(idx === TURRET_UPGRADE_ORDER.length-1){ showMsg(TURRET_STATS[t].name+' is already max level'); return; }
+  const nextType = TURRET_UPGRADE_ORDER[idx+1];
+  const cost = TURRET_UPGRADE_COST[t];
+  for(const res in cost){
+    if(player[res] < cost[res]){ showMsg('Not enough '+res); return; }
+  }
+  for(const res in cost) player[res]-=cost[res];
+  setTile(tx,ty,nextType);
+  const s = TURRET_STATS[nextType];
+  const turret = turretsList.find(tt=>tt.tx===tx && tt.ty===ty);
+  if(turret){
+    turret.type = nextType;
+    turret.range = s.range;
+    turret.damage = s.damage;
+    turret.rate = s.rate;
+    turret.projColor = s.projColor;
+  }
+  addFloater(tileCenter.x,tileCenter.y-10,'Upgraded!','#9fdc9f');
+  addParticles(tileCenter.x,tileCenter.y,'#ffffff',8);
+  showMsg('Upgraded to '+s.name);
+}
+
+// ---------- TOWER POPUP (right-click a tower: choose Upgrade or Break) ----------
+function openTowerPopup(tx,ty,screenX,screenY){
+  const t = tileAt(tx,ty);
+  if(!TURRET_UPGRADE_ORDER.includes(t)) return;
+  popupTile = {tx,ty};
+  const idx = TURRET_UPGRADE_ORDER.indexOf(t);
+  const maxed = idx === TURRET_UPGRADE_ORDER.length-1;
+  const s = TURRET_STATS[t];
+  document.getElementById('towerPopupTitle').textContent = s.name;
+  const upBtn = document.getElementById('towerUpgradeBtn');
+  if(maxed){
+    upBtn.textContent = 'Already Max Level';
+    upBtn.disabled = true;
+  } else {
+    const cost = TURRET_UPGRADE_COST[t];
+    const affordable = workbenchBuilt && Object.entries(cost).every(([r,v])=>player[r]>=v);
+    upBtn.textContent = '⬆ Upgrade ('+Object.entries(cost).map(([k,v])=>resIcon(k)+v).join(' ')+')';
+    upBtn.disabled = !affordable;
+  }
+  const pop = document.getElementById('towerPopup');
+  pop.style.left = screenX+'px';
+  pop.style.top = screenY+'px';
+  pop.style.display = 'block';
+}
+function closeTowerPopup(){
+  const pop = document.getElementById('towerPopup');
+  if(pop) pop.style.display = 'none';
+  popupTile = null;
+}
+document.getElementById('towerUpgradeBtn').addEventListener('click',()=>{
+  if(!popupTile) return;
+  const {tx,ty} = popupTile;
+  tryUpgradeTurret({x:tx*TILE+TILE/2, y:ty*TILE+TILE/2});
+  closeTowerPopup();
+});
+document.getElementById('towerBreakBtn').addEventListener('click',()=>{
+  if(!popupTile) return;
+  const {tx,ty} = popupTile;
+  tryDestroy({x:tx*TILE+TILE/2, y:ty*TILE+TILE/2});
+  closeTowerPopup();
+});
+document.getElementById('towerCancelBtn').addEventListener('click', closeTowerPopup);
+
+// ---------- CHESTS (right-click to open, deposit/withdraw resources) ----------
+function openChest(tx,ty){
+  const chest = chestsList.find(c=>c.tx===tx && c.ty===ty);
+  if(!chest) return;
+  chestOpenTile = chest;
+  renderChestModal();
+  document.getElementById('chestModal').style.display = 'flex';
+}
+function closeChest(){
+  const modal = document.getElementById('chestModal');
+  if(modal) modal.style.display = 'none';
+  chestOpenTile = null;
+}
+function renderChestModal(){
+  const wrap = document.getElementById('chestGrid');
+  if(!wrap || !chestOpenTile) return;
+  const chest = chestOpenTile;
+  wrap.innerHTML = '';
+  for(const res of ['wood','stone','iron','gold','diamond','ironBar','goldBar']){
+    const row = document.createElement('div');
+    row.className = 'chestRow';
+    row.innerHTML = `<div class="chestIcon">${resIcon(res)}</div>
+      <div class="chestInfo"><div class="chestName">${res}</div><div class="chestCounts">You: ${player[res]} · Chest: ${chest.storage[res]}</div></div>`;
+    const depBtn = document.createElement('button');
+    depBtn.className = 'chestBtn'; depBtn.textContent = 'Deposit 10';
+    depBtn.addEventListener('click',(e)=>{
+      const amt = e.shiftKey ? player[res] : Math.min(10, player[res]);
+      if(amt<=0) return;
+      player[res]-=amt; chest.storage[res]+=amt;
+      renderChestModal();
+    });
+    const witBtn = document.createElement('button');
+    witBtn.className = 'chestBtn'; witBtn.textContent = 'Withdraw 10';
+    witBtn.addEventListener('click',(e)=>{
+      const amt = e.shiftKey ? chest.storage[res] : Math.min(10, chest.storage[res]);
+      if(amt<=0) return;
+      chest.storage[res]-=amt; player[res]+=amt;
+      renderChestModal();
+    });
+    row.appendChild(depBtn); row.appendChild(witBtn);
+    wrap.appendChild(row);
+  }
+}
+document.getElementById('chestCloseBtn').addEventListener('click', closeChest);
+window.addEventListener('keydown',e=>{
+  if(e.key==='Escape' && chestOpenTile){ closeChest(); }
+  if(e.key==='Escape' && furnaceOpenTile){ closeFurnace(); }
+  if(e.key==='Escape' && workbenchOpenTile){ closeWorkbench(); }
+});
+
+// ---------- FURNACE (right-click to open, smelt iron/gold ore into bars) ----------
+// Stone and diamond ore are used raw; iron and gold ore must be smelted here first —
+// each ore smelted consumes 1 wood as fuel.
+const SMELT_FUEL_PER_ORE = 1;
+const SMELTABLE = [
+  {ore:'iron', bar:'ironBar', name:'Iron'},
+  {ore:'gold', bar:'goldBar', name:'Gold'}
+];
+function openFurnace(tx,ty){
+  const furnace = furnacesList.find(f=>f.tx===tx && f.ty===ty);
+  if(!furnace) return;
+  furnaceOpenTile = furnace;
+  renderFurnaceModal();
+  document.getElementById('furnaceModal').style.display = 'flex';
+}
+function closeFurnace(){
+  const modal = document.getElementById('furnaceModal');
+  if(modal) modal.style.display = 'none';
+  furnaceOpenTile = null;
+}
+function smeltOre(ore, bar, amt){
+  amt = Math.min(amt, player[ore], player.wood);
+  if(amt<=0){ showMsg(player[ore]<=0 ? ('No '+ore+' ore to smelt') : 'Not enough wood for fuel'); return; }
+  player[ore] -= amt;
+  player.wood -= amt*SMELT_FUEL_PER_ORE;
+  player[bar] += amt;
+  renderFurnaceModal();
+  updateHUD();
+}
+function renderFurnaceModal(){
+  const wrap = document.getElementById('furnaceGrid');
+  if(!wrap || !furnaceOpenTile) return;
+  wrap.innerHTML = '';
+  for(const s of SMELTABLE){
+    const row = document.createElement('div');
+    row.className = 'chestRow';
+    row.innerHTML = `<div class="chestIcon">${resIcon(s.ore)}➜${resIcon(s.bar)}</div>
+      <div class="chestInfo"><div class="chestName">${s.name} Ore ➜ ${s.name} Bar</div><div class="chestCounts">Ore: ${player[s.ore]} · Wood fuel: ${player.wood} · Bars: ${player[s.bar]}</div></div>`;
+    const smelt1 = document.createElement('button');
+    smelt1.className = 'chestBtn'; smelt1.textContent = 'Smelt 1';
+    smelt1.addEventListener('click',()=>smeltOre(s.ore, s.bar, 1));
+    const smeltAll = document.createElement('button');
+    smeltAll.className = 'chestBtn'; smeltAll.textContent = 'Smelt All';
+    smeltAll.addEventListener('click',()=>smeltOre(s.ore, s.bar, player[s.ore]));
+    row.appendChild(smelt1); row.appendChild(smeltAll);
+    wrap.appendChild(row);
+  }
+}
+document.getElementById('furnaceCloseBtn').addEventListener('click', closeFurnace);
+
+function tryBuild(w, id){
+  const isTower = !!TURRET_STATS[id];
+  const cost = BUILD_COSTS[id];
+  if(!cost) return;
+  if(isTower){
+    if((player.towerInv[id]||0) <= 0){
+      showMsg('None crafted — craft one at the Workbench first');
+      return;
+    }
+  } else if(NEEDS_WORKBENCH.has(id) && !workbenchBuilt){
+    showMsg('Requires a Workbench first');
+    return;
+  }
+  const {tx,ty} = worldToTile(w.x,w.y);
+  const t = tileAt(tx,ty);
+  const tileCenter = {x:tx*TILE+TILE/2, y:ty*TILE+TILE/2};
+  if(dist(player.x,player.y,tileCenter.x,tileCenter.y) > BUILD_REACH){showMsg('Too far away');return;}
+  if(t!=='grass'){showMsg('Cannot build there');return;}
+  if(dist(player.x,player.y,tileCenter.x,tileCenter.y) < 34 && !WALKABLE_BUILD_TILES.has(id)){showMsg('Too close to you');return;}
+  if(isTower){
+    player.towerInv[id]-=1;
+  } else {
+    for(const res in cost){
+      if(player[res] < cost[res]){showMsg('Not enough '+res);return;}
+    }
+    for(const res in cost) player[res]-=cost[res];
+  }
+  setTile(tx,ty,id);
+  if(id==='workbench'){
+    recomputeWorkbenchBuilt();
+    showMsg('Workbench built! New recipes unlocked.');
+  }
+  if(TURRET_STATS[id]){
+    const s = TURRET_STATS[id];
+    turretsList.push({tx,ty,x:tileCenter.x,y:tileCenter.y,cooldown:0,range:s.range,damage:s.damage,rate:s.rate,projColor:s.projColor,type:id});
+  }
+  if(id==='torch'){
+    torchesList.push({tx,ty,x:tileCenter.x,y:tileCenter.y});
+  }
+  if(id==='chest'){
+    chestsList.push({tx,ty,x:tileCenter.x,y:tileCenter.y,storage:{wood:0,stone:0,iron:0,gold:0,diamond:0,ironBar:0,goldBar:0}});
+  }
+  if(id==='furnace'){
+    furnacesList.push({tx,ty,x:tileCenter.x,y:tileCenter.y});
+  }
+  addFloater(tileCenter.x,tileCenter.y-10,'Built!','#9fdc9f');
+  addParticles(tileCenter.x,tileCenter.y,'#ffffff',8);
+  if(isTower && player.towerInv[id]<=0 && selected===id){
+    selected = 'action'; // out of stock — drop the now-blank slot selection
+  }
+  updateHotbarUI();
+}
+
+let msgTimer=0;
+function showMsg(text){
+  const el = document.getElementById('msg');
+  el.textContent = text;
+  el.style.opacity = 1;
+  msgTimer = 1.2;
+}
+
+// ---------- UPDATE ----------
+function update(dt){
+  elapsed += dt;
+  day = Math.floor(elapsed/DAY_LENGTH)+1;
+
+  // player movement
+  let mx=0,my=0;
+  if(keys['w']||keys['arrowup']) my-=1;
+  if(keys['s']||keys['arrowdown']) my+=1;
+  if(keys['a']||keys['arrowleft']) mx-=1;
+  if(keys['d']||keys['arrowright']) mx+=1;
+  if(mx!==0||my!==0){
+    const len=Math.hypot(mx,my); mx/=len; my/=len;
+    player.facing={x:mx,y:my};
+    moveEntity(player, mx*PLAYER_SPEED*dt, my*PLAYER_SPEED*dt, PLAYER_SIZE/2);
+  }
+  player.x = Math.max(PLAYER_SIZE, Math.min(WORLD_W-PLAYER_SIZE, player.x));
+  player.y = Math.max(PLAYER_SIZE, Math.min(WORLD_H-PLAYER_SIZE, player.y));
+
+  if(player.attackTimer>0) player.attackTimer-=dt;
+  if(player.swingTimer>0) player.swingTimer-=dt;
+  if(player.hurtFlash>0) player.hurtFlash-=dt;
+
+  // regen — only kicks in after surviving undamaged for the difficulty's delay
+  player.timeSinceHit = (player.timeSinceHit||0) + dt;
+  const regenDelay = DIFFICULTY_SETTINGS[difficulty].regenDelay;
+  if(player.hp < player.maxHp && player.timeSinceHit >= regenDelay){
+    player.hp = Math.min(player.maxHp, player.hp + dt*0.8);
+  }
+
+  // enemy spawning — daytime is safe (no spawns) so players can gather; mobs only spawn at night
+  enemySpawnTimer -= dt;
+  const dsettings = DIFFICULTY_SETTINGS[difficulty];
+  const night = isNightTime();
+  const baseSpawnRate = 2.2;
+  const baseCap = 8+day;
+  const spawnRate = dsettings.spawnMult>0 ? baseSpawnRate/dsettings.spawnMult : Infinity;
+  const cap = Math.round(baseCap*dsettings.spawnMult);
+  if(night && dsettings.spawnMult>0 && enemySpawnTimer<=0 && enemies.length < cap){
+    spawnEnemy();
+    enemySpawnTimer = spawnRate;
+  }
+
+  // biome expansion at day 50 / day 100
+  if(day>=BIOME_THRESHOLDS[0] && biomeTier<1){ biomeTier=1; expandWorld(); }
+  if(day>=BIOME_THRESHOLDS[1] && biomeTier<2){ biomeTier=2; expandWorld(); }
+
+  // Shield is worn offhand — once crafted, holding Shift blocks regardless of which tool/slot is selected.
+  const blocking = player.shieldOwned && !!keys['shift'];
+  player.blocking = blocking;
+
+  // enemies AI
+  for(const e of enemies){
+    const d = dist(e.x,e.y,player.x,player.y);
+    let dx=0,dy=0;
+    if(d < 260){
+      dx = (player.x-e.x)/d; dy=(player.y-e.y)/d;
+    } else {
+      e.wanderTimer -= dt;
+      if(!e.wanderTarget || e.wanderTimer<=0){
+        e.wanderTarget = {x:e.x+rand(-150,150), y:e.y+rand(-150,150)};
+        e.wanderTimer = rand(2,4);
+      }
+      const wd = dist(e.x,e.y,e.wanderTarget.x,e.wanderTarget.y);
+      if(wd>4){dx=(e.wanderTarget.x-e.x)/wd; dy=(e.wanderTarget.y-e.y)/wd;}
+    }
+    const nx = e.x+dx*e.speed*dt, ny = e.y+dy*e.speed*dt;
+    const {tx,ty} = worldToTile(nx,e.y);
+    if(!isSolidAt(tx,ty)) e.x = Math.max(10,Math.min(WORLD_W-10,nx));
+    const {tx:tx2,ty:ty2} = worldToTile(e.x,ny);
+    if(!isSolidAt(tx2,ty2)) e.y = Math.max(10,Math.min(WORLD_H-10,ny));
+
+    if(e.contactCooldown>0) e.contactCooldown-=dt;
+    if(d < e.radius+PLAYER_SIZE/2 && e.contactCooldown<=0){
+      let dmg = Math.max(1, Math.round(e.damage - getTotalDefense()));
+      if(blocking) dmg = Math.max(0, Math.round(dmg*0.1));
+      player.hp -= dmg;
+      if(dmg>0) player.timeSinceHit = 0;
+      player.hurtFlash = 0.25;
+      e.contactCooldown = 0.9;
+      const ang = Math.atan2(player.y-e.y,player.x-e.x);
+      player.x += Math.cos(ang)*10; player.y += Math.sin(ang)*10;
+      addFloater(player.x,player.y-20,'-'+dmg,'#ff5555');
+    }
+  }
+  // remove dead enemies
+  for(let i=enemies.length-1;i>=0;i--){
+    if(enemies[i].hp<=0){
+      addParticles(enemies[i].x,enemies[i].y,'#ff3333',10);
+      if(Math.random()<0.35){
+        const res = Math.random()<0.5?'wood':'stone';
+        const amt = randi(1,2);
+        player[res]+=amt;
+        addFloater(enemies[i].x,enemies[i].y,'+'+amt+' '+res,resColor(res));
+      }
+      const pointsTable = KILL_POINTS[difficulty] || KILL_POINTS.medium;
+      const pts = enemies[i].big ? pointsTable.big : pointsTable.small;
+      killPoints += pts;
+      addFloater(enemies[i].x,enemies[i].y-10,'+'+pts+'pt','#ffd24d');
+      enemies.splice(i,1);
+      kills++;
+    }
+  }
+
+  // turrets
+  for(const t of turretsList){
+    if(tileAt(t.tx,t.ty)!==t.type) continue; // destroyed
+    t.cooldown -= dt;
+    if(t.cooldown<=0){
+      let target=null, best=Infinity;
+      for(const e of enemies){
+        const d = dist(t.x,t.y,e.x,e.y);
+        if(d < t.range && d<best){best=d; target=e;}
+      }
+      if(target){
+        const ang = Math.atan2(target.y-t.y,target.x-t.x);
+        projectiles.push({x:t.x,y:t.y,vx:Math.cos(ang)*420,vy:Math.sin(ang)*420,damage:t.damage,life:1.0,color:t.projColor});
+        t.cooldown = t.rate;
+      }
+    }
+  }
+  // projectiles
+  for(let i=projectiles.length-1;i>=0;i--){
+    const p = projectiles[i];
+    p.x+=p.vx*dt; p.y+=p.vy*dt; p.life-=dt;
+    let hit=false;
+    for(const e of enemies){
+      if(dist(p.x,p.y,e.x,e.y) < e.radius+5){
+        e.hp -= p.damage;
+        addParticles(e.x,e.y,'#ffcc66',4);
+        hit=true; break;
+      }
+    }
+    if(hit || p.life<=0) projectiles.splice(i,1);
+  }
+
+  // resource regrowth
+  resourceRegrowTimer -= dt;
+  if(resourceRegrowTimer<=0){
+    resourceRegrowTimer = rand(4,8);
+    for(let tries=0; tries<8; tries++){
+      const tx = randi(0,COLS-1), ty = randi(0,ROWS-1);
+      if(tileAt(tx,ty)==='grass' && dist(tx*TILE,ty*TILE,player.x,player.y)>300){
+        setTile(tx,ty, Math.random()<0.65?'tree':'rock');
+        break;
+      }
+    }
+  }
+
+  // floaters & particles
+  for(let i=floaters.length-1;i>=0;i--){
+    const f=floaters[i]; f.life-=dt*1.2; f.y-=dt*22;
+    if(f.life<=0) floaters.splice(i,1);
+  }
+  for(let i=particles.length-1;i>=0;i--){
+    const p=particles[i]; p.x+=p.vx*dt; p.y+=p.vy*dt; p.life-=dt;
+    if(p.life<=0) particles.splice(i,1);
+  }
+
+  if(msgTimer>0){
+    msgTimer-=dt;
+    if(msgTimer<=0) document.getElementById('msg').style.opacity=0;
+  }
+
+  camera.x = player.x - canvas.width/2;
+  camera.y = player.y - canvas.height/2;
+
+  if(player.hp<=0) endGame();
+}
+
+function moveEntity(ent, dx, dy, half){
+  const nx = ent.x+dx;
+  const {tx,ty} = worldToTile(nx, ent.y);
+  if(!isSolidAt(tx,ty)) ent.x = nx;
+  const ny = ent.y+dy;
+  const {tx:tx2,ty:ty2} = worldToTile(ent.x, ny);
+  if(!isSolidAt(tx2,ty2)) ent.y = ny;
+}
+
+// ---------- DRAW ----------
+function draw(){
+  const w=canvas.width, h=canvas.height;
+  ctx.clearRect(0,0,w,h);
+
+  const startCol = Math.max(0, Math.floor(camera.x/TILE)-1);
+  const endCol = Math.min(COLS-1, Math.ceil((camera.x+w)/TILE)+1);
+  const startRow = Math.max(0, Math.floor(camera.y/TILE)-1);
+  const endRow = Math.min(ROWS-1, Math.ceil((camera.y+h)/TILE)+1);
+
+  for(let ty=startRow; ty<=endRow; ty++){
+    for(let tx=startCol; tx<=endCol; tx++){
+      const t = tileAt(tx,ty);
+      const sx = tx*TILE-camera.x, sy = ty*TILE-camera.y;
+      if(t==='grass'){
+        ctx.fillStyle = ((tx+ty)%2===0)?'#3d6b3d':'#396439';
+        ctx.fillRect(sx,sy,TILE,TILE);
+      } else {
+        ctx.fillStyle = '#355c35';
+        ctx.fillRect(sx,sy,TILE,TILE);
+        const info = TILE_INFO[t];
+        ctx.fillStyle = info.color;
+        const pad=4;
+        ctx.fillRect(sx+pad,sy+pad,TILE-pad*2,TILE-pad*2);
+        ctx.strokeStyle = info.accent;
+        ctx.lineWidth=2;
+        ctx.strokeRect(sx+pad,sy+pad,TILE-pad*2,TILE-pad*2);
+        // damage cracks
+        const key = tx+','+ty;
+        if(hitCounters[key]){
+          ctx.strokeStyle='rgba(0,0,0,0.5)';
+          ctx.lineWidth=1;
+          for(let i=0;i<hitCounters[key];i++){
+            ctx.beginPath();
+            ctx.moveTo(sx+8+i*6, sy+8);
+            ctx.lineTo(sx+4+i*6, sy+TILE-8);
+            ctx.stroke();
+          }
+        }
+      }
+    }
+  }
+
+  // turret range indicator while a turret type is selected for building
+  if(TURRET_STATS[selected]){
+    for(const t of turretsList){
+      ctx.beginPath();
+      ctx.strokeStyle='rgba(255,255,255,0.15)';
+      ctx.arc(t.x-camera.x,t.y-camera.y,t.range,0,Math.PI*2);
+      ctx.stroke();
+    }
+  }
+
+  // particles
+  for(const p of particles){
+    ctx.globalAlpha = Math.max(0,p.life/0.5);
+    ctx.fillStyle = p.color;
+    ctx.fillRect(p.x-camera.x-2,p.y-camera.y-2,4,4);
+    ctx.globalAlpha=1;
+  }
+
+  // enemies
+  for(const e of enemies){
+    const sx=e.x-camera.x, sy=e.y-camera.y;
+    ctx.beginPath();
+    ctx.fillStyle=e.color;
+    ctx.arc(sx,sy,e.radius,0,Math.PI*2);
+    ctx.fill();
+    ctx.strokeStyle='#4a1010'; ctx.lineWidth=2; ctx.stroke();
+    // hp bar
+    ctx.fillStyle='#2a0a0a';
+    ctx.fillRect(sx-16,sy-e.radius-12,32,5);
+    ctx.fillStyle='#e05050';
+    ctx.fillRect(sx-16,sy-e.radius-12,32*(e.hp/e.maxHp),5);
+  }
+
+  // projectiles
+  for(const p of projectiles){
+    ctx.beginPath();
+    ctx.fillStyle=p.color||'#ffdd66';
+    ctx.arc(p.x-camera.x,p.y-camera.y,4,0,Math.PI*2);
+    ctx.fill();
+  }
+
+  // turrets top decoration (barrel) + range ring while placing
+  for(const t of turretsList){
+    if(tileAt(t.tx,t.ty)!==t.type) continue;
+    const sx=t.x-camera.x, sy=t.y-camera.y;
+    ctx.fillStyle='#222';
+    ctx.beginPath(); ctx.arc(sx,sy,7,0,Math.PI*2); ctx.fill();
+    ctx.fillStyle=TURRET_STATS[t.type].projColor;
+    ctx.beginPath(); ctx.arc(sx,sy,3,0,Math.PI*2); ctx.fill();
+  }
+
+  // torch flames + warm glow
+  for(const tc of torchesList){
+    if(tileAt(tc.tx,tc.ty)!=='torch') continue;
+    const sx=tc.x-camera.x, sy=tc.y-camera.y;
+    const flicker = 0.7+Math.sin(elapsed*9+tc.tx)*0.15+Math.sin(elapsed*17+tc.ty)*0.08;
+    const glow = ctx.createRadialGradient(sx,sy,2,sx,sy,90*flicker);
+    glow.addColorStop(0,'rgba(255,170,60,0.35)');
+    glow.addColorStop(1,'rgba(255,170,60,0)');
+    ctx.fillStyle=glow;
+    ctx.fillRect(sx-90,sy-90,180,180);
+    ctx.fillStyle='#5a3a1a';
+    ctx.fillRect(sx-2,sy-4,4,14);
+    ctx.beginPath();
+    ctx.fillStyle='#ffb347';
+    ctx.ellipse(sx,sy-10,4,7*flicker,0,0,Math.PI*2);
+    ctx.fill();
+  }
+
+  // player
+  {
+    const sx=player.x-camera.x, sy=player.y-camera.y;
+    ctx.save();
+    ctx.translate(sx,sy);
+    // body
+    ctx.fillStyle = player.hurtFlash>0 ? '#ff9999' : '#4d90e0';
+    ctx.beginPath();
+    ctx.arc(0,0,PLAYER_SIZE/2,0,Math.PI*2);
+    ctx.fill();
+    ctx.strokeStyle='#20406a'; ctx.lineWidth=2; ctx.stroke();
+    // facing indicator
+    ctx.fillStyle='#20406a';
+    ctx.beginPath();
+    ctx.arc(player.facing.x*10, player.facing.y*10, 4,0,Math.PI*2);
+    ctx.fill();
+    // shield block indicator
+    if(player.blocking){
+      ctx.strokeStyle='#8ecbff';
+      ctx.lineWidth=4;
+      ctx.beginPath();
+      ctx.arc(0,0,PLAYER_SIZE/2+7,0,Math.PI*2);
+      ctx.stroke();
+    }
+    // swing effect
+    if(player.swingTimer>0){
+      ctx.strokeStyle = lastSwingType==='mine' ? '#ffe27a' : '#ffffff';
+      ctx.lineWidth=3;
+      ctx.beginPath();
+      const rad = lastSwingType==='attack'? ATTACK_RANGE : MINE_REACH;
+      ctx.arc(0,0, rad*0.5, 0, Math.PI*2);
+      ctx.globalAlpha = player.swingTimer/0.18;
+      ctx.stroke();
+      ctx.globalAlpha=1;
+    }
+    ctx.restore();
+  }
+
+  // floaters
+  ctx.textAlign='center';
+  ctx.font='bold 14px sans-serif';
+  for(const f of floaters){
+    ctx.globalAlpha = Math.max(0,f.life);
+    ctx.fillStyle=f.color;
+    ctx.fillText(f.text, f.x-camera.x, f.y-camera.y);
+    ctx.globalAlpha=1;
+  }
+  ctx.textAlign='left';
+
+  // night overlay
+  const t = (elapsed % DAY_LENGTH)/DAY_LENGTH;
+  let darkness = 0;
+  if(t>NIGHT_START){
+    const nightProgress = (t-NIGHT_START)/(1-NIGHT_START);
+    darkness = Math.min(0.62, nightProgress*0.62*2);
+  }
+  if(darkness>0){
+    ctx.fillStyle = `rgba(5,10,30,${darkness})`;
+    ctx.fillRect(0,0,w,h);
+    ctx.globalCompositeOperation='destination-out';
+    // light around player
+    let grad = ctx.createRadialGradient(w/2,h/2,30,w/2,h/2,240);
+    grad.addColorStop(0,`rgba(0,0,0,${darkness})`);
+    grad.addColorStop(1,'rgba(0,0,0,0)');
+    ctx.fillStyle=grad;
+    ctx.fillRect(0,0,w,h);
+    // light around each lit torch
+    for(const tc of torchesList){
+      if(tileAt(tc.tx,tc.ty)!=='torch') continue;
+      const sx=tc.x-camera.x, sy=tc.y-camera.y;
+      if(sx<-150||sx>w+150||sy<-150||sy>h+150) continue;
+      const tg = ctx.createRadialGradient(sx,sy,10,sx,sy,150);
+      tg.addColorStop(0,`rgba(0,0,0,${darkness})`);
+      tg.addColorStop(1,'rgba(0,0,0,0)');
+      ctx.fillStyle=tg;
+      ctx.fillRect(sx-150,sy-150,300,300);
+    }
+    ctx.globalCompositeOperation='source-over';
+  }
+}
+
+// ---------- UI ----------
+function resIcon(res){
+  return {wood:'🪵', stone:'🪨', iron:'⛓', gold:'✨', diamond:'💎', ironBar:'🔩', goldBar:'🟡'}[res]||res;
+}
+
+function getTotalDefense(){
+  let total = 0;
+  for(const slot of ARMOR_SLOTS){
+    if(player.equipped[slot]){
+      total += ARMOR_INFO[slot].defense + (player.armorLevel[slot]||0)*ARMOR_LEVEL_BONUS;
+    }
+  }
+  return total;
+}
+
+function upgradePickaxe(){
+  if(!workbenchBuilt){ showMsg('Requires a Workbench first'); return; }
+  if(player.pickaxeTier>=MAX_TOOL_TIER){ showMsg('Pickaxe already max tier'); return; }
+  const cost = PICKAXE_UPGRADE_COST[player.pickaxeTier];
+  for(const res in cost){
+    if(player[res] < cost[res]){ showMsg('Not enough '+res); return; }
+  }
+  for(const res in cost) player[res]-=cost[res];
+  player.pickaxeTier++;
+  showMsg('Pickaxe upgraded to '+TOOL_TIER_NAMES[player.pickaxeTier]+'!');
+  renderInventory();
+  updateHotbarUI();
+}
+
+function upgradeWeapon(){
+  if(!workbenchBuilt){ showMsg('Requires a Workbench first'); return; }
+  if(player.weaponTier>=MAX_TOOL_TIER){ showMsg('Sword already max tier'); return; }
+  const cost = WEAPON_UPGRADE_COST[player.weaponTier];
+  for(const res in cost){
+    if(player[res] < cost[res]){ showMsg('Not enough '+res); return; }
+  }
+  for(const res in cost) player[res]-=cost[res];
+  player.weaponTier++;
+  showMsg('Sword upgraded to '+TOOL_TIER_NAMES[player.weaponTier]+'!');
+  renderInventory();
+  updateHotbarUI();
+}
+
+function upgradeArmor(slot){
+  if(!workbenchBuilt){ showMsg('Requires a Workbench first'); return; }
+  const hasPiece = player.armorInv[slot]>0 || player.equipped[slot];
+  if(!hasPiece){ showMsg('Craft this armor piece first'); return; }
+  const level = player.armorLevel[slot]||0;
+  if(level>=ARMOR_MAX_LEVEL){ showMsg(ARMOR_INFO[slot].name+' already max level'); return; }
+  const cost = armorUpgradeCost(slot, level+1);
+  for(const res in cost){
+    if(player[res] < cost[res]){ showMsg('Not enough '+res); return; }
+  }
+  for(const res in cost) player[res]-=cost[res];
+  player.armorLevel[slot] = level+1;
+  showMsg(ARMOR_INFO[slot].name+' upgraded to level '+player.armorLevel[slot]+'!');
+  renderInventory();
+}
+
+function craftArmor(slot){
+  if(!workbenchBuilt){ showMsg('Requires a Workbench first'); return; }
+  const cost = ARMOR_RECIPES[slot];
+  for(const res in cost){
+    if(player[res] < cost[res]){ showMsg('Not enough '+res); return; }
+  }
+  for(const res in cost) player[res]-=cost[res];
+  player.armorInv[slot]++;
+  showMsg(ARMOR_INFO[slot].name+' crafted!');
+  renderInventory();
+}
+
+function craftTower(id){
+  if(!workbenchBuilt){ showMsg('Requires a Workbench first'); return; }
+  const cost = BUILD_COSTS[id];
+  for(const res in cost){
+    if(player[res] < cost[res]){ showMsg('Not enough '+res); return; }
+  }
+  for(const res in cost) player[res]-=cost[res];
+  player.towerInv[id] = (player.towerInv[id]||0)+1;
+  showMsg(TURRET_STATS[id].name+' crafted! Select its hotbar slot to place it.');
+  updateHotbarUI();
+}
+
+
+function craftShield(){
+  if(!workbenchBuilt){ showMsg('Requires a Workbench first'); return; }
+  const cost = SHIELD_RECIPE;
+  for(const res in cost){
+    if(player[res] < cost[res]){ showMsg('Not enough '+res); return; }
+  }
+  for(const res in cost) player[res]-=cost[res];
+  player.shieldOwned = true;
+  showMsg('Shield crafted! Hold Shift anytime to block — no need to select it.');
+  renderInventory();
+  updateHotbarUI();
+}
+
+function equipArmor(slot){
+  if(player.armorInv[slot]<=0) return;
+  if(player.equipped[slot]){ showMsg('Already equipped'); return; }
+  player.armorInv[slot]--;
+  player.equipped[slot] = true;
+  renderInventory();
+}
+
+function unequipArmor(slot){
+  if(!player.equipped[slot]) return;
+  player.equipped[slot] = false;
+  player.armorInv[slot]++;
+  renderInventory();
+}
+
+function renderInventory(){
+  // resource + spare armor grid (27 slots)
+  const grid = document.getElementById('invGrid');
+  grid.innerHTML='';
+  const items = [];
+  for(const res of ['wood','stone','iron','gold','diamond','ironBar','goldBar']){
+    if(player[res]>0) items.push({kind:'resource', id:res, icon:resIcon(res), count:player[res]});
+  }
+  for(const slot of ARMOR_SLOTS){
+    for(let i=0;i<player.armorInv[slot];i++){
+      items.push({kind:'armor', id:slot, icon:ARMOR_INFO[slot].icon, count:1});
+    }
+  }
+  for(let i=0;i<INVENTORY_SLOTS;i++){
+    const cell = document.createElement('div');
+    cell.className='invSlot';
+    const item = items[i];
+    if(item){
+      cell.innerHTML = `<div class="invIcon">${item.icon}</div>${item.count>1?`<div class="invCount">${item.count}</div>`:''}`;
+      if(item.kind==='armor'){
+        cell.classList.add('clickable');
+        cell.title = 'Equip '+ARMOR_INFO[item.id].name;
+        cell.addEventListener('click',()=>equipArmor(item.id));
+      } else {
+        cell.title = item.id.charAt(0).toUpperCase()+item.id.slice(1);
+      }
+    }
+    grid.appendChild(cell);
+  }
+
+  // equipped armor slots
+  const eqWrap = document.getElementById('armorSlots');
+  eqWrap.innerHTML='';
+  for(const slot of ARMOR_SLOTS){
+    const cell = document.createElement('div');
+    cell.className='armorSlot'+(player.equipped[slot]?' filled':'');
+    const info = ARMOR_INFO[slot];
+    const lvlTag = player.armorLevel[slot]>0 ? ' (Lv '+player.armorLevel[slot]+')' : '';
+    cell.innerHTML = `<div class="invIcon">${player.equipped[slot]?info.icon:'—'}</div><div class="armorLabel">${info.name}${lvlTag}</div>`;
+    if(player.equipped[slot]){
+      cell.title = 'Unequip '+info.name;
+      cell.addEventListener('click',()=>unequipArmor(slot));
+    }
+    eqWrap.appendChild(cell);
+  }
+  document.getElementById('totalDefense').textContent = getTotalDefense();
+}
+
+// ---------- WORKBENCH (right-click to open, craft armor/shield & upgrade equipment) ----------
+function openWorkbench(tx,ty){
+  if(tileAt(tx,ty)!=='workbench') return;
+  workbenchOpenTile = {tx,ty};
+  renderWorkbenchModal();
+  document.getElementById('workbenchModal').style.display = 'flex';
+}
+function closeWorkbench(){
+  const modal = document.getElementById('workbenchModal');
+  if(modal) modal.style.display = 'none';
+  workbenchOpenTile = null;
+}
+function renderWorkbenchModal(){
+  if(!workbenchOpenTile) return;
+  // craft buttons
+  const craftWrap = document.getElementById('craftList');
+  craftWrap.innerHTML='';
+  for(const slot of ARMOR_SLOTS){
+    const info = ARMOR_INFO[slot];
+    const cost = ARMOR_RECIPES[slot];
+    const affordable = Object.entries(cost).every(([r,v])=>player[r]>=v);
+    const row = document.createElement('div');
+    row.className='craftRow'+(!affordable?' disabled':'');
+    row.innerHTML = `<div class="craftIcon">${info.icon}</div><div class="craftInfo"><div class="craftName">${info.name}</div><div class="craftCost">${Object.entries(cost).map(([k,v])=>resIcon(k)+v).join(' ')}</div></div><button class="craftBtn" ${!affordable?'disabled':''}>Craft</button>`;
+    row.querySelector('.craftBtn').addEventListener('click',()=>{ craftArmor(slot); renderWorkbenchModal(); });
+    craftWrap.appendChild(row);
+  }
+  {
+    const owned = player.shieldOwned;
+    const affordable = Object.entries(SHIELD_RECIPE).every(([r,v])=>player[r]>=v);
+    const row = document.createElement('div');
+    row.className='craftRow'+((owned||!affordable)?' disabled':'');
+    const costHtml = owned ? 'Owned' : Object.entries(SHIELD_RECIPE).map(([k,v])=>resIcon(k)+v).join(' ');
+    row.innerHTML = `<div class="craftIcon">🛡</div><div class="craftInfo"><div class="craftName">Shield</div><div class="craftCost">${costHtml}</div></div><button class="craftBtn" ${(owned||!affordable)?'disabled':''}>${owned?'Owned':'Craft'}</button>`;
+    if(!owned) row.querySelector('.craftBtn').addEventListener('click', ()=>{ craftShield(); renderWorkbenchModal(); });
+    craftWrap.appendChild(row);
+  }
+
+  // equipment upgrades: pickaxe, weapon, armor levels
+  const equipWrap = document.getElementById('equipList');
+  equipWrap.innerHTML='';
+
+  function addEquipRow(icon, name, currentLabel, cost, maxed, onUpgrade){
+    const affordable = !maxed && cost && Object.entries(cost).every(([r,v])=>player[r]>=v);
+    const row = document.createElement('div');
+    row.className='equipRow'+((maxed||!affordable)?' disabled':'');
+    const costHtml = maxed ? 'MAX LEVEL' : Object.entries(cost).map(([k,v])=>resIcon(k)+v).join(' ');
+    row.innerHTML = `<div class="equipTop"><div class="equipIcon">${icon}</div><div class="equipInfo"><div class="equipName">${name} — ${currentLabel}</div><div class="equipCost">${costHtml}</div></div><button class="equipBtn" ${(maxed||!affordable)?'disabled':''}>Upgrade</button></div>`;
+    if(!maxed) row.querySelector('.equipBtn').addEventListener('click', ()=>{ onUpgrade(); renderWorkbenchModal(); });
+    equipWrap.appendChild(row);
+  }
+
+  addEquipRow('⛏', 'Pickaxe', TOOL_TIER_NAMES[player.pickaxeTier],
+    player.pickaxeTier<MAX_TOOL_TIER ? PICKAXE_UPGRADE_COST[player.pickaxeTier] : null,
+    player.pickaxeTier>=MAX_TOOL_TIER, upgradePickaxe);
+
+  addEquipRow('⚔', 'Sword', TOOL_TIER_NAMES[player.weaponTier],
+    player.weaponTier<MAX_TOOL_TIER ? WEAPON_UPGRADE_COST[player.weaponTier] : null,
+    player.weaponTier>=MAX_TOOL_TIER, upgradeWeapon);
+
+  for(const slot of ARMOR_SLOTS){
+    const hasPiece = player.armorInv[slot]>0 || player.equipped[slot];
+    if(!hasPiece) continue;
+    const level = player.armorLevel[slot]||0;
+    const maxed = level>=ARMOR_MAX_LEVEL;
+    addEquipRow(ARMOR_INFO[slot].icon, ARMOR_INFO[slot].name, 'Lv '+level,
+      maxed ? null : armorUpgradeCost(slot, level+1),
+      maxed, ()=>upgradeArmor(slot));
+  }
+  if(!ARMOR_SLOTS.some(slot=>player.armorInv[slot]>0 || player.equipped[slot])){
+    const hint = document.createElement('div');
+    hint.style.cssText='font-size:11px;color:#789;text-align:center;padding:4px;';
+    hint.textContent = 'Craft armor to unlock its upgrades';
+    equipWrap.appendChild(hint);
+  }
+
+  // defence towers — crafted here into inventory (like armor), then placed from their
+  // hotbar slot, which consumes one from the crafted count.
+  const towerWrap = document.getElementById('towerCraftList');
+  towerWrap.innerHTML='';
+  const TOWER_IDS = ['turret_wood','turret_stone','turret_iron'];
+  for(const id of TOWER_IDS){
+    const info = TURRET_STATS[id];
+    const cost = BUILD_COSTS[id];
+    const affordable = Object.entries(cost).every(([r,v])=>player[r]>=v);
+    const owned = player.towerInv[id]||0;
+    const row = document.createElement('div');
+    row.className='craftRow'+(!affordable?' disabled':'');
+    row.innerHTML = `<div class="craftIcon">${HOTBAR_BUILD.find(h=>h.id===id).icon}</div><div class="craftInfo"><div class="craftName">${info.name}${owned>0?' — Owned '+owned:''}</div><div class="craftCost">${Object.entries(cost).map(([k,v])=>resIcon(k)+v).join(' ')}</div></div><button class="craftBtn" ${!affordable?'disabled':''}>Craft</button>`;
+    if(affordable) row.querySelector('.craftBtn').addEventListener('click', ()=>{ craftTower(id); renderWorkbenchModal(); });
+    towerWrap.appendChild(row);
+  }
+
+  // buildable structures (furnace, chest) — placed in the world, not held in inventory.
+  // Clicking Build closes this panel and arms placement.
+  const buildWrap = document.getElementById('buildList');
+  buildWrap.innerHTML='';
+  for(const item of WORKBENCH_BUILDABLES){
+    const cost = BUILD_COSTS[item.id];
+    const affordable = Object.entries(cost).every(([r,v])=>player[r]>=v);
+    const row = document.createElement('div');
+    row.className='craftRow'+(!affordable?' disabled':'');
+    row.innerHTML = `<div class="craftIcon">${item.icon}</div><div class="craftInfo"><div class="craftName">${item.label}</div><div class="craftCost">${Object.entries(cost).map(([k,v])=>resIcon(k)+v).join(' ')}</div></div><button class="craftBtn" ${!affordable?'disabled':''}>Build</button>`;
+    if(affordable) row.querySelector('.craftBtn').addEventListener('click',()=>{
+      selected = item.id;
+      updateHotbarUI();
+      closeWorkbench();
+      showMsg('Selected '+item.label+' — click a tile to place it');
+    });
+    buildWrap.appendChild(row);
+  }
+}
+document.getElementById('workbenchCloseBtn').addEventListener('click', closeWorkbench);
+
+function toggleInventory(){
+  invOpen = !invOpen;
+  document.getElementById('inventoryModal').style.display = invOpen?'flex':'none';
+  if(invOpen) renderInventory();
+}
+
+function updateWorkbenchStatus(){
+  const el = document.getElementById('wbText');
+  el.textContent = workbenchBuilt ? 'Workbench Ready' : 'No Workbench';
+  el.style.color = workbenchBuilt ? '#9fdc9f' : '#ffb3b3';
+}
+
+function updateHUD(){
+  document.getElementById('hpBarFill').style.width = Math.max(0,(player.hp/player.maxHp)*100)+'%';
+  document.getElementById('defVal').textContent = getTotalDefense();
+  document.getElementById('rWood').textContent = player.wood;
+  document.getElementById('rStone').textContent = player.stone;
+  document.getElementById('rIron').textContent = player.iron;
+  document.getElementById('rIronBar').textContent = player.ironBar;
+  document.getElementById('rGold').textContent = player.gold;
+  document.getElementById('rGoldBar').textContent = player.goldBar;
+  document.getElementById('rDiamond').textContent = player.diamond;
+  document.getElementById('dayNum').textContent = 'Day '+day;
+  document.getElementById('phase').textContent = isNightTime() ? '🌙 Night' : '☀ Daytime';
+  document.getElementById('kills').textContent = 'Kills: '+kills+'  ('+killPoints+' pts)';
+  updateChatGate();
+}
+
+function makeSlot(item, position){
+  const slot = document.createElement('div');
+  slot.dataset.id = item.id;
+  slot.dataset.pos = position;
+  const isTower = !!TURRET_STATS[item.id];
+  const owned = isTower ? (player.towerInv[item.id]||0) : 0;
+  const blank = isTower && owned<=0;
+  const locked = !isTower && NEEDS_WORKBENCH.has(item.id) && !workbenchBuilt;
+  slot.className = 'slot'+(item.id===selected?' active':'')+(locked?' locked':'')+(blank?' empty':'');
+  slot.draggable = true;
+  let costRow = '';
+  if(!isTower && BUILD_COSTS[item.id]){
+    costRow = '<div class="costrow">'+Object.entries(BUILD_COSTS[item.id]).map(([k,v])=>resIcon(k)+v).join(' ')+'</div>';
+  }
+  const ownedBadge = (isTower && owned>0) ? `<div class="costrow">x${owned}</div>` : '';
+  slot.innerHTML = `<div class="num">${HOTBAR_KEYS[position]}</div>${blank?'':item.icon}${costRow}${ownedBadge}${locked?'<div class="lockicon">🔒</div>':''}`;
+  slot.addEventListener('click',()=>{
+    if(locked){ showMsg('Requires a Workbench first'); return; }
+    if(blank){ showMsg('None crafted — craft one at the Workbench first'); return; }
+    selected=item.id; updateHotbarUI();
+  });
+  slot.addEventListener('mouseenter',()=>showTooltip(item, locked, blank, owned));
+  slot.addEventListener('mouseleave',hideTooltip);
+  slot.addEventListener('dragstart',ev=>{
+    dragFromPos = position;
+    slot.classList.add('dragging');
+    ev.dataTransfer.effectAllowed = 'move';
+    ev.dataTransfer.setData('text/plain', String(position));
+  });
+  slot.addEventListener('dragend',()=>{ slot.classList.remove('dragging'); });
+  slot.addEventListener('dragover',ev=>{ ev.preventDefault(); slot.classList.add('dragOver'); });
+  slot.addEventListener('dragleave',()=>{ slot.classList.remove('dragOver'); });
+  slot.addEventListener('drop',ev=>{
+    ev.preventDefault();
+    slot.classList.remove('dragOver');
+    const from = dragFromPos!==null ? dragFromPos : parseInt(ev.dataTransfer.getData('text/plain'),10);
+    const to = position;
+    dragFromPos = null;
+    if(Number.isNaN(from) || from===to) return;
+    const tmp = hotbarLayout[from];
+    hotbarLayout[from] = hotbarLayout[to];
+    hotbarLayout[to] = tmp;
+    buildHotbarDOM();
+    updateHotbarUI();
+  });
+  return slot;
+}
+
+function buildHotbarDOM(){
+  const toolsRow = document.getElementById('hotrowTools');
+  const buildRow = document.getElementById('hotrowBuild');
+  toolsRow.innerHTML=''; buildRow.innerHTML='';
+  const split = HOTBAR_ROW_LENS[0];
+  hotbarLayout.slice(0,split).forEach((item,i)=>toolsRow.appendChild(makeSlot(item,i)));
+  hotbarLayout.slice(split).forEach((item,i)=>buildRow.appendChild(makeSlot(item,split+i)));
+}
+
+function updateHotbarUI(){
+  if(player){
+    HOTBAR_TOOLS[0].label = 'Mine ('+TOOL_TIER_NAMES[player.pickaxeTier]+' Pickaxe) / Attack ('+TOOL_TIER_NAMES[player.weaponTier]+' Sword)';
+  }
+  buildHotbarDOM(); // rebuild so lock states stay accurate
+  updatePlacingTag();
+}
+
+// Items built from the Workbench panel (turrets, furnace, chest, torch, slab) don't live
+// on the hotbar, so show a small tag confirming what's about to be placed on next click.
+function updatePlacingTag(){
+  const tag = document.getElementById('placingTag');
+  if(!tag) return;
+  const item = WORKBENCH_BUILDABLES.find(b=>b.id===selected);
+  if(item){
+    tag.textContent = 'Placing: '+item.icon+' '+item.label+' — click a tile to build (Esc to cancel)';
+    tag.style.display = 'block';
+  } else {
+    tag.style.display = 'none';
+  }
+}
+
+function showTooltip(item, locked, blank, owned){
+  const tt = document.getElementById('tooltip');
+  let html = `<b>${item.label}</b>`;
+  if(TURRET_STATS[item.id]){
+    const s = TURRET_STATS[item.id];
+    html += `<span class="tt-cost">· ${s.damage} dmg · ${s.range}rng</span>`;
+    html += blank ? '<span class="tt-cost">Craft cost: '+Object.entries(BUILD_COSTS[item.id]).map(([k,v])=>resIcon(k)+v).join(' ')+'</span>'
+                  : '<span class="tt-cost">Owned: '+owned+'</span>';
+  } else if(BUILD_COSTS[item.id]){
+    html += '<span class="tt-cost">'+Object.entries(BUILD_COSTS[item.id]).map(([k,v])=>resIcon(k)+v).join(' ')+'</span>';
+  }
+  if(item.id==='action'){
+    html += '<span class="tt-cost">auto-detects mine vs attack · right-click a tower for options</span>';
+  }
+  if(locked) html += '<span class="tt-lock">🔒 needs Workbench</span>';
+  if(blank) html += '<span class="tt-lock">Craft one at the Workbench first</span>';
+  tt.innerHTML = html;
+  tt.style.opacity = 1;
+}
+function hideTooltip(){
+  document.getElementById('tooltip').style.opacity = 0;
+}
+
+// ---------- SAVE / LOAD (8 slots) ----------
+function saveGame(slotIndex){
+  if(!DIFFICULTY_SETTINGS[difficulty].allowSave){
+    showMsg('Saving is disabled in Hardcore mode');
+    return false;
+  }
+  try{
+    const data = {
+      v:3, difficulty, day, elapsed, kills, killPoints, grid, cols:COLS, rows:ROWS, biomeTier,
+      player:{
+        x:player.x, y:player.y, hp:player.hp, maxHp:player.maxHp,
+        wood:player.wood, stone:player.stone, iron:player.iron, gold:player.gold, diamond:player.diamond,
+        ironBar:player.ironBar, goldBar:player.goldBar,
+        pickaxeTier:player.pickaxeTier, weaponTier:player.weaponTier,
+        armorInv:player.armorInv, equipped:player.equipped, armorLevel:player.armorLevel,
+        towerInv:player.towerInv,
+        shieldOwned:player.shieldOwned
+      },
+      workbenchBuilt,
+      turrets: turretsList.map(t=>({tx:t.tx,ty:t.ty,type:t.type})),
+      torches: torchesList.map(t=>({tx:t.tx,ty:t.ty})),
+      chests: chestsList.map(c=>({tx:c.tx,ty:c.ty,storage:c.storage})),
+      furnaces: furnacesList.map(f=>({tx:f.tx,ty:f.ty})),
+      savedAt: Date.now()
+    };
+    localStorage.setItem(slotKey(slotIndex), JSON.stringify(data));
+    currentSlot = slotIndex;
+    showMsg('Game saved to slot '+(slotIndex+1)+' ✓');
+    return true;
+  }catch(e){
+    showMsg('Save failed');
+    return false;
+  }
+}
+
+function loadGame(slotIndex){
+  const raw = localStorage.getItem(slotKey(slotIndex));
+  if(!raw) return false;
+  try{
+    const data = JSON.parse(raw);
+    difficulty = data.difficulty || 'medium';
+    grid = data.grid;
+    COLS = data.cols || BASE_COLS;
+    ROWS = data.rows || BASE_ROWS;
+    WORLD_W = COLS*TILE; WORLD_H = ROWS*TILE;
+    biomeTier = data.biomeTier || 0;
+    day = data.day || 1;
+    elapsed = data.elapsed || 0;
+    kills = data.kills || 0;
+    killPoints = data.killPoints || 0;
+    player = {
+      x:data.player.x, y:data.player.y, hp:data.player.hp, maxHp:data.player.maxHp,
+      wood:data.player.wood, stone:data.player.stone, iron:data.player.iron, gold:data.player.gold, diamond:data.player.diamond||0,
+      ironBar:data.player.ironBar||0, goldBar:data.player.goldBar||0,
+      attackTimer:0, swingTimer:0, hurtFlash:0, facing:{x:0,y:1},
+      pickaxeTier:data.player.pickaxeTier||0, weaponTier:data.player.weaponTier||0,
+      armorInv: data.player.armorInv || {helmet:0,chestplate:0,handguard:0,leggings:0,boots:0},
+      equipped: data.player.equipped || {helmet:false,chestplate:false,handguard:false,leggings:false,boots:false},
+      armorLevel: data.player.armorLevel || {helmet:0,chestplate:0,handguard:0,leggings:0,boots:0},
+      towerInv: data.player.towerInv || {turret_wood:0, turret_stone:0, turret_iron:0},
+      shieldOwned: !!data.player.shieldOwned, blocking:false, timeSinceHit:9999
+    };
+    recomputeWorkbenchBuilt(); // derive from the loaded grid rather than trusting the saved flag
+    enemies=[]; projectiles=[]; floaters=[]; particles=[];
+    turretsList = (data.turrets||[]).map(t=>{
+      const s = TURRET_STATS[t.type] || TURRET_STATS.turret_wood;
+      return {tx:t.tx, ty:t.ty, x:t.tx*TILE+TILE/2, y:t.ty*TILE+TILE/2, cooldown:0, range:s.range, damage:s.damage, rate:s.rate, projColor:s.projColor, type:t.type};
+    });
+    torchesList = (data.torches||[]).map(t=>({tx:t.tx, ty:t.ty, x:t.tx*TILE+TILE/2, y:t.ty*TILE+TILE/2}));
+    chestsList = (data.chests||[]).map(c=>({tx:c.tx, ty:c.ty, x:c.tx*TILE+TILE/2, y:c.ty*TILE+TILE/2, storage:c.storage||{wood:0,stone:0,iron:0,gold:0,diamond:0,ironBar:0,goldBar:0}}));
+    furnacesList = (data.furnaces||[]).map(f=>({tx:f.tx, ty:f.ty, x:f.tx*TILE+TILE/2, y:f.ty*TILE+TILE/2}));
+    closeTowerPopup();
+    closeChest();
+    closeFurnace();
+    closeWorkbench();
+    hitCounters = {};
+    enemySpawnTimer = 2;
+    resourceRegrowTimer = 6;
+    selected = 'action';
+    invOpen = false;
+    currentSlot = slotIndex;
+    updateHotbarUI();
+    updateWorkbenchStatus();
+    updateDifficultyTag();
+    updateSaveUI();
+    return true;
+  }catch(e){
+    return false;
+  }
+}
+
+function deleteSlot(slotIndex){
+  localStorage.removeItem(slotKey(slotIndex));
+  if(currentSlot===slotIndex) currentSlot = null;
+}
+
+function getSlotSummary(slotIndex){
+  const raw = localStorage.getItem(slotKey(slotIndex));
+  if(!raw) return null;
+  try{
+    const data = JSON.parse(raw);
+    const diffInfo = DIFFICULTIES.find(d=>d.id===data.difficulty);
+    return {
+      diffName: diffInfo ? diffInfo.name : (data.difficulty||'?'),
+      day: data.day||1,
+      kills: data.kills||0
+    };
+  }catch(e){
+    return null;
+  }
+}
+
+function hasSave(){
+  for(let i=0;i<SAVE_SLOT_COUNT;i++){ if(localStorage.getItem(slotKey(i))) return true; }
+  return false;
+}
+
+function openSlotModal(mode){
+  slotModalMode = mode;
+  document.getElementById('slotTitle').textContent = mode==='save' ? '💾 Save Game' : '📂 Load Game';
+  document.getElementById('slotHint').textContent = mode==='save'
+    ? 'Click a slot to save into it · 🗑 deletes that slot · 8 slots max'
+    : 'Click a slot to load it · 🗑 deletes that slot';
+  renderSlotGrid();
+  document.getElementById('slotModal').style.display = 'flex';
+}
+function closeSlotModal(){
+  document.getElementById('slotModal').style.display = 'none';
+}
+
+function renderSlotGrid(){
+  const wrap = document.getElementById('slotGrid');
+  wrap.innerHTML = '';
+  for(let i=0;i<SAVE_SLOT_COUNT;i++){
+    const summary = getSlotSummary(i);
+    const row = document.createElement('div');
+    row.className = 'slotRow'+(summary?'':' empty');
+    const info = document.createElement('div');
+    info.className = 'slotInfo';
+    if(summary){
+      info.innerHTML = `<div class="sTitle">Day ${summary.day} · ${summary.diffName}</div><div class="sSub">Kills: ${summary.kills}</div>`;
+    } else {
+      info.innerHTML = `<div class="sTitle">Empty Slot</div><div class="sSub">${slotModalMode==='save'?'Click to save here':'Nothing to load'}</div>`;
+    }
+    const num = document.createElement('div');
+    num.className = 'slotNum';
+    num.textContent = (i+1);
+    row.appendChild(num);
+    row.appendChild(info);
+    if(summary){
+      const del = document.createElement('button');
+      del.className = 'slotDelBtn';
+      del.textContent = '🗑';
+      del.title = 'Delete this slot';
+      del.addEventListener('click', ev=>{
+        ev.stopPropagation();
+        if(confirm('Delete the save in slot '+(i+1)+'? This cannot be undone.')){
+          deleteSlot(i);
+          renderSlotGrid();
+          if(document.getElementById('startScreen').style.display!=='none'){
+            document.getElementById('continueBtn').style.display = hasSave()?'inline-block':'none';
+          }
+        }
+      });
+      row.appendChild(del);
+    }
+    row.addEventListener('click',()=>{
+      if(slotModalMode==='save'){
+        if(!running) return;
+        saveGame(i);
+        updateSaveUI();
+        closeSlotModal();
+      } else {
+        if(!summary){ showMsg('That slot is empty'); return; }
+        closeSlotModal();
+        document.getElementById('startScreen').style.display='none';
+        document.getElementById('gameover').style.display='none';
+        hitCounters = {};
+        if(loadGame(i)){
+          buildHotbarDOM();
+          running = true;
+          scheduleHintClear();
+        } else {
+          showMsg('Save could not be loaded, starting new game');
+          resetGame();
+          buildHotbarDOM();
+          running = true;
+          scheduleHintClear();
+        }
+      }
+    });
+    wrap.appendChild(row);
+  }
+}
+
+function buildDiffGrid(){
+  const wrap = document.getElementById('diffGrid');
+  wrap.innerHTML='';
+  for(const d of DIFFICULTIES){
+    const btn = document.createElement('div');
+    btn.className = 'diffBtn'+(d.id===difficulty?' selected':'');
+    btn.dataset.id = d.id;
+    btn.innerHTML = `<div class="dname">${d.name}</div><div class="ddesc">${d.desc}</div>`;
+    btn.addEventListener('click',()=>{
+      difficulty = d.id;
+      document.querySelectorAll('.diffBtn').forEach(b=>b.classList.toggle('selected', b.dataset.id===difficulty));
+    });
+    wrap.appendChild(btn);
+  }
+}
+
+function endGame(){
+  running=false;
+  const hardcore = DIFFICULTY_SETTINGS[difficulty].hardcore;
+  document.getElementById('gameover').querySelector('h1').textContent = hardcore ? 'YOU DIED — PERMADEATH' : 'YOU DIED';
+  let stats = `Survived ${day} day${day>1?'s':''} · ${kills} kills · ${killPoints} pts · ${player.wood+player.stone+player.iron+player.gold} resources gathered`;
+  if(hardcore) stats += '  ·  Hardcore run ended — no continues.';
+  stats += '  ·  Submit your score to the leaderboard below!';
+  document.getElementById('goStats').textContent = stats;
+  document.getElementById('gameover').style.display='flex';
+}
+
+// ---------- CHAT ----------
+// NOTE: this game is a single, fully client-side HTML file with no server —
+// there's no real network connecting different players' devices. This chat
+// is a local approximation: messages are stored in this browser's
+// localStorage, so any tab/window of this SAME browser on this SAME device
+// (solo play or a friend taking turns) shares the same Global/Top-3 chat and
+// updates live between tabs. It will not reach players on other devices —
+// that would need an actual backend server.
+const CHAT_GLOBAL_KEY = 'tribeDefenceChatGlobal';
+const CHAT_ELITE_KEY = 'tribeDefenceChatElite';
+const LEADERBOARD_KEY = 'tribeDefenceLeaderboard';
+const NAME_KEY = 'tribeDefencePlayerName';
+let chatTab = 'global';
+let playerName = null;
+
+function getPlayerName(){
+  if(playerName) return playerName;
+  let n = localStorage.getItem(NAME_KEY);
+  if(!n){
+    n = (prompt('Choose a name for chat:', 'Tribesman'+Math.floor(Math.random()*900+100)) || '').trim().slice(0,18);
+    if(!n) n = 'Tribesman'+Math.floor(Math.random()*900+100);
+    localStorage.setItem(NAME_KEY, n);
+  }
+  playerName = n;
+  return n;
+}
+
+function scoreFor(d,k,kp){ return kp!=null ? kp : k; }
+
+function getLeaderboard(){
+  let lb;
+  try{ lb = JSON.parse(localStorage.getItem(LEADERBOARD_KEY)); }catch(e){ lb = null; }
+  if(!Array.isArray(lb)) lb = [];
+  // one-time cleanup: strip any leftover fake "Rival:" demo entries from an older version
+  const cleaned = lb.filter(e=>e && typeof e.name==='string' && !e.name.startsWith('Rival:'));
+  if(cleaned.length !== lb.length){
+    lb = cleaned;
+    localStorage.setItem(LEADERBOARD_KEY, JSON.stringify(lb));
+  }
+  return lb;
+}
+
+// Players must explicitly submit their run (days survived + kills) to the leaderboard —
+// it is no longer recorded automatically.
+function submitScore(){
+  if(!player){ showMsg('Start a game first'); return; }
+  const name = getPlayerName();
+  const lb = getLeaderboard();
+  const score = scoreFor(day, kills, killPoints);
+  let entry = lb.find(e=>e.name===name);
+  if(!entry){ entry = {name, days:0, kills:0, score:0, difficulty:'', time:0}; lb.push(entry); }
+  if(score > entry.score){
+    entry.days = day; entry.kills = kills; entry.score = score;
+    entry.difficulty = difficulty; entry.time = elapsed;
+  }
+  localStorage.setItem(LEADERBOARD_KEY, JSON.stringify(lb));
+  showMsg('Score submitted: Day '+day+' · '+kills+' kills · '+score+' pts');
+  const lbWrap = document.getElementById('lbWrap');
+  if(lbWrap) lbWrap.style.display = 'block';
+  renderLeaderboardPanel();
+  renderChat();
+}
+
+function fmtPlayTime(sec){
+  sec = Math.floor(sec||0);
+  const h = Math.floor(sec/3600);
+  const m = Math.floor((sec%3600)/60);
+  const s = sec%60;
+  if(h>0) return h+'h '+m+'m';
+  if(m>0) return m+'m '+s+'s';
+  return s+'s';
+}
+function diffLabel(id){
+  const d = DIFFICULTIES.find(x=>x.id===id);
+  return d ? d.name : (id || '—');
+}
+
+function topThree(){
+  return [...getLeaderboard()].sort((a,b)=>b.score-a.score).slice(0,3);
+}
+function isTopThree(){
+  const t3 = topThree();
+  return t3.some(e=>e.name===getPlayerName());
+}
+
+function renderLeaderboardPanel(){
+  const list = document.getElementById('lbList');
+  if(!list) return;
+  const t3 = topThree();
+  const me = getPlayerName();
+  if(!t3.length){
+    list.innerHTML = '<div style="color:#789;">No scores yet — be the first to submit!</div>';
+    return;
+  }
+  const rows = t3.map((e,i)=>
+    `<tr class="lbRow${e.name===me?' mine justUpdated':''}">`+
+      `<td class="lbRank">${i+1}</td>`+
+      `<td class="lbName">${escapeHtml(e.name)}</td>`+
+      `<td>${e.score||0}</td>`+
+      `<td>${diffLabel(e.difficulty)}</td>`+
+      `<td>${e.days||0}</td>`+
+      `<td>${e.kills||0}</td>`+
+      `<td>${fmtPlayTime(e.time)}</td>`+
+    `</tr>`
+  ).join('');
+  list.innerHTML = `<table id="lbTable"><thead><tr>`+
+    `<th>#</th><th>Name</th><th>Points</th><th>Difficulty</th><th>Days</th><th>Kills</th><th>Time</th>`+
+    `</tr></thead><tbody>${rows}</tbody></table>`;
+}
+
+function changePlayerName(){
+  const row = document.getElementById('lbNameRow');
+  const input = document.getElementById('lbNameInput');
+  const opening = row.style.display === 'none';
+  row.style.display = opening ? 'flex' : 'none';
+  if(opening){
+    input.value = getPlayerName();
+    input.focus();
+    input.select();
+  }
+}
+function saveNewName(){
+  const input = document.getElementById('lbNameInput');
+  const n = (input.value || '').trim().slice(0,18);
+  if(!n) return;
+  const oldName = getPlayerName();
+  playerName = n;
+  localStorage.setItem(NAME_KEY, n);
+
+  // Replace the old name with the new one everywhere it's stored, instead of
+  // leaving a stale duplicate entry behind.
+  if(n !== oldName){
+    const lb = getLeaderboard();
+    const entry = lb.find(e=>e.name===oldName);
+    if(entry){
+      entry.name = n;
+      localStorage.setItem(LEADERBOARD_KEY, JSON.stringify(lb));
+    }
+    renameChatAuthor(oldName, n);
+  }
+
+  showMsg('Name changed to '+n);
+  document.getElementById('lbNameRow').style.display = 'none';
+  renderLeaderboardPanel();
+  renderChat();
+}
+document.getElementById('lbNameSaveBtn').addEventListener('click', saveNewName);
+document.getElementById('lbNameInput').addEventListener('keydown', e=>{
+  if(e.key==='Enter'){ e.preventDefault(); saveNewName(); }
+});
+document.getElementById('lbNameBtn').addEventListener('click', changePlayerName);
+document.getElementById('lbSubmitBtn').addEventListener('click', submitScore);
+document.getElementById('goSubmitBtn').addEventListener('click', submitScore);
+renderLeaderboardPanel();
+
+function toggleLbPanel(){
+  const el = document.getElementById('lbWrap');
+  const opening = el.style.display !== 'block';
+  el.style.display = opening ? 'block' : 'none';
+  if(opening) renderLeaderboardPanel();
+}
+function toggleChatPanel(){
+  const el = document.getElementById('chatWrap');
+  const opening = el.style.display !== 'flex';
+  el.style.display = opening ? 'flex' : 'none';
+  if(opening) renderChat();
+}
+document.getElementById('lbToggleBtn').addEventListener('click', toggleLbPanel);
+document.getElementById('chatToggleBtn').addEventListener('click', toggleChatPanel);
+
+function loadChatLog(key){
+  try{
+    const arr = JSON.parse(localStorage.getItem(key));
+    return Array.isArray(arr) ? arr : [];
+  }catch(e){ return []; }
+}
+
+function escapeHtml(s){
+  return s.replace(/[&<>"']/g, c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
+}
+
+function sendChat(key, text){
+  text = text.trim().slice(0,140);
+  if(!text) return;
+  const log = loadChatLog(key);
+  log.push({name:getPlayerName(), text, ts:Date.now()});
+  while(log.length>50) log.shift();
+  localStorage.setItem(key, JSON.stringify(log));
+  renderChat();
+}
+
+function renameChatAuthor(oldName, newName){
+  for(const key of [CHAT_GLOBAL_KEY, CHAT_ELITE_KEY]){
+    const log = loadChatLog(key);
+    let changed = false;
+    for(const m of log){
+      if(m.name === oldName){ m.name = newName; changed = true; }
+    }
+    if(changed) localStorage.setItem(key, JSON.stringify(log));
+  }
+}
+
+function renderChat(){
+  const key = chatTab==='global' ? CHAT_GLOBAL_KEY : CHAT_ELITE_KEY;
+  const log = loadChatLog(key);
+  const box = document.getElementById('chatMessages');
+  box.innerHTML = log.length ? log.map(m=>{
+    const mine = m.name===getPlayerName();
+    return `<div class="chatMsg${mine?' mine':''}"><span class="chatName">${escapeHtml(m.name)}:</span> ${escapeHtml(m.text)}</div>`;
+  }).join('') : `<div class="chatEmpty">${chatTab==='global'?'No messages yet — say hi.':'No messages yet.'}</div>`;
+  box.scrollTop = box.scrollHeight;
+  updateChatGate();
+}
+
+function updateChatGate(){
+  const input = document.getElementById('chatInput');
+  const btn = document.getElementById('chatSendBtn');
+  const note = document.getElementById('chatLockNote');
+  if(!input) return;
+  if(chatTab==='elite'){
+    const qualifies = !!player && isTopThree();
+    input.disabled = !qualifies;
+    btn.disabled = !qualifies;
+    input.placeholder = qualifies ? 'Message the top 3...' : 'Locked — only the top 3 by kills can post';
+    if(!qualifies){
+      note.style.display = 'block';
+      note.textContent = 'Top 3 by kills: '+topThree().map(e=>e.name+' ('+e.kills+')').join(', ');
+    } else {
+      note.style.display = 'none';
+    }
+  } else {
+    input.disabled = false;
+    btn.disabled = false;
+    input.placeholder = 'Message global chat...';
+    note.style.display = 'none';
+  }
+}
+
+function sendCurrentChat(){
+  const input = document.getElementById('chatInput');
+  if(chatTab==='elite' && !(player && isTopThree())) return;
+  const key = chatTab==='global' ? CHAT_GLOBAL_KEY : CHAT_ELITE_KEY;
+  sendChat(key, input.value);
+  input.value = '';
+}
+
+document.querySelectorAll('.chatTab').forEach(btn=>{
+  btn.addEventListener('click',()=>{
+    chatTab = btn.dataset.tab;
+    document.querySelectorAll('.chatTab').forEach(b=>b.classList.toggle('active', b===btn));
+    renderChat();
+  });
+});
+document.getElementById('chatSendBtn').addEventListener('click', sendCurrentChat);
+document.getElementById('chatInput').addEventListener('keydown', e=>{
+  e.stopPropagation();
+  if(e.key==='Enter') sendCurrentChat();
+});
+document.getElementById('chatInput').addEventListener('keyup', e=>e.stopPropagation());
+window.addEventListener('storage', e=>{
+  if(e.key===CHAT_GLOBAL_KEY || e.key===CHAT_ELITE_KEY || e.key===LEADERBOARD_KEY) renderChat();
+  if(e.key===LEADERBOARD_KEY) renderLeaderboardPanel();
+});
+renderChat();
+
+// ---------- LOOP ----------
+let lastTime=performance.now();
+function loop(now){
+  const dt = Math.min(0.05,(now-lastTime)/1000);
+  lastTime=now;
+  if(running){
+    if(!invOpen && !chestOpenTile && !furnaceOpenTile && !workbenchOpenTile) update(dt);
+    draw();
+    updateHUD();
+  }
+  requestAnimationFrame(loop);
+}
+
+document.querySelectorAll('.frontTab').forEach(tab=>{
+  tab.addEventListener('click',()=>{
+    document.querySelectorAll('.frontTab').forEach(t=>t.classList.remove('active'));
+    tab.classList.add('active');
+    const which = tab.dataset.panel;
+    document.getElementById('frontPanel-howto').style.display = which==='howto' ? 'block' : 'none';
+    document.getElementById('frontPanel-updates').style.display = which==='updates' ? 'block' : 'none';
+  });
+});
+let hintClearTimer = null;
+function scheduleHintClear(){
+  const hint = document.getElementById('hint');
+  if(!hint) return;
+  hint.style.display = 'block';
+  hint.style.opacity = '1';
+  if(hintClearTimer) clearTimeout(hintClearTimer);
+  hintClearTimer = setTimeout(()=>{ hint.style.opacity = '0'; }, 10000);
+}
+
+document.getElementById('proceedBtn').addEventListener('click',()=>{
+  document.getElementById('frontScreen').style.display='none';
+  document.getElementById('startScreen').style.display='flex';
+  document.getElementById('continueBtn').style.display = hasSave()?'inline-block':'none';
+});
+
+document.getElementById('startBtn').addEventListener('click',()=>{
+  document.getElementById('startScreen').style.display='none';
+  hitCounters = {};
+  resetGame();
+  buildHotbarDOM();
+  running=true;
+  scheduleHintClear();
+});
+document.getElementById('continueBtn').addEventListener('click',()=>{
+  openSlotModal('load');
+});
+document.getElementById('restartBtn').addEventListener('click',()=>{
+  document.getElementById('gameover').style.display='none';
+  hitCounters = {};
+  resetGame();
+  buildHotbarDOM();
+  running=true;
+  scheduleHintClear();
+});
+document.getElementById('saveBtn').addEventListener('click',(e)=>{
+  if(!running) return;
+  if(currentSlot!==null && !e.shiftKey){
+    saveGame(currentSlot);
+    updateSaveUI();
+  } else {
+    openSlotModal('save');
+  }
+});
+window.addEventListener('keydown',e=>{
+  if(e.key.toLowerCase()==='k' && running){
+    if(currentSlot!==null) { saveGame(currentSlot); updateSaveUI(); }
+    else openSlotModal('save');
+  }
+});
+
+document.getElementById('invCloseBtn').addEventListener('click',()=>{
+  if(invOpen) toggleInventory();
+});
+document.getElementById('slotCloseBtn').addEventListener('click', closeSlotModal);
+
+buildDiffGrid();
+if(hasSave()){
+  document.getElementById('continueBtn').style.display='inline-block';
+}
+
+requestAnimationFrame(loop);
+})();
+</script>
 </body>
 </html>
