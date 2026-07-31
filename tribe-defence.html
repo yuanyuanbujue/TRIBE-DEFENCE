@@ -208,6 +208,23 @@
   #lbToggleBtn{position:absolute;top:10px;right:10px;z-index:60;pointer-events:auto;background:rgba(20,24,32,0.9);border:2px solid #556;border-radius:8px;color:#ffd24d;font-weight:bold;font-size:13px;padding:8px 14px;cursor:pointer;white-space:nowrap;}
   #lbToggleBtn:hover{border-color:#ffd24d;}
   #lbWrap{top:100px;right:10px;width:480px;max-width:92vw;pointer-events:auto;display:none;z-index:60;}
+  #wikiToggleBtn{position:absolute;top:54px;right:10px;z-index:60;pointer-events:auto;background:rgba(20,24,32,0.9);border:2px solid #556;border-radius:8px;color:#8ecbff;font-weight:bold;font-size:13px;padding:8px 14px;cursor:pointer;white-space:nowrap;}
+  #wikiToggleBtn:hover{border-color:#8ecbff;}
+  #wikiModal{position:absolute;top:0;left:0;width:100%;height:100%;background:rgba(5,5,10,0.75);display:none;align-items:center;justify-content:center;pointer-events:auto;z-index:65;}
+  #wikiPanel{background:#161a24;border:2px solid #556;border-radius:12px;padding:18px 22px;width:min(700px,92vw);max-height:85vh;overflow:auto;box-shadow:0 8px 30px rgba(0,0,0,0.6);text-align:left;}
+  #wikiHeader{display:flex;justify-content:space-between;align-items:center;margin-bottom:12px;}
+  #wikiHeader h2{margin:0;color:#8ecbff;font-size:20px;}
+  #wikiCloseBtn{background:rgba(255,255,255,0.08);border:1px solid #556;color:#eee;border-radius:6px;width:32px;height:32px;font-size:16px;cursor:pointer;}
+  #wikiCloseBtn:hover{background:rgba(255,80,80,0.3);}
+  #wikiBody{color:#ccd;font-size:14px;line-height:1.6;}
+  #wikiBody h3{color:#8ecbff;margin:16px 0 4px;font-size:16px;}
+  #wikiBody h3:first-child{margin-top:0;}
+  #wikiBody p.wikiIntro{font-size:13px;color:#9ab;margin:0 0 4px;}
+  .wikiMob{background:rgba(255,255,255,0.04);border:1px solid #445;border-radius:8px;padding:10px 14px;margin-bottom:10px;}
+  .wikiMobName{font-weight:bold;font-size:14px;margin-bottom:3px;}
+  .wikiMobMeta{font-size:11px;color:#9ab;margin-bottom:6px;text-transform:uppercase;letter-spacing:0.4px;}
+  .wikiMobDesc{font-size:13px;color:#ccd;}
+  .wikiComingSoon{font-size:13px;color:#89a;font-style:italic;padding:8px 0;}
   #lbTitleRow{display:flex;justify-content:space-between;align-items:center;}
   #lbTitleRow b{color:#ffd24d;font-size:13px;}
   #lbNameBtn{background:rgba(255,255,255,0.08);border:1px solid #556;color:#eee;border-radius:5px;font-size:10px;padding:3px 6px;cursor:pointer;}
@@ -339,6 +356,8 @@
     <button id="lbSubmitBtn" type="button">📨 Submit Score</button>
   </div>
 
+  <button id="wikiToggleBtn" type="button">📖 Wiki</button>
+
   <div id="saveWrap">
     <button id="saveBtn">💾 Save Game</button>
     <div id="saveNote"></div>
@@ -462,6 +481,12 @@
       </div>
       <div id="frontPanel-updates">
         <div class="updateEntry">
+          <h3>Version 15.9 - Wkipedia</h3>
+          <ul>
+            <li>Added Wiki button (bestiary of all current mobs, bosses coming in a future update)</li>
+          </ul>
+        </div>
+        <div class="updateEntry">
           <h3>Version 15.8</h3>
           <ul>
             <li>Achievement viewer</li>
@@ -522,6 +547,57 @@
         <button id="achvCloseBtn">✕</button>
       </div>
       <div id="achvList"></div>
+    </div>
+  </div>
+
+  <div id="wikiModal">
+    <div id="wikiPanel">
+      <div id="wikiHeader">
+        <h2>📖 Wiki — Bestiary</h2>
+        <button id="wikiCloseBtn">✕</button>
+      </div>
+      <div id="wikiBody">
+        <p class="wikiIntro">Mobs only spawn at night and stop appearing once the sun rises. They approach on sight and deal damage on contact, so gear up and fortify before dark. Bigger, tougher variants become more common the longer you survive, and every biome beyond the Wilds brings faster, harder-hitting versions of the same threats.</p>
+
+        <h3>🌲 The Wilds (Day 1+)</h3>
+        <div class="wikiMob">
+          <div class="wikiMobName" style="color:#d1594f;">Wildling Skulker</div>
+          <div class="wikiMobMeta">Small · Common · Red</div>
+          <div class="wikiMobDesc">The most common night-time threat. Individually weak with modest HP and damage, but they spawn often and swarm in numbers — dangerous mainly if you let several surround you at once.</div>
+        </div>
+        <div class="wikiMob">
+          <div class="wikiMobName" style="color:#b23a3a;">Wildling Brute</div>
+          <div class="wikiMobMeta">Big · Uncommon · Dark Red</div>
+          <div class="wikiMobDesc">A hulking, slower-moving variant with roughly three times the health and damage of a Skulker. Starts appearing from Day 3 onward and becomes steadily more frequent the longer a run goes. Worth prioritising with towers before it closes the distance.</div>
+        </div>
+
+        <h3>🔥 Scorched Frontier (Day 50+)</h3>
+        <div class="wikiMob">
+          <div class="wikiMobName" style="color:#d18a3f;">Ember Skulker</div>
+          <div class="wikiMobMeta">Small · Common · Orange</div>
+          <div class="wikiMobDesc">Found beyond the expanded border after surviving to Day 50. Faster and hits noticeably harder than a Wildling Skulker, reflecting the tougher biome it calls home.</div>
+        </div>
+        <div class="wikiMob">
+          <div class="wikiMobName" style="color:#b2661f;">Ember Brute</div>
+          <div class="wikiMobMeta">Big · Uncommon · Dark Orange</div>
+          <div class="wikiMobDesc">A significant step up from a Wildling Brute in both health and damage, and appears more often than its Wilds counterpart. Upgraded towers and armor are strongly recommended before pushing this far.</div>
+        </div>
+
+        <h3>🌀 Void Reaches (Day 100+)</h3>
+        <div class="wikiMob">
+          <div class="wikiMobName" style="color:#a13fd1;">Void Skulker</div>
+          <div class="wikiMobMeta">Small · Common · Purple</div>
+          <div class="wikiMobDesc">The fastest and hardest-hitting Skulker variant, roaming the outermost ring unlocked after Day 100. Still individually weaker than any Brute, but their speed makes them harder to kite.</div>
+        </div>
+        <div class="wikiMob">
+          <div class="wikiMobName" style="color:#7a1fb2;">Void Brute</div>
+          <div class="wikiMobMeta">Big · Uncommon · Dark Purple</div>
+          <div class="wikiMobDesc">The deadliest mob currently in the game — very high health and damage on top of the Void Reaches' speed bonus. Treat these as top priority targets for your strongest turrets.</div>
+        </div>
+
+        <h3>👑 Bosses</h3>
+        <div class="wikiComingSoon">No bosses have been added yet — they're planned for a future update. Check back after the next patch!</div>
+      </div>
     </div>
   </div>
 </div>
@@ -2371,6 +2447,14 @@ function toggleAchvModal(){
 }
 document.getElementById('achvToggleBtn').addEventListener('click', toggleAchvModal);
 document.getElementById('achvCloseBtn').addEventListener('click', toggleAchvModal);
+
+function toggleWikiModal(){
+  const el = document.getElementById('wikiModal');
+  const opening = el.style.display !== 'flex';
+  el.style.display = opening ? 'flex' : 'none';
+}
+document.getElementById('wikiToggleBtn').addEventListener('click', toggleWikiModal);
+document.getElementById('wikiCloseBtn').addEventListener('click', toggleWikiModal);
 
 function endGame(){
   running=false;
