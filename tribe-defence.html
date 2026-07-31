@@ -93,6 +93,25 @@
   #startBtn:hover{background:#5fa85f;}
 
   #diffGrid{display:flex;gap:10px;margin-top:22px;flex-wrap:wrap;justify-content:center;max-width:620px;}
+  #achvToggleBtn{position:absolute;bottom:14px;right:100px;z-index:15;pointer-events:auto;background:rgba(20,24,32,0.9);border:2px solid #556;border-radius:8px;color:#ffd24d;font-weight:bold;font-size:13px;padding:8px 14px;cursor:pointer;white-space:nowrap;}
+  #achvToggleBtn:hover{border-color:#ffd24d;}
+  #achvModal{position:absolute;top:0;left:0;width:100%;height:100%;background:rgba(5,5,10,0.75);display:none;align-items:center;justify-content:center;pointer-events:auto;z-index:35;}
+  #achvPanel{background:#161a24;border:2px solid #556;border-radius:12px;padding:18px 22px;width:min(360px,90vw);max-height:80vh;overflow:auto;box-shadow:0 8px 30px rgba(0,0,0,0.6);text-align:left;}
+  #achvHeader{display:flex;justify-content:space-between;align-items:center;margin-bottom:12px;}
+  #achvHeader h2{margin:0;color:#ffd24d;font-size:18px;}
+  #achvCloseBtn{background:rgba(255,255,255,0.08);border:1px solid #556;color:#eee;border-radius:6px;width:32px;height:32px;font-size:16px;cursor:pointer;}
+  #achvCloseBtn:hover{background:rgba(255,80,80,0.3);}
+  .achvRow{margin-bottom:13px;}
+  .achvRow:last-child{margin-bottom:0;}
+  .achvName{font-size:13px;font-weight:bold;color:#ddd;display:flex;justify-content:space-between;align-items:center;gap:6px;}
+  .achvRow.done .achvName{color:#ffd24d;}
+  .achvCheck{color:#9fdc9f;font-size:11px;}
+  .achvDesc{font-size:11px;color:#9ab;margin-top:2px;line-height:1.3;}
+  .achvBarBg{width:100%;height:7px;background:rgba(255,255,255,0.08);border-radius:3px;overflow:hidden;margin-top:5px;}
+  .achvBarFill{height:100%;background:linear-gradient(90deg,#4d8f4d,#7fd17f);transition:width .3s;}
+  .achvRow.done .achvBarFill{background:linear-gradient(90deg,#ffd24d,#ffe27a);}
+  .achvProgText{font-size:10px;color:#89a;margin-top:3px;text-align:right;}
+  .achvRow.done .achvProgText{color:#ffd24d;}
   .diffBtn{padding:12px 16px;border-radius:8px;border:2px solid #556;background:rgba(30,34,44,0.85);color:#ddd;cursor:pointer;width:110px;text-align:center;transition:transform .1s,border-color .15s;}
   .diffBtn:hover{transform:translateY(-2px);}
   .diffBtn.selected{border-color:#ffd24d;box-shadow:0 0 10px #ffd24d66;}
@@ -290,7 +309,8 @@
   <div id="diffTag"></div>
   <div id="hint">WASD/Arrows move · Number keys (1-9) or click slots to select · Left click to mine/attack (auto) or build — left click any placed block/tower to break it · Right click a chest/furnace/workbench to use it, or right click a tower for Upgrade/Break options · Furnace &amp; Chest are built from the Workbench panel · Hold Shift to block with your Shield (once crafted) · E for Inventory &amp; equipping armor</div>
 
-  <button id="chatToggleBtn" type="button" style="position:relative;">💬 Chat<span id="chatUnreadBadge">0</span></button>
+  <button id="achvToggleBtn" type="button">🏆 Achievements</button>
+  <button id="chatToggleBtn" type="button">💬 Chat<span id="chatUnreadBadge">0</span></button>
   <div class="panel" id="chatWrap">
     <div class="chatTabs">
       <button class="chatTab active" data-tab="global" type="button">🌍 Global</button>
@@ -442,6 +462,30 @@
       </div>
       <div id="frontPanel-updates">
         <div class="updateEntry">
+          <h3>Version 15.8</h3>
+          <ul>
+            <li>Achievement viewer</li>
+          </ul>
+        </div>
+        <div class="updateEntry">
+          <h3>Version 15.7</h3>
+          <ul>
+            <li>Achievements</li>
+          </ul>
+        </div>
+        <div class="updateEntry">
+          <h3>Version 15.6</h3>
+          <ul>
+            <li>Void Glitch</li>
+          </ul>
+        </div>
+        <div class="updateEntry">
+          <h3>Version 15.5</h3>
+          <ul>
+            <li>Chat Button fixed</li>
+          </ul>
+        </div>
+        <div class="updateEntry">
           <h3>Version 15.4</h3>
           <ul>
             <li>Chat Added + Notifications</li>
@@ -468,6 +512,16 @@
       </div>
       <div id="slotGrid"></div>
       <div id="slotHint">Click a slot to save or load · 🗑 deletes that slot · 8 slots max</div>
+    </div>
+  </div>
+
+  <div id="achvModal">
+    <div id="achvPanel">
+      <div id="achvHeader">
+        <h2>🏆 Achievements</h2>
+        <button id="achvCloseBtn">✕</button>
+      </div>
+      <div id="achvList"></div>
     </div>
   </div>
 </div>
@@ -527,7 +581,7 @@ const TURRET_UPGRADE_COST = {
   turret_stone: {ironBar:10, wood:4}
 };
 
-const SOLID_TILES = new Set(['tree','rock','ore_iron','ore_gold','ore_diamond','wall_wood','wall_stone','workbench','turret_wood','turret_stone','turret_iron','chest','furnace']);
+const SOLID_TILES = new Set(['tree','rock','ore_iron','ore_gold','ore_diamond','wall_wood','wall_stone','workbench','turret_wood','turret_stone','turret_iron','chest','furnace','void']);
 const WALKABLE_BUILD_TILES = new Set(['slab','torch']); // non-solid placeables
 
 const TILE_INFO = {
@@ -762,7 +816,7 @@ function recomputeWorkbenchBuilt(){
 }
 
 function tileAt(tx,ty){
-  if(tx<0||ty<0||tx>=COLS||ty>=ROWS) return 'wall_stone';
+  if(tx<0||ty<0||tx>=COLS||ty>=ROWS) return 'void';
   return grid[ty*COLS+tx];
 }
 function setTile(tx,ty,val){
@@ -810,6 +864,8 @@ function resetGame(){
   enemySpawnTimer = 2;
   resourceRegrowTimer = 6;
   selected='action';
+  blocksBuiltRun = 0;
+  renderAchvPanel();
   updateHotbarUI();
   updateWorkbenchStatus();
   updateDifficultyTag();
@@ -1232,6 +1288,7 @@ function tryBuild(w, id){
     for(const res in cost) player[res]-=cost[res];
   }
   setTile(tx,ty,id);
+  onBlockBuilt();
   if(id==='workbench'){
     recomputeWorkbenchBuilt();
     showMsg('Workbench built! New recipes unlocked.');
@@ -2252,6 +2309,69 @@ function buildDiffGrid(){
   }
 }
 
+// ---------- ACHIEVEMENTS ----------
+// Building any block (wall, workbench, torch, chest, furnace, tower) counts
+// toward these. Each tier must be reached within a single game (blocksBuiltRun
+// resets on every new run), but once unlocked it's remembered forever.
+const ACHIEVEMENTS = [
+  {id:'builder1', name:'BUILDER I',   desc:'Build 100 blocks in 1 game',       threshold:100},
+  {id:'builder2', name:'BUILDER II',  desc:'Build 1,000 blocks in 1 game',     threshold:1000},
+  {id:'builder3', name:'BUILDER III', desc:'Build 10,000 blocks in 1 game',    threshold:10000},
+  {id:'builder4', name:'BUILDER IV',  desc:'Build 100,000 blocks in 1 game',   threshold:100000},
+  {id:'builder5', name:'BUILDER V',   desc:'Build 1,000,000 blocks in 1 game', threshold:1000000},
+];
+const ACHV_KEY = 'tribeDefenceAchievements';
+let blocksBuiltRun = 0;
+
+function loadAchvUnlocked(){
+  try{
+    const o = JSON.parse(localStorage.getItem(ACHV_KEY));
+    return (o && typeof o==='object') ? o : {};
+  }catch(e){ return {}; }
+}
+function saveAchvUnlocked(o){
+  localStorage.setItem(ACHV_KEY, JSON.stringify(o));
+}
+let achvUnlocked = loadAchvUnlocked();
+
+function onBlockBuilt(){
+  blocksBuiltRun++;
+  for(const a of ACHIEVEMENTS){
+    if(!achvUnlocked[a.id] && blocksBuiltRun >= a.threshold){
+      achvUnlocked[a.id] = true;
+      saveAchvUnlocked(achvUnlocked);
+      showMsg('🏆 Achievement unlocked: '+a.name);
+    }
+  }
+  renderAchvPanel();
+}
+
+function renderAchvPanel(){
+  const list = document.getElementById('achvList');
+  if(!list) return;
+  list.innerHTML = ACHIEVEMENTS.map(a=>{
+    const done = !!achvUnlocked[a.id];
+    const pct = Math.min(100, Math.floor((blocksBuiltRun/a.threshold)*100));
+    const have = Math.min(blocksBuiltRun, a.threshold);
+    return `<div class="achvRow${done?' done':''}">`+
+      `<div class="achvName"><span>${a.name}</span>${done?'<span class="achvCheck">✔ done</span>':''}</div>`+
+      `<div class="achvDesc">${a.desc}</div>`+
+      `<div class="achvBarBg"><div class="achvBarFill" style="width:${done?100:pct}%;"></div></div>`+
+      `<div class="achvProgText">${done?100:pct}% · ${have.toLocaleString()}/${a.threshold.toLocaleString()} blocks</div>`+
+    `</div>`;
+  }).join('');
+}
+renderAchvPanel();
+
+function toggleAchvModal(){
+  const el = document.getElementById('achvModal');
+  const opening = el.style.display !== 'flex';
+  el.style.display = opening ? 'flex' : 'none';
+  if(opening) renderAchvPanel();
+}
+document.getElementById('achvToggleBtn').addEventListener('click', toggleAchvModal);
+document.getElementById('achvCloseBtn').addEventListener('click', toggleAchvModal);
+
 function endGame(){
   running=false;
   const hardcore = DIFFICULTY_SETTINGS[difficulty].hardcore;
@@ -2450,6 +2570,18 @@ async function toggleChatPanel(){
 document.getElementById('lbToggleBtn').addEventListener('click', toggleLbPanel);
 document.getElementById('chatToggleBtn').addEventListener('click', toggleChatPanel);
 
+const CHAT_LOCAL_CACHE_PREFIX = 'tribeDefenceChatCache_';
+
+function loadLocalChatCache(channel){
+  try{
+    const arr = JSON.parse(localStorage.getItem(CHAT_LOCAL_CACHE_PREFIX+channel));
+    return Array.isArray(arr) ? arr : [];
+  }catch(e){ return []; }
+}
+function saveLocalChatCache(channel, log){
+  try{ localStorage.setItem(CHAT_LOCAL_CACHE_PREFIX+channel, JSON.stringify(log.slice(-50))); }catch(e){}
+}
+
 async function fetchChatLog(channel){
   const { data, error } = await sb.from('chat_messages')
     .select('name,text,created_at')
@@ -2459,6 +2591,7 @@ async function fetchChatLog(channel){
   if(error){ return chatCache[channel] || []; }
   const log = (data||[]).slice().reverse().map(m=>({name:m.name, text:m.text, ts:new Date(m.created_at).getTime()}));
   chatCache[channel] = log;
+  saveLocalChatCache(channel, log);
   return log;
 }
 
@@ -2540,6 +2673,7 @@ sb.channel('public:chat_messages')
     if(!chatCache[m.channel]) chatCache[m.channel] = [];
     chatCache[m.channel].push({name:m.name, text:m.text, ts:new Date(m.created_at).getTime()});
     if(chatCache[m.channel].length>50) chatCache[m.channel].shift();
+    saveLocalChatCache(m.channel, chatCache[m.channel]);
     if(chatTab === m.channel) renderChat();
     const isMine = m.name === getPlayerName();
     const isVisible = chatPanelOpen && chatTab === m.channel;
@@ -2556,6 +2690,11 @@ sb.channel('public:leaderboard')
   .subscribe();
 
 // Initial load
+// Initial load: paint whatever we last saw locally right away so a page
+// reload never looks like the chat got wiped, then refresh from the server.
+chatCache.global = loadLocalChatCache('global');
+chatCache.elite = loadLocalChatCache('elite');
+renderChat();
 fetchLeaderboard().then(renderLeaderboardPanel);
 fetchChatLog('global').then(renderChat);
 
