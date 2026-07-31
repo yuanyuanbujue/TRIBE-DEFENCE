@@ -118,6 +118,9 @@
   #frontBody h3:first-child{margin-top:0;}
   #frontBody ul{margin:4px 0 10px 20px;padding:0;}
   #frontPanel-updates{display:none;color:#789;text-align:center;padding:30px 0;}
+  .updateEntry{text-align:left;border-bottom:1px solid #445;padding-bottom:12px;margin-bottom:12px;}
+  .updateEntry:last-child{border-bottom:none;margin-bottom:0;padding-bottom:0;}
+  .updateEntry h3{color:#ffd24d !important;}
   #proceedBtn{margin-top:22px;padding:14px 40px;font-size:20px;background:#4d8f4d;border:none;border-radius:6px;color:#fff;cursor:pointer;font-weight:bold;}
   #proceedBtn:hover{background:#5fa85f;}
 
@@ -160,6 +163,10 @@
 
   #chatToggleBtn{position:absolute;bottom:14px;right:10px;z-index:15;pointer-events:auto;background:rgba(20,24,32,0.9);border:2px solid #556;border-radius:8px;color:#8ecbff;font-weight:bold;font-size:13px;padding:8px 14px;cursor:pointer;}
   #chatToggleBtn:hover{border-color:#8ecbff;}
+  #chatUnreadBadge{position:absolute;top:-7px;right:-7px;background:#ff5555;color:#fff;font-size:10px;font-weight:bold;min-width:17px;height:17px;border-radius:9px;display:none;align-items:center;justify-content:center;padding:0 4px;box-shadow:0 0 0 2px #0a0e14;animation:badgePop .25s ease;}
+  @keyframes badgePop{ 0%{transform:scale(0.4);} 70%{transform:scale(1.15);} 100%{transform:scale(1);} }
+  @keyframes chatBtnFlash{ 0%,100%{border-color:#556;} 50%{border-color:#ff9955;} }
+  #chatToggleBtn.flash{animation:chatBtnFlash 1s ease infinite;}
   #chatWrap{top:auto;bottom:56px;right:10px;width:250px;max-height:300px;display:none;flex-direction:column;pointer-events:auto;}
   .chatTabs{display:flex;gap:4px;margin-bottom:6px;}
   .chatTab{flex:1;padding:5px 4px;font-size:11px;background:rgba(255,255,255,0.06);border:1px solid #445;border-radius:5px;color:#ccd;cursor:pointer;font-weight:600;}
@@ -283,7 +290,7 @@
   <div id="diffTag"></div>
   <div id="hint">WASD/Arrows move · Number keys (1-9) or click slots to select · Left click to mine/attack (auto) or build — left click any placed block/tower to break it · Right click a chest/furnace/workbench to use it, or right click a tower for Upgrade/Break options · Furnace &amp; Chest are built from the Workbench panel · Hold Shift to block with your Shield (once crafted) · E for Inventory &amp; equipping armor</div>
 
-  <button id="chatToggleBtn" type="button">💬 Chat</button>
+  <button id="chatToggleBtn" type="button" style="position:relative;">💬 Chat<span id="chatUnreadBadge">0</span></button>
   <div class="panel" id="chatWrap">
     <div class="chatTabs">
       <button class="chatTab active" data-tab="global" type="button">🌍 Global</button>
@@ -433,7 +440,14 @@
         <h3>Biomes</h3>
         <p>Survive to Day 50 and Day 100 to trigger a border expansion into tougher new biomes with stronger enemies.</p>
       </div>
-      <div id="frontPanel-updates">Nothing here yet — check back soon!</div>
+      <div id="frontPanel-updates">
+        <div class="updateEntry">
+          <h3>Version 15.4</h3>
+          <ul>
+            <li>Chat Added + Notifications</li>
+          </ul>
+        </div>
+      </div>
     </div>
     <button id="proceedBtn" type="button">Proceed ➜</button>
   </div>
@@ -2261,6 +2275,27 @@ let chatTab = 'global';
 let playerName = null;
 let leaderboardCache = [];
 let chatCache = { global: [], elite: [] };
+let chatUnread = 0;
+let chatPanelOpen = false;
+
+function bumpChatUnread(n){
+  chatUnread += n;
+  const badge = document.getElementById('chatUnreadBadge');
+  const btn = document.getElementById('chatToggleBtn');
+  if(!badge || !btn) return;
+  if(chatUnread > 0){
+    badge.textContent = chatUnread > 9 ? '9+' : String(chatUnread);
+    badge.style.display = 'flex';
+    btn.classList.add('flash');
+  } else {
+    badge.style.display = 'none';
+    btn.classList.remove('flash');
+  }
+}
+function clearChatUnread(){
+  chatUnread = 0;
+  bumpChatUnread(0);
+}
 
 function getPlayerName(){
   if(playerName) return playerName;
@@ -2405,7 +2440,12 @@ async function toggleChatPanel(){
   const el = document.getElementById('chatWrap');
   const opening = el.style.display !== 'flex';
   el.style.display = opening ? 'flex' : 'none';
-  if(opening){ await fetchChatLog(chatTab); renderChat(); }
+  chatPanelOpen = opening;
+  if(opening){
+    clearChatUnread();
+    await fetchChatLog(chatTab);
+    renderChat();
+  }
 }
 document.getElementById('lbToggleBtn').addEventListener('click', toggleLbPanel);
 document.getElementById('chatToggleBtn').addEventListener('click', toggleChatPanel);
@@ -2481,6 +2521,7 @@ document.querySelectorAll('.chatTab').forEach(btn=>{
   btn.addEventListener('click', async ()=>{
     chatTab = btn.dataset.tab;
     document.querySelectorAll('.chatTab').forEach(b=>b.classList.toggle('active', b===btn));
+    if(chatPanelOpen) clearChatUnread();
     await fetchChatLog(chatTab);
     renderChat();
   });
@@ -2500,6 +2541,9 @@ sb.channel('public:chat_messages')
     chatCache[m.channel].push({name:m.name, text:m.text, ts:new Date(m.created_at).getTime()});
     if(chatCache[m.channel].length>50) chatCache[m.channel].shift();
     if(chatTab === m.channel) renderChat();
+    const isMine = m.name === getPlayerName();
+    const isVisible = chatPanelOpen && chatTab === m.channel;
+    if(!isMine && !isVisible) bumpChatUnread(1);
   })
   .subscribe();
 
