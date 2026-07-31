@@ -249,6 +249,7 @@
   #wbRight{flex:1 1 280px;}
   #workbenchHint{margin-top:14px;font-size:11px;color:#89a;text-align:center;}
 </style>
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2/dist/umd/supabase.min.js"></script>
 </head>
 <body>
 
@@ -2248,20 +2249,18 @@ function endGame(){
   document.getElementById('gameover').style.display='flex';
 }
 
-// ---------- CHAT ----------
-// NOTE: this game is a single, fully client-side HTML file with no server —
-// there's no real network connecting different players' devices. This chat
-// is a local approximation: messages are stored in this browser's
-// localStorage, so any tab/window of this SAME browser on this SAME device
-// (solo play or a friend taking turns) shares the same Global/Top-3 chat and
-// updates live between tabs. It will not reach players on other devices —
-// that would need an actual backend server.
-const CHAT_GLOBAL_KEY = 'tribeDefenceChatGlobal';
-const CHAT_ELITE_KEY = 'tribeDefenceChatElite';
-const LEADERBOARD_KEY = 'tribeDefenceLeaderboard';
+// ---------- CHAT & LEADERBOARD (Supabase) ----------
+// Backed by a real Supabase project, so chat and the leaderboard are shared
+// live across every player's device — not just tabs on the same browser.
+const SUPABASE_URL = 'https://untqjlbdopjqoaakwuvn.supabase.co';
+const SUPABASE_KEY = 'sb_publishable_Lzf5igMIYZtLM0r4diBDVw_sQEw8tGO';
+const sb = window.supabase.createClient(SUPABASE_URL, SUPABASE_KEY);
+
 const NAME_KEY = 'tribeDefencePlayerName';
 let chatTab = 'global';
 let playerName = null;
+let leaderboardCache = [];
+let chatCache = { global: [], elite: [] };
 
 function getPlayerName(){
   if(playerName) return playerName;
@@ -2277,38 +2276,10 @@ function getPlayerName(){
 
 function scoreFor(d,k,kp){ return kp!=null ? kp : k; }
 
-function getLeaderboard(){
-  let lb;
-  try{ lb = JSON.parse(localStorage.getItem(LEADERBOARD_KEY)); }catch(e){ lb = null; }
-  if(!Array.isArray(lb)) lb = [];
-  // one-time cleanup: strip any leftover fake "Rival:" demo entries from an older version
-  const cleaned = lb.filter(e=>e && typeof e.name==='string' && !e.name.startsWith('Rival:'));
-  if(cleaned.length !== lb.length){
-    lb = cleaned;
-    localStorage.setItem(LEADERBOARD_KEY, JSON.stringify(lb));
-  }
-  return lb;
-}
-
-// Players must explicitly submit their run (days survived + kills) to the leaderboard —
-// it is no longer recorded automatically.
-function submitScore(){
-  if(!player){ showMsg('Start a game first'); return; }
-  const name = getPlayerName();
-  const lb = getLeaderboard();
-  const score = scoreFor(day, kills, killPoints);
-  let entry = lb.find(e=>e.name===name);
-  if(!entry){ entry = {name, days:0, kills:0, score:0, difficulty:'', time:0}; lb.push(entry); }
-  if(score > entry.score){
-    entry.days = day; entry.kills = kills; entry.score = score;
-    entry.difficulty = difficulty; entry.time = elapsed;
-  }
-  localStorage.setItem(LEADERBOARD_KEY, JSON.stringify(lb));
-  showMsg('Score submitted: Day '+day+' · '+kills+' kills · '+score+' pts');
-  const lbWrap = document.getElementById('lbWrap');
-  if(lbWrap) lbWrap.style.display = 'block';
-  renderLeaderboardPanel();
-  renderChat();
+async function fetchLeaderboard(){
+  const { data, error } = await sb.from('leaderboard').select('*').order('score',{ascending:false});
+  if(!error) leaderboardCache = data || [];
+  return leaderboardCache;
 }
 
 function fmtPlayTime(sec){
@@ -2326,11 +2297,33 @@ function diffLabel(id){
 }
 
 function topThree(){
-  return [...getLeaderboard()].sort((a,b)=>b.score-a.score).slice(0,3);
+  return [...leaderboardCache].sort((a,b)=>b.score-a.score).slice(0,3);
 }
 function isTopThree(){
   const t3 = topThree();
   return t3.some(e=>e.name===getPlayerName());
+}
+
+// Players must explicitly submit their run (days survived + kills) to the leaderboard —
+// it is no longer recorded automatically. Only overwrites their row if the new
+// score beats their previous best.
+async function submitScore(){
+  if(!player){ showMsg('Start a game first'); return; }
+  const name = getPlayerName();
+  const score = scoreFor(day, kills, killPoints);
+  const existing = leaderboardCache.find(e=>e.name===name);
+  if(!existing || score > existing.score){
+    const { error } = await sb.from('leaderboard').upsert({
+      name, days: day, kills, score, difficulty, play_time: elapsed, updated_at: new Date().toISOString()
+    }, { onConflict: 'name' });
+    if(error){ showMsg('Could not submit score — check your connection'); return; }
+    await fetchLeaderboard();
+  }
+  showMsg('Score submitted: Day '+day+' · '+kills+' kills · '+score+' pts');
+  const lbWrap = document.getElementById('lbWrap');
+  if(lbWrap) lbWrap.style.display = 'block';
+  renderLeaderboardPanel();
+  renderChat();
 }
 
 function renderLeaderboardPanel(){
@@ -2350,7 +2343,7 @@ function renderLeaderboardPanel(){
       `<td>${diffLabel(e.difficulty)}</td>`+
       `<td>${e.days||0}</td>`+
       `<td>${e.kills||0}</td>`+
-      `<td>${fmtPlayTime(e.time)}</td>`+
+      `<td>${fmtPlayTime(e.play_time)}</td>`+
     `</tr>`
   ).join('');
   list.innerHTML = `<table id="lbTable"><thead><tr>`+
@@ -2369,7 +2362,7 @@ function changePlayerName(){
     input.select();
   }
 }
-function saveNewName(){
+async function saveNewName(){
   const input = document.getElementById('lbNameInput');
   const n = (input.value || '').trim().slice(0,18);
   if(!n) return;
@@ -2380,13 +2373,13 @@ function saveNewName(){
   // Replace the old name with the new one everywhere it's stored, instead of
   // leaving a stale duplicate entry behind.
   if(n !== oldName){
-    const lb = getLeaderboard();
-    const entry = lb.find(e=>e.name===oldName);
-    if(entry){
-      entry.name = n;
-      localStorage.setItem(LEADERBOARD_KEY, JSON.stringify(lb));
+    const existing = leaderboardCache.find(e=>e.name===oldName);
+    if(existing){
+      const { error } = await sb.from('leaderboard').update({name:n}).eq('name', oldName);
+      if(!error) await fetchLeaderboard();
     }
-    renameChatAuthor(oldName, n);
+    await sb.from('chat_messages').update({name:n}).eq('name', oldName);
+    await Promise.all([fetchChatLog('global'), fetchChatLog('elite')]);
   }
 
   showMsg('Name changed to '+n);
@@ -2401,58 +2394,49 @@ document.getElementById('lbNameInput').addEventListener('keydown', e=>{
 document.getElementById('lbNameBtn').addEventListener('click', changePlayerName);
 document.getElementById('lbSubmitBtn').addEventListener('click', submitScore);
 document.getElementById('goSubmitBtn').addEventListener('click', submitScore);
-renderLeaderboardPanel();
 
 function toggleLbPanel(){
   const el = document.getElementById('lbWrap');
   const opening = el.style.display !== 'block';
   el.style.display = opening ? 'block' : 'none';
-  if(opening) renderLeaderboardPanel();
+  if(opening){ fetchLeaderboard().then(renderLeaderboardPanel); }
 }
-function toggleChatPanel(){
+async function toggleChatPanel(){
   const el = document.getElementById('chatWrap');
   const opening = el.style.display !== 'flex';
   el.style.display = opening ? 'flex' : 'none';
-  if(opening) renderChat();
+  if(opening){ await fetchChatLog(chatTab); renderChat(); }
 }
 document.getElementById('lbToggleBtn').addEventListener('click', toggleLbPanel);
 document.getElementById('chatToggleBtn').addEventListener('click', toggleChatPanel);
 
-function loadChatLog(key){
-  try{
-    const arr = JSON.parse(localStorage.getItem(key));
-    return Array.isArray(arr) ? arr : [];
-  }catch(e){ return []; }
+async function fetchChatLog(channel){
+  const { data, error } = await sb.from('chat_messages')
+    .select('name,text,created_at')
+    .eq('channel', channel)
+    .order('created_at', {ascending:false})
+    .limit(50);
+  if(error){ return chatCache[channel] || []; }
+  const log = (data||[]).slice().reverse().map(m=>({name:m.name, text:m.text, ts:new Date(m.created_at).getTime()}));
+  chatCache[channel] = log;
+  return log;
 }
 
 function escapeHtml(s){
   return s.replace(/[&<>"']/g, c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
 }
 
-function sendChat(key, text){
+async function sendChat(channel, text){
   text = text.trim().slice(0,140);
   if(!text) return;
-  const log = loadChatLog(key);
-  log.push({name:getPlayerName(), text, ts:Date.now()});
-  while(log.length>50) log.shift();
-  localStorage.setItem(key, JSON.stringify(log));
+  const { error } = await sb.from('chat_messages').insert({channel, name:getPlayerName(), text});
+  if(error){ showMsg('Message failed to send'); return; }
+  await fetchChatLog(channel);
   renderChat();
 }
 
-function renameChatAuthor(oldName, newName){
-  for(const key of [CHAT_GLOBAL_KEY, CHAT_ELITE_KEY]){
-    const log = loadChatLog(key);
-    let changed = false;
-    for(const m of log){
-      if(m.name === oldName){ m.name = newName; changed = true; }
-    }
-    if(changed) localStorage.setItem(key, JSON.stringify(log));
-  }
-}
-
 function renderChat(){
-  const key = chatTab==='global' ? CHAT_GLOBAL_KEY : CHAT_ELITE_KEY;
-  const log = loadChatLog(key);
+  const log = chatCache[chatTab] || [];
   const box = document.getElementById('chatMessages');
   box.innerHTML = log.length ? log.map(m=>{
     const mine = m.name===getPlayerName();
@@ -2489,15 +2473,15 @@ function updateChatGate(){
 function sendCurrentChat(){
   const input = document.getElementById('chatInput');
   if(chatTab==='elite' && !(player && isTopThree())) return;
-  const key = chatTab==='global' ? CHAT_GLOBAL_KEY : CHAT_ELITE_KEY;
-  sendChat(key, input.value);
+  sendChat(chatTab, input.value);
   input.value = '';
 }
 
 document.querySelectorAll('.chatTab').forEach(btn=>{
-  btn.addEventListener('click',()=>{
+  btn.addEventListener('click', async ()=>{
     chatTab = btn.dataset.tab;
     document.querySelectorAll('.chatTab').forEach(b=>b.classList.toggle('active', b===btn));
+    await fetchChatLog(chatTab);
     renderChat();
   });
 });
@@ -2507,11 +2491,29 @@ document.getElementById('chatInput').addEventListener('keydown', e=>{
   if(e.key==='Enter') sendCurrentChat();
 });
 document.getElementById('chatInput').addEventListener('keyup', e=>e.stopPropagation());
-window.addEventListener('storage', e=>{
-  if(e.key===CHAT_GLOBAL_KEY || e.key===CHAT_ELITE_KEY || e.key===LEADERBOARD_KEY) renderChat();
-  if(e.key===LEADERBOARD_KEY) renderLeaderboardPanel();
-});
-renderChat();
+
+// Live updates across every device via Supabase Realtime.
+sb.channel('public:chat_messages')
+  .on('postgres_changes', {event:'INSERT', schema:'public', table:'chat_messages'}, payload => {
+    const m = payload.new;
+    if(!chatCache[m.channel]) chatCache[m.channel] = [];
+    chatCache[m.channel].push({name:m.name, text:m.text, ts:new Date(m.created_at).getTime()});
+    if(chatCache[m.channel].length>50) chatCache[m.channel].shift();
+    if(chatTab === m.channel) renderChat();
+  })
+  .subscribe();
+
+sb.channel('public:leaderboard')
+  .on('postgres_changes', {event:'*', schema:'public', table:'leaderboard'}, async () => {
+    await fetchLeaderboard();
+    renderLeaderboardPanel();
+    updateChatGate();
+  })
+  .subscribe();
+
+// Initial load
+fetchLeaderboard().then(renderLeaderboardPanel);
+fetchChatLog('global').then(renderChat);
 
 // ---------- LOOP ----------
 let lastTime=performance.now();
