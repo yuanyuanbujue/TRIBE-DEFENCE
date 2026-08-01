@@ -499,6 +499,14 @@
       </div>
       <div id="frontPanel-updates">
         <div class="updateEntry">
+          <h3>Version 17.4 - The Stalker</h3>
+          <ul>
+            <li>Added a new mob: The Stalker — appears in the Scorched Frontier from Day 54 onward, with 150 HP and 40 melee damage</li>
+            <li>The Stalker explodes on death, dealing damage to nearby mobs and the player</li>
+            <li>Added a new Wiki entry for The Stalker under the Scorched Frontier</li>
+          </ul>
+        </div>
+        <div class="updateEntry">
           <h3>Version 17.3 - Large Mob Drops UPDATED!</h3>
           <ul>
             <li>Large mobs now have a 20% chance to drop an iron bar on death</li>
@@ -694,6 +702,11 @@
           <div class="wikiMobName" style="color:#b2661f;">Ember Brute</div>
           <div class="wikiMobMeta">Big · Uncommon · Dark Orange</div>
           <div class="wikiMobDesc">A significant step up from a Wildling Brute in both health and damage, and appears more often than its Wilds counterpart. Upgraded towers and armor are strongly recommended before pushing this far.</div>
+        </div>
+        <div class="wikiMob">
+          <div class="wikiMobName" style="color:#c9782f;">The Stalker</div>
+          <div class="wikiMobMeta">Rare · Scorched Frontier · Day 54+ only</div>
+          <div class="wikiMobDesc">A hulking, heavy-hitting threat that starts appearing once you've survived to Day 54. Deals solid melee damage on contact, but its real danger is on death — it detonates in an explosion that damages anything nearby, mobs and player alike. Keep your distance when it's low on health, or finish it off from range with turrets. Marked by its bomb icon.</div>
         </div>
 
         <h3>🌀 Void Reaches (Day 100+)</h3>
@@ -955,6 +968,10 @@ let wasNightTime = false;
 const MOB_BURN_DPS = 6;
 const PLAYER_BURN_DPS = 3;
 const PLAYER_BURN_DURATION = 5;
+const STALKER_EXPLOSION_RADIUS = 110;
+const STALKER_EXPLOSION_DMG_MOB = 50;
+const STALKER_EXPLOSION_DMG_PLAYER_AFK = 20;
+const STALKER_EXPLOSION_DMG_PLAYER_NORMAL = 50;
 let day = 1;
 let resourceRegrowTimer = 0;
 let enemySpawnTimer = 0;
@@ -1228,6 +1245,31 @@ function spawnEnemyAt(x,y){
     return;
   }
 
+  // The Stalker — a hulking mob from the Scorched Frontier that only appears once the
+  // player has survived to Day 54+. Detonates in an area-of-effect blast the instant it
+  // dies, damaging any mobs and the player caught nearby.
+  const canStalker = day >= 54;
+  if(canStalker && Math.random() < 0.10){
+    const baseHp = 150*tierMult;
+    enemies.push({
+      x,y,
+      hp: Math.round(baseHp*settings.hpMult),
+      maxHp: Math.round(baseHp*settings.hpMult),
+      speed: 90+biomeTier*8,
+      damage: Math.round(40*settings.dmgMult),
+      radius: 15,
+      big:false,
+      draugur:false,
+      stalker:true,
+      color: '#c9782f',
+      contactCooldown:0,
+      wanderTarget:null,
+      wanderTimer:0,
+      hitByPlayer:false
+    });
+    return;
+  }
+
   const strong = day>=3 && Math.random()<(0.35+biomeTier*0.2);
   const baseHp = (strong?75:25)*tierMult;
   const baseDmg = (strong?20:8)*tierMult;
@@ -1265,6 +1307,28 @@ function addFloater(x,y,text,color){
 function addParticles(x,y,color,n){
   for(let i=0;i<n;i++){
     particles.push({x,y,vx:rand(-60,60),vy:rand(-60,60),life:0.5,color});
+  }
+}
+
+// The Stalker's death blast — hits every other mob and the player within range.
+// Player damage is flat (not reduced by armor/defense) to keep the threat consistent.
+function triggerStalkerExplosion(e){
+  addParticles(e.x,e.y,'#ff8c30',22);
+  addParticles(e.x,e.y,'#ffdd66',10);
+  for(const other of enemies){
+    if(other===e) continue;
+    if(dist(other.x,other.y,e.x,e.y) <= STALKER_EXPLOSION_RADIUS){
+      other.hp -= STALKER_EXPLOSION_DMG_MOB;
+      addFloater(other.x,other.y-10,'-'+STALKER_EXPLOSION_DMG_MOB,'#ff8c30');
+    }
+  }
+  if(dist(player.x,player.y,e.x,e.y) <= STALKER_EXPLOSION_RADIUS){
+    const dmg = afkMode ? STALKER_EXPLOSION_DMG_PLAYER_AFK : STALKER_EXPLOSION_DMG_PLAYER_NORMAL;
+    player.hp -= dmg;
+    player.hurtFlash = 0.25;
+    player.timeSinceHit = 0;
+    addFloater(player.x,player.y-20,'-'+dmg,'#ff5555');
+    showMsg('💥 The Stalker exploded!');
   }
 }
 
@@ -1901,6 +1965,7 @@ function update(dt){
     if(enemies[i].hp<=0){
       const e = enemies[i];
       addParticles(e.x,e.y,e.hitByPlayer?'#ff3333':'#ff8c30',10);
+      if(e.stalker){ triggerStalkerExplosion(e); }
       if(e.hitByPlayer){
         if(Math.random()<0.35){
           const res = Math.random()<0.5?'wood':'stone';
@@ -2103,6 +2168,12 @@ function draw(){
       ctx.font='11px sans-serif';
       ctx.textAlign='center'; ctx.textBaseline='middle';
       ctx.fillText('💀',sx,sy+1);
+    }
+    if(e.stalker){
+      ctx.fillStyle='#3a1a05';
+      ctx.font='12px sans-serif';
+      ctx.textAlign='center'; ctx.textBaseline='middle';
+      ctx.fillText('💣',sx,sy+1);
     }
     // hp bar
     ctx.fillStyle='#2a0a0a';
