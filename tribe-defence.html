@@ -45,6 +45,14 @@
 
   #msg{position:absolute;top:70px;left:50%;transform:translateX(-50%);font-size:15px;background:rgba(0,0,0,0.6);padding:6px 14px;border-radius:6px;opacity:0;transition:opacity .3s;text-align:center;z-index:95;pointer-events:none;}
 
+  #achvPopupWrap{position:absolute;top:16px;left:50%;transform:translateX(-50%);z-index:150;display:flex;flex-direction:column;gap:8px;align-items:center;pointer-events:none;}
+  .achvPopup{display:flex;align-items:center;gap:12px;background:linear-gradient(135deg,#2a2210,#1a1608);border:2px solid #ffd24d;border-radius:10px;padding:10px 18px;box-shadow:0 6px 24px rgba(0,0,0,0.6),0 0 18px rgba(255,210,77,0.35);opacity:0;transform:translateY(-24px) scale(0.9);transition:opacity .35s ease,transform .35s ease;white-space:nowrap;}
+  .achvPopup.show{opacity:1;transform:translateY(0) scale(1);}
+  .achvPopup .achvPopupIcon{font-size:26px;filter:drop-shadow(0 0 6px rgba(255,210,77,0.7));}
+  .achvPopup .achvPopupText{text-align:left;}
+  .achvPopup .achvPopupLabel{font-size:10px;letter-spacing:1px;color:#ffd24d;text-transform:uppercase;}
+  .achvPopup .achvPopupName{font-size:15px;font-weight:bold;color:#fff;}
+
   #hint{position:absolute;bottom:90px;left:50%;transform:translateX(-50%);font-size:12px;color:#cdd;text-shadow:1px 1px 2px #000;text-align:center;line-height:1.5;transition:opacity 0.8s ease;}
 
   #inventoryModal{position:absolute;top:0;left:0;width:100%;height:100%;background:rgba(5,5,10,0.75);display:none;align-items:center;justify-content:center;pointer-events:auto;z-index:20;}
@@ -324,6 +332,7 @@
   </div>
 
   <div id="msg"></div>
+  <div id="achvPopupWrap"></div>
   <div id="diffTag"></div>
   <div id="hint">WASD/Arrows move · Number keys (1-9) or click slots to select · Left click to mine/attack (auto) or build — left click any placed block/tower to break it · Right click a chest/furnace/workbench to use it, or right click a tower for Upgrade/Break options · Furnace &amp; Chest are built from the Workbench panel · Hold Shift to block with your Shield (once crafted) · E for Inventory &amp; equipping armor · C to eat an apple</div>
 
@@ -2791,10 +2800,36 @@ function checkAchievements(group, count){
     if(a.group===group && !achvUnlocked[a.id] && count >= a.threshold){
       achvUnlocked[a.id] = true;
       saveAchvUnlocked(achvUnlocked);
-      showMsg('🏆 Achievement unlocked: '+a.name);
+      showAchievementPopup(a.name);
     }
   }
   renderAchvPanel();
+}
+
+// Queued toast popups for achievement unlocks — multiple unlocking at once show one after another.
+const achvPopupQueue = [];
+let achvPopupShowing = false;
+function showAchievementPopup(name){
+  achvPopupQueue.push(name);
+  if(!achvPopupShowing) advanceAchvPopupQueue();
+}
+function advanceAchvPopupQueue(){
+  if(achvPopupQueue.length===0){ achvPopupShowing=false; return; }
+  achvPopupShowing = true;
+  const name = achvPopupQueue.shift();
+  const wrap = document.getElementById('achvPopupWrap');
+  const el = document.createElement('div');
+  el.className = 'achvPopup';
+  el.innerHTML = `<div class="achvPopupIcon">🏆</div><div class="achvPopupText"><div class="achvPopupLabel">Achievement Unlocked</div><div class="achvPopupName">${name}</div></div>`;
+  wrap.appendChild(el);
+  requestAnimationFrame(()=>{ el.classList.add('show'); });
+  setTimeout(()=>{
+    el.classList.remove('show');
+    setTimeout(()=>{
+      el.remove();
+      advanceAchvPopupQueue();
+    }, 400);
+  }, 3200);
 }
 
 function renderAchvPanel(){
