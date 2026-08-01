@@ -313,6 +313,7 @@
       <div>✨ <span id="rGold">0</span></div>
       <div>🟡 <span id="rGoldBar">0</span></div>
       <div>💎 <span id="rDiamond">0</span></div>
+      <div title="Press C to eat (10s regen)">🍎 <span id="rApple">0</span></div>
       <div id="wbStatus" style="border-left:1px solid #445;padding-left:12px;">🛠 <span id="wbText">No Workbench</span></div>
     </div>
     <div class="panel" id="dayInfo">
@@ -324,7 +325,7 @@
 
   <div id="msg"></div>
   <div id="diffTag"></div>
-  <div id="hint">WASD/Arrows move · Number keys (1-9) or click slots to select · Left click to mine/attack (auto) or build — left click any placed block/tower to break it · Right click a chest/furnace/workbench to use it, or right click a tower for Upgrade/Break options · Furnace &amp; Chest are built from the Workbench panel · Hold Shift to block with your Shield (once crafted) · E for Inventory &amp; equipping armor</div>
+  <div id="hint">WASD/Arrows move · Number keys (1-9) or click slots to select · Left click to mine/attack (auto) or build — left click any placed block/tower to break it · Right click a chest/furnace/workbench to use it, or right click a tower for Upgrade/Break options · Furnace &amp; Chest are built from the Workbench panel · Hold Shift to block with your Shield (once crafted) · E for Inventory &amp; equipping armor · C to eat an apple</div>
 
   <button id="achvToggleBtn" type="button">🏆 Achievements</button>
   <button id="chatToggleBtn" type="button">💬 Chat<span id="chatUnreadBadge">0</span></button>
@@ -471,6 +472,7 @@
           <li>Furnace and Chest must be built from the Workbench panel (right-click a workbench) — everything else stays on the 9-slot hotbar (keys 1-9), locked until you've built a workbench</li>
           <li>Hold Shift — block with your Shield (once crafted; works offhand regardless of which slot is selected)</li>
           <li>E — open Inventory, Armor &amp; Equipment</li>
+          <li>C — Press C To Eat</li>
         </ul>
         <h3>Day and Night</h3>
         <p>Days are safe — no mobs spawn, so use the daylight to gather wood, stone and ore, build up your base, and craft gear. Once night falls, mobs start spawning and keep coming until dawn. Small mobs are weaker but numerous; big mobs hit harder and have far more HP, so gear up and fortify before the sun goes down.</p>
@@ -480,6 +482,15 @@
         <p>Survive to Day 50 and Day 100 to trigger a border expansion into tougher new biomes with stronger enemies.</p>
       </div>
       <div id="frontPanel-updates">
+        <div class="updateEntry">
+          <h3>Version 17.0 - APPLES ADDED</h3>
+          <ul>
+            <li>Chopping a tree now has a 40% chance to also drop an apple</li>
+            <li>Press C to eat an apple and regenerate HP quickly for 10 seconds, bypassing the usual regen delay</li>
+            <li>Added a new achievement: AN APPLE A DAY KEEPS THE DOCTOR AWAY, unlocked the first time you find an apple</li>
+            <li>Added an apple counter to the resources HUD</li>
+          </ul>
+        </div>
         <div class="updateEntry">
           <h3>Version 16.9 - GHOST BLOCKS SPAWN</h3>
           <ul>
@@ -1018,7 +1029,7 @@ function resetGame(){
   player = {
     x: spawn.cx*TILE+TILE/2, y: spawn.cy*TILE+TILE/2,
     hp:100, maxHp:100,
-    wood:0, stone:0, iron:0, gold:0, diamond:0, ironBar:0, goldBar:0,
+    wood:0, stone:0, iron:0, gold:0, diamond:0, ironBar:0, goldBar:0, apple:0,
     attackTimer:0, swingTimer:0,
     hurtFlash:0, facing:{x:0,y:1},
     pickaxeTier:0, weaponTier:0,
@@ -1051,6 +1062,7 @@ function resetGame(){
   resourceRegrowTimer = 6;
   selected='action';
   blocksBuiltRun = 0;
+  applesFoundRun = 0;
   renderAchvPanel();
   updateHotbarUI();
   updateWorkbenchStatus();
@@ -1188,6 +1200,7 @@ window.addEventListener('keydown',e=>{
   if(e.target && (e.target.tagName==='INPUT'||e.target.tagName==='TEXTAREA')) return; // typing in chat, don't drive the game
   keys[e.key.toLowerCase()]=true;
   if(e.key.toLowerCase()==='e' && running && !chestOpenTile && !furnaceOpenTile && !workbenchOpenTile){ toggleInventory(); return; }
+  if(e.key.toLowerCase()==='c' && running && !invOpen && !chestOpenTile && !furnaceOpenTile && !workbenchOpenTile){ eatApple(); return; }
   if(e.key==='Escape' && invOpen){ toggleInventory(); return; }
   if(e.key==='Escape' && WORKBENCH_BUILDABLES.some(b=>b.id===selected)){ selected='action'; updateHotbarUI(); return; }
   if(invOpen || chestOpenTile || furnaceOpenTile || workbenchOpenTile) return;
@@ -1302,6 +1315,12 @@ function tryMine(w){
       player[res]+=amt;
       addFloater(tileCenter.x, tileCenter.y-10, '+'+amt+' '+res, resColor(res));
     }
+    // Chopping a tree has a chance to also turn up an apple.
+    if(t==='tree' && Math.random() < 0.4){
+      player.apple = (player.apple||0)+1;
+      addFloater(tileCenter.x, tileCenter.y-24, '+1 apple', '#ff6b5f');
+      onAppleCollected();
+    }
   } else {
     addFloater(tileCenter.x, tileCenter.y-10, 'hit', '#fff');
   }
@@ -1312,7 +1331,16 @@ let hitCounters = {};
 let lastSwingType = 'mine'; // 'mine' or 'attack' — drives the swing-effect visual since both share one hotbar slot
 
 function resColor(res){
-  return {wood:'#c9a066', stone:'#cfcfcf', iron:'#dfa3a3', gold:'#ffe27a', diamond:'#7ec8e3', ironBar:'#c9c9d9', goldBar:'#ffcf4d'}[res]||'#fff';
+  return {wood:'#c9a066', stone:'#cfcfcf', iron:'#dfa3a3', gold:'#ffe27a', diamond:'#7ec8e3', ironBar:'#c9c9d9', goldBar:'#ffcf4d', apple:'#ff6b5f'}[res]||'#fff';
+}
+
+const APPLE_REGEN_DURATION = 10;
+function eatApple(){
+  if(!(player.apple>0)){ showMsg("You don't have any apples"); return; }
+  player.apple -= 1;
+  player.regenBoostUntil = elapsed + APPLE_REGEN_DURATION;
+  addFloater(player.x, player.y-20, '+Regen', '#7fff7f');
+  showMsg('🍎 Munched an apple — regenerating for '+APPLE_REGEN_DURATION+'s');
 }
 
 // Total points multiplier from every Farm the player has built. Each farm contributes
@@ -1679,11 +1707,13 @@ function update(dt){
     }
   }
 
-  // regen — only kicks in after surviving undamaged for the difficulty's delay
+  // regen — only kicks in after surviving undamaged for the difficulty's delay,
+  // unless an apple's regen boost is active, which regenerates faster and ignores the delay
   player.timeSinceHit = (player.timeSinceHit||0) + dt;
   const regenDelay = DIFFICULTY_SETTINGS[difficulty].regenDelay;
-  if(player.hp < player.maxHp && player.timeSinceHit >= regenDelay){
-    player.hp = Math.min(player.maxHp, player.hp + dt*0.8);
+  const appleBoosted = player.regenBoostUntil && elapsed < player.regenBoostUntil;
+  if(player.hp < player.maxHp && (appleBoosted || player.timeSinceHit >= regenDelay)){
+    player.hp = Math.min(player.maxHp, player.hp + dt*(appleBoosted ? 2.5 : 0.8));
   }
 
   // enemy spawning — daytime is safe (no spawns) so players can gather; mobs only spawn at night
@@ -2388,6 +2418,7 @@ function updateHUD(){
   document.getElementById('rGold').textContent = player.gold;
   document.getElementById('rGoldBar').textContent = player.goldBar;
   document.getElementById('rDiamond').textContent = player.diamond;
+  document.getElementById('rApple').textContent = player.apple||0;
   document.getElementById('dayNum').textContent = 'Day '+day;
   document.getElementById('phase').textContent = isNightTime() ? '🌙 Night' : '☀ Daytime';
   document.getElementById('kills').textContent = 'Kills: '+kills+'  ('+killPoints+' pts)';
@@ -2508,7 +2539,7 @@ function saveGame(slotIndex){
       player:{
         x:player.x, y:player.y, hp:player.hp, maxHp:player.maxHp,
         wood:player.wood, stone:player.stone, iron:player.iron, gold:player.gold, diamond:player.diamond,
-        ironBar:player.ironBar, goldBar:player.goldBar,
+        ironBar:player.ironBar, goldBar:player.goldBar, apple:player.apple,
         pickaxeTier:player.pickaxeTier, weaponTier:player.weaponTier,
         armorInv:player.armorInv, equipped:player.equipped, armorLevel:player.armorLevel,
         towerInv:player.towerInv,
@@ -2558,7 +2589,7 @@ function loadGame(slotIndex){
     player = {
       x:dp.x||0, y:dp.y||0, hp:dp.hp!=null?dp.hp:100, maxHp:dp.maxHp||100,
       wood:dp.wood||0, stone:dp.stone||0, iron:dp.iron||0, gold:dp.gold||0, diamond:dp.diamond||0,
-      ironBar:dp.ironBar||0, goldBar:dp.goldBar||0,
+      ironBar:dp.ironBar||0, goldBar:dp.goldBar||0, apple:dp.apple||0,
       attackTimer:0, swingTimer:0, hurtFlash:0, facing:{x:0,y:1},
       pickaxeTier:dp.pickaxeTier||0, weaponTier:dp.weaponTier||0,
       armorInv: dp.armorInv || {helmet:0,chestplate:0,handguard:0,leggings:0,boots:0},
@@ -2722,14 +2753,17 @@ function buildDiffGrid(){
 // toward these. Each tier must be reached within a single game (blocksBuiltRun
 // resets on every new run), but once unlocked it's remembered forever.
 const ACHIEVEMENTS = [
-  {id:'builder1', name:'BUILDER I',   desc:'Build 100 blocks in 1 game',       threshold:100},
-  {id:'builder2', name:'BUILDER II',  desc:'Build 1,000 blocks in 1 game',     threshold:1000},
-  {id:'builder3', name:'BUILDER III', desc:'Build 10,000 blocks in 1 game',    threshold:10000},
-  {id:'builder4', name:'BUILDER IV',  desc:'Build 100,000 blocks in 1 game',   threshold:100000},
-  {id:'builder5', name:'BUILDER V',   desc:'Build 1,000,000 blocks in 1 game', threshold:1000000},
+  {id:'builder1', name:'BUILDER I',   desc:'Build 100 blocks in 1 game',       threshold:100,     group:'blocks', unit:'blocks'},
+  {id:'builder2', name:'BUILDER II',  desc:'Build 1,000 blocks in 1 game',     threshold:1000,    group:'blocks', unit:'blocks'},
+  {id:'builder3', name:'BUILDER III', desc:'Build 10,000 blocks in 1 game',    threshold:10000,   group:'blocks', unit:'blocks'},
+  {id:'builder4', name:'BUILDER IV',  desc:'Build 100,000 blocks in 1 game',   threshold:100000,  group:'blocks', unit:'blocks'},
+  {id:'builder5', name:'BUILDER V',   desc:'Build 1,000,000 blocks in 1 game', threshold:1000000, group:'blocks', unit:'blocks'},
+  {id:'appleaday', name:'AN APPLE A DAY KEEPS THE DOCTOR AWAY', desc:'Find your first apple', threshold:1, group:'apple', unit:'apples'},
 ];
 const ACHV_KEY = 'tribeDefenceAchievements';
 let blocksBuiltRun = 0;
+let applesFoundRun = 0;
+const achvCounters = {blocks: () => blocksBuiltRun, apple: () => applesFoundRun};
 
 function loadAchvUnlocked(){
   try{
@@ -2744,8 +2778,17 @@ let achvUnlocked = loadAchvUnlocked();
 
 function onBlockBuilt(){
   blocksBuiltRun++;
+  checkAchievements('blocks', blocksBuiltRun);
+}
+
+function onAppleCollected(){
+  applesFoundRun++;
+  checkAchievements('apple', applesFoundRun);
+}
+
+function checkAchievements(group, count){
   for(const a of ACHIEVEMENTS){
-    if(!achvUnlocked[a.id] && blocksBuiltRun >= a.threshold){
+    if(a.group===group && !achvUnlocked[a.id] && count >= a.threshold){
       achvUnlocked[a.id] = true;
       saveAchvUnlocked(achvUnlocked);
       showMsg('🏆 Achievement unlocked: '+a.name);
@@ -2759,13 +2802,14 @@ function renderAchvPanel(){
   if(!list) return;
   list.innerHTML = ACHIEVEMENTS.map(a=>{
     const done = !!achvUnlocked[a.id];
-    const pct = Math.min(100, Math.floor((blocksBuiltRun/a.threshold)*100));
-    const have = Math.min(blocksBuiltRun, a.threshold);
+    const count = achvCounters[a.group] ? achvCounters[a.group]() : 0;
+    const pct = Math.min(100, Math.floor((count/a.threshold)*100));
+    const have = Math.min(count, a.threshold);
     return `<div class="achvRow${done?' done':''}">`+
       `<div class="achvName"><span>${a.name}</span>${done?'<span class="achvCheck">✔ done</span>':''}</div>`+
       `<div class="achvDesc">${a.desc}</div>`+
       `<div class="achvBarBg"><div class="achvBarFill" style="width:${done?100:pct}%;"></div></div>`+
-      `<div class="achvProgText">${done?100:pct}% · ${have.toLocaleString()}/${a.threshold.toLocaleString()} blocks</div>`+
+      `<div class="achvProgText">${done?100:pct}% · ${have.toLocaleString()}/${a.threshold.toLocaleString()} ${a.unit||''}</div>`+
     `</div>`;
   }).join('');
 }
