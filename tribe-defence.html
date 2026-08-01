@@ -481,6 +481,20 @@
       </div>
       <div id="frontPanel-updates">
         <div class="updateEntry">
+          <h3>Version 16.8 - Ghosting</h3>
+          <ul>
+            <li>Fixed a bug where mob knockback could shove the player through walls, turrets, and other solid blocks instead of stopping at them</li>
+          </ul>
+        </div>
+        <div class="updateEntry">
+          <h3>Version 16.7 MOB BURNS!</h3>
+          <ul>
+            <li>The Draugur is now immune to daylight — it no longer burns and catches fire at dawn like other mobs</li>
+            <li>Getting hit by a mob that's actively burning in sunlight now sets you on fire too — you'll take burn damage for 5 seconds unless you're in water</li>
+            <li>Added a flame ring visual around the player while on fire</li>
+          </ul>
+        </div>
+        <div class="updateEntry">
           <h3>Version 16.6 - FARMS</h3>
           <ul>
             <li>Added Farms — a new points-multiplier building. Build from the Workbench for 4 iron bars, 8 diamond, and 8 gold</li>
@@ -600,7 +614,7 @@
         <button id="wikiCloseBtn">✕</button>
       </div>
       <div id="wikiBody">
-        <p class="wikiIntro">Mobs only spawn at night and stop appearing once the sun rises. They approach on sight and deal damage on contact, so gear up and fortify before dark. Bigger, tougher variants become more common the longer you survive, and every biome beyond the Wilds brings faster, harder-hitting versions of the same threats.</p>
+        <p class="wikiIntro">Mobs only spawn at night, but any that are still alive at dawn start burning in sunlight and take steady damage until they die or night falls again — except The Draugur, which is immune to daylight and never burns. Bigger, tougher variants become more common the longer you survive, and every biome beyond the Wilds brings faster, harder-hitting versions of the same threats. Note: a mob that burns to death without ever being hit by you or a turret gives no kill credit or points. Watch out — if a burning mob hits you, you'll catch fire too and take damage for 5 seconds unless you're standing in water.</p>
 
         <h3>🌲 The Wilds (Day 1+)</h3>
         <div class="wikiMob">
@@ -642,7 +656,7 @@
         <div class="wikiMob">
           <div class="wikiMobName" style="color:#5fd0c9;">The Draugur</div>
           <div class="wikiMobMeta">Rare · Any biome · Day 11+ only</div>
-          <div class="wikiMobDesc">A ghostly undead that can appear in any biome once you've survived past Day 10. Rather than chipping away with quick hits like other mobs, it strikes slowly for a heavy ~21 damage and, on contact, shatters your shield ward — disabling blocking for a few seconds. Its attack has a 5 second cooldown, so it hits hard but infrequently. Easy to spot by its pale teal glow and skull marking; worth killing at range with turrets before it gets close.</div>
+          <div class="wikiMobDesc">A ghostly undead that can appear in any biome once you've survived past Day 10. Rather than chipping away with quick hits like other mobs, it strikes slowly for a heavy ~21 damage and, on contact, shatters your shield ward — disabling blocking for a few seconds. Its attack has a 5 second cooldown, so it hits hard but infrequently. Unlike every other mob, it's immune to daylight and never burns, so it can linger well past dawn. Easy to spot by its pale teal glow and skull marking; worth killing at range with turrets before it gets close.</div>
         </div>
 
         <h3>👑 Bosses</h3>
@@ -881,6 +895,10 @@ const SURVIVAL_POINTS = {
 };
 let lastDayAwarded = 1;
 let wasNightTime = false;
+// Mobs left alive after dawn take steady burn damage until they die or night falls again.
+const MOB_BURN_DPS = 6;
+const PLAYER_BURN_DPS = 3;
+const PLAYER_BURN_DURATION = 5;
 let day = 1;
 let resourceRegrowTimer = 0;
 let enemySpawnTimer = 0;
@@ -1089,7 +1107,8 @@ function spawnEnemy(){
       color: '#5fd0c9',
       contactCooldown:0,
       wanderTarget:null,
-      wanderTimer:0
+      wanderTimer:0,
+      hitByPlayer:false
     });
     return;
   }
@@ -1109,13 +1128,20 @@ function spawnEnemy(){
     color: biomeTier>=2 ? (strong?'#7a1fb2':'#a13fd1') : (biomeTier>=1 ? (strong?'#b2661f':'#d18a3f') : (strong?'#b23a3a':'#d1594f')),
     contactCooldown:0,
     wanderTarget:null,
-    wanderTimer:0
+    wanderTimer:0,
+    hitByPlayer:false
   });
 }
 
 function isNightTime(){
   const t = (elapsed % DAY_LENGTH)/DAY_LENGTH;
   return t > NIGHT_START;
+}
+
+// No water tiles exist yet — this is a stub for the upcoming water bucket mechanic,
+// which will let players douse themselves to cut a fire short.
+function isPlayerInWater(){
+  return false;
 }
 
 function addFloater(x,y,text,color){
@@ -1287,6 +1313,7 @@ function tryAttack(){
   for(const e of enemies){
     if(dist(player.x,player.y,e.x,e.y) <= ATTACK_RANGE + e.radius){
       e.hp -= dmg;
+      e.hitByPlayer = true;
       hitAny=true;
       addFloater(e.x,e.y-10,'-'+dmg,'#ff8888');
       addParticles(e.x,e.y,'#ff5555',5);
@@ -1605,6 +1632,23 @@ function update(dt){
   if(player.swingTimer>0) player.swingTimer-=dt;
   if(player.hurtFlash>0) player.hurtFlash-=dt;
 
+  // Player fire — caught from a burning mob's touch. Ticks damage until it expires or the
+  // player steps into water (water tiles/bucket mechanic coming in a later update).
+  if(player.burningUntil && elapsed < player.burningUntil){
+    if(isPlayerInWater()){
+      player.burningUntil = 0;
+      showMsg('💧 The flames sizzle out!');
+    } else {
+      player.hp -= PLAYER_BURN_DPS*dt;
+      player.timeSinceHit = 0;
+      player.burnTick = (player.burnTick||0) + dt;
+      if(player.burnTick >= 0.4){
+        player.burnTick = 0;
+        addParticles(player.x, player.y-PLAYER_SIZE*0.5, '#ff8c30', 2);
+      }
+    }
+  }
+
   // regen — only kicks in after surviving undamaged for the difficulty's delay
   player.timeSinceHit = (player.timeSinceHit||0) + dt;
   const regenDelay = DIFFICULTY_SETTINGS[difficulty].regenDelay;
@@ -1656,6 +1700,19 @@ function update(dt){
     const {tx:tx2,ty:ty2} = worldToTile(e.x,ny);
     if(!isSolidAt(tx2,ty2)) e.y = Math.max(10,Math.min(WORLD_H-10,ny));
 
+    // Mobs burn in sunlight — this damage is NOT attributed to the player, so a mob that
+    // dies purely from burning (never hit by the player or a turret) gives no kill credit.
+    // The Draugur is undead but unbothered by daylight — it never burns.
+    const isBurning = !isNightTime() && !e.draugur;
+    if(isBurning){
+      e.hp -= MOB_BURN_DPS*dt;
+      e.burnTick = (e.burnTick||0) + dt;
+      if(e.burnTick >= 0.4){
+        e.burnTick = 0;
+        addParticles(e.x, e.y-e.radius*0.5, '#ff8c30', 2);
+      }
+    }
+
     if(e.contactCooldown>0) e.contactCooldown-=dt;
     if(d < e.radius+PLAYER_SIZE/2 && e.contactCooldown<=0){
       let dmg = Math.max(1, Math.round(e.damage - getTotalDefense()));
@@ -1664,8 +1721,13 @@ function update(dt){
       if(dmg>0) player.timeSinceHit = 0;
       player.hurtFlash = 0.25;
       const ang = Math.atan2(player.y-e.y,player.x-e.x);
-      player.x += Math.cos(ang)*10; player.y += Math.sin(ang)*10;
+      moveEntity(player, Math.cos(ang)*10, Math.sin(ang)*10, PLAYER_SIZE/2);
       addFloater(player.x,player.y-20,'-'+dmg,'#ff5555');
+      // Getting struck by a mob that's actively burning in sunlight sets the player alight too.
+      if(isBurning && !isPlayerInWater()){
+        player.burningUntil = elapsed + PLAYER_BURN_DURATION;
+        showMsg('🔥 You caught fire!');
+      }
       if(e.draugur){
         e.contactCooldown = 5.0; // The Draugur strikes slower, but its blow shatters your shield ward
         player.shieldDisabledUntil = elapsed + 3;
@@ -1679,20 +1741,25 @@ function update(dt){
   // remove dead enemies
   for(let i=enemies.length-1;i>=0;i--){
     if(enemies[i].hp<=0){
-      addParticles(enemies[i].x,enemies[i].y,'#ff3333',10);
-      if(Math.random()<0.35){
-        const res = Math.random()<0.5?'wood':'stone';
-        const amt = randi(1,2);
-        player[res]+=amt;
-        addFloater(enemies[i].x,enemies[i].y,'+'+amt+' '+res,resColor(res));
+      const e = enemies[i];
+      addParticles(e.x,e.y,e.hitByPlayer?'#ff3333':'#ff8c30',10);
+      if(e.hitByPlayer){
+        if(Math.random()<0.35){
+          const res = Math.random()<0.5?'wood':'stone';
+          const amt = randi(1,2);
+          player[res]+=amt;
+          addFloater(e.x,e.y,'+'+amt+' '+res,resColor(res));
+        }
+        const pointsTable = KILL_POINTS[difficulty] || KILL_POINTS.medium;
+        const basePts = e.big ? pointsTable.big : pointsTable.small;
+        const pts = Math.round(basePts * farmMultiplier());
+        killPoints += pts;
+        addFloater(e.x,e.y-10,'+'+pts+'pt','#ffd24d');
+        kills++;
+      } else {
+        addFloater(e.x,e.y-10,'🔥 Burned Up','#ff8c30');
       }
-      const pointsTable = KILL_POINTS[difficulty] || KILL_POINTS.medium;
-      const basePts = enemies[i].big ? pointsTable.big : pointsTable.small;
-      const pts = Math.round(basePts * farmMultiplier());
-      killPoints += pts;
-      addFloater(enemies[i].x,enemies[i].y-10,'+'+pts+'pt','#ffd24d');
       enemies.splice(i,1);
-      kills++;
     }
   }
 
@@ -1721,6 +1788,7 @@ function update(dt){
     for(const e of enemies){
       if(dist(p.x,p.y,e.x,e.y) < e.radius+5){
         e.hp -= p.damage;
+        e.hitByPlayer = true;
         addParticles(e.x,e.y,'#ffcc66',4);
         hit=true; break;
       }
@@ -1839,13 +1907,22 @@ function draw(){
   }
 
   // enemies
+  const daylight = !isNightTime();
   for(const e of enemies){
     const sx=e.x-camera.x, sy=e.y-camera.y;
+    const burning = daylight && !e.draugur; // The Draugur is immune to daylight and never burns
+    if(burning){
+      const flick = 0.5+Math.sin(elapsed*14+e.x)*0.2;
+      ctx.beginPath();
+      ctx.fillStyle = `rgba(255,140,40,${0.35*flick})`;
+      ctx.arc(sx,sy,e.radius+5,0,Math.PI*2);
+      ctx.fill();
+    }
     ctx.beginPath();
     ctx.fillStyle=e.color;
     ctx.arc(sx,sy,e.radius,0,Math.PI*2);
     ctx.fill();
-    ctx.strokeStyle = e.draugur ? '#0f4a4a' : '#4a1010';
+    ctx.strokeStyle = burning ? '#ff8c30' : (e.draugur ? '#0f4a4a' : '#4a1010');
     ctx.lineWidth=2; ctx.stroke();
     if(e.draugur){
       ctx.fillStyle='#0f2a2a';
@@ -1918,6 +1995,14 @@ function draw(){
       ctx.lineWidth=4;
       ctx.beginPath();
       ctx.arc(0,0,PLAYER_SIZE/2+7,0,Math.PI*2);
+      ctx.stroke();
+    }
+    // on-fire indicator
+    if(player.burningUntil && elapsed < player.burningUntil){
+      ctx.strokeStyle='#ff8c30';
+      ctx.lineWidth=3;
+      ctx.beginPath();
+      ctx.arc(0,0,PLAYER_SIZE/2+4,0,Math.PI*2);
       ctx.stroke();
     }
     // swing effect
