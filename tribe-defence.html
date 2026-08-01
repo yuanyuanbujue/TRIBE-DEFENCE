@@ -499,6 +499,14 @@
       </div>
       <div id="frontPanel-updates">
         <div class="updateEntry">
+          <h3>Version 17.2 - Draugur Buff!</h3>
+          <ul>
+            <li>Killing a Draugur now has a 10% chance to drop a diamond and a 15% chance to drop gold</li>
+            <li>The Draugur now hits harder the longer you survive — its damage scales up with the day count, capping at +80% damage by Day 100</li>
+            <li>Updated the Wiki's Draugur entry to reflect both changes</li>
+          </ul>
+        </div>
+        <div class="updateEntry">
           <h3>Version 17.1 - AFKable</h3>
           <ul>
             <li>Added an AFK toggle button above Save Game — click to turn it AFK: ON (turns green) or AFK: OFF</li>
@@ -697,7 +705,7 @@
         <div class="wikiMob">
           <div class="wikiMobName" style="color:#5fd0c9;">The Draugur</div>
           <div class="wikiMobMeta">Rare · Any biome · Day 11+ only</div>
-          <div class="wikiMobDesc">A ghostly undead that can appear in any biome once you've survived past Day 10. Rather than chipping away with quick hits like other mobs, it strikes slowly for a heavy ~21 damage and, on contact, shatters your shield ward — disabling blocking for a few seconds. Its attack has a 5 second cooldown, so it hits hard but infrequently. Unlike every other mob, it's immune to daylight and never burns, so it can linger well past dawn. Easy to spot by its pale teal glow and skull marking; worth killing at range with turrets before it gets close.</div>
+          <div class="wikiMobDesc">A ghostly undead that can appear in any biome once you've survived past Day 10. Rather than chipping away with quick hits like other mobs, it strikes slowly for a heavy ~21 base damage and, on contact, shatters your shield ward — disabling blocking for a few seconds. Its attack has a 5 second cooldown, so it hits hard but infrequently. The longer you survive, the harder it hits — its damage climbs with the day count, up to +80% by Day 100. Unlike every other mob, it's immune to daylight and never burns, so it can linger well past dawn. Killing one has a 10% chance to drop a diamond and a 15% chance to drop gold. Easy to spot by its pale teal glow and skull marking; worth killing at range with turrets before it gets close.</div>
         </div>
 
         <h3>👑 Bosses</h3>
@@ -1190,15 +1198,17 @@ function spawnEnemyAt(x,y){
 
   // The Draugur — a rare undead mob that only appears from Day 11 onward.
   // Its hits shatter the player's shield ward, disabling blocking for a few seconds.
+  // The longer the player survives, the harder it hits — up to +80% damage by Day 100.
   const canDraugur = day > 10;
   if(canDraugur && Math.random() < 0.12){
     const baseHp = 45*tierMult;
+    const draugurDayBonus = Math.min(0.8, day*0.008);
     enemies.push({
       x,y,
       hp: Math.round(baseHp*settings.hpMult),
       maxHp: Math.round(baseHp*settings.hpMult),
       speed: 105+biomeTier*8,
-      damage: Math.round(21*settings.dmgMult),
+      damage: Math.round(21*settings.dmgMult*(1+draugurDayBonus)),
       radius: 13,
       big:false,
       draugur:true,
@@ -1890,6 +1900,17 @@ function update(dt){
           const amt = randi(1,2);
           player[res]+=amt;
           addFloater(e.x,e.y,'+'+amt+' '+res,resColor(res));
+        }
+        // The Draugur has a chance to also drop diamond and/or gold on death.
+        if(e.draugur){
+          if(Math.random()<0.10){
+            player.diamond += 1;
+            addFloater(e.x,e.y-18,'+1 diamond',resColor('diamond'));
+          }
+          if(Math.random()<0.15){
+            player.gold += 1;
+            addFloater(e.x,e.y-30,'+1 gold',resColor('gold'));
+          }
         }
         const pointsTable = KILL_POINTS[difficulty] || KILL_POINTS.medium;
         const basePts = e.big ? pointsTable.big : pointsTable.small;
