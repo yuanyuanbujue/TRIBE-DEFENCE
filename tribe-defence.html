@@ -481,6 +481,14 @@
       </div>
       <div id="frontPanel-updates">
         <div class="updateEntry">
+          <h3>Version 16.6 - FARMS</h3>
+          <ul>
+            <li>Added Farms — a new points-multiplier building. Build from the Workbench for 4 iron bars, 8 diamond, and 8 gold</li>
+            <li>Farms multiply every kill's points and add bonus points for every day and night you survive — the harder the difficulty, the more those survival points are worth</li>
+            <li>Farms can be upgraded (right-click to open its menu): base is x2, then x3, x4, and x5 at max level — multiple farms stack their bonuses together</li>
+          </ul>
+        </div>
+        <div class="updateEntry">
           <h3>Version 16.5 - Chests Added!</h3>
           <ul>
             <li>Fixed score submission failing with an "invalid input syntax for type integer" error — play time is now rounded before being sent to the leaderboard</li>
@@ -699,7 +707,7 @@ const TURRET_UPGRADE_COST = {
   turret_stone: {ironBar:10, wood:4}
 };
 
-const SOLID_TILES = new Set(['tree','rock','ore_iron','ore_gold','ore_diamond','wall_wood','wall_stone','workbench','turret_wood','turret_stone','turret_iron','chest','furnace','void']);
+const SOLID_TILES = new Set(['tree','rock','ore_iron','ore_gold','ore_diamond','wall_wood','wall_stone','workbench','turret_wood','turret_stone','turret_iron','chest','furnace','farm','farm2','farm3','farm4','void']);
 const WALKABLE_BUILD_TILES = new Set(['slab','torch']); // non-solid placeables
 
 const TILE_INFO = {
@@ -717,7 +725,23 @@ const TILE_INFO = {
   turret_stone:{hp:16,color:'#8f8f9e',accent:'#54545e'},
   turret_iron:{hp:22,color:'#6f7c8f',accent:'#37404d'},
   chest:{hp:10,color:'#c98a4b',accent:'#7a4a1f'},
-  furnace:{hp:14,color:'#5a5a5a',accent:'#e8763a'}
+  furnace:{hp:14,color:'#5a5a5a',accent:'#e8763a'},
+  farm:{hp:12,color:'#d9c34a',accent:'#8a7404'},
+  farm2:{hp:14,color:'#e0b83c',accent:'#8a5f04'},
+  farm3:{hp:16,color:'#e6a02e',accent:'#8a4a04'},
+  farm4:{hp:18,color:'#ecb400',accent:'#7a3d00'}
+};
+
+// ---------- FARM UPGRADE CHAIN (points multiplier building) ----------
+// Each farm adds to a global points multiplier applied to kill points and day/night
+// survival points. Levels: base = x2, then x3, x4, x5 (max). Multiple farms stack additively.
+const FARM_UPGRADE_ORDER = ['farm','farm2','farm3','farm4'];
+const FARM_MULT = {farm:2, farm2:3, farm3:4, farm4:5};
+const FARM_NAMES = {farm:'Farm (x2 pts)', farm2:'Farm (x3 pts)', farm3:'Farm (x4 pts)', farm4:'Farm (x5 pts · Max)'};
+const FARM_UPGRADE_COST = {
+  farm:  {ironBar:8,  diamond:12, gold:12},
+  farm2: {ironBar:12, diamond:16, gold:16},
+  farm3: {ironBar:16, diamond:20, gold:20}
 };
 
 // stats for turret types: damage, range, fireRate (seconds between shots), color
@@ -737,11 +761,15 @@ const BUILD_COSTS = {
   turret_stone:{stone:10},
   turret_iron:{ironBar:12,wood:5},
   chest:{wood:6,stone:2},
-  furnace:{stone:8}
+  furnace:{stone:8},
+  farm:{ironBar:4,diamond:8,gold:8},
+  farm2:{ironBar:8,diamond:12,gold:12},
+  farm3:{ironBar:12,diamond:16,gold:16},
+  farm4:{ironBar:16,diamond:20,gold:20}
 };
 
 // items that require a workbench to be built somewhere in the world first
-const NEEDS_WORKBENCH = new Set(['turret_wood','turret_stone','turret_iron','chest','furnace']);
+const NEEDS_WORKBENCH = new Set(['turret_wood','turret_stone','turret_iron','chest','furnace','farm']);
 
 const SHIELD_RECIPE = {wood:6, ironBar:4};
 
@@ -767,7 +795,8 @@ const HOTBAR_BUILD = [
 // the hotbar, so the hotbar can stay at exactly 9 slots without needing 0 or - keys.
 const WORKBENCH_BUILDABLES = [
   {id:'furnace', icon:'🏭', label:'Furnace'},
-  {id:'chest', icon:'📦', label:'Chest'}
+  {id:'chest', icon:'📦', label:'Chest'},
+  {id:'farm', icon:'🌾', label:'Farm'}
 ];
 const HOTBAR = HOTBAR_TOOLS.concat(HOTBAR_BUILD);
 // The hotbar can be rearranged by dragging one slot onto another — the two swap places.
@@ -792,7 +821,7 @@ const DIFFICULTY_SETTINGS = {
   hard:    {spawnMult:1.5, hpMult:1.35, dmgMult:1.4, startBonus:{}, allowSave:true, hardcore:false, regenDelay:30},
   hardcore:{spawnMult:1.9, hpMult:1.5, dmgMult:1.6, startBonus:{}, allowSave:true, hardcore:true, regenDelay:30}
 };
-const PLAYER_BUILT = new Set(['wall_wood','wall_stone','workbench','slab','torch','turret_wood','turret_stone','turret_iron','chest']);
+const PLAYER_BUILT = new Set(['wall_wood','wall_stone','workbench','slab','torch','turret_wood','turret_stone','turret_iron','chest','farm','farm2','farm3','farm4']);
 
 const ARMOR_SLOTS = ['helmet','chestplate','handguard','leggings','boots'];
 const ARMOR_INFO = {
@@ -820,7 +849,7 @@ const SAVE_PREFIX = 'tribeDefenceSave_slot_';
 function slotKey(i){ return SAVE_PREFIX+i; }
 
 // ---------- STATE ----------
-let grid, player, enemies, projectiles, floaters, turretsList, particles, torchesList, chestsList, furnacesList;
+let grid, player, enemies, projectiles, floaters, turretsList, particles, torchesList, chestsList, furnacesList, farmsList;
 let furnaceOpenTile = null; // furnace currently shown in the furnace modal
 let workbenchOpenTile = null; // workbench currently shown in the workbench (craft/upgrade) modal
 let workbenchBuilt = false;
@@ -842,6 +871,16 @@ const KILL_POINTS = {
   hard:     {small:9,  big:12},
   hardcore: {small:10, big:15}
 };
+// Points awarded just for surviving a full day/night — scales with difficulty like KILL_POINTS.
+const SURVIVAL_POINTS = {
+  sandbox:  {day:3,  night:5},
+  easy:     {day:4,  night:6},
+  medium:   {day:5,  night:8},
+  hard:     {day:7,  night:11},
+  hardcore: {day:10, night:16}
+};
+let lastDayAwarded = 1;
+let wasNightTime = false;
 let day = 1;
 let resourceRegrowTimer = 0;
 let enemySpawnTimer = 0;
@@ -974,6 +1013,7 @@ function resetGame(){
   torchesList = [];
   chestsList = [];
   furnacesList = [];
+  farmsList = [];
   workbenchBuilt = false;
   invOpen = false;
   closeTowerPopup();
@@ -982,6 +1022,7 @@ function resetGame(){
   closeWorkbench();
   currentSlot = null;
   elapsed = 0; day=1; kills=0; killPoints=0;
+  lastDayAwarded = 1; wasNightTime = false;
   enemySpawnTimer = 2;
   resourceRegrowTimer = 6;
   selected='action';
@@ -1115,7 +1156,7 @@ canvas.addEventListener('mousedown',e=>{
     if(t==='chest') openChest(tx,ty);
     else if(t==='furnace') openFurnace(tx,ty);
     else if(t==='workbench') openWorkbench(tx,ty);
-    else if(TURRET_UPGRADE_ORDER.includes(t)) openTowerPopup(tx,ty,e.clientX,e.clientY);
+    else if(TURRET_UPGRADE_ORDER.includes(t) || FARM_UPGRADE_ORDER.includes(t)) openTowerPopup(tx,ty,e.clientX,e.clientY);
   }
   else doAction();
 });
@@ -1173,6 +1214,7 @@ function tryDestroy(w){
   if(furnaceOpenTile && furnaceOpenTile.tx===tx && furnaceOpenTile.ty===ty) closeFurnace();
   if(workbenchOpenTile && workbenchOpenTile.tx===tx && workbenchOpenTile.ty===ty) closeWorkbench();
   furnacesList = furnacesList.filter(ff=>!(ff.tx===tx && ff.ty===ty));
+  farmsList = farmsList.filter(ff=>!(ff.tx===tx && ff.ty===ty));
   addParticles(tileCenter.x,tileCenter.y,'#ff8888',8);
   if(t==='workbench') recomputeWorkbenchBuilt();
   showMsg('Destroyed (50% refunded)');
@@ -1215,6 +1257,24 @@ let lastSwingType = 'mine'; // 'mine' or 'attack' — drives the swing-effect vi
 
 function resColor(res){
   return {wood:'#c9a066', stone:'#cfcfcf', iron:'#dfa3a3', gold:'#ffe27a', diamond:'#7ec8e3', ironBar:'#c9c9d9', goldBar:'#ffcf4d'}[res]||'#fff';
+}
+
+// Total points multiplier from every Farm the player has built. Each farm contributes
+// its own bonus (level's multiplier minus 1) and farms stack additively, e.g. two x2
+// farms together give x3 total, not x4.
+function farmMultiplier(){
+  let bonus = 0;
+  for(const f of (farmsList||[])) bonus += (FARM_MULT[f.type]||2) - 1;
+  return 1 + bonus;
+}
+
+function awardSurvivalPoints(kind){
+  const table = SURVIVAL_POINTS[difficulty] || SURVIVAL_POINTS.medium;
+  const base = table[kind];
+  const pts = Math.round(base * farmMultiplier());
+  killPoints += pts;
+  const label = kind==='day' ? '☀ Day Survived +' : '🌙 Night Survived +';
+  addFloater(player.x, player.y-50, label+pts+'pt', '#ffd24d');
 }
 
 function tryAttack(){
@@ -1268,21 +1328,54 @@ function tryUpgradeTurret(w){
   showMsg('Upgraded to '+s.name);
 }
 
-// ---------- TOWER POPUP (right-click a tower: choose Upgrade or Break) ----------
+function tryUpgradeFarm(w){
+  if(!workbenchBuilt){ showMsg('Requires a Workbench first'); return; }
+  const {tx,ty} = worldToTile(w.x,w.y);
+  const t = tileAt(tx,ty);
+  const idx = FARM_UPGRADE_ORDER.indexOf(t);
+  if(idx===-1){ showMsg('Point at a farm to upgrade it'); return; }
+  const tileCenter = {x:tx*TILE+TILE/2, y:ty*TILE+TILE/2};
+  if(dist(player.x,player.y,tileCenter.x,tileCenter.y) > BUILD_REACH){ showMsg('Too far away'); return; }
+  if(idx === FARM_UPGRADE_ORDER.length-1){ showMsg('Farm is already max level'); return; }
+  const nextType = FARM_UPGRADE_ORDER[idx+1];
+  const cost = FARM_UPGRADE_COST[t];
+  for(const res in cost){
+    if(player[res] < cost[res]){ showMsg('Not enough '+res); return; }
+  }
+  for(const res in cost) player[res]-=cost[res];
+  setTile(tx,ty,nextType);
+  const farm = farmsList.find(f=>f.tx===tx && f.ty===ty);
+  if(farm) farm.type = nextType;
+  addFloater(tileCenter.x,tileCenter.y-10,'Upgraded!','#9fdc9f');
+  addParticles(tileCenter.x,tileCenter.y,'#ffffff',8);
+  showMsg('Farm upgraded — points now x'+farmMultiplier()+' overall!');
+}
+
+// ---------- TOWER / FARM POPUP (right-click a structure: choose Upgrade or Break) ----------
 function openTowerPopup(tx,ty,screenX,screenY){
   const t = tileAt(tx,ty);
-  if(!TURRET_UPGRADE_ORDER.includes(t)) return;
+  const isTurret = TURRET_UPGRADE_ORDER.includes(t);
+  const isFarm = FARM_UPGRADE_ORDER.includes(t);
+  if(!isTurret && !isFarm) return;
   popupTile = {tx,ty};
-  const idx = TURRET_UPGRADE_ORDER.indexOf(t);
-  const maxed = idx === TURRET_UPGRADE_ORDER.length-1;
-  const s = TURRET_STATS[t];
-  document.getElementById('towerPopupTitle').textContent = s.name;
+  let title, maxed, cost;
+  if(isTurret){
+    const idx = TURRET_UPGRADE_ORDER.indexOf(t);
+    maxed = idx === TURRET_UPGRADE_ORDER.length-1;
+    title = TURRET_STATS[t].name;
+    cost = maxed ? null : TURRET_UPGRADE_COST[t];
+  } else {
+    const idx = FARM_UPGRADE_ORDER.indexOf(t);
+    maxed = idx === FARM_UPGRADE_ORDER.length-1;
+    title = FARM_NAMES[t];
+    cost = maxed ? null : FARM_UPGRADE_COST[t];
+  }
+  document.getElementById('towerPopupTitle').textContent = title;
   const upBtn = document.getElementById('towerUpgradeBtn');
   if(maxed){
     upBtn.textContent = 'Already Max Level';
     upBtn.disabled = true;
   } else {
-    const cost = TURRET_UPGRADE_COST[t];
     const affordable = workbenchBuilt && Object.entries(cost).every(([r,v])=>player[r]>=v);
     upBtn.textContent = '⬆ Upgrade ('+Object.entries(cost).map(([k,v])=>resIcon(k)+v).join(' ')+')';
     upBtn.disabled = !affordable;
@@ -1300,7 +1393,10 @@ function closeTowerPopup(){
 document.getElementById('towerUpgradeBtn').addEventListener('click',()=>{
   if(!popupTile) return;
   const {tx,ty} = popupTile;
-  tryUpgradeTurret({x:tx*TILE+TILE/2, y:ty*TILE+TILE/2});
+  const t = tileAt(tx,ty);
+  const w = {x:tx*TILE+TILE/2, y:ty*TILE+TILE/2};
+  if(FARM_UPGRADE_ORDER.includes(t)) tryUpgradeFarm(w);
+  else tryUpgradeTurret(w);
   closeTowerPopup();
 });
 document.getElementById('towerBreakBtn').addEventListener('click',()=>{
@@ -1457,6 +1553,10 @@ function tryBuild(w, id){
   if(id==='furnace'){
     furnacesList.push({tx,ty,x:tileCenter.x,y:tileCenter.y});
   }
+  if(id==='farm'){
+    farmsList.push({tx,ty,x:tileCenter.x,y:tileCenter.y,type:'farm'});
+    showMsg('Farm built! All kill and survival points now x'+farmMultiplier());
+  }
   addFloater(tileCenter.x,tileCenter.y-10,'Built!','#9fdc9f');
   addParticles(tileCenter.x,tileCenter.y,'#ffffff',8);
   if(isTower && player.towerInv[id]<=0 && selected===id){
@@ -1477,6 +1577,15 @@ function showMsg(text){
 function update(dt){
   elapsed += dt;
   day = Math.floor(elapsed/DAY_LENGTH)+1;
+
+  // Award survival points (boosted by Farms) once per completed day and once per completed night.
+  if(day > lastDayAwarded){
+    awardSurvivalPoints('day');
+    lastDayAwarded = day;
+  }
+  const nightNow = isNightTime();
+  if(wasNightTime && !nightNow) awardSurvivalPoints('night');
+  wasNightTime = nightNow;
 
   // player movement
   let mx=0,my=0;
@@ -1578,7 +1687,8 @@ function update(dt){
         addFloater(enemies[i].x,enemies[i].y,'+'+amt+' '+res,resColor(res));
       }
       const pointsTable = KILL_POINTS[difficulty] || KILL_POINTS.medium;
-      const pts = enemies[i].big ? pointsTable.big : pointsTable.small;
+      const basePts = enemies[i].big ? pointsTable.big : pointsTable.small;
+      const pts = Math.round(basePts * farmMultiplier());
       killPoints += pts;
       addFloater(enemies[i].x,enemies[i].y-10,'+'+pts+'pt','#ffd24d');
       enemies.splice(i,1);
@@ -1699,6 +1809,12 @@ function draw(){
             ctx.lineTo(sx+4+i*6, sy+TILE-8);
             ctx.stroke();
           }
+        }
+        if(FARM_MULT[t]){
+          ctx.fillStyle='#3a2e00';
+          ctx.font='bold 12px sans-serif';
+          ctx.textAlign='center'; ctx.textBaseline='middle';
+          ctx.fillText('x'+FARM_MULT[t], sx+TILE/2, sy+TILE/2);
         }
       }
     }
@@ -2288,6 +2404,7 @@ function saveGame(slotIndex){
       torches: torchesList.map(t=>({tx:t.tx,ty:t.ty})),
       chests: chestsList.map(c=>({tx:c.tx,ty:c.ty,storage:c.storage})),
       furnaces: furnacesList.map(f=>({tx:f.tx,ty:f.ty})),
+      farms: farmsList.map(f=>({tx:f.tx,ty:f.ty,type:f.type})),
       savedAt: Date.now()
     };
     localStorage.setItem(slotKey(slotIndex), JSON.stringify(data));
@@ -2318,8 +2435,10 @@ function loadGame(slotIndex){
     biomeTier = data.biomeTier || 0;
     day = data.day || 1;
     elapsed = data.elapsed || 0;
+    lastDayAwarded = day;
     kills = data.kills || 0;
     killPoints = data.killPoints || 0;
+    wasNightTime = isNightTime();
     const dp = data.player || {};
     player = {
       x:dp.x||0, y:dp.y||0, hp:dp.hp!=null?dp.hp:100, maxHp:dp.maxHp||100,
@@ -2342,6 +2461,7 @@ function loadGame(slotIndex){
     torchesList = (data.torches||[]).map(t=>({tx:t.tx, ty:t.ty, x:t.tx*TILE+TILE/2, y:t.ty*TILE+TILE/2}));
     chestsList = (data.chests||[]).map(c=>({tx:c.tx, ty:c.ty, x:c.tx*TILE+TILE/2, y:c.ty*TILE+TILE/2, storage:c.storage||{wood:0,stone:0,iron:0,gold:0,diamond:0,ironBar:0,goldBar:0}}));
     furnacesList = (data.furnaces||[]).map(f=>({tx:f.tx, ty:f.ty, x:f.tx*TILE+TILE/2, y:f.ty*TILE+TILE/2}));
+    farmsList = (data.farms||[]).map(f=>({tx:f.tx, ty:f.ty, x:f.tx*TILE+TILE/2, y:f.ty*TILE+TILE/2, type:FARM_UPGRADE_ORDER.includes(f.type)?f.type:'farm'}));
     closeTowerPopup();
     closeChest();
     closeFurnace();
