@@ -481,6 +481,12 @@
       </div>
       <div id="frontPanel-updates">
         <div class="updateEntry">
+          <h3>Version 16.5 - Chests Added!</h3>
+          <ul>
+            <li>Fixed score submission failing with an "invalid input syntax for type integer" error — play time is now rounded before being sent to the leaderboard</li>
+          </ul>
+        </div>
+        <div class="updateEntry">
           <h3>Version 16.4 - VERSIONS FIXED</h3>
           <ul>
             <li>Save slots are now version-safe — updating to a newer version of the game will never remove or reject your saved worlds</li>
@@ -2672,7 +2678,7 @@ async function submitScore(){
       renderChat();
       return;
     }
-    const payload = { name, days: day, kills, score, difficulty, play_time: elapsed, updated_at: new Date().toISOString() };
+    const payload = { name, days: Math.round(day), kills: Math.round(kills), score: Math.round(score), difficulty, play_time: Math.round(elapsed), updated_at: new Date().toISOString() };
     let submitError = null;
     if(existing && existing.id!=null){
       const { error } = await sb.from('leaderboard').update(payload).eq('id', existing.id);
