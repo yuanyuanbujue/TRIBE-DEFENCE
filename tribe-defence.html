@@ -155,6 +155,11 @@
   #saveBtn{padding:9px 14px;font-size:13px;background:rgba(20,24,32,0.85);border:2px solid #556;border-radius:8px;color:#ddd;cursor:pointer;font-weight:600;}
   #saveBtn:hover{border-color:#8ecbff;}
   #saveBtn.disabled{opacity:0.4;cursor:not-allowed;}
+
+  #afkBtn{padding:9px 14px;font-size:13px;background:rgba(20,24,32,0.85);border:2px solid #556;border-radius:8px;color:#ddd;cursor:pointer;font-weight:600;transition:background .2s,border-color .2s,color .2s;}
+  #afkBtn:hover{border-color:#8ecbff;}
+  #afkBtn.on{background:#1f8a3a;border-color:#3fd166;color:#eafff0;box-shadow:0 0 10px rgba(63,209,102,0.5);}
+  #afkBtn.on:hover{border-color:#7fffa0;}
   #saveNote{font-size:11px;color:#aab;max-width:140px;}
   #diffTag{position:absolute;top:8px;left:50%;transform:translateX(-50%);font-size:11px;padding:3px 10px;border-radius:10px;background:rgba(0,0,0,0.5);letter-spacing:0.5px;}
 
@@ -369,6 +374,7 @@
   <button id="wikiToggleBtn" type="button">📖 Wiki</button>
 
   <div id="saveWrap">
+    <button id="afkBtn" type="button">AFK: OFF</button>
     <button id="saveBtn">💾 Save Game</button>
     <div id="saveNote"></div>
   </div>
@@ -482,6 +488,7 @@
           <li>Hold Shift — block with your Shield (once crafted; works offhand regardless of which slot is selected)</li>
           <li>E — open Inventory, Armor &amp; Equipment</li>
           <li>C — Press C To Eat</li>
+          <li>AFK — toggle the AFK button (bottom left, above Save Game) to swarm mobs around you at night in a 5x5 tile radius, and auto-save every 60 seconds while it's on</li>
         </ul>
         <h3>Day and Night</h3>
         <p>Days are safe — no mobs spawn, so use the daylight to gather wood, stone and ore, build up your base, and craft gear. Once night falls, mobs start spawning and keep coming until dawn. Small mobs are weaker but numerous; big mobs hit harder and have far more HP, so gear up and fortify before the sun goes down.</p>
@@ -491,6 +498,14 @@
         <p>Survive to Day 50 and Day 100 to trigger a border expansion into tougher new biomes with stronger enemies.</p>
       </div>
       <div id="frontPanel-updates">
+        <div class="updateEntry">
+          <h3>Version 17.1 - AFKable</h3>
+          <ul>
+            <li>Added an AFK toggle button above Save Game — click to turn it AFK: ON (turns green) or AFK: OFF</li>
+            <li>While AFK is on, night spawns also swarm a tight 5x5 tile box around the player and target them directly, on top of the normal spawn-ring mobs elsewhere</li>
+            <li>While AFK is on, the game now auto-saves to your bound save slot every 60 seconds</li>
+          </ul>
+        </div>
         <div class="updateEntry">
           <h3>Version 17.0 - APPLES ADDED</h3>
           <ul>
@@ -928,6 +943,12 @@ const PLAYER_BURN_DURATION = 5;
 let day = 1;
 let resourceRegrowTimer = 0;
 let enemySpawnTimer = 0;
+let afkMode = false;
+let afkSpawnTimer = 0;
+let afkAutoSaveTimer = 0;
+const AFK_SPAWN_RATE = 1.1; // faster than the normal 2.2s spawn rate — AFK mode keeps the pressure on
+const AFK_ENEMY_CAP = 60; // separate, higher cap so AFK swarms aren't choked by the normal enemy cap
+const AFK_AUTOSAVE_INTERVAL = 60; // seconds between auto-saves while AFK is on
 let invOpen = false;
 let currentSlot = null; // which save slot this session is bound to, once saved/loaded
 let slotModalMode = 'save'; // 'save' or 'load'
@@ -1068,6 +1089,10 @@ function resetGame(){
   elapsed = 0; day=1; kills=0; killPoints=0;
   lastDayAwarded = 1; wasNightTime = false;
   enemySpawnTimer = 2;
+  afkSpawnTimer = 2;
+  afkAutoSaveTimer = AFK_AUTOSAVE_INTERVAL;
+  afkMode = false;
+  updateAfkButtonUI();
   resourceRegrowTimer = 6;
   selected='action';
   blocksBuiltRun = 0;
@@ -1137,6 +1162,28 @@ function spawnEnemy(){
     }
     if(!found){ x = player.x; y = player.y; } // extremely unlikely last resort
   }
+  spawnEnemyAt(x,y);
+}
+
+// AFK mode spawns mobs tight around the player — within a 5x5 tile box centered on them —
+// so an idle/away player still gets swarmed and farms kills, instead of mobs staying out
+// on the normal spawn ring far from view.
+const AFK_TILE_RADIUS = 2; // 2 tiles either side of the player's tile = a 5x5 tile box
+function spawnAfkEnemyNearPlayer(){
+  const {tx:ptx,ty:pty} = worldToTile(player.x,player.y);
+  let x,y,found=false;
+  for(let attempt=0; attempt<20 && !found; attempt++){
+    const gx = ptx + randi(-AFK_TILE_RADIUS,AFK_TILE_RADIUS);
+    const gy = pty + randi(-AFK_TILE_RADIUS,AFK_TILE_RADIUS);
+    if(gx===ptx && gy===pty) continue; // don't stack a mob directly on the player's own tile
+    if(isSolidAt(gx,gy)) continue;
+    x = gx*TILE+TILE/2; y = gy*TILE+TILE/2; found = true;
+  }
+  if(!found) return; // no open tile nearby right now — skip this tick
+  spawnEnemyAt(x,y);
+}
+
+function spawnEnemyAt(x,y){
   const isNight = isNightTime();
   const settings = DIFFICULTY_SETTINGS[difficulty];
   const tierMult = 1 + biomeTier*0.85;
@@ -1736,6 +1783,31 @@ function update(dt){
   if(night && dsettings.spawnMult>0 && enemySpawnTimer<=0 && enemies.length < cap){
     spawnEnemy();
     enemySpawnTimer = spawnRate;
+  }
+
+  // AFK mode — while on, night spawns also swarm a tight 5x5 tile box around the player,
+  // on top of (not instead of) the normal spawn-ring mobs above.
+  afkSpawnTimer -= dt;
+  if(afkMode && night && dsettings.spawnMult>0 && afkSpawnTimer<=0 && enemies.length < AFK_ENEMY_CAP){
+    spawnAfkEnemyNearPlayer();
+    afkSpawnTimer = AFK_SPAWN_RATE/dsettings.spawnMult;
+  }
+
+  // AFK auto-save — since the whole point of AFK mode is to walk away, periodically save
+  // to the player's bound slot so progress (and any hardcore risk) isn't lost while idle.
+  if(afkMode){
+    afkAutoSaveTimer -= dt;
+    if(afkAutoSaveTimer<=0){
+      afkAutoSaveTimer = AFK_AUTOSAVE_INTERVAL;
+      if(currentSlot!==null && DIFFICULTY_SETTINGS[difficulty].allowSave){
+        if(saveGame(currentSlot)){
+          showMsg('💾 Auto-saved (AFK)');
+          updateSaveUI();
+        }
+      }
+    }
+  } else {
+    afkAutoSaveTimer = AFK_AUTOSAVE_INTERVAL;
   }
 
   // biome expansion at day 50 / day 100
@@ -2623,6 +2695,10 @@ function loadGame(slotIndex){
     closeWorkbench();
     hitCounters = {};
     enemySpawnTimer = 2;
+    afkSpawnTimer = 2;
+    afkAutoSaveTimer = AFK_AUTOSAVE_INTERVAL;
+    afkMode = false;
+    updateAfkButtonUI();
     resourceRegrowTimer = 6;
     selected = 'action';
     invOpen = false;
@@ -3306,6 +3382,27 @@ document.getElementById('saveBtn').addEventListener('click',(e)=>{
     openSlotModal('save');
   }
 });
+document.getElementById('afkBtn').addEventListener('click',()=>{
+  afkMode = !afkMode;
+  updateAfkButtonUI();
+  if(afkMode){
+    afkAutoSaveTimer = AFK_AUTOSAVE_INTERVAL;
+    if(currentSlot!==null && DIFFICULTY_SETTINGS[difficulty].allowSave){
+      showMsg('🟢 AFK mode ON — mobs will swarm near you at night, auto-saving every minute');
+    } else {
+      showMsg('🟢 AFK mode ON — mobs will swarm near you at night (save to a slot first to enable auto-save)');
+    }
+  } else {
+    showMsg('AFK mode OFF');
+  }
+});
+function updateAfkButtonUI(){
+  const btn = document.getElementById('afkBtn');
+  if(!btn) return;
+  btn.textContent = afkMode ? 'AFK: ON' : 'AFK: OFF';
+  btn.classList.toggle('on', afkMode);
+}
+updateAfkButtonUI();
 window.addEventListener('keydown',e=>{
   if(e.key.toLowerCase()==='k' && running){
     if(currentSlot!==null) { saveGame(currentSlot); updateSaveUI(); }
