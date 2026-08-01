@@ -481,6 +481,22 @@
       </div>
       <div id="frontPanel-updates">
         <div class="updateEntry">
+          <h3>Version 16.4 - VERSIONS FIXED</h3>
+          <ul>
+            <li>Save slots are now version-safe — updating to a newer version of the game will never remove or reject your saved worlds</li>
+            <li>Loading an older save now fills in any new fields with safe defaults instead of failing to load</li>
+            <li>Invalid or unrecognized difficulty/world data in an old save no longer breaks loading — it falls back gracefully instead</li>
+          </ul>
+        </div>
+        <div class="updateEntry">
+          <h3>Version 16.3 - leader board fixed</h3>
+          <ul>
+            <li>Fixed Submit Score sometimes silently failing — it now checks your live server score instead of a possibly-stale local cache, and falls back to an insert if needed</li>
+            <li>Submit errors now show the real reason instead of a generic message</li>
+            <li>Confirmed reloading or restarting never clears the leaderboard — it's stored on the server and only re-fetched, never wiped, on reload</li>
+          </ul>
+        </div>
+        <div class="updateEntry">
           <h3>Version 16.1 - New mob: The Draugur</h3>
           <ul>
             <li>Added The Draugur — a rare undead mob that appears from Day 11 onward, deals ~21 damage, and disables your shield for a few seconds on hit (5 second attack cooldown)</li>
@@ -791,6 +807,9 @@ const INVENTORY_SLOTS = 27;
 
 let difficulty = 'medium';
 const SAVE_SLOT_COUNT = 8;
+// Bumped whenever the save format changes, but old saves are NEVER deleted or rejected because
+// of a version mismatch — loadGame() below fills in defaults for any field a save predates.
+const SAVE_VERSION = 4;
 const SAVE_PREFIX = 'tribeDefenceSave_slot_';
 function slotKey(i){ return SAVE_PREFIX+i; }
 
@@ -2248,7 +2267,7 @@ function saveGame(slotIndex){
   }
   try{
     const data = {
-      v:3, difficulty, day, elapsed, kills, killPoints, grid, cols:COLS, rows:ROWS, biomeTier,
+      v:SAVE_VERSION, difficulty, day, elapsed, kills, killPoints, grid, cols:COLS, rows:ROWS, biomeTier,
       player:{
         x:player.x, y:player.y, hp:player.hp, maxHp:player.maxHp,
         wood:player.wood, stone:player.stone, iron:player.iron, gold:player.gold, diamond:player.diamond,
@@ -2280,8 +2299,13 @@ function loadGame(slotIndex){
   if(!raw) return false;
   try{
     const data = JSON.parse(raw);
-    difficulty = data.difficulty || 'medium';
-    grid = data.grid;
+    // Forward/backward compatibility: never trust a save's fields blindly. Any save made on an
+    // older or newer version of the game should still load — missing fields just fall back to
+    // sane defaults instead of the load failing (which used to make the slot look unusable,
+    // even though it was never actually deleted).
+    difficulty = (data.difficulty && DIFFICULTY_SETTINGS[data.difficulty]) ? data.difficulty : 'medium';
+    grid = Array.isArray(data.grid) && data.grid.length ? data.grid : null;
+    if(!grid) throw new Error('save is missing world data');
     COLS = data.cols || BASE_COLS;
     ROWS = data.rows || BASE_ROWS;
     WORLD_W = COLS*TILE; WORLD_H = ROWS*TILE;
@@ -2290,17 +2314,18 @@ function loadGame(slotIndex){
     elapsed = data.elapsed || 0;
     kills = data.kills || 0;
     killPoints = data.killPoints || 0;
+    const dp = data.player || {};
     player = {
-      x:data.player.x, y:data.player.y, hp:data.player.hp, maxHp:data.player.maxHp,
-      wood:data.player.wood, stone:data.player.stone, iron:data.player.iron, gold:data.player.gold, diamond:data.player.diamond||0,
-      ironBar:data.player.ironBar||0, goldBar:data.player.goldBar||0,
+      x:dp.x||0, y:dp.y||0, hp:dp.hp!=null?dp.hp:100, maxHp:dp.maxHp||100,
+      wood:dp.wood||0, stone:dp.stone||0, iron:dp.iron||0, gold:dp.gold||0, diamond:dp.diamond||0,
+      ironBar:dp.ironBar||0, goldBar:dp.goldBar||0,
       attackTimer:0, swingTimer:0, hurtFlash:0, facing:{x:0,y:1},
-      pickaxeTier:data.player.pickaxeTier||0, weaponTier:data.player.weaponTier||0,
-      armorInv: data.player.armorInv || {helmet:0,chestplate:0,handguard:0,leggings:0,boots:0},
-      equipped: data.player.equipped || {helmet:false,chestplate:false,handguard:false,leggings:false,boots:false},
-      armorLevel: data.player.armorLevel || {helmet:0,chestplate:0,handguard:0,leggings:0,boots:0},
-      towerInv: data.player.towerInv || {turret_wood:0, turret_stone:0, turret_iron:0},
-      shieldOwned: !!data.player.shieldOwned, blocking:false, timeSinceHit:9999, shieldDisabledUntil:0
+      pickaxeTier:dp.pickaxeTier||0, weaponTier:dp.weaponTier||0,
+      armorInv: dp.armorInv || {helmet:0,chestplate:0,handguard:0,leggings:0,boots:0},
+      equipped: dp.equipped || {helmet:false,chestplate:false,handguard:false,leggings:false,boots:false},
+      armorLevel: dp.armorLevel || {helmet:0,chestplate:0,handguard:0,leggings:0,boots:0},
+      towerInv: dp.towerInv || {turret_wood:0, turret_stone:0, turret_iron:0},
+      shieldOwned: !!dp.shieldOwned, blocking:false, timeSinceHit:9999, shieldDisabledUntil:0
     };
     recomputeWorkbenchBuilt(); // derive from the loaded grid rather than trusting the saved flag
     enemies=[]; projectiles=[]; floaters=[]; particles=[];
@@ -2619,26 +2644,49 @@ function isTopThree(){
   return t3.some(e=>e.name===getPlayerName());
 }
 
-// Players must explicitly submit their run (days survived + kills) to the leaderboard —
-// it is no longer recorded automatically. Only overwrites their row if the new
-// score beats their previous best.
 async function submitScore(){
   if(!player){ showMsg('Start a game first'); return; }
+  if(!sb){ showMsg('Could not submit score — leaderboard is unavailable'); return; }
   const name = getPlayerName();
   const score = scoreFor(day, kills, killPoints);
-  const existing = leaderboardCache.find(e=>e.name===name);
-  if(!existing || score > existing.score){
-    const { error } = await sb.from('leaderboard').upsert({
-      name, days: day, kills, score, difficulty, play_time: elapsed, updated_at: new Date().toISOString()
-    }, { onConflict: 'name' });
-    if(error){ showMsg('Could not submit score — check your connection'); return; }
+  try{
+    // Check the live server row, not just the local cache — the cache can be empty
+    // or stale (e.g. right after a reload), which was silently blocking submissions.
+    const { data: rows, error: fetchErr } = await sb.from('leaderboard').select('*').eq('name', name).limit(1);
+    if(fetchErr) throw fetchErr;
+    const existing = rows && rows[0];
+    if(existing && score <= existing.score){
+      showMsg('Your best score ('+existing.score+' pts) is already on the leaderboard');
+      await fetchLeaderboard();
+      renderLeaderboardPanel();
+      renderChat();
+      return;
+    }
+    const payload = { name, days: day, kills, score, difficulty, play_time: elapsed, updated_at: new Date().toISOString() };
+    let submitError = null;
+    if(existing && existing.id!=null){
+      const { error } = await sb.from('leaderboard').update(payload).eq('id', existing.id);
+      submitError = error;
+    } else {
+      const { error } = await sb.from('leaderboard').upsert(payload, { onConflict: 'name' });
+      submitError = error;
+      if(submitError){
+        // Table may be missing a unique constraint on name — fall back to a plain insert.
+        const { error: insErr } = await sb.from('leaderboard').insert(payload);
+        submitError = insErr;
+      }
+    }
+    if(submitError) throw submitError;
     await fetchLeaderboard();
+    showMsg('Score submitted: Day '+day+' · '+kills+' kills · '+score+' pts');
+    const lbWrap = document.getElementById('lbWrap');
+    if(lbWrap) lbWrap.style.display = 'block';
+    renderLeaderboardPanel();
+    renderChat();
+  } catch(err){
+    console.error('submitScore failed:', err);
+    showMsg('Could not submit score: '+(err && err.message ? err.message : 'check your connection'));
   }
-  showMsg('Score submitted: Day '+day+' · '+kills+' kills · '+score+' pts');
-  const lbWrap = document.getElementById('lbWrap');
-  if(lbWrap) lbWrap.style.display = 'block';
-  renderLeaderboardPanel();
-  renderChat();
 }
 
 function renderLeaderboardPanel(){
