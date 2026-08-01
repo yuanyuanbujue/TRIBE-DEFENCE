@@ -481,6 +481,12 @@
       </div>
       <div id="frontPanel-updates">
         <div class="updateEntry">
+          <h3>Version 16.9 - GHOST BLOCKS SPAWN</h3>
+          <ul>
+            <li>Fixed mobs sometimes spawning inside walls, trees, rocks, turrets, or other solid blocks — spawn points are now checked and re-rolled until they land on open ground</li>
+          </ul>
+        </div>
+        <div class="updateEntry">
           <h3>Version 16.8 - Ghosting</h3>
           <ul>
             <li>Fixed a bug where mob knockback could shove the player through walls, turrets, and other solid blocks instead of stopping at them</li>
@@ -1079,13 +1085,37 @@ function updateSaveUI(){
 }
 
 function spawnEnemy(){
-  // spawn at random position on a ring around player, outside view-ish
-  const ang = Math.random()*Math.PI*2;
-  const r = rand(520,700);
-  let x = player.x+Math.cos(ang)*r;
-  let y = player.y+Math.sin(ang)*r;
-  x = Math.max(20,Math.min(WORLD_W-20,x));
-  y = Math.max(20,Math.min(WORLD_H-20,y));
+  // spawn at random position on a ring around player, outside view-ish — retried a few times,
+  // and widened if needed, so mobs never spawn inside a wall, tree, rock, turret, etc.
+  let x, y;
+  {
+    let found = false;
+    for(let attempt=0; attempt<20 && !found; attempt++){
+      const ang = Math.random()*Math.PI*2;
+      const r = rand(520,700);
+      let tx = player.x+Math.cos(ang)*r;
+      let ty = player.y+Math.sin(ang)*r;
+      tx = Math.max(20,Math.min(WORLD_W-20,tx));
+      ty = Math.max(20,Math.min(WORLD_H-20,ty));
+      const {tx:gx,ty:gy} = worldToTile(tx,ty);
+      if(!isSolidAt(gx,gy)){
+        x = tx; y = ty; found = true;
+      }
+    }
+    if(!found){
+      // fallback: spiral outward from player until a free tile turns up
+      for(let r=520; r<=2000 && !found; r+=TILE){
+        for(let a=0; a<16 && !found; a++){
+          const ang = (a/16)*Math.PI*2;
+          let tx = Math.max(20,Math.min(WORLD_W-20, player.x+Math.cos(ang)*r));
+          let ty = Math.max(20,Math.min(WORLD_H-20, player.y+Math.sin(ang)*r));
+          const {tx:gx,ty:gy} = worldToTile(tx,ty);
+          if(!isSolidAt(gx,gy)){ x = tx; y = ty; found = true; }
+        }
+      }
+    }
+    if(!found){ x = player.x; y = player.y; } // extremely unlikely last resort
+  }
   const isNight = isNightTime();
   const settings = DIFFICULTY_SETTINGS[difficulty];
   const tierMult = 1 + biomeTier*0.85;
