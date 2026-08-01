@@ -499,6 +499,13 @@
       </div>
       <div id="frontPanel-updates">
         <div class="updateEntry">
+          <h3>Version 17.3 - Large Mob Drops UPDATED!</h3>
+          <ul>
+            <li>Large mobs now have a 20% chance to drop an iron bar on death</li>
+            <li>Updated the Wiki intro to mention the new drop</li>
+          </ul>
+        </div>
+        <div class="updateEntry">
           <h3>Version 17.2 - Draugur Buff!</h3>
           <ul>
             <li>Killing a Draugur now has a 10% chance to drop a diamond and a 15% chance to drop gold</li>
@@ -663,7 +670,7 @@
         <button id="wikiCloseBtn">✕</button>
       </div>
       <div id="wikiBody">
-        <p class="wikiIntro">Mobs only spawn at night, but any that are still alive at dawn start burning in sunlight and take steady damage until they die or night falls again — except The Draugur, which is immune to daylight and never burns. Bigger, tougher variants become more common the longer you survive, and every biome beyond the Wilds brings faster, harder-hitting versions of the same threats. Note: a mob that burns to death without ever being hit by you or a turret gives no kill credit or points. Watch out — if a burning mob hits you, you'll catch fire too and take damage for 5 seconds unless you're standing in water.</p>
+        <p class="wikiIntro">Mobs only spawn at night, but any that are still alive at dawn start burning in sunlight and take steady damage until they die or night falls again — except The Draugur, which is immune to daylight and never burns. Bigger, tougher variants become more common the longer you survive, and every biome beyond the Wilds brings faster, harder-hitting versions of the same threats. Large mobs have a 20% chance to drop an iron bar when killed. Note: a mob that burns to death without ever being hit by you or a turret gives no kill credit or points. Watch out — if a burning mob hits you, you'll catch fire too and take damage for 5 seconds unless you're standing in water.</p>
 
         <h3>🌲 The Wilds (Day 1+)</h3>
         <div class="wikiMob">
@@ -1911,6 +1918,11 @@ function update(dt){
             player.gold += 1;
             addFloater(e.x,e.y-30,'+1 gold',resColor('gold'));
           }
+        }
+        // Large mobs have a chance to drop an iron bar on death.
+        if(e.big && Math.random()<0.20){
+          player.ironBar += 1;
+          addFloater(e.x,e.y-18,'+1 iron bar',resColor('ironBar'));
         }
         const pointsTable = KILL_POINTS[difficulty] || KILL_POINTS.medium;
         const basePts = e.big ? pointsTable.big : pointsTable.small;
