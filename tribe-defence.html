@@ -503,6 +503,8 @@
           <ul>
             <li>Torches now keep mobs from spawning within a radius around them — build a ring of torches to carve out a safe zone</li>
             <li>Outside of AFK mode, mobs also now periodically spawn in a 5x5 tile box around the player — as long as it's outside any torch's radius and on open ground — and head straight for them, on top of the normal spawn-ring mobs elsewhere</li>
+            <li>Mobs spawned by AFK mode's 5x5 swarm now stay locked onto the player across a 10x10 tile area, so they won't lose interest even if you drift a bit further away while idle</li>
+            <li>Toned down the torch's warm glow so it no longer washes out your view of the area around it</li>
           </ul>
         </div>
         <div class="updateEntry">
@@ -1222,7 +1224,8 @@ function spawnEnemy(){
 // respecting the torch no-spawn radius and only landing on open ground. Used both by AFK
 // mode (constant pressure while idle) and by normal mode (a lighter version, see below).
 const AFK_TILE_RADIUS = 2; // 2 tiles either side of the player's tile = a 5x5 tile box
-function spawnNearbyEnemy(){
+const AFK_AGGRO_RANGE = TILE*10; // AFK-spawned mobs stay locked onto the player across a 10x10 tile area
+function spawnNearbyEnemy(isAfk){
   const {tx:ptx,ty:pty} = worldToTile(player.x,player.y);
   let x,y,found=false;
   for(let attempt=0; attempt<20 && !found; attempt++){
@@ -1235,13 +1238,14 @@ function spawnNearbyEnemy(){
     x = wx; y = wy; found = true;
   }
   if(!found) return; // no open tile nearby right now — skip this tick
-  spawnEnemyAt(x,y);
+  spawnEnemyAt(x,y, isAfk ? {aggroRange:AFK_AGGRO_RANGE} : undefined);
 }
 
-function spawnEnemyAt(x,y){
+function spawnEnemyAt(x,y,opts){
   const isNight = isNightTime();
   const settings = DIFFICULTY_SETTINGS[difficulty];
   const tierMult = 1 + biomeTier*0.85;
+  const aggroRange = (opts&&opts.aggroRange) || 260;
 
   // The Draugur — a rare undead mob that only appears from Day 11 onward.
   // Its hits shatter the player's shield ward, disabling blocking for a few seconds.
@@ -1263,7 +1267,8 @@ function spawnEnemyAt(x,y){
       contactCooldown:0,
       wanderTarget:null,
       wanderTimer:0,
-      hitByPlayer:false
+      hitByPlayer:false,
+      aggroRange
     });
     return;
   }
@@ -1288,7 +1293,8 @@ function spawnEnemyAt(x,y){
       contactCooldown:0,
       wanderTarget:null,
       wanderTimer:0,
-      hitByPlayer:false
+      hitByPlayer:false,
+      aggroRange
     });
     return;
   }
@@ -1309,7 +1315,8 @@ function spawnEnemyAt(x,y){
     contactCooldown:0,
     wanderTarget:null,
     wanderTimer:0,
-    hitByPlayer:false
+    hitByPlayer:false,
+    aggroRange
   });
 }
 
@@ -1896,7 +1903,7 @@ function update(dt){
   const nearbyCap = afkMode ? AFK_ENEMY_CAP : cap;
   const nearbyRate = afkMode ? AFK_SPAWN_RATE : NORMAL_NEARBY_SPAWN_RATE;
   if(night && dsettings.spawnMult>0 && nearbySpawnTimer<=0 && enemies.length < nearbyCap){
-    spawnNearbyEnemy();
+    spawnNearbyEnemy(afkMode);
     nearbySpawnTimer = nearbyRate/dsettings.spawnMult;
   }
 
@@ -1931,7 +1938,7 @@ function update(dt){
   for(const e of enemies){
     const d = dist(e.x,e.y,player.x,player.y);
     let dx=0,dy=0;
-    if(d < 260){
+    if(d < (e.aggroRange||260)){
       dx = (player.x-e.x)/d; dy=(player.y-e.y)/d;
     } else {
       e.wanderTimer -= dt;
@@ -2231,11 +2238,11 @@ function draw(){
     if(tileAt(tc.tx,tc.ty)!=='torch') continue;
     const sx=tc.x-camera.x, sy=tc.y-camera.y;
     const flicker = 0.7+Math.sin(elapsed*9+tc.tx)*0.15+Math.sin(elapsed*17+tc.ty)*0.08;
-    const glow = ctx.createRadialGradient(sx,sy,2,sx,sy,90*flicker);
-    glow.addColorStop(0,'rgba(255,170,60,0.35)');
+    const glow = ctx.createRadialGradient(sx,sy,2,sx,sy,70*flicker);
+    glow.addColorStop(0,'rgba(255,170,60,0.14)');
     glow.addColorStop(1,'rgba(255,170,60,0)');
     ctx.fillStyle=glow;
-    ctx.fillRect(sx-90,sy-90,180,180);
+    ctx.fillRect(sx-70,sy-70,140,140);
     ctx.fillStyle='#5a3a1a';
     ctx.fillRect(sx-2,sy-4,4,14);
     ctx.beginPath();
