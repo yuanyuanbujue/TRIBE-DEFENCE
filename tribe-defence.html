@@ -499,6 +499,13 @@
       </div>
       <div id="frontPanel-updates">
         <div class="updateEntry">
+          <h3>Version 17.5 - Torch Buff!</h3>
+          <ul>
+            <li>Torches now keep mobs from spawning within a radius around them — build a ring of torches to carve out a safe zone</li>
+            <li>Outside of AFK mode, mobs also now periodically spawn in a 5x5 tile box around the player — as long as it's outside any torch's radius and on open ground — and head straight for them, on top of the normal spawn-ring mobs elsewhere</li>
+          </ul>
+        </div>
+        <div class="updateEntry">
           <h3>Version 17.4 - The Stalker</h3>
           <ul>
             <li>Added a new mob: The Stalker — appears in the Scorched Frontier from Day 54 onward, with 150 HP and 40 melee damage</li>
@@ -977,9 +984,11 @@ let resourceRegrowTimer = 0;
 let enemySpawnTimer = 0;
 let afkMode = false;
 let afkSpawnTimer = 0;
+let nearbySpawnTimer = 0;
 let afkAutoSaveTimer = 0;
 const AFK_SPAWN_RATE = 1.1; // faster than the normal 2.2s spawn rate — AFK mode keeps the pressure on
 const AFK_ENEMY_CAP = 60; // separate, higher cap so AFK swarms aren't choked by the normal enemy cap
+const NORMAL_NEARBY_SPAWN_RATE = 4.5; // slower than AFK's — a lighter trickle of close-range mobs during normal play
 const AFK_AUTOSAVE_INTERVAL = 60; // seconds between auto-saves while AFK is on
 let invOpen = false;
 let currentSlot = null; // which save slot this session is bound to, once saved/loaded
@@ -1122,6 +1131,7 @@ function resetGame(){
   lastDayAwarded = 1; wasNightTime = false;
   enemySpawnTimer = 2;
   afkSpawnTimer = 2;
+  nearbySpawnTimer = 2;
   afkAutoSaveTimer = AFK_AUTOSAVE_INTERVAL;
   afkMode = false;
   updateAfkButtonUI();
@@ -1162,6 +1172,17 @@ function updateSaveUI(){
   }
 }
 
+// Torches keep mobs from spawning within a radius around them (mobs can still wander in after spawning elsewhere).
+const TORCH_NO_SPAWN_RADIUS = TILE*3.5;
+function isNearLitTorch(wx,wy){
+  for(const tc of torchesList){
+    if(tileAt(tc.tx,tc.ty)!=='torch') continue; // torch was destroyed
+    const dx = wx-tc.x, dy = wy-tc.y;
+    if(dx*dx+dy*dy < TORCH_NO_SPAWN_RADIUS*TORCH_NO_SPAWN_RADIUS) return true;
+  }
+  return false;
+}
+
 function spawnEnemy(){
   // spawn at random position on a ring around player, outside view-ish — retried a few times,
   // and widened if needed, so mobs never spawn inside a wall, tree, rock, turret, etc.
@@ -1176,7 +1197,7 @@ function spawnEnemy(){
       tx = Math.max(20,Math.min(WORLD_W-20,tx));
       ty = Math.max(20,Math.min(WORLD_H-20,ty));
       const {tx:gx,ty:gy} = worldToTile(tx,ty);
-      if(!isSolidAt(gx,gy)){
+      if(!isSolidAt(gx,gy) && !isNearLitTorch(tx,ty)){
         x = tx; y = ty; found = true;
       }
     }
@@ -1188,7 +1209,7 @@ function spawnEnemy(){
           let tx = Math.max(20,Math.min(WORLD_W-20, player.x+Math.cos(ang)*r));
           let ty = Math.max(20,Math.min(WORLD_H-20, player.y+Math.sin(ang)*r));
           const {tx:gx,ty:gy} = worldToTile(tx,ty);
-          if(!isSolidAt(gx,gy)){ x = tx; y = ty; found = true; }
+          if(!isSolidAt(gx,gy) && !isNearLitTorch(tx,ty)){ x = tx; y = ty; found = true; }
         }
       }
     }
@@ -1197,11 +1218,11 @@ function spawnEnemy(){
   spawnEnemyAt(x,y);
 }
 
-// AFK mode spawns mobs tight around the player — within a 5x5 tile box centered on them —
-// so an idle/away player still gets swarmed and farms kills, instead of mobs staying out
-// on the normal spawn ring far from view.
+// Spawns a mob tight around the player — within a 5x5 tile box centered on them — while
+// respecting the torch no-spawn radius and only landing on open ground. Used both by AFK
+// mode (constant pressure while idle) and by normal mode (a lighter version, see below).
 const AFK_TILE_RADIUS = 2; // 2 tiles either side of the player's tile = a 5x5 tile box
-function spawnAfkEnemyNearPlayer(){
+function spawnNearbyEnemy(){
   const {tx:ptx,ty:pty} = worldToTile(player.x,player.y);
   let x,y,found=false;
   for(let attempt=0; attempt<20 && !found; attempt++){
@@ -1209,7 +1230,9 @@ function spawnAfkEnemyNearPlayer(){
     const gy = pty + randi(-AFK_TILE_RADIUS,AFK_TILE_RADIUS);
     if(gx===ptx && gy===pty) continue; // don't stack a mob directly on the player's own tile
     if(isSolidAt(gx,gy)) continue;
-    x = gx*TILE+TILE/2; y = gy*TILE+TILE/2; found = true;
+    const wx = gx*TILE+TILE/2, wy = gy*TILE+TILE/2;
+    if(isNearLitTorch(wx,wy)) continue;
+    x = wx; y = wy; found = true;
   }
   if(!found) return; // no open tile nearby right now — skip this tick
   spawnEnemyAt(x,y);
@@ -1866,12 +1889,15 @@ function update(dt){
     enemySpawnTimer = spawnRate;
   }
 
-  // AFK mode — while on, night spawns also swarm a tight 5x5 tile box around the player,
-  // on top of (not instead of) the normal spawn-ring mobs above.
-  afkSpawnTimer -= dt;
-  if(afkMode && night && dsettings.spawnMult>0 && afkSpawnTimer<=0 && enemies.length < AFK_ENEMY_CAP){
-    spawnAfkEnemyNearPlayer();
-    afkSpawnTimer = AFK_SPAWN_RATE/dsettings.spawnMult;
+  // Nearby spawns — outside torch light, mobs also periodically spawn in a 5x5 tile box
+  // around the player (in the open, not inside walls/rocks/etc) and beeline for them, on
+  // top of the normal spawn-ring mobs above. AFK mode does this at a faster, uncapped-by-view rate.
+  nearbySpawnTimer -= dt;
+  const nearbyCap = afkMode ? AFK_ENEMY_CAP : cap;
+  const nearbyRate = afkMode ? AFK_SPAWN_RATE : NORMAL_NEARBY_SPAWN_RATE;
+  if(night && dsettings.spawnMult>0 && nearbySpawnTimer<=0 && enemies.length < nearbyCap){
+    spawnNearbyEnemy();
+    nearbySpawnTimer = nearbyRate/dsettings.spawnMult;
   }
 
   // AFK auto-save — since the whole point of AFK mode is to walk away, periodically save
@@ -2800,6 +2826,7 @@ function loadGame(slotIndex){
     hitCounters = {};
     enemySpawnTimer = 2;
     afkSpawnTimer = 2;
+    nearbySpawnTimer = 2;
     afkAutoSaveTimer = AFK_AUTOSAVE_INTERVAL;
     afkMode = false;
     updateAfkButtonUI();
