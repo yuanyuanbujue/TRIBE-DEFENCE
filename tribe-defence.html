@@ -160,6 +160,8 @@
   #afkBtn:hover{border-color:#8ecbff;}
   #afkBtn.on{background:#1f8a3a;border-color:#3fd166;color:#eafff0;box-shadow:0 0 10px rgba(63,209,102,0.5);}
   #afkBtn.on:hover{border-color:#7fffa0;}
+  #afkBtn.locked{opacity:0.45;cursor:not-allowed;}
+  #afkBtn.locked:hover{border-color:#556;}
   #saveNote{font-size:11px;color:#aab;max-width:140px;}
   #diffTag{position:absolute;top:8px;left:50%;transform:translateX(-50%);font-size:11px;padding:3px 10px;border-radius:10px;background:rgba(0,0,0,0.5);letter-spacing:0.5px;}
 
@@ -374,7 +376,7 @@
   <button id="wikiToggleBtn" type="button">📖 Wiki</button>
 
   <div id="saveWrap">
-    <button id="afkBtn" type="button">AFK: OFF</button>
+    <button id="afkBtn" type="button" title="AFK mode is only available to the top 3 highest scorers on the leaderboard">AFK: OFF</button>
     <button id="saveBtn">💾 Save Game</button>
     <div id="saveNote"></div>
   </div>
@@ -488,7 +490,7 @@
           <li>Hold Shift — block with your Shield (once crafted; works offhand regardless of which slot is selected)</li>
           <li>E — open Inventory, Armor &amp; Equipment</li>
           <li>C — Press C To Eat</li>
-          <li>AFK — toggle the AFK button (bottom left, above Save Game) to swarm mobs around you at night in a 5x5 tile radius, and auto-save every 60 seconds while it's on</li>
+          <li>AFK — toggle the AFK button (bottom left, above Save Game) to swarm mobs around you at night in a 5x5 tile radius, and auto-save every 60 seconds while it's on. Only available to the top 3 highest scorers on the leaderboard</li>
         </ul>
         <h3>Day and Night</h3>
         <p>Days are safe — no mobs spawn, so use the daylight to gather wood, stone and ore, build up your base, and craft gear. Once night falls, mobs start spawning and keep coming until dawn. Small mobs are weaker but numerous; big mobs hit harder and have far more HP, so gear up and fortify before the sun goes down.</p>
@@ -498,6 +500,29 @@
         <p>Survive to Day 50 and Day 100 to trigger a border expansion into tougher new biomes with stronger enemies.</p>
       </div>
       <div id="frontPanel-updates">
+        <div class="updateEntry">
+          <h3>Version 17.8 - Earn Your AFK</h3>
+          <ul>
+            <li>AFK mode is now exclusive to the top 3 highest scorers on the leaderboard — the button is locked for everyone else</li>
+            <li>If you drop out of the top 3 while AFK is running, it automatically turns off</li>
+            <li>Updated the Guide panel to mention the new requirement</li>
+          </ul>
+        </div>
+        <div class="updateEntry">
+          <h3>Version 17.7 - AFK Magnet!</h3>
+          <ul>
+            <li>While AFK mode is on, every mob on the map — not just ones spawned near you — now locks onto and beelines for the player as long as they're within a 20x20 tile radius</li>
+          </ul>
+        </div>
+        <div class="updateEntry">
+          <h3>Version 17.6 - Gold Rush!</h3>
+          <ul>
+            <li>The Draugur's gold drop chance on death is buffed from 15% to 20%</li>
+            <li>Large mobs now also have a separate 20% chance to drop gold on death, on top of their existing 20% iron bar chance</li>
+            <li>Any mob finished off by The Stalker's explosion now has a 25% chance to drop a diamond, even if you didn't land the killing blow yourself</li>
+            <li>Updated the Wiki to reflect all three changes</li>
+          </ul>
+        </div>
         <div class="updateEntry">
           <h3>Version 17.5 - Torch Buff!</h3>
           <ul>
@@ -687,7 +712,7 @@
         <button id="wikiCloseBtn">✕</button>
       </div>
       <div id="wikiBody">
-        <p class="wikiIntro">Mobs only spawn at night, but any that are still alive at dawn start burning in sunlight and take steady damage until they die or night falls again — except The Draugur, which is immune to daylight and never burns. Bigger, tougher variants become more common the longer you survive, and every biome beyond the Wilds brings faster, harder-hitting versions of the same threats. Large mobs have a 20% chance to drop an iron bar when killed. Note: a mob that burns to death without ever being hit by you or a turret gives no kill credit or points. Watch out — if a burning mob hits you, you'll catch fire too and take damage for 5 seconds unless you're standing in water.</p>
+        <p class="wikiIntro">Mobs only spawn at night, but any that are still alive at dawn start burning in sunlight and take steady damage until they die or night falls again — except The Draugur, which is immune to daylight and never burns. Bigger, tougher variants become more common the longer you survive, and every biome beyond the Wilds brings faster, harder-hitting versions of the same threats. Large mobs have a 20% chance to drop an iron bar and a separate 20% chance to drop gold when killed. Any mob finished off by The Stalker's explosion has a 25% chance to drop a diamond. Note: a mob that burns to death without ever being hit by you or a turret gives no kill credit or points. Watch out — if a burning mob hits you, you'll catch fire too and take damage for 5 seconds unless you're standing in water.</p>
 
         <h3>🌲 The Wilds (Day 1+)</h3>
         <div class="wikiMob">
@@ -734,7 +759,7 @@
         <div class="wikiMob">
           <div class="wikiMobName" style="color:#5fd0c9;">The Draugur</div>
           <div class="wikiMobMeta">Rare · Any biome · Day 11+ only</div>
-          <div class="wikiMobDesc">A ghostly undead that can appear in any biome once you've survived past Day 10. Rather than chipping away with quick hits like other mobs, it strikes slowly for a heavy ~21 base damage and, on contact, shatters your shield ward — disabling blocking for a few seconds. Its attack has a 5 second cooldown, so it hits hard but infrequently. The longer you survive, the harder it hits — its damage climbs with the day count, up to +80% by Day 100. Unlike every other mob, it's immune to daylight and never burns, so it can linger well past dawn. Killing one has a 10% chance to drop a diamond and a 15% chance to drop gold. Easy to spot by its pale teal glow and skull marking; worth killing at range with turrets before it gets close.</div>
+          <div class="wikiMobDesc">A ghostly undead that can appear in any biome once you've survived past Day 10. Rather than chipping away with quick hits like other mobs, it strikes slowly for a heavy ~21 base damage and, on contact, shatters your shield ward — disabling blocking for a few seconds. Its attack has a 5 second cooldown, so it hits hard but infrequently. The longer you survive, the harder it hits — its damage climbs with the day count, up to +80% by Day 100. Unlike every other mob, it's immune to daylight and never burns, so it can linger well past dawn. Killing one has a 10% chance to drop a diamond and a 20% chance to drop gold. Easy to spot by its pale teal glow and skull marking; worth killing at range with turrets before it gets close.</div>
         </div>
 
         <h3>👑 Bosses</h3>
@@ -1349,6 +1374,7 @@ function triggerStalkerExplosion(e){
     if(other===e) continue;
     if(dist(other.x,other.y,e.x,e.y) <= STALKER_EXPLOSION_RADIUS){
       other.hp -= STALKER_EXPLOSION_DMG_MOB;
+      other.killedByStalker = true; // if this blast finishes them off, they'll drop a diamond
       addFloater(other.x,other.y-10,'-'+STALKER_EXPLOSION_DMG_MOB,'#ff8c30');
     }
   }
@@ -1935,10 +1961,11 @@ function update(dt){
   player.blocking = blocking;
 
   // enemies AI
+  const effectiveAggroRange = afkMode ? Math.max(AFK_AGGRO_RANGE, TILE*20) : null;
   for(const e of enemies){
     const d = dist(e.x,e.y,player.x,player.y);
     let dx=0,dy=0;
-    if(d < (e.aggroRange||260)){
+    if(d < (effectiveAggroRange || e.aggroRange || 260)){
       dx = (player.x-e.x)/d; dy=(player.y-e.y)/d;
     } else {
       e.wanderTimer -= dt;
@@ -1999,6 +2026,12 @@ function update(dt){
       const e = enemies[i];
       addParticles(e.x,e.y,e.hitByPlayer?'#ff3333':'#ff8c30',10);
       if(e.stalker){ triggerStalkerExplosion(e); }
+      // Any mob finished off by the Stalker's explosion has a chance to drop a diamond,
+      // regardless of whether the player landed the killing blow.
+      if(e.killedByStalker && Math.random()<0.25){
+        player.diamond += 1;
+        addFloater(e.x,e.y-24,'+1 diamond',resColor('diamond'));
+      }
       if(e.hitByPlayer){
         if(Math.random()<0.35){
           const res = Math.random()<0.5?'wood':'stone';
@@ -2012,15 +2045,19 @@ function update(dt){
             player.diamond += 1;
             addFloater(e.x,e.y-18,'+1 diamond',resColor('diamond'));
           }
-          if(Math.random()<0.15){
+          if(Math.random()<0.20){
             player.gold += 1;
             addFloater(e.x,e.y-30,'+1 gold',resColor('gold'));
           }
         }
-        // Large mobs have a chance to drop an iron bar on death.
+        // Large mobs have a chance to drop an iron bar and/or gold on death.
         if(e.big && Math.random()<0.20){
           player.ironBar += 1;
           addFloater(e.x,e.y-18,'+1 iron bar',resColor('ironBar'));
+        }
+        if(e.big && Math.random()<0.20){
+          player.gold += 1;
+          addFloater(e.x,e.y-30,'+1 gold',resColor('gold'));
         }
         const pointsTable = KILL_POINTS[difficulty] || KILL_POINTS.medium;
         const basePts = e.big ? pointsTable.big : pointsTable.small;
@@ -3234,6 +3271,7 @@ async function submitScore(){
 }
 
 function renderLeaderboardPanel(){
+  updateAfkButtonUI();
   const list = document.getElementById('lbList');
   if(!list) return;
   const t3 = topThree();
@@ -3521,6 +3559,10 @@ document.getElementById('saveBtn').addEventListener('click',(e)=>{
   }
 });
 document.getElementById('afkBtn').addEventListener('click',()=>{
+  if(!afkMode && !isTopThree()){
+    showMsg('🔒 AFK mode is only available to the top 3 highest scorers on the leaderboard');
+    return;
+  }
   afkMode = !afkMode;
   updateAfkButtonUI();
   if(afkMode){
@@ -3537,8 +3579,16 @@ document.getElementById('afkBtn').addEventListener('click',()=>{
 function updateAfkButtonUI(){
   const btn = document.getElementById('afkBtn');
   if(!btn) return;
+  const eligible = isTopThree();
+  // If AFK was on and the player has since fallen out of the top 3, turn it off.
+  if(afkMode && !eligible){
+    afkMode = false;
+    showMsg('AFK mode OFF — you dropped out of the top 3 leaderboard scorers');
+  }
   btn.textContent = afkMode ? 'AFK: ON' : 'AFK: OFF';
   btn.classList.toggle('on', afkMode);
+  btn.classList.toggle('locked', !eligible);
+  btn.title = eligible ? 'Toggle AFK mode' : 'AFK mode is only available to the top 3 highest scorers on the leaderboard';
 }
 updateAfkButtonUI();
 window.addEventListener('keydown',e=>{
