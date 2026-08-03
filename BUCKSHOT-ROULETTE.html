@@ -205,6 +205,91 @@
   }
   #banner.win { color: #7fff9e; text-shadow: 0 0 10px rgba(90,255,140,0.6); }
   #banner.lose { color: #ff5b5b; text-shadow: 0 0 10px rgba(255,60,60,0.6); }
+
+  #reloadOverlay {
+    display: none;
+    text-align: center;
+    background: #1a1a1a;
+    border: 1px solid #333;
+    border-radius: 8px;
+    padding: 16px;
+    margin-bottom: 12px;
+  }
+  #reloadOverlay.active { display: block; }
+  #reloadTitle {
+    font-size: 13px;
+    color: #999;
+    letter-spacing: 1px;
+    text-transform: uppercase;
+    margin-bottom: 12px;
+  }
+  #reloadTitle .thinking-dots span { color: #999; }
+  #reloadShells {
+    display: flex;
+    justify-content: center;
+    gap: 8px;
+    flex-wrap: wrap;
+    min-height: 54px;
+    align-items: center;
+  }
+  .reload-card {
+    width: 40px;
+    height: 54px;
+    border-radius: 5px;
+    background: #2a2a2a;
+    border: 1px solid #555;
+    perspective: 300px;
+    position: relative;
+  }
+  .reload-card .face {
+    position: absolute;
+    inset: 0;
+    border-radius: 5px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 9px;
+    font-weight: bold;
+    letter-spacing: 0.5px;
+    backface-visibility: hidden;
+  }
+  .reload-card .front {
+    background: #2a2a2a;
+    color: #666;
+    content: '';
+  }
+  .reload-card .back {
+    transform: rotateY(180deg);
+    color: #fff;
+  }
+  .reload-card.live .back { background: #7a1414; text-shadow: 0 0 6px rgba(255,60,60,0.8); }
+  .reload-card.blank .back { background: #1c4a6b; text-shadow: 0 0 6px rgba(90,170,255,0.6); }
+  .reload-card .flipper {
+    width: 100%; height: 100%;
+    position: relative;
+    transform-style: preserve-3d;
+    transition: transform 0.4s ease;
+  }
+  .reload-card.revealed .flipper { transform: rotateY(180deg); }
+  .reload-card.pending { opacity: 0.35; }
+  @keyframes shuffleShake {
+    0%, 100% { transform: translateX(0) rotate(0deg); }
+    20% { transform: translateX(-4px) rotate(-3deg); }
+    40% { transform: translateX(4px) rotate(3deg); }
+    60% { transform: translateX(-3px) rotate(-2deg); }
+    80% { transform: translateX(3px) rotate(2deg); }
+  }
+  #reloadShells.shuffling .reload-card {
+    animation: shuffleShake 0.5s ease;
+  }
+  #reloadCount {
+    margin-top: 10px;
+    font-size: 12px;
+    color: #999;
+    min-height: 16px;
+  }
+  #reloadCount .live-n { color: #ff6b6b; font-weight: bold; }
+  #reloadCount .blank-n { color: #7fb8ff; font-weight: bold; }
 </style>
 </head>
 <body>
@@ -223,6 +308,11 @@
       <div class="hearts" id="playerHp"></div>
     </div>
   </div>
+  <div id="reloadOverlay">
+    <div id="reloadTitle">Loading shells<span class="thinking-dots"><span>.</span><span>.</span><span>.</span></span></div>
+    <div id="reloadShells"></div>
+    <div id="reloadCount"></div>
+  </div>
   <div id="shellInfo"></div>
   <div id="shellRow"></div>
   <div id="log"></div>
@@ -231,21 +321,75 @@
 
 <script>
 (function(){
-  const state = {playerHp:4, dealerHp:4, shells:[], turn:'player', over:false, dealerStreak:0};
+  const state = {playerHp:4, dealerHp:4, shells:[], turn:'player', over:false, dealerStreak:0, reloading:false};
   const log = [];
   const DEALER_THINK_MS = 1600;
+  const REVEAL_STEP_MS = 320;
 
   function addLog(t, cls){ log.unshift({t,cls}); if(log.length>5) log.pop(); render(); }
 
-  function newRound(){
+  function generateShells(){
     const total = 2 + Math.floor(Math.random()*4); // 2-5 shells
     let live = 1 + Math.floor(Math.random()*(total-1));
     let blanks = total-live;
-    state.shells = [];
-    for(let i=0;i<live;i++) state.shells.push('live');
-    for(let i=0;i<blanks;i++) state.shells.push('blank');
-    state.shells.sort(()=>Math.random()-0.5);
-    addLog(`New round: ${total} shells loaded (${live} live, ${blanks} blank).`);
+    const shells = [];
+    for(let i=0;i<live;i++) shells.push('live');
+    for(let i=0;i<blanks;i++) shells.push('blank');
+    shells.sort(()=>Math.random()-0.5);
+    return {shells, total, live, blanks};
+  }
+
+  function newRound(onDone){
+    const {shells, total, live, blanks} = generateShells();
+    state.shells = shells;
+    state.reloading = true;
+    render();
+    playReloadAnimation(shells, function(){
+      state.reloading = false;
+      addLog(`New round: ${total} shells loaded (${live} live, ${blanks} blank).`);
+      render();
+      if(typeof onDone === 'function') onDone();
+    });
+  }
+
+  function playReloadAnimation(shells, callback){
+    const container = document.getElementById('reloadShells');
+    const countEl = document.getElementById('reloadCount');
+    const overlay = document.getElementById('reloadOverlay');
+    overlay.classList.add('active');
+    container.classList.remove('shuffling');
+    countEl.textContent = '';
+    container.innerHTML = shells.map(s => `
+      <div class="reload-card pending" data-type="${s}">
+        <div class="flipper">
+          <div class="face front"></div>
+          <div class="face back">${s==='live' ? 'LIVE' : 'BLANK'}</div>
+        </div>
+      </div>
+    `).join('');
+    const cards = Array.from(container.children);
+    let liveShown = 0, blankShown = 0, i = 0;
+
+    function revealNext(){
+      if(i >= cards.length){
+        setTimeout(()=>{
+          container.classList.add('shuffling');
+          setTimeout(()=>{
+            overlay.classList.remove('active');
+            if(typeof callback === 'function') callback();
+          }, 550);
+        }, 350);
+        return;
+      }
+      const card = cards[i];
+      card.classList.remove('pending');
+      card.classList.add('revealed');
+      if(card.dataset.type==='live') liveShown++; else blankShown++;
+      countEl.innerHTML = `<span class="live-n">${liveShown} live</span> &middot; <span class="blank-n">${blankShown} blank</span> revealed`;
+      i++;
+      setTimeout(revealNext, REVEAL_STEP_MS);
+    }
+    setTimeout(revealNext, 200);
   }
 
   function screenShake(){
@@ -272,7 +416,11 @@
 
   function shoot(target){
     if(state.over) return;
-    if(state.shells.length===0){ newRound(); }
+    if(state.shells.length===0){
+      const g = generateShells();
+      state.shells = g.shells;
+      addLog(`New round: ${g.total} shells loaded (${g.live} live, ${g.blanks} blank).`);
+    }
     const shell = state.shells.shift();
     const isLive = shell==='live';
     smokePuff();
@@ -310,9 +458,14 @@
     }
     checkOver();
     if(state.over) return;
-    if(state.shells.length===0) newRound();
-    if(state.turn==='dealer') setTimeout(dealerMove, DEALER_THINK_MS);
-    render();
+    if(state.shells.length===0){
+      newRound(function(){
+        if(state.turn==='dealer') setTimeout(dealerMove, DEALER_THINK_MS);
+      });
+    } else {
+      if(state.turn==='dealer') setTimeout(dealerMove, DEALER_THINK_MS);
+      render();
+    }
   }
 
   function endTurn(switchTurn){
@@ -351,12 +504,22 @@
     const dHearts = Math.max(state.dealerHp,0);
     document.getElementById('playerHp').innerHTML = pHearts>0 ? '<span class="heart-lost">'+'♥'.repeat(pHearts)+'</span>' : '0';
     document.getElementById('dealerHp').innerHTML = dHearts>0 ? '<span class="heart-lost">'+'♥'.repeat(dHearts)+'</span>' : '0';
-    document.getElementById('shellInfo').textContent = `Shells remaining in chamber: ${state.shells.length}`;
+    const shellInfoEl = document.getElementById('shellInfo');
     const row = document.getElementById('shellRow');
+    shellInfoEl.style.display = state.reloading ? 'none' : '';
+    row.style.display = state.reloading ? 'none' : '';
+    shellInfoEl.textContent = `Shells remaining in chamber: ${state.shells.length}`;
     row.innerHTML = state.shells.map(()=>`<div class="shell-dot"></div>`).join('');
     document.getElementById('log').innerHTML = log.map(l=>`<div class="${l.cls||''}">${l.t}</div>`).join('');
     const controls = document.getElementById('controls');
     controls.innerHTML='';
+    if(state.reloading){
+      const btn = document.createElement('button');
+      btn.innerHTML='Reloading<span class="thinking-dots"><span>.</span><span>.</span><span>.</span></span>';
+      btn.disabled=true;
+      controls.appendChild(btn);
+      return;
+    }
     if(state.over){
       const btn = document.createElement('button');
       btn.textContent='Play again';
@@ -385,7 +548,6 @@
   }
 
   newRound();
-  render();
 })();
 </script>
 </body>
