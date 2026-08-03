@@ -290,6 +290,38 @@
   }
   #reloadCount .live-n { color: #ff6b6b; font-weight: bold; }
   #reloadCount .blank-n { color: #7fb8ff; font-weight: bold; }
+
+  #items {
+    display: flex;
+    gap: 8px;
+    flex-wrap: wrap;
+    justify-content: center;
+    margin-bottom: 12px;
+    min-height: 20px;
+  }
+  .item-btn {
+    background: #1c1c1c;
+    border: 1px solid #444;
+    border-radius: 6px;
+    padding: 8px 12px;
+    font-size: 13px;
+  }
+  .item-btn:hover:not(:disabled) {
+    background: #333;
+    border-color: #d33;
+  }
+  .no-items {
+    color: #666;
+    font-size: 12px;
+    align-self: center;
+  }
+  #dealerItemCount {
+    text-align: center;
+    color: #777;
+    font-size: 11px;
+    margin-top: -6px;
+    margin-bottom: 10px;
+  }
 </style>
 </head>
 <body>
@@ -315,16 +347,44 @@
   </div>
   <div id="shellInfo"></div>
   <div id="shellRow"></div>
+  <div id="dealerItemCount"></div>
+  <div id="items"></div>
   <div id="log"></div>
   <div id="controls"></div>
 </div>
 
 <script>
 (function(){
-  const state = {playerHp:4, dealerHp:4, shells:[], turn:'player', over:false, dealerStreak:0, reloading:false};
+  const state = {
+    playerHp:4, dealerHp:4, shells:[], turn:'player', over:false, dealerStreak:0, reloading:false,
+    playerItems:{}, dealerItems:{},
+    skipTurn:{player:false, dealer:false},
+    sawActive:{player:false, dealer:false}
+  };
   const log = [];
   const DEALER_THINK_MS = 1600;
   const REVEAL_STEP_MS = 320;
+  const MAX_HP = 4;
+  const ITEMS_PER_WAVE = 2;
+  const ITEM_DEFS = {
+    magnifier: {icon:'🔍', name:'Magnifying Glass', desc:'Peek the next shell'},
+    cigs:      {icon:'🚬', name:'Cigarettes',        desc:'Heal 1 HP'},
+    beer:      {icon:'🍺', name:'Beer',               desc:'Rack out the next shell'},
+    cuffs:     {icon:'⛓️', name:'Handcuffs',          desc:'Opponent skips their next turn'},
+    saw:       {icon:'🪚', name:'Saw',                desc:'Double damage on your next live shot'}
+  };
+
+  function grantItems(){
+    const keys = Object.keys(ITEM_DEFS);
+    ['player','dealer'].forEach(who=>{
+      const inv = who==='player' ? state.playerItems : state.dealerItems;
+      for(let i=0;i<ITEMS_PER_WAVE;i++){
+        const pick = keys[Math.floor(Math.random()*keys.length)];
+        inv[pick] = (inv[pick]||0)+1;
+      }
+    });
+    addLog(`New wave: you receive ${ITEMS_PER_WAVE} items!`);
+  }
 
   function addLog(t, cls){ log.unshift({t,cls}); if(log.length>5) log.pop(); render(); }
 
@@ -347,6 +407,7 @@
     playReloadAnimation(shells, function(){
       state.reloading = false;
       addLog(`New round: ${total} shells loaded (${live} live, ${blanks} blank).`);
+      grantItems();
       render();
       if(typeof onDone === 'function') onDone();
     });
@@ -447,9 +508,15 @@
     } else {
       const other = state.turn==='player' ? 'dealer' : 'player';
       if(isLive){
-        if(other==='player') state.playerHp--; else state.dealerHp--;
+        let dmg = 1;
+        if(state.sawActive[state.turn]){
+          dmg = 2;
+          state.sawActive[state.turn] = false;
+          addLog('The sawed-off barrel doubles the damage!');
+        }
+        if(other==='player') state.playerHp-=dmg; else state.dealerHp-=dmg;
         pulseStat(other);
-        addLog(`${state.turn==='player'?'You':'Dealer'} shot ${other}: LIVE hit!`, 'log-live');
+        addLog(`${state.turn==='player'?'You':'Dealer'} shot ${other}: LIVE hit${dmg>1?' (x2)':''}!`, 'log-live');
       } else {
         addLog(`${state.turn==='player'?'You':'Dealer'} shot ${other}: blank, no effect.`, 'log-blank');
       }
@@ -468,8 +535,70 @@
     }
   }
 
+  function useItem(key){
+    if(state.turn!=='player' || state.over || state.reloading) return;
+    const inv = state.playerItems;
+    if(!inv[key]) return;
+    switch(key){
+      case 'magnifier': {
+        inv.magnifier--;
+        const next = state.shells[0];
+        addLog(`You check the shell: it's ${next==='live'?'LIVE':'BLANK'}.`, next==='live'?'log-live':'log-blank');
+        break;
+      }
+      case 'cigs': {
+        inv.cigs--;
+        if(state.playerHp>=MAX_HP){
+          addLog('You smoke a cigarette, but you are already at full health.');
+        } else {
+          state.playerHp = Math.min(MAX_HP, state.playerHp+1);
+          pulseStat('player');
+          addLog('You smoke a cigarette, healing 1 HP.');
+        }
+        break;
+      }
+      case 'beer': {
+        inv.beer--;
+        if(state.shells.length>0){
+          const shell = state.shells.shift();
+          addLog(`You rack the shotgun — a ${shell==='live'?'live':'blank'} shell ejects.`, shell==='live'?'log-live':'log-blank');
+          if(state.shells.length===0){
+            render();
+            newRound();
+            return;
+          }
+        }
+        break;
+      }
+      case 'cuffs': {
+        if(state.skipTurn.dealer){
+          addLog('Dealer is already handcuffed.');
+          break;
+        }
+        inv.cuffs--;
+        state.skipTurn.dealer = true;
+        addLog('You slap on the handcuffs. Dealer will skip their next turn!');
+        break;
+      }
+      case 'saw': {
+        inv.saw--;
+        state.sawActive.player = true;
+        addLog('You saw off the barrel. Your next live shot deals double damage!');
+        break;
+      }
+    }
+    render();
+  }
+
   function endTurn(switchTurn){
-    if(switchTurn) state.turn = state.turn==='player' ? 'dealer' : 'player';
+    if(switchTurn){
+      state.turn = state.turn==='player' ? 'dealer' : 'player';
+      if(state.skipTurn[state.turn]){
+        state.skipTurn[state.turn] = false;
+        addLog(`${state.turn==='player'?'You are':'Dealer is'} handcuffed and skip this turn!`);
+        state.turn = state.turn==='player' ? 'dealer' : 'player';
+      }
+    }
   }
 
   function checkOver(){
@@ -486,9 +615,33 @@
   function dealerMove(){
     if(state.over) return;
     try{
+      const items = state.dealerItems;
+      if(items.cigs>0 && state.dealerHp<MAX_HP){
+        items.cigs--;
+        state.dealerHp = Math.min(MAX_HP, state.dealerHp+1);
+        pulseStat('dealer');
+        addLog('Dealer smokes a cigarette, healing 1 HP.');
+      }
+      let knownLive = null;
+      if(items.magnifier>0 && state.shells.length>0){
+        items.magnifier--;
+        knownLive = state.shells[0]==='live';
+        addLog(`Dealer checks the shell... it's ${knownLive?'LIVE':'BLANK'}.`);
+      }
+      if(items.cuffs>0 && !state.skipTurn.player && Math.random()<0.5){
+        items.cuffs--;
+        state.skipTurn.player = true;
+        addLog('Dealer cuffs you! You will skip your next turn.');
+      }
       const shellsLeftKnown = state.shells.length || 1;
       const liveLeft = state.shells.filter(s=>s==='live').length;
-      const chance = liveLeft/shellsLeftKnown;
+      const chance = knownLive!==null ? (knownLive?1:0) : liveLeft/shellsLeftKnown;
+      if(items.saw>0 && chance>=0.5){
+        items.saw--;
+        state.sawActive.dealer = true;
+        addLog('Dealer saws off the barrel!');
+      }
+      render();
       const target = (chance < 0.5 && state.dealerStreak < 2) ? 'self' : 'other';
       shoot(target);
     } catch(e){
@@ -511,6 +664,28 @@
     shellInfoEl.textContent = `Shells remaining in chamber: ${state.shells.length}`;
     row.innerHTML = state.shells.map(()=>`<div class="shell-dot"></div>`).join('');
     document.getElementById('log').innerHTML = log.map(l=>`<div class="${l.cls||''}">${l.t}</div>`).join('');
+
+    const dealerCount = Object.values(state.dealerItems).reduce((a,b)=>a+b,0);
+    document.getElementById('dealerItemCount').textContent = state.reloading ? '' : `Dealer holds ${dealerCount} item${dealerCount===1?'':'s'}`;
+
+    const itemsEl = document.getElementById('items');
+    if(state.reloading || state.over){
+      itemsEl.innerHTML = '';
+    } else {
+      const heldKeys = Object.keys(ITEM_DEFS).filter(k=>state.playerItems[k]>0);
+      if(heldKeys.length===0){
+        itemsEl.innerHTML = '<div class="no-items">No items</div>';
+      } else {
+        itemsEl.innerHTML = heldKeys.map(k=>{
+          const def = ITEM_DEFS[k];
+          return `<button class="item-btn" data-key="${k}" title="${def.desc}" ${state.turn!=='player'?'disabled':''}>${def.icon} ${def.name} x${state.playerItems[k]}</button>`;
+        }).join('');
+        Array.from(itemsEl.querySelectorAll('.item-btn')).forEach(btn=>{
+          btn.onclick = ()=>useItem(btn.dataset.key);
+        });
+      }
+    }
+
     const controls = document.getElementById('controls');
     controls.innerHTML='';
     if(state.reloading){
@@ -525,6 +700,9 @@
       btn.textContent='Play again';
       btn.onclick=()=>{
         state.playerHp=4; state.dealerHp=4; state.over=false; state.turn='player'; state.dealerStreak=0;
+        state.playerItems={}; state.dealerItems={};
+        state.skipTurn={player:false, dealer:false};
+        state.sawActive={player:false, dealer:false};
         log.length=0; document.getElementById('banner').textContent=''; document.getElementById('banner').className='';
         newRound();
       };
