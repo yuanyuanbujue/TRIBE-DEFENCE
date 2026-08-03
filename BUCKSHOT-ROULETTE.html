@@ -1,6 +1,392 @@
 <!DOCTYPE html>
 <html lang="en">
 <head>
-<h1>Game COMMING SOON! Check here in the future for UPDATE!</h1>
+<meta charset="UTF-8">
+<title>Buckshot Roulette</title>
+<style>
+  * { box-sizing: border-box; }
+  body {
+    background: #111;
+    color: #eee;
+    font-family: 'Courier New', monospace;
+    display: flex;
+    justify-content: center;
+    padding: 40px 16px;
+    overflow-x: hidden;
+  }
+  #game {
+    width: 100%;
+    max-width: 480px;
+    position: relative;
+  }
+  h1 {
+    text-align: center;
+    letter-spacing: 2px;
+    color: #d33;
+    text-shadow: 0 0 8px rgba(200,0,0,0.6);
+    margin-bottom: 8px;
+  }
+  .stats {
+    display: flex;
+    justify-content: space-between;
+    gap: 12px;
+    margin-bottom: 16px;
+  }
+  .stat {
+    flex: 1;
+    background: #1c1c1c;
+    border: 1px solid #333;
+    border-radius: 8px;
+    padding: 12px 16px;
+    text-align: center;
+    transition: transform 0.15s, box-shadow 0.15s, border-color 0.15s;
+  }
+  .stat.hit {
+    animation: hitPulse 0.4s ease;
+  }
+  @keyframes hitPulse {
+    0% { transform: scale(1); border-color: #333; }
+    30% { transform: scale(1.08); border-color: #d33; box-shadow: 0 0 16px rgba(220,40,40,0.7); }
+    100% { transform: scale(1); border-color: #333; }
+  }
+  .stat .label {
+    font-size: 12px;
+    color: #999;
+    text-transform: uppercase;
+    letter-spacing: 1px;
+  }
+  .stat .hearts {
+    font-size: 22px;
+    margin-top: 4px;
+    color: #d33;
+  }
+  .heart-lost {
+    display: inline-block;
+    animation: heartPop 0.5s ease forwards;
+  }
+  @keyframes heartPop {
+    0% { transform: scale(1.6); opacity: 1; filter: brightness(2); }
+    100% { transform: scale(1); opacity: 1; filter: brightness(1); }
+  }
+  #shellInfo {
+    text-align: center;
+    color: #888;
+    margin-bottom: 12px;
+    font-size: 13px;
+  }
+  #shellRow {
+    display: flex;
+    justify-content: center;
+    gap: 6px;
+    margin-bottom: 12px;
+    min-height: 22px;
+  }
+  .shell-dot {
+    width: 14px;
+    height: 14px;
+    border-radius: 3px;
+    background: #444;
+    border: 1px solid #666;
+    transition: background 0.2s;
+  }
+  #log {
+    background: #1a1a1a;
+    border: 1px solid #333;
+    border-radius: 8px;
+    padding: 12px 16px;
+    min-height: 90px;
+    margin-bottom: 20px;
+    line-height: 1.7;
+    font-size: 13px;
+    color: #ccc;
+    position: relative;
+    overflow: hidden;
+  }
+  #log div { animation: logIn 0.25s ease; }
+  @keyframes logIn {
+    from { opacity: 0; transform: translateX(-6px); }
+    to { opacity: 1; transform: translateX(0); }
+  }
+  .log-live { color: #ff6b6b; }
+  .log-blank { color: #7fb8ff; }
+  #controls {
+    display: flex;
+    gap: 10px;
+    justify-content: center;
+    flex-wrap: wrap;
+  }
+  button {
+    background: #222;
+    color: #eee;
+    border: 1px solid #555;
+    border-radius: 6px;
+    padding: 12px 20px;
+    font-family: inherit;
+    font-size: 14px;
+    cursor: pointer;
+    transition: background 0.15s, transform 0.1s;
+  }
+  button:hover:not(:disabled) {
+    background: #d33;
+    border-color: #d33;
+  }
+  button:active:not(:disabled) {
+    transform: scale(0.95);
+  }
+  button:disabled {
+    opacity: 0.6;
+    cursor: default;
+  }
+  .thinking-dots span {
+    animation: blink 1s infinite;
+    opacity: 0.2;
+  }
+  .thinking-dots span:nth-child(2) { animation-delay: 0.2s; }
+  .thinking-dots span:nth-child(3) { animation-delay: 0.4s; }
+  @keyframes blink {
+    0%, 100% { opacity: 0.2; }
+    50% { opacity: 1; }
+  }
+  #controls button:disabled {
+    animation: suspensePulse 0.9s ease-in-out infinite;
+  }
+  @keyframes suspensePulse {
+    0%, 100% { border-color: #555; box-shadow: none; }
+    50% { border-color: #d33; box-shadow: 0 0 10px rgba(220,40,40,0.5); }
+  }
+  #flash {
+    position: fixed;
+    inset: 0;
+    background: #d33;
+    opacity: 0;
+    pointer-events: none;
+    z-index: 999;
+  }
+  #flash.go { animation: flashFire 0.25s ease; }
+  @keyframes flashFire {
+    0% { opacity: 0.5; }
+    100% { opacity: 0; }
+  }
+  #flash.blankgo { background: #7fb8ff; }
+  @keyframes shakeAnim {
+    0%, 100% { transform: translateX(0); }
+    25% { transform: translateX(-6px); }
+    50% { transform: translateX(5px); }
+    75% { transform: translateX(-3px); }
+  }
+  #game.shake { animation: shakeAnim 0.28s ease; }
+  #smokeLayer {
+    position: absolute;
+    top: 0; left: 0; right: 0;
+    height: 0;
+    overflow: visible;
+    pointer-events: none;
+  }
+  .smoke-puff {
+    position: absolute;
+    left: 50%;
+    top: 0;
+    width: 10px;
+    height: 10px;
+    background: rgba(200,200,200,0.5);
+    border-radius: 50%;
+    animation: puffUp 0.9s ease forwards;
+  }
+  @keyframes puffUp {
+    0% { transform: translate(-50%, 0) scale(0.5); opacity: 0.7; }
+    100% { transform: translate(-50%, -60px) scale(2.5); opacity: 0; }
+  }
+  #banner {
+    text-align: center;
+    font-size: 20px;
+    letter-spacing: 1px;
+    margin-bottom: 12px;
+    min-height: 28px;
+  }
+  #banner.win { color: #7fff9e; text-shadow: 0 0 10px rgba(90,255,140,0.6); }
+  #banner.lose { color: #ff5b5b; text-shadow: 0 0 10px rgba(255,60,60,0.6); }
+</style>
 </head>
+<body>
+<div id="flash"></div>
+<div id="game">
+  <div id="smokeLayer"></div>
+  <h1>BUCKSHOT ROULETTE</h1>
+  <div id="banner"></div>
+  <div class="stats">
+    <div class="stat" id="dealerStat">
+      <div class="label">Dealer</div>
+      <div class="hearts" id="dealerHp"></div>
+    </div>
+    <div class="stat" id="playerStat">
+      <div class="label">You</div>
+      <div class="hearts" id="playerHp"></div>
+    </div>
+  </div>
+  <div id="shellInfo"></div>
+  <div id="shellRow"></div>
+  <div id="log"></div>
+  <div id="controls"></div>
+</div>
+
+<script>
+(function(){
+  const state = {playerHp:4, dealerHp:4, shells:[], turn:'player', over:false, dealerStreak:0};
+  const log = [];
+  const DEALER_THINK_MS = 1600;
+
+  function addLog(t, cls){ log.unshift({t,cls}); if(log.length>5) log.pop(); render(); }
+
+  function newRound(){
+    const total = 2 + Math.floor(Math.random()*4); // 2-5 shells
+    let live = 1 + Math.floor(Math.random()*(total-1));
+    let blanks = total-live;
+    state.shells = [];
+    for(let i=0;i<live;i++) state.shells.push('live');
+    for(let i=0;i<blanks;i++) state.shells.push('blank');
+    state.shells.sort(()=>Math.random()-0.5);
+    addLog(`New round: ${total} shells loaded (${live} live, ${blanks} blank).`);
+  }
+
+  function screenShake(){
+    const g = document.getElementById('game');
+    g.classList.remove('shake'); void g.offsetWidth; g.classList.add('shake');
+  }
+  function flashScreen(isLive){
+    const f = document.getElementById('flash');
+    f.classList.remove('go','blankgo'); void f.offsetWidth;
+    f.classList.add('go'); if(!isLive) f.classList.add('blankgo');
+  }
+  function pulseStat(who){
+    const el = document.getElementById(who==='player'?'playerStat':'dealerStat');
+    el.classList.remove('hit'); void el.offsetWidth; el.classList.add('hit');
+  }
+  function smokePuff(){
+    const layer = document.getElementById('smokeLayer');
+    const puff = document.createElement('div');
+    puff.className = 'smoke-puff';
+    puff.style.left = (40 + Math.random()*20) + '%';
+    layer.appendChild(puff);
+    setTimeout(()=>puff.remove(), 950);
+  }
+
+  function shoot(target){
+    if(state.over) return;
+    if(state.shells.length===0){ newRound(); }
+    const shell = state.shells.shift();
+    const isLive = shell==='live';
+    smokePuff();
+    flashScreen(isLive);
+    if(isLive) screenShake();
+    if(target==='self'){
+      if(isLive){
+        if(state.turn==='player') state.playerHp--; else state.dealerHp--;
+        pulseStat(state.turn);
+        addLog(`${state.turn==='player'?'You':'Dealer'} shot self: LIVE. Took damage.`, 'log-live');
+        state.dealerStreak = 0;
+        endTurn(true);
+      } else {
+        addLog(`${state.turn==='player'?'You':'Dealer'} shot self: blank. Goes again.`, 'log-blank');
+        if(state.turn==='dealer'){
+          state.dealerStreak++;
+          const forceSwitch = state.dealerStreak>=2;
+          endTurn(forceSwitch);
+          if(forceSwitch) state.dealerStreak = 0;
+        } else {
+          endTurn(false);
+        }
+      }
+    } else {
+      const other = state.turn==='player' ? 'dealer' : 'player';
+      if(isLive){
+        if(other==='player') state.playerHp--; else state.dealerHp--;
+        pulseStat(other);
+        addLog(`${state.turn==='player'?'You':'Dealer'} shot ${other}: LIVE hit!`, 'log-live');
+      } else {
+        addLog(`${state.turn==='player'?'You':'Dealer'} shot ${other}: blank, no effect.`, 'log-blank');
+      }
+      state.dealerStreak = 0;
+      endTurn(true);
+    }
+    checkOver();
+    if(state.over) return;
+    if(state.shells.length===0) newRound();
+    if(state.turn==='dealer') setTimeout(dealerMove, DEALER_THINK_MS);
+    render();
+  }
+
+  function endTurn(switchTurn){
+    if(switchTurn) state.turn = state.turn==='player' ? 'dealer' : 'player';
+  }
+
+  function checkOver(){
+    if(state.playerHp<=0){ state.over=true; addLog('You died. Dealer wins.'); showBanner('DEALER WINS', 'lose'); }
+    else if(state.dealerHp<=0){ state.over=true; addLog('Dealer down! You win.'); showBanner('YOU WIN', 'win'); }
+  }
+
+  function showBanner(text, cls){
+    const b = document.getElementById('banner');
+    b.textContent = text;
+    b.className = cls;
+  }
+
+  function dealerMove(){
+    if(state.over) return;
+    try{
+      const shellsLeftKnown = state.shells.length || 1;
+      const liveLeft = state.shells.filter(s=>s==='live').length;
+      const chance = liveLeft/shellsLeftKnown;
+      const target = (chance < 0.5 && state.dealerStreak < 2) ? 'self' : 'other';
+      shoot(target);
+    } catch(e){
+      console.error('Dealer move failed, forcing turn to player', e);
+      state.dealerStreak = 0;
+      state.turn = 'player';
+      render();
+    }
+  }
+
+  function render(){
+    const pHearts = Math.max(state.playerHp,0);
+    const dHearts = Math.max(state.dealerHp,0);
+    document.getElementById('playerHp').innerHTML = pHearts>0 ? '<span class="heart-lost">'+'♥'.repeat(pHearts)+'</span>' : '0';
+    document.getElementById('dealerHp').innerHTML = dHearts>0 ? '<span class="heart-lost">'+'♥'.repeat(dHearts)+'</span>' : '0';
+    document.getElementById('shellInfo').textContent = `Shells remaining in chamber: ${state.shells.length}`;
+    const row = document.getElementById('shellRow');
+    row.innerHTML = state.shells.map(()=>`<div class="shell-dot"></div>`).join('');
+    document.getElementById('log').innerHTML = log.map(l=>`<div class="${l.cls||''}">${l.t}</div>`).join('');
+    const controls = document.getElementById('controls');
+    controls.innerHTML='';
+    if(state.over){
+      const btn = document.createElement('button');
+      btn.textContent='Play again';
+      btn.onclick=()=>{
+        state.playerHp=4; state.dealerHp=4; state.over=false; state.turn='player'; state.dealerStreak=0;
+        log.length=0; document.getElementById('banner').textContent=''; document.getElementById('banner').className='';
+        newRound();
+      };
+      controls.appendChild(btn);
+      return;
+    }
+    if(state.turn!=='player'){
+      const btn = document.createElement('button');
+      btn.innerHTML='Dealer is deciding<span class="thinking-dots"><span>.</span><span>.</span><span>.</span></span>';
+      btn.disabled=true;
+      controls.appendChild(btn);
+      return;
+    }
+    const b1=document.createElement('button');
+    b1.textContent='Shoot dealer';
+    b1.onclick=()=>shoot('other');
+    const b2=document.createElement('button');
+    b2.textContent='Shoot self';
+    b2.onclick=()=>shoot('self');
+    controls.appendChild(b1); controls.appendChild(b2);
+  }
+
+  newRound();
+  render();
+})();
+</script>
+</body>
 </html>
