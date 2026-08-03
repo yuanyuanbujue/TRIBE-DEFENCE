@@ -315,13 +315,129 @@
     font-size: 12px;
     align-self: center;
   }
-  #dealerItemCount {
+  #diffScreen, #tutorialScreen { display: none; }
+  #diffScreen.active, #tutorialScreen.active { display: block; }
+  #gameBody { display: none; }
+  #gameBody.active { display: block; }
+
+  .diff-title {
     text-align: center;
-    color: #777;
-    font-size: 11px;
-    margin-top: -6px;
-    margin-bottom: 10px;
+    color: #999;
+    letter-spacing: 1px;
+    text-transform: uppercase;
+    font-size: 13px;
+    margin-bottom: 14px;
   }
+  #modeToggle {
+    display: flex;
+    gap: 8px;
+    margin-bottom: 18px;
+  }
+  .mode-btn {
+    flex: 1;
+    padding: 10px 8px;
+  }
+  .mode-btn.active {
+    background: #d33;
+    border-color: #d33;
+    color: #fff;
+  }
+  .mode-desc {
+    text-align: center;
+    color: #888;
+    font-size: 11px;
+    margin-top: -10px;
+    margin-bottom: 18px;
+    min-height: 14px;
+  }
+  .diff-list {
+    display: flex;
+    flex-direction: column;
+    gap: 10px;
+  }
+  .diff-btn {
+    display: flex;
+    flex-direction: column;
+    align-items: flex-start;
+    gap: 4px;
+    padding: 14px 16px;
+    text-align: left;
+    width: 100%;
+  }
+  .diff-name {
+    font-size: 15px;
+    font-weight: bold;
+    color: #eee;
+  }
+  .diff-desc {
+    font-size: 12px;
+    color: #999;
+  }
+  .diff-btn[data-key="tutorial"], .diff-btn[data-key="easy"] { border-color: #3a6b3a; }
+  .diff-btn[data-key="tutorial"]:hover:not(:disabled), .diff-btn[data-key="easy"]:hover:not(:disabled) { background: #234023; border-color: #3a6b3a; }
+  .diff-btn[data-key="hard"] { border-color: #7a5a1a; }
+  .diff-btn[data-key="hard"]:hover:not(:disabled) { background: #4a3610; border-color: #7a5a1a; }
+  .diff-btn[data-key="impossible"] { border-color: #7a1414; }
+  .diff-btn[data-key="impossible"]:hover:not(:disabled) { background: #4a1010; border-color: #7a1414; }
+
+  .tut-title {
+    text-align: center;
+    color: #d33;
+    letter-spacing: 1px;
+    text-transform: uppercase;
+    font-size: 14px;
+    margin-bottom: 12px;
+  }
+  .tut-text {
+    background: #1a1a1a;
+    border: 1px solid #333;
+    border-radius: 8px;
+    padding: 14px 16px;
+    font-size: 13px;
+    line-height: 1.7;
+    color: #ccc;
+    margin-bottom: 14px;
+  }
+  .tut-text p { margin: 0 0 10px; }
+  .tut-text p:last-child { margin-bottom: 0; }
+  .tut-text b { color: #eee; }
+  .tut-actions {
+    display: flex;
+    gap: 10px;
+    justify-content: center;
+  }
+
+  #waveInfo {
+    text-align: center;
+    color: #d99;
+    font-size: 12px;
+    letter-spacing: 1px;
+    text-transform: uppercase;
+    margin-bottom: 6px;
+  }
+  .items-label {
+    text-align: center;
+    color: #666;
+    font-size: 10px;
+    letter-spacing: 1px;
+    text-transform: uppercase;
+    margin-bottom: 4px;
+    margin-top: 4px;
+  }
+  #dealerItems {
+    display: flex;
+    gap: 8px;
+    flex-wrap: wrap;
+    justify-content: center;
+    margin-bottom: 4px;
+    min-height: 20px;
+  }
+  #dealerItems .item-btn {
+    opacity: 0.75;
+    cursor: default;
+    background: #181818;
+  }
+  #dealerItems .item-btn:hover { background: #181818; border-color: #444; }
 </style>
 </head>
 <body>
@@ -329,34 +445,87 @@
 <div id="game">
   <div id="smokeLayer"></div>
   <h1>BUCKSHOT ROULETTE</h1>
-  <div id="banner"></div>
-  <div class="stats">
-    <div class="stat" id="dealerStat">
-      <div class="label">Dealer</div>
-      <div class="hearts" id="dealerHp"></div>
+
+  <div id="diffScreen" class="active">
+    <div id="modeToggle">
+      <button class="mode-btn active" data-mode="default">Default</button>
+      <button class="mode-btn" data-mode="endless">Endless</button>
     </div>
-    <div class="stat" id="playerStat">
-      <div class="label">You</div>
-      <div class="hearts" id="playerHp"></div>
+    <div class="mode-desc" id="modeDesc">One match — win or lose, that's it.</div>
+    <div class="diff-title">Select Difficulty</div>
+    <div class="diff-list">
+      <button class="diff-btn" data-key="tutorial">
+        <span class="diff-name">Tutorial</span>
+        <span class="diff-desc">Learn the rules with a forgiving dealer</span>
+      </button>
+      <button class="diff-btn" data-key="easy">
+        <span class="diff-name">Easy</span>
+        <span class="diff-desc">Dealer makes frequent mistakes</span>
+      </button>
+      <button class="diff-btn" data-key="normal">
+        <span class="diff-name">Normal</span>
+        <span class="diff-desc">A balanced, fair dealer</span>
+      </button>
+      <button class="diff-btn" data-key="hard">
+        <span class="diff-name">Hard</span>
+        <span class="diff-desc">Dealer plays close to optimally</span>
+      </button>
+      <button class="diff-btn" data-key="impossible">
+        <span class="diff-name">Impossible</span>
+        <span class="diff-desc">Dealer is too smart. Good luck.</span>
+      </button>
     </div>
   </div>
-  <div id="reloadOverlay">
-    <div id="reloadTitle">Loading shells<span class="thinking-dots"><span>.</span><span>.</span><span>.</span></span></div>
-    <div id="reloadShells"></div>
-    <div id="reloadCount"></div>
+
+  <div id="tutorialScreen">
+    <div class="tut-title">How To Play</div>
+    <div class="tut-text">
+      <p><b>Goal:</b> the shotgun is loaded with a random mix of LIVE and BLANK shells. Take turns shooting yourself or the dealer until one of you runs out of hearts.</p>
+      <p><b>Blanks</b> deal no damage, and if you shoot yourself with one, you get to go again. <b>Live shells</b> deal damage and end your turn.</p>
+      <p><b>Items:</b> each new wave you and the dealer both draw 2 random items. 🔍 peek the next shell, 🚬 heal 1 HP, 🍺 rack out the current shell, ⛓️ make your opponent skip a turn, 🪚 double your next live shot's damage, 🔄 flip the chambered shell live⇄blank, 🥷 steal a random item from your opponent, 💊 expired medicine — a gamble to heal 2 HP or lose 1. Using an item doesn't end your turn. You can now see what items the dealer is holding.</p>
+      <p><b>Endless:</b> optional mode, toggle it on the difficulty screen. Beat the dealer and a tougher one steps up next wave — survive as many waves as you can. In Default mode, the match just ends when someone wins.</p>
+      <p>In Tutorial mode, the dealer plays a lot more carelessly so you can get a feel for the game.</p>
+    </div>
+    <div class="tut-actions">
+      <button id="tutBack">Back</button>
+      <button id="tutStart">Start Tutorial</button>
+    </div>
   </div>
-  <div id="shellInfo"></div>
-  <div id="shellRow"></div>
-  <div id="dealerItemCount"></div>
-  <div id="items"></div>
-  <div id="log"></div>
-  <div id="controls"></div>
+
+  <div id="gameBody">
+    <div id="waveInfo"></div>
+    <div id="banner"></div>
+    <div class="stats">
+      <div class="stat" id="dealerStat">
+        <div class="label">Dealer</div>
+        <div class="hearts" id="dealerHp"></div>
+      </div>
+      <div class="stat" id="playerStat">
+        <div class="label">You</div>
+        <div class="hearts" id="playerHp"></div>
+      </div>
+    </div>
+    <div id="reloadOverlay">
+      <div id="reloadTitle">Loading shells<span class="thinking-dots"><span>.</span><span>.</span><span>.</span></span></div>
+      <div id="reloadShells"></div>
+      <div id="reloadCount"></div>
+    </div>
+    <div id="shellInfo"></div>
+    <div id="shellRow"></div>
+    <div class="items-label">Dealer's items</div>
+    <div id="dealerItems"></div>
+    <div class="items-label">Your items</div>
+    <div id="items"></div>
+    <div id="log"></div>
+    <div id="controls"></div>
+  </div>
 </div>
 
 <script>
 (function(){
   const state = {
-    playerHp:4, dealerHp:4, shells:[], turn:'player', over:false, dealerStreak:0, reloading:false,
+    playerHp:4, dealerHp:4, maxHp:{player:4, dealer:4}, shells:[], turn:'player', over:false, dealerStreak:0, reloading:false,
+    difficulty:null, mode:'default', wave:1, waveTransition:false,
     playerItems:{}, dealerItems:{},
     skipTurn:{player:false, dealer:false},
     sawActive:{player:false, dealer:false}
@@ -364,21 +533,89 @@
   const log = [];
   const DEALER_THINK_MS = 1600;
   const REVEAL_STEP_MS = 320;
-  const MAX_HP = 4;
   const ITEMS_PER_WAVE = 2;
   const ITEM_DEFS = {
     magnifier: {icon:'🔍', name:'Magnifying Glass', desc:'Peek the next shell'},
     cigs:      {icon:'🚬', name:'Cigarettes',        desc:'Heal 1 HP'},
     beer:      {icon:'🍺', name:'Beer',               desc:'Rack out the next shell'},
     cuffs:     {icon:'⛓️', name:'Handcuffs',          desc:'Opponent skips their next turn'},
-    saw:       {icon:'🪚', name:'Saw',                desc:'Double damage on your next live shot'}
+    saw:       {icon:'🪚', name:'Saw',                desc:'Double damage on your next live shot'},
+    invert:    {icon:'🔄', name:'Inverter',           desc:'Flip the chambered shell (live⇄blank)'},
+    steal:     {icon:'🥷', name:'Steal',               desc:"Steal a random item from your opponent"},
+    medicine:  {icon:'💊', name:'Expired Medicine',   desc:'50% heal 2 HP, 50% lose 1 HP'}
   };
+  const DIFFS = {
+    tutorial:   { playerHp:5, dealerHp:3, mistakeChance:0.6,  cuffsChance:0.1, sawMin:0.9, itemSkill:0.3, omniscient:false, dealerBonusItems:0 },
+    easy:       { playerHp:5, dealerHp:4, mistakeChance:0.35, cuffsChance:0.25,sawMin:0.75,itemSkill:0.5, omniscient:false, dealerBonusItems:0 },
+    normal:     { playerHp:4, dealerHp:4, mistakeChance:0.1,  cuffsChance:0.5, sawMin:0.5, itemSkill:1,   omniscient:false, dealerBonusItems:0 },
+    hard:       { playerHp:4, dealerHp:5, mistakeChance:0,    cuffsChance:0.7, sawMin:0.5, itemSkill:1,   omniscient:true,  dealerBonusItems:1 },
+    impossible: { playerHp:3, dealerHp:5, mistakeChance:0,    cuffsChance:0.9, sawMin:0.3, itemSkill:1,   omniscient:true,  dealerBonusItems:2 }
+  };
+
+  function startGame(key){
+    const diff = DIFFS[key];
+    state.difficulty = key;
+    state.playerHp = diff.playerHp;
+    state.dealerHp = diff.dealerHp;
+    state.maxHp = {player:diff.playerHp, dealer:diff.dealerHp};
+    state.over = false;
+    state.wave = 1;
+    state.waveTransition = false;
+    state.turn = 'player';
+    state.dealerStreak = 0;
+    state.playerItems = {};
+    state.dealerItems = {};
+    state.skipTurn = {player:false, dealer:false};
+    state.sawActive = {player:false, dealer:false};
+    log.length = 0;
+    document.getElementById('banner').textContent = '';
+    document.getElementById('banner').className = '';
+    document.getElementById('diffScreen').classList.remove('active');
+    document.getElementById('tutorialScreen').classList.remove('active');
+    document.getElementById('gameBody').classList.add('active');
+    newRound();
+  }
+
+  function showDiffScreen(){
+    document.getElementById('gameBody').classList.remove('active');
+    document.getElementById('tutorialScreen').classList.remove('active');
+    document.getElementById('diffScreen').classList.add('active');
+  }
+
+  const MODE_DESC = {
+    default: "One match — win or lose, that's it.",
+    endless: 'Beat the dealer and a tougher one steps up. Survive as many waves as you can.'
+  };
+
+  document.querySelectorAll('.mode-btn').forEach(btn=>{
+    btn.addEventListener('click', ()=>{
+      state.mode = btn.dataset.mode;
+      document.querySelectorAll('.mode-btn').forEach(b=>b.classList.toggle('active', b===btn));
+      document.getElementById('modeDesc').textContent = MODE_DESC[state.mode];
+    });
+  });
+
+  document.querySelectorAll('.diff-btn').forEach(btn=>{
+    btn.addEventListener('click', ()=>{
+      const key = btn.dataset.key;
+      if(key==='tutorial'){
+        document.getElementById('diffScreen').classList.remove('active');
+        document.getElementById('tutorialScreen').classList.add('active');
+      } else {
+        startGame(key);
+      }
+    });
+  });
+  document.getElementById('tutStart').addEventListener('click', ()=>startGame('tutorial'));
+  document.getElementById('tutBack').addEventListener('click', showDiffScreen);
 
   function grantItems(){
     const keys = Object.keys(ITEM_DEFS);
+    const diff = DIFFS[state.difficulty] || {dealerBonusItems:0};
     ['player','dealer'].forEach(who=>{
       const inv = who==='player' ? state.playerItems : state.dealerItems;
-      for(let i=0;i<ITEMS_PER_WAVE;i++){
+      const count = ITEMS_PER_WAVE + (who==='dealer' ? diff.dealerBonusItems : 0);
+      for(let i=0;i<count;i++){
         const pick = keys[Math.floor(Math.random()*keys.length)];
         inv[pick] = (inv[pick]||0)+1;
       }
@@ -524,7 +761,7 @@
       endTurn(true);
     }
     checkOver();
-    if(state.over) return;
+    if(state.over || state.waveTransition) return;
     if(state.shells.length===0){
       newRound(function(){
         if(state.turn==='dealer') setTimeout(dealerMove, DEALER_THINK_MS);
@@ -548,10 +785,10 @@
       }
       case 'cigs': {
         inv.cigs--;
-        if(state.playerHp>=MAX_HP){
+        if(state.playerHp>=state.maxHp.player){
           addLog('You smoke a cigarette, but you are already at full health.');
         } else {
-          state.playerHp = Math.min(MAX_HP, state.playerHp+1);
+          state.playerHp = Math.min(state.maxHp.player, state.playerHp+1);
           pulseStat('player');
           addLog('You smoke a cigarette, healing 1 HP.');
         }
@@ -586,7 +823,45 @@
         addLog('You saw off the barrel. Your next live shot deals double damage!');
         break;
       }
+      case 'invert': {
+        inv.invert--;
+        if(state.shells.length>0){
+          state.shells[0] = state.shells[0]==='live' ? 'blank' : 'live';
+          addLog(`You flip the chambered shell — now ${state.shells[0]==='live'?'LIVE':'BLANK'}.`, state.shells[0]==='live'?'log-live':'log-blank');
+        } else {
+          addLog('There is no shell in the chamber to flip.');
+        }
+        break;
+      }
+      case 'steal': {
+        inv.steal--;
+        const dealerKeys = Object.keys(state.dealerItems).filter(k=>state.dealerItems[k]>0);
+        if(dealerKeys.length===0){
+          addLog('The dealer has no items to steal.');
+        } else {
+          const pick = dealerKeys[Math.floor(Math.random()*dealerKeys.length)];
+          state.dealerItems[pick]--;
+          inv[pick] = (inv[pick]||0)+1;
+          addLog(`You pickpocket the dealer's ${ITEM_DEFS[pick].name}!`);
+        }
+        break;
+      }
+      case 'medicine': {
+        inv.medicine--;
+        if(Math.random()<0.5){
+          state.playerHp = Math.min(state.maxHp.player, state.playerHp+2);
+          pulseStat('player');
+          addLog('The medicine works! You heal 2 HP.');
+        } else {
+          state.playerHp -= 1;
+          pulseStat('player');
+          addLog('The medicine was expired... you lose 1 HP.', 'log-live');
+        }
+        break;
+      }
     }
+    checkOver();
+    if(state.over){ render(); return; }
     render();
   }
 
@@ -602,8 +877,44 @@
   }
 
   function checkOver(){
-    if(state.playerHp<=0){ state.over=true; addLog('You died. Dealer wins.'); showBanner('DEALER WINS', 'lose'); }
-    else if(state.dealerHp<=0){ state.over=true; addLog('Dealer down! You win.'); showBanner('YOU WIN', 'win'); }
+    if(state.playerHp<=0){
+      state.over=true;
+      if(state.mode==='endless'){
+        addLog(`You died. Survived ${state.wave} wave${state.wave===1?'':'s'}.`);
+        showBanner(`GAME OVER — WAVE ${state.wave}`, 'lose');
+      } else {
+        addLog('You died. Dealer wins.');
+        showBanner('DEALER WINS', 'lose');
+      }
+    } else if(state.dealerHp<=0){
+      if(state.mode==='endless'){
+        state.waveTransition = true;
+        advanceWave();
+      } else {
+        state.over = true;
+        addLog('Dealer down! You win.');
+        showBanner('YOU WIN', 'win');
+      }
+    }
+  }
+
+  function advanceWave(){
+    addLog(`Dealer down! Wave ${state.wave} cleared.`);
+    render();
+    setTimeout(()=>{
+      state.wave++;
+      const diff = DIFFS[state.difficulty] || DIFFS.normal;
+      state.maxHp.dealer = diff.dealerHp + Math.floor((state.wave-1)/2);
+      state.dealerHp = state.maxHp.dealer;
+      state.playerHp = Math.min(state.maxHp.player, state.playerHp+1);
+      state.dealerItems = {};
+      state.turn = 'player';
+      state.dealerStreak = 0;
+      state.skipTurn.dealer = false;
+      state.sawActive.dealer = false;
+      state.waveTransition = false;
+      newRound();
+    }, 1400);
   }
 
   function showBanner(text, cls){
@@ -615,34 +926,82 @@
   function dealerMove(){
     if(state.over) return;
     try{
+      const diff = DIFFS[state.difficulty] || DIFFS.normal;
       const items = state.dealerItems;
-      if(items.cigs>0 && state.dealerHp<MAX_HP){
+
+      if(items.cigs>0 && state.dealerHp<state.maxHp.dealer && Math.random()<Math.max(diff.itemSkill,0.5)){
         items.cigs--;
-        state.dealerHp = Math.min(MAX_HP, state.dealerHp+1);
+        state.dealerHp = Math.min(state.maxHp.dealer, state.dealerHp+1);
         pulseStat('dealer');
         addLog('Dealer smokes a cigarette, healing 1 HP.');
       }
+      if(items.medicine>0 && state.dealerHp<state.maxHp.dealer && Math.random()<diff.itemSkill*0.3){
+        items.medicine--;
+        if(Math.random()<0.5){
+          state.dealerHp = Math.min(state.maxHp.dealer, state.dealerHp+2);
+          pulseStat('dealer');
+          addLog('Dealer takes expired medicine and heals 2 HP.');
+        } else {
+          state.dealerHp -= 1;
+          pulseStat('dealer');
+          addLog('Dealer takes expired medicine and loses 1 HP.', 'log-live');
+          checkOver();
+          if(state.over || state.waveTransition){ render(); return; }
+        }
+      }
+      if(items.steal>0 && Math.random()<diff.itemSkill*0.4){
+        const keys = Object.keys(state.playerItems).filter(k=>state.playerItems[k]>0);
+        if(keys.length>0){
+          items.steal--;
+          const pick = keys[Math.floor(Math.random()*keys.length)];
+          state.playerItems[pick]--;
+          items[pick] = (items[pick]||0)+1;
+          addLog(`Dealer pickpockets your ${ITEM_DEFS[pick].name}!`);
+        }
+      }
+
       let knownLive = null;
-      if(items.magnifier>0 && state.shells.length>0){
+      if(diff.omniscient && state.shells.length>0){
+        knownLive = state.shells[0]==='live';
+      } else if(items.magnifier>0 && state.shells.length>0 && Math.random()<diff.itemSkill){
         items.magnifier--;
         knownLive = state.shells[0]==='live';
         addLog(`Dealer checks the shell... it's ${knownLive?'LIVE':'BLANK'}.`);
       }
-      if(items.cuffs>0 && !state.skipTurn.player && Math.random()<0.5){
+
+      const shellsLeftKnown = state.shells.length || 1;
+      const liveLeft = state.shells.filter(s=>s==='live').length;
+      let chance = knownLive!==null ? (knownLive?1:0) : liveLeft/shellsLeftKnown;
+      let target = (chance < 0.5 && state.dealerStreak < 2) ? 'self' : 'other';
+
+      if(items.invert>0 && knownLive!==null){
+        const badForOther = target==='other' && knownLive===false;
+        const badForSelf = target==='self' && knownLive===true;
+        if((badForOther || badForSelf) && Math.random()<diff.itemSkill*0.7){
+          items.invert--;
+          state.shells[0] = knownLive ? 'blank' : 'live';
+          knownLive = !knownLive;
+          chance = knownLive ? 1 : 0;
+          addLog('Dealer flips the shell with an inverter!');
+        }
+      }
+
+      if(items.cuffs>0 && !state.skipTurn.player && Math.random()<diff.cuffsChance){
         items.cuffs--;
         state.skipTurn.player = true;
         addLog('Dealer cuffs you! You will skip your next turn.');
       }
-      const shellsLeftKnown = state.shells.length || 1;
-      const liveLeft = state.shells.filter(s=>s==='live').length;
-      const chance = knownLive!==null ? (knownLive?1:0) : liveLeft/shellsLeftKnown;
-      if(items.saw>0 && chance>=0.5){
+      if(items.saw>0 && chance>=diff.sawMin){
         items.saw--;
         state.sawActive.dealer = true;
         addLog('Dealer saws off the barrel!');
       }
+
+      target = (chance < 0.5 && state.dealerStreak < 2) ? 'self' : 'other';
+      if(Math.random() < diff.mistakeChance){
+        target = target==='self' ? 'other' : 'self';
+      }
       render();
-      const target = (chance < 0.5 && state.dealerStreak < 2) ? 'self' : 'other';
       shoot(target);
     } catch(e){
       console.error('Dealer move failed, forcing turn to player', e);
@@ -665,8 +1024,20 @@
     row.innerHTML = state.shells.map(()=>`<div class="shell-dot"></div>`).join('');
     document.getElementById('log').innerHTML = log.map(l=>`<div class="${l.cls||''}">${l.t}</div>`).join('');
 
-    const dealerCount = Object.values(state.dealerItems).reduce((a,b)=>a+b,0);
-    document.getElementById('dealerItemCount').textContent = state.reloading ? '' : `Dealer holds ${dealerCount} item${dealerCount===1?'':'s'}`;
+    document.getElementById('waveInfo').textContent = state.mode==='endless' ? `Wave ${state.wave}` : '';
+
+    const dealerItemsEl = document.getElementById('dealerItems');
+    if(state.reloading || state.over){
+      dealerItemsEl.innerHTML = '';
+    } else {
+      const dealerKeys = Object.keys(ITEM_DEFS).filter(k=>state.dealerItems[k]>0);
+      dealerItemsEl.innerHTML = dealerKeys.length===0
+        ? '<div class="no-items">No items</div>'
+        : dealerKeys.map(k=>{
+            const def = ITEM_DEFS[k];
+            return `<button class="item-btn" disabled title="${def.desc}">${def.icon} ${def.name} x${state.dealerItems[k]}</button>`;
+          }).join('');
+    }
 
     const itemsEl = document.getElementById('items');
     if(state.reloading || state.over){
@@ -698,15 +1069,12 @@
     if(state.over){
       const btn = document.createElement('button');
       btn.textContent='Play again';
-      btn.onclick=()=>{
-        state.playerHp=4; state.dealerHp=4; state.over=false; state.turn='player'; state.dealerStreak=0;
-        state.playerItems={}; state.dealerItems={};
-        state.skipTurn={player:false, dealer:false};
-        state.sawActive={player:false, dealer:false};
-        log.length=0; document.getElementById('banner').textContent=''; document.getElementById('banner').className='';
-        newRound();
-      };
+      btn.onclick=()=>startGame(state.difficulty);
+      const btn2 = document.createElement('button');
+      btn2.textContent='Change Difficulty';
+      btn2.onclick=showDiffScreen;
       controls.appendChild(btn);
+      controls.appendChild(btn2);
       return;
     }
     if(state.turn!=='player'){
@@ -725,7 +1093,6 @@
     controls.appendChild(b1); controls.appendChild(b2);
   }
 
-  newRound();
 })();
 </script>
 </body>
