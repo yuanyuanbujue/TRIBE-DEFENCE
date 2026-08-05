@@ -174,6 +174,21 @@
   .diffBtn[data-diff="hardcore"].active{border-color:var(--legend);color:var(--legend);box-shadow:0 0 10px rgba(224,168,60,.25) inset;}
   .diffBtn[data-diff="nightmare"].active{border-color:var(--blood);color:#ff5a4d;box-shadow:0 0 10px rgba(224,69,59,.3) inset;}
 
+  .clsBtn{
+    font-family:inherit;letter-spacing:1px;font-size:10px;font-weight:700;
+    background:linear-gradient(180deg,#1a1f14,#12160f);
+    border:1px solid var(--line);color:#8a9078;
+    padding:6px 12px;border-radius:2px;cursor:pointer;transition:.15s;
+    display:flex;align-items:center;gap:5px;
+  }
+  .clsBtn:hover{border-color:#5c6650;color:var(--bone);}
+  .clsBtn[data-cls="survivor"].active{border-color:#8fd13f;color:#8fd13f;box-shadow:0 0 10px rgba(143,209,63,.25) inset;}
+  .clsBtn[data-cls="engineer"].active{border-color:#4fa3e0;color:#4fa3e0;box-shadow:0 0 10px rgba(79,163,224,.25) inset;}
+  .clsBtn.locked{opacity:.6;color:#7a8168;}
+  .clsBtn.locked:hover{border-color:var(--legend);color:var(--legend);}
+  .clsBtn:disabled{cursor:not-allowed;opacity:.4;}
+
+
   /* scrollable body */
   .menuBody{
     flex:1;overflow-y:auto;padding:14px 20px 12px;
@@ -239,6 +254,10 @@
   .wCard.blood-card:hover{border-color:var(--blood);}
   .wCard.blood-card.equipped{border-color:var(--blood);box-shadow:0 0 12px rgba(179,35,28,.35);}
   .wCard.blood-card .wEquipTag{color:var(--blood);border-color:var(--blood);background:rgba(179,35,28,.1);}
+  .wCard.knife-card{border-color:#2e5a7a;}
+  .wCard.knife-card:hover{border-color:#4fa3e0;}
+  .wCard.knife-card.equipped{border-color:#4fa3e0;box-shadow:0 0 12px rgba(79,163,224,.35);}
+  .wCard.knife-card .wEquipTag{color:#4fa3e0;border-color:#4fa3e0;background:rgba(79,163,224,.1);}
   .wCard .wEquipTag{
     position:absolute;top:6px;right:6px;font-size:8px;letter-spacing:1px;
     color:var(--toxic);border:1px solid var(--toxic);padding:1px 5px;background:rgba(143,209,63,.08);
@@ -257,6 +276,141 @@
   .wCard .wStats .statVal{display:block;font-size:12px;letter-spacing:0;color:var(--bone);margin-bottom:1px;font-weight:bold;}
   .wCard .wStats .statGain{display:block;font-size:7px;letter-spacing:.5px;color:var(--toxic-dim);margin-top:1px;}
   .wCard .wAction{width:100%;margin-top:auto;}
+
+  /* ── Blood Crate reel ── */
+  .crateReelOverlay{
+    position:fixed;inset:0;background:rgba(6,8,5,.86);z-index:200;
+    display:flex;align-items:center;justify-content:center;
+  }
+  .crateReelBox{
+    background:linear-gradient(180deg,var(--panel),#0d1109);
+    border:1px solid var(--blood);box-shadow:0 0 30px rgba(179,35,28,.35);
+    padding:20px 22px 24px;width:min(92vw,420px);
+  }
+  .crateReelTitle{text-align:center;font-size:13px;letter-spacing:3px;color:var(--blood);margin-bottom:12px;}
+  .crateReelOddsRow{
+    display:flex;justify-content:space-around;margin-bottom:14px;
+    border-top:1px solid var(--line);border-bottom:1px solid var(--line);padding:8px 0;
+  }
+  .crateReelOddsRow .oddItem{display:flex;flex-direction:column;align-items:center;gap:2px;}
+  .crateReelOddsRow .oddItem .oddIcon{font-size:16px;}
+  .crateReelOddsRow .oddItem .oddPct{font-size:10px;font-weight:bold;letter-spacing:.5px;}
+  .crateReelViewport{
+    position:relative;overflow:hidden;height:96px;
+    background:#0a0d08;border:1px solid var(--line);margin-bottom:14px;
+  }
+  .crateReelViewport::before, .crateReelViewport::after{
+    content:'';position:absolute;top:0;bottom:0;width:36%;z-index:2;pointer-events:none;
+  }
+  .crateReelViewport::before{left:0;background:linear-gradient(90deg,#0a0d08,rgba(10,13,8,0));}
+  .crateReelViewport::after{right:0;background:linear-gradient(270deg,#0a0d08,rgba(10,13,8,0));}
+  .crateReelPointer{
+    position:absolute;left:50%;top:0;bottom:0;width:2px;background:var(--toxic);
+    transform:translateX(-1px);z-index:3;box-shadow:0 0 8px var(--toxic);
+  }
+  .crateReelPointer::before, .crateReelPointer::after{
+    content:'';position:absolute;left:50%;transform:translateX(-50%);
+    border-left:6px solid transparent;border-right:6px solid transparent;
+  }
+  .crateReelPointer::before{top:-1px;border-top:7px solid var(--toxic);}
+  .crateReelPointer::after{bottom:-1px;border-bottom:7px solid var(--toxic);}
+  .crateReelStrip{position:absolute;left:0;top:0;height:100%;display:flex;will-change:transform;}
+  .crateReelItem{
+    width:84px;height:96px;flex:0 0 auto;display:flex;flex-direction:column;
+    align-items:center;justify-content:center;gap:6px;border-right:1px solid #1a1f14;
+  }
+  .crateReelItem .riIcon{font-size:30px;filter:drop-shadow(0 0 6px rgba(0,0,0,.6));}
+  .crateReelItem .riLabel{font-size:7px;letter-spacing:1px;color:#7a8168;text-align:center;padding:0 4px;}
+  .crateReelItem.winner .riIcon{transform:scale(1.15);}
+  .crateReelResult{
+    text-align:center;font-size:13px;letter-spacing:2px;font-weight:bold;min-height:18px;margin-bottom:14px;
+  }
+  .crateReelBtnRow{display:flex;justify-content:center;gap:10px;}
+  .crateReelSkipBtn{
+    background:transparent;color:#7a8168;border:1px solid var(--line);
+    padding:8px 18px;font-family:inherit;font-size:10px;letter-spacing:1.5px;
+    cursor:pointer;transition:opacity .2s;
+  }
+  .crateReelSkipBtn:hover{border-color:var(--toxic-dim);color:var(--bone);}
+  .crateReelSkipBtn.hide{display:none;}
+  .crateReelCloseBtn{
+    display:block;margin:0 auto;background:#161f11;color:var(--toxic);border:1px solid var(--toxic-dim);
+    padding:8px 22px;font-family:inherit;font-size:11px;letter-spacing:2px;font-weight:bold;
+    cursor:pointer;opacity:0;pointer-events:none;transition:opacity .3s;
+  }
+  .crateReelCloseBtn.show{opacity:1;pointer-events:auto;}
+  .crateReelCloseBtn:hover{background:var(--toxic);color:#0a0d08;}
+
+  /* ── Blood Crate ── */
+  .crateCard{
+    max-width:520px;margin:0 auto 20px;background:linear-gradient(180deg,var(--panel),#0d1109);
+    border:1px solid var(--blood);box-shadow:0 0 14px rgba(179,35,28,.15) inset;
+    padding:16px;display:flex;gap:14px;align-items:center;
+  }
+  .crateCard .crateIcon{font-size:36px;filter:drop-shadow(0 0 8px rgba(179,35,28,.5));}
+  .crateCard .crateBody{flex:1;min-width:0;}
+  .crateCard .crateTitle{font-size:13px;letter-spacing:2px;color:var(--blood);margin-bottom:4px;}
+  .crateCard .crateOdds{font-size:9px;letter-spacing:.5px;color:#8a8878;line-height:1.6;margin-bottom:8px;}
+  .crateCard .crateOdds b{color:var(--bone);}
+  .crateCard .crateBtnRow{display:flex;align-items:center;gap:10px;}
+  .crateCard .crateOpenBtn{
+    background:#241010;color:var(--blood);border:1px solid #6a1414;
+    padding:9px 16px;font-family:inherit;font-size:11px;letter-spacing:1.5px;font-weight:bold;
+    cursor:pointer;white-space:nowrap;
+  }
+  .crateCard .crateOpenBtn:hover:not(:disabled){background:var(--blood);color:#0a0d08;}
+  .crateCard .crateOpenBtn:disabled{opacity:.4;cursor:not-allowed;}
+  .crateCard .crateBalance{font-size:10px;letter-spacing:1px;color:#7a8168;}
+  .crateResult{
+    text-align:center;font-size:11px;letter-spacing:1.5px;font-weight:bold;
+    margin-top:-4px;margin-bottom:16px;min-height:14px;
+  }
+
+  /* ── Class Shop ── */
+  .clsGrid{
+    display:grid;grid-template-columns:repeat(auto-fill,minmax(190px,1fr));
+    gap:10px;max-width:900px;margin:0 auto 18px;
+  }
+  .clsCard{
+    position:relative;background:linear-gradient(180deg,var(--panel),#0d1109);
+    border:1px solid var(--line);padding:12px 12px 10px;
+    display:flex;flex-direction:column;align-items:center;text-align:center;
+    transition:border-color .15s,box-shadow .15s,transform .15s;
+  }
+  .clsCard:hover{border-color:var(--toxic-dim);transform:translateY(-1px);}
+  .clsCard.equipped{border-color:var(--toxic);box-shadow:0 0 12px rgba(143,209,63,.3);}
+  .clsCard .cEquipTag{
+    position:absolute;top:6px;right:6px;font-size:8px;letter-spacing:1px;
+    color:var(--toxic);border:1px solid var(--toxic);padding:1px 5px;background:rgba(143,209,63,.08);
+  }
+  .clsCard .cIcon{font-size:24px;margin-bottom:4px;filter:drop-shadow(0 0 5px rgba(0,0,0,.6));}
+  .clsCard .cName{font-size:13px;letter-spacing:2px;margin-bottom:6px;}
+  .clsCard .cDesc{font-size:9.5px;color:#7a8168;line-height:1.5;min-height:28px;margin-bottom:8px;}
+  .clsCard .cStats{
+    display:flex;justify-content:space-around;width:100%;
+    font-size:7.5px;letter-spacing:1px;color:#5c6650;text-transform:uppercase;
+    border-top:1px solid var(--line);border-bottom:1px solid var(--line);
+    padding:6px 0;margin-bottom:8px;gap:2px;
+  }
+  .clsCard .cStats .statVal{display:block;font-size:12px;letter-spacing:0;color:var(--bone);margin-bottom:1px;font-weight:bold;}
+  .clsCard .cBuildsLabel{font-size:7.5px;letter-spacing:1.5px;color:var(--toxic-dim);text-transform:uppercase;margin-bottom:5px;}
+  .clsCard .cBuilds{
+    display:flex;flex-direction:column;gap:3px;width:100%;
+    font-size:9.5px;letter-spacing:.5px;color:var(--bone);text-align:left;
+    margin-bottom:8px;
+  }
+  .clsCard .cBuilds div{display:flex;align-items:center;gap:6px;}
+  .clsCard .cBuilds .buildIcon{font-size:12px;width:16px;text-align:center;}
+  .clsCard .cActBtn{
+    width:100%;background:#1a1f14;color:#5c6650;border:1px solid var(--line);
+    padding:7px 8px;font-family:inherit;font-size:10px;letter-spacing:1.5px;cursor:not-allowed;margin-top:auto;
+  }
+  .clsCard .cActBtn.unlock{background:#241c0a;color:#f0c94a;border-color:#4a3a12;cursor:pointer;font-weight:bold;}
+  .clsCard .cActBtn.unlock:hover:not(:disabled){background:#f0c94a;color:#0a0d08;}
+  .clsCard .cActBtn.unlock:disabled{opacity:.4;cursor:not-allowed;}
+  .clsCard .cActBtn.equip{background:#161f11;color:var(--toxic);border-color:var(--toxic-dim);cursor:pointer;font-weight:bold;}
+  .clsCard .cActBtn.equip:hover{background:var(--toxic);color:#0a0d08;}
+  .clsCard .cActBtn.equipped-lbl{background:#0f140c;color:var(--toxic);cursor:default;font-weight:bold;letter-spacing:2px;}
 
   /* Star upgrade row */
   .starRow{
@@ -323,6 +477,30 @@
     padding:10px 12px;border-radius:2px;width:150px;text-transform:uppercase;
   }
   #lbNameInput:focus{outline:none;border-color:var(--toxic);}
+
+  .acctInput{
+    font-family:inherit;letter-spacing:2px;font-size:12px;
+    background:#12160f;border:1px solid var(--line);color:var(--bone);
+    padding:10px 12px;border-radius:2px;width:100%;box-sizing:border-box;
+  }
+  .acctInput:focus{outline:none;border-color:var(--toxic);}
+  #loginModal{
+    position:fixed;inset:0;z-index:999;display:none;
+    background:rgba(4,5,3,.85);align-items:center;justify-content:center;
+  }
+  #loginModal .lbCard{width:min(320px,90vw);}
+  .acctRow{
+    display:flex;align-items:center;justify-content:center;gap:10px;
+    margin-bottom:14px;font-size:11px;letter-spacing:1px;color:#7a8168;
+  }
+  .acctRow .acctName{color:#f0c94a;font-weight:bold;}
+  .acctSmallBtn{
+    background:none;border:1px solid var(--line);color:var(--bone);
+    font-family:inherit;letter-spacing:1px;font-size:9px;font-weight:bold;
+    padding:5px 10px;cursor:pointer;transition:.15s;
+  }
+  .acctSmallBtn:hover{border-color:#f0c94a;color:#f0c94a;}
+  #acctError{color:#e05050;font-size:10px;letter-spacing:1px;margin-top:8px;display:none;}
 
   .lbBtn{
     display:block;margin:10px auto 0;background:none;
@@ -404,9 +582,9 @@
 
   <!-- Build Panel -->
   <div id="buildPanel" style="display:none">
-    <button class="buildBtn" id="btnTurret">🌀 TURRET <span style="opacity:.5;font-size:9px">[Q]</span> <span class="bCost" id="turretCostLbl">$100</span></button>
-    <button class="buildBtn" id="btnMine">💣 LANDMINE <span style="opacity:.5;font-size:9px">[E]</span> <span class="bCost" id="mineCostLbl">$50</span></button>
-    <button class="buildBtn" id="btnBarricade">🧱 BARRICADE <span style="opacity:.5;font-size:9px">[R]</span> <span class="bCost" id="barricadeCostLbl">$50</span></button>
+    <button class="buildBtn" id="btnTurret"><span id="btnTurretIcon">🌀</span> <span id="btnTurretLabel">TURRET</span> <span style="opacity:.5;font-size:9px">[Q]</span> <span class="bCost" id="turretCostLbl">$100</span></button>
+    <button class="buildBtn" id="btnMine"><span id="btnMineIcon">💣</span> <span id="btnMineLabel">LANDMINE</span> <span style="opacity:.5;font-size:9px">[E]</span> <span class="bCost" id="mineCostLbl">$50</span></button>
+    <button class="buildBtn" id="btnBarricade"><span id="btnBarricadeIcon">🧱</span> <span id="btnBarricadeLabel">BARRICADE</span> <span style="opacity:.5;font-size:9px">[R]</span> <span class="bCost" id="barricadeCostLbl">$50</span></button>
     <button class="buildBtn" id="btnHealthUp">❤ +10 MAX HP <span style="opacity:.5;font-size:9px">[C]</span> <span class="bCost" id="healthCostLbl">$100</span></button>
   </div>
   <div id="buildModeHint">CLICK TO PLACE — RIGHT-CLICK CANCEL</div>
@@ -430,9 +608,16 @@
 
     <div class="menuBody">
       <div class="shopNote">
-        Kill zombies to earn <b>Cash</b> (unlock slots in-field), <b>Gold</b> (unlock Tesla), and <b>🩸 Blood Coin</b> (unlock Blood Pistol).<br>
+        Kill zombies to earn <b>Cash</b> (unlock slots in-field), <b>Gold</b> (unlock Tesla &amp; Classes), and <b>🩸 Blood Coin</b> (open Blood Crates).<br>
         Select a slot tab to see weapons for that slot. Spend <b>Gold</b> to upgrade weapons up to ⭐⭐⭐⭐⭐.
       </div>
+
+      <div class="sectionLabel">CLASS SHOP</div>
+      <div class="clsGrid" id="clsGrid"></div>
+      <div class="diffNote" id="clsNote" style="text-align:center;font-size:10px;letter-spacing:1px;color:#7a8168;margin-top:-8px;margin-bottom:18px"></div>
+
+      <div class="sectionLabel">BLOOD CRATE</div>
+      <div id="crateWrap"></div>
 
       <!-- Slot tabs -->
       <div class="slotTabs" id="slotTabs">
@@ -468,13 +653,31 @@
     </div>
   </div>
 
-  <!-- ══ LEADERBOARD SCREEN (separate from any other game's board) ══ -->
+  <!-- ══ LEADERBOARD SCREEN (shared account, same login as Base Siege) ══ -->
   <div id="leaderboardScreen">
     <div class="lbCard">
       <h1>🏆 OUTBREAK LEADERBOARD</h1>
-      <div class="lbSub">Local top runs — stored only in this browser, separate from any other game's board.</div>
+      <div class="lbSub">Submitting a run requires your Siege Account — the same login used in Base Siege.</div>
+      <div class="acctRow">
+        <span id="lbAcctStatus">🔒 NOT LOGGED IN</span>
+        <button class="acctSmallBtn" id="lbLoginBtn">LOG IN</button>
+        <button class="acctSmallBtn" id="lbLogoutBtn" style="display:none">LOG OUT</button>
+      </div>
       <div class="lbList" id="lbList"></div>
       <button class="startBtn" id="closeLeaderboardBtn">◀ BACK TO MENU</button>
+    </div>
+  </div>
+
+  <!-- ══ LOGIN MODAL (shared Siege Account — same account works in Base Siege) ══ -->
+  <div id="loginModal">
+    <div class="lbCard">
+      <h1 style="font-size:16px">🔐 SIEGE ACCOUNT</h1>
+      <div class="lbSub">One account, shared with Base Siege. Log in or create one below.</div>
+      <input id="acctUserInput" class="acctInput" maxlength="20" placeholder="USERNAME" autocomplete="off">
+      <input id="acctPassInput" class="acctInput" style="margin-top:8px" type="password" maxlength="40" placeholder="PASSWORD" autocomplete="off">
+      <div id="acctError"></div>
+      <button class="startBtn" id="acctSubmitBtn" style="margin-top:14px;width:100%">LOG IN / REGISTER</button>
+      <button class="startBtn" id="acctCancelBtn" style="margin-top:8px;width:100%;opacity:.65">CANCEL</button>
     </div>
   </div>
 
@@ -484,7 +687,6 @@
     <p id="finalStats"></p>
     <p class="goldEarned" id="goldEarnedTxt"></p>
     <div id="saveScoreRow" style="pointer-events:all;margin-top:14px">
-      <input id="lbNameInput" maxlength="16" placeholder="ENTER NAME" autocomplete="off">
       <button class="startBtn" id="saveScoreBtn" style="padding:9px 20px;font-size:11px">🏆 SUBMIT SCORE</button>
     </div>
     <p class="goldEarned" id="saveScoreMsg" style="display:none"></p>
@@ -505,38 +707,38 @@ resize(); window.addEventListener('resize', resize);
 // No rarity system — each weapon is a single fixed profile
 const WEAPONS = [
   {
-    name:"Pistol", weight:"Light", type:"bullet", icon:"🔫",
+    name:"Pistol", weight:"Light", type:"bullet", icon:"🔫", model:"pistol",
     dmg:9, fireRate:280, bullets:1, spread:0.05, speed:12, range:500,
     color:"#d8d3c1",
     desc:"Reliable sidearm. Always available.",
   },
   {
-    name:"Tesla Gun", weight:"Energy", type:"tesla", icon:"⚡",
+    name:"Tesla Gun", weight:"Energy", type:"tesla", icon:"⚡", model:"tesla",
     dmg:20, fireRate:450, bullets:1, spread:0, speed:0, range:400,
     chainCount:3, chainRange:160,   // chains up to 3 enemies within 160px
     color:"#b87fff",
     desc:"Fires arcing lightning that chains between enemies.",
   },
   {
-    name:"Shotgun",  weight:"Medium", type:"bullet", icon:"💥",
+    name:"Shotgun",  weight:"Medium", type:"bullet", icon:"💥", model:"shotgun",
     dmg:10, fireRate:580, bullets:5, spread:0.40, speed:10, range:320,
     color:"#e07840",
     desc:"Devastating spread at close range.",
   },
   {
-    name:"Rifle",    weight:"Heavy", type:"bullet", icon:"🎯",
+    name:"Rifle",    weight:"Heavy", type:"bullet", icon:"🎯", model:"rifle",
     dmg:22, fireRate:145, bullets:1, spread:0.03, speed:15, range:820,
     color:"#4fa3e0",
     desc:"Long-range precision, high damage.",
   },
   {
-    name:"Minigun",  weight:"Very Heavy", type:"bullet", icon:"🌀",
+    name:"Minigun",  weight:"Very Heavy", type:"bullet", icon:"🌀", model:"minigun",
     dmg:8, fireRate:105,  bullets:3, spread:0.03, tiltSpread:0.11, speed:16, range:720,
     color:"#e0a83c",
     desc:"Fires a tilted 3-round burst — never-stop suppression fire.",
   },
   {
-    name:"Blood Pistol", weight:"Exclusive", type:"bullet", icon:"🩸",
+    name:"Blood Pistol", weight:"Exclusive", type:"bullet", icon:"🩸", model:"bloodpistol",
     dmg:15, fireRate:122, bullets:1, spread:0, speed:13, range:1100,
     homing:true, turnRate:0.16, bulletStyle:'bloodSquare', trail:true,
     color:"#e0453b",
@@ -544,7 +746,7 @@ const WEAPONS = [
     exclusive:'blood',
   },
   {
-    name:"Blood SMG", weight:"Exclusive", type:"bullet", icon:"🔪",
+    name:"Blood SMG", weight:"Exclusive", type:"bullet", icon:"🔪", model:"bloodsmg",
     dmg:28, fireRate:55, bullets:1, spread:0.02, speed:17, range:1100,
     homing:true, turnRate:0.26, bulletStyle:'bloodSquare', trail:true,
     color:"#ff5a4d",
@@ -552,12 +754,25 @@ const WEAPONS = [
     exclusive:'bloodsmg',
   },
   {
-    name:"Blood Staff", weight:"Exclusive", type:"staff", icon:"🦯",
-    dmg:42, fireRate:320, range:100, speed:0,
-    burstDmg:520, burstRadius:260, healMult:3.5,
+    name:"Blood Staff", weight:"Exclusive", type:"staff", icon:"🦯", model:"staff",
+    dmg:70, fireRate:320, range:100, speed:0,
+    burstDmg:340, burstRadius:260, healMult:3.5,
     color:"#ff2f2f",
     desc:"Event-exclusive melee staff. Every strike builds blood charge — at 15 charge it erupts into a devastating AoE burst. Kills heal far more HP — Slot 3 exclusive.",
     exclusive:'bloodstaff',
+  },
+  {
+    name:"Combat Knife", weight:"Rare", type:"knife", icon:"🗡️", model:"knife",
+    dmg:14, fireRate:230, range:65, speed:0,
+    bleedDmg:3, bleedTicks:5, bleedInterval:500, healOnKill:6, maxBleedStacks:5,
+    color:"#c9c9c9",
+    desc:"Rare melee sidearm. Every stab lets the wound bleed out extra damage over time — killing an enemy heals you.",
+  },
+  {
+    name:"Flamethrower", weight:"Very Heavy", type:"flame", icon:"🔥", model:"flamethrower",
+    dmg:6, fireRate:90, range:190, coneAngle:0.5, speed:0,
+    color:"#ff6a2e",
+    desc:"Slot 4 alternative to the Minigun. Sprays a continuous cone of fire that burns every zombie caught inside it at once — pure area damage, no aiming needed.",
   },
 ];
 
@@ -566,6 +781,8 @@ const TESLA_IDX = 1;
 const BLOOD_IDX = WEAPONS.findIndex(w=>w.exclusive==='blood');
 const BLOOD_SMG_IDX = WEAPONS.findIndex(w=>w.exclusive==='bloodsmg');
 const BLOOD_STAFF_IDX = WEAPONS.findIndex(w=>w.exclusive==='bloodstaff');
+const KNIFE_IDX = WEAPONS.findIndex(w=>w.type==='knife');
+const FLAME_IDX = WEAPONS.findIndex(w=>w.type==='flame');
 
 
 // ── Weapon star upgrades (persistent, per weapon index) ──
@@ -575,7 +792,7 @@ const MAX_STARS = 5;
 const STAR_BASE_COSTS = [150, 300, 600, 1200, 2500];
 // Rarity multiplier per weapon index (rarer = more expensive)
 // 0=Pistol(common), 2=Shotgun(uncommon), 3=Rifle(rare), 4=Minigun(epic), 1=Tesla(legendary), 5=BloodPistol(exclusive)
-const WEAPON_RARITY_MULT = { 0: 1.0, 2: 1.5, 3: 2.0, 4: 3.6, 1: 4.5, 5: 5.0, 6: 5.5, 7: 6.5 };
+const WEAPON_RARITY_MULT = { 0: 1.0, 2: 1.5, 3: 2.0, 4: 3.6, 1: 4.5, 5: 5.0, 6: 5.5, 7: 6.5, 8: 2.2, 9: 3.0 };
 function getStarCosts(wIdx){
   const mult = WEAPON_RARITY_MULT[wIdx] || 1.0;
   return STAR_BASE_COSTS.map(c => Math.round(c * mult));
@@ -605,13 +822,26 @@ const RARITY_SCALING = {
   5: { dmg:1.28, rate:0.82, range:1.20, speed:1.09, spread:1.00 }, // Blood Pistol — exclusive
   6: { dmg:1.35, rate:0.77, range:1.22, speed:1.11, spread:0.88 }, // Blood SMG — exclusive
   7: { dmg:1.32, rate:0.85, range:1.00, speed:1.00, spread:1.00, burst:1.24 }, // Blood Staff — exclusive
+  8: { dmg:1.15, rate:0.90, range:1.05, speed:1.00, spread:1.00, bleed:1.16 }, // Combat Knife — rare
+  9: { dmg:1.14, rate:0.91, range:1.08, speed:1.00, spread:1.00, cone:1.06 }, // Flamethrower — very heavy
 };
 
 // Apply star multipliers to base weapon stats when shooting
 function getWeaponWithStars(wIdx){
   const base = WEAPONS[wIdx];
   const stars = getStars(wIdx);
-  if(!stars) return base;
+  const cls = getClass();
+  // Bastion's Bunker grants +10% damage while the player is standing inside it
+  const bunkerDmgMult = (playerClass==='bastion' && inBunker) ? 1.10 : 1.0;
+  if(!stars){
+    // No star upgrades yet, but class dmg/rate mults still apply.
+    if(cls.dmgMult===1 && cls.rateMult===1 && bunkerDmgMult===1) return base;
+    return {
+      ...base,
+      dmg:      Math.round(base.dmg * cls.dmgMult * bunkerDmgMult),
+      fireRate: Math.round(base.fireRate * cls.rateMult),
+    };
+  }
   const s = RARITY_SCALING[wIdx] || RARITY_SCALING[0];
   const dmgMult   = Math.pow(s.dmg,   stars);
   const rateMult  = Math.pow(s.rate,  stars); // lower fireRate = faster
@@ -620,15 +850,19 @@ function getWeaponWithStars(wIdx){
   const spreadMult= s.spread < 1 ? Math.pow(s.spread, stars) : 1;
   const chainMult = s.chain ? Math.pow(s.chain, stars) : 1;
   const burstMult = s.burst ? Math.pow(s.burst, stars) : 1;
+  const bleedMult = s.bleed ? Math.pow(s.bleed, stars) : 1;
+  const coneMult  = s.cone  ? Math.pow(s.cone,  stars) : 1;
   return {
     ...base,
-    dmg:        Math.round(base.dmg * dmgMult),
-    fireRate:   Math.round(base.fireRate * rateMult),
+    dmg:        Math.round(base.dmg * dmgMult * cls.dmgMult * bunkerDmgMult),
+    fireRate:   Math.round(base.fireRate * rateMult * cls.rateMult),
     range:      Math.round(base.range * rangeMult),
     speed:      +(base.speed * speedMult).toFixed(1),
     spread:     base.spread > 0 ? +(base.spread * spreadMult).toFixed(3) : 0,
     chainRange: base.chainRange ? Math.round(base.chainRange * chainMult) : base.chainRange,
     burstDmg:   base.burstDmg ? Math.round(base.burstDmg * burstMult) : base.burstDmg,
+    bleedDmg:   base.bleedDmg ? +(base.bleedDmg * bleedMult).toFixed(1) : base.bleedDmg,
+    coneAngle:  base.coneAngle ? +(base.coneAngle * coneMult).toFixed(3) : base.coneAngle,
   };
 }
 
@@ -648,11 +882,13 @@ const TIER_COST   = [0, 300, 700, 2000];    // cash cost to advance INTO that sl
 function getTierWeapon(tier){
   if(tier===2 && equippedSlot2==='bloodsmg' && bloodSmgUnlocked) return BLOOD_SMG_IDX;
   if(tier===3 && equippedSlot3==='bloodstaff' && bloodStaffUnlocked) return BLOOD_STAFF_IDX;
+  if(tier===4 && equippedSlot4==='flamethrower' && flamethrowerUnlocked) return FLAME_IDX;
   return TIER_WEAPON[tier-1];
 }
 function getTierCost(tier){
   if(tier===2 && equippedSlot2==='bloodsmg' && bloodSmgUnlocked) return BLOOD_SMG_CASH_COST;
   if(tier===3 && equippedSlot3==='bloodstaff' && bloodStaffUnlocked) return BLOOD_STAFF_CASH_COST;
+  if(tier===4 && equippedSlot4==='flamethrower' && flamethrowerUnlocked) return FLAMETHROWER_CASH_COST;
   return TIER_COST[tier-1];
 }
 
@@ -662,12 +898,62 @@ function loadTeslaUnlocked(){ return localStorage.getItem('ob_teslaUnlocked')===
 function saveTeslaUnlocked(v){ localStorage.setItem('ob_teslaUnlocked', v?'1':'0'); }
 let teslaUnlocked = loadTeslaUnlocked();
 
+// Combat Knife is a rare (non-exclusive) permanent unlock bought with GOLD, same as Tesla,
+// just cheaper — it's a Slot 1 alternative to the base Pistol.
+const KNIFE_GOLD_COST = 800;
+function loadKnifeUnlocked(){ return localStorage.getItem('ob_knifeUnlocked')==='1'; }
+function saveKnifeUnlocked(v){ localStorage.setItem('ob_knifeUnlocked', v?'1':'0'); }
+let knifeUnlocked = loadKnifeUnlocked();
+
 // Blood Pistol is an event-exclusive weapon unlocked with Blood Coin — earned directly,
 // in-run, by killing zombies (not converted from scrap like Gold).
 const BLOOD_COIN_COST = 250;
 function loadBloodCoin(){ const v=localStorage.getItem('ob_bloodCoin'); return v?+v:0; }
 function saveBloodCoin(v){ localStorage.setItem('ob_bloodCoin',String(v)); }
 let bloodCoin = loadBloodCoin();
+
+// ── Blood Crate ──────────────────────────────────────────
+// The ONLY way to get Blood Pistol/SMG/Staff — they can no longer be bought
+// directly. Each crate costs Blood Coin and rolls one of these outcomes:
+//   20% Blood Pistol · 5% Blood SMG · 1% Blood Staff · 74% a random Gold payout.
+// If the roll lands on a weapon you already own, it converts to a Gold payout
+// instead so a crate never feels wasted on a duplicate.
+const CRATE_COST = 50;
+const CRATE_ODDS = { bloodPistol:0.20, bloodSmg:0.05, bloodStaff:0.01 }; // remainder (0.74) = gold
+const CRATE_GOLD_MIN = 80, CRATE_GOLD_MAX = 350;
+// Reel display info for each possible prize — icon/label/color shown in the odds
+// legend and used to build the scrolling reel strip.
+const CRATE_REEL_POOL = [
+  { key:'gold',        icon:'💰', label:'GOLD',         color:'#f0c94a', weight:74, pct:'74%' },
+  { key:'bloodPistol',  icon:'🩸', label:'BLOOD PISTOL', color:'#e0453b', weight:20, pct:'20%' },
+  { key:'bloodSmg',     icon:'🔪', label:'BLOOD SMG',    color:'#ff5a4d', weight:5,  pct:'5%'  },
+  { key:'bloodStaff',   icon:'🦯', label:'BLOOD STAFF',  color:'#ff2f2f', weight:1,  pct:'1%'  },
+];
+function pickWeightedFillerItem(){
+  const total = CRATE_REEL_POOL.reduce((s,it)=>s+it.weight,0);
+  let r = Math.random()*total;
+  for(const it of CRATE_REEL_POOL){ if(r<it.weight) return it; r-=it.weight; }
+  return CRATE_REEL_POOL[0];
+}
+function rollBloodCrate(){
+  const r = Math.random();
+  let prize;
+  if(r < CRATE_ODDS.bloodPistol) prize='bloodPistol';
+  else if(r < CRATE_ODDS.bloodPistol + CRATE_ODDS.bloodSmg) prize='bloodSmg';
+  else if(r < CRATE_ODDS.bloodPistol + CRATE_ODDS.bloodSmg + CRATE_ODDS.bloodStaff) prize='bloodStaff';
+  else prize='gold';
+
+  // Duplicate protection — already-owned weapon rolls become a Gold payout instead.
+  if(prize==='bloodPistol' && bloodPistolUnlocked) prize='gold';
+  if(prize==='bloodSmg' && bloodSmgUnlocked) prize='gold';
+  if(prize==='bloodStaff' && bloodStaffUnlocked) prize='gold';
+
+  if(prize==='gold'){
+    const amt = CRATE_GOLD_MIN + Math.round(Math.random()*(CRATE_GOLD_MAX-CRATE_GOLD_MIN));
+    return { prize, amt };
+  }
+  return { prize };
+}
 
 // ── Difficulty modes ──────────────────────────────────────
 // Harder modes push tougher, faster, more frequent zombies — but reward that risk
@@ -680,6 +966,48 @@ const DIFFICULTIES = {
 function loadDifficulty(){ const v=localStorage.getItem('ob_difficulty'); return DIFFICULTIES[v] ? v : 'normal'; }
 function saveDifficulty(v){ localStorage.setItem('ob_difficulty', v); }
 let difficulty = loadDifficulty();
+
+// ── Player classes ────────────────────────────────────────
+// Classes only reshape the PLAYER (hp/speed) and their WEAPON output
+// (dmg/fire rate) or in-run BUILD COSTS. Building max HP (turret/mine/
+// barricade) is intentionally left untouched by every class — it's always
+// the same default regardless of what you're playing, per design.
+const CLASSES = {
+  survivor:  { label:'SURVIVOR',  icon:'🧍', hpMult:1.00, speedMult:1.00, dmgMult:1.00, rateMult:1.00, buildCostMult:1.00, color:'#8fd13f',
+    desc:'Balanced all-rounder. No bonuses, no penalties.' },
+  engineer:  { label:'ENGINEER',  icon:'🔧', hpMult:1.00, speedMult:1.00, dmgMult:1.00, rateMult:1.00, buildCostMult:1.00, color:'#4fa3e0',
+    desc:'Same combat stats as Survivor. Swaps the build loadout for a Flame Turret and Steel Barricade.' },
+  bastion:   { label:'BASTION',   icon:'🏰', hpMult:1.00, speedMult:1.00, dmgMult:1.00, rateMult:1.00, buildCostMult:1.00, color:'#e0a83c',
+    desc:'Swaps the build loadout for a Bunker, Laser Turret, and Drone. Standing inside your Bunker grants +10% damage and 4 HP/sec regen.' },
+};
+function loadPlayerClass(){ const v=localStorage.getItem('ob_playerClass'); return CLASSES[v] ? v : 'survivor'; }
+function savePlayerClass(v){ localStorage.setItem('ob_playerClass', v); }
+let playerClass = loadPlayerClass();
+function getClass(){ return CLASSES[playerClass] || CLASSES.survivor; }
+
+// ── Class unlocks — Survivor is always free; other classes are bought with GOLD ──
+const ENGINEER_GOLD_COST = 500;
+const BASTION_GOLD_COST  = 5000;
+function loadEngineerUnlocked(){ return localStorage.getItem('ob_engineerUnlocked')==='1'; }
+function saveEngineerUnlocked(v){ localStorage.setItem('ob_engineerUnlocked', v?'1':'0'); }
+let engineerUnlocked = loadEngineerUnlocked();
+function loadBastionUnlocked(){ return localStorage.getItem('ob_bastionUnlocked')==='1'; }
+function saveBastionUnlocked(v){ localStorage.setItem('ob_bastionUnlocked', v?'1':'0'); }
+let bastionUnlocked = loadBastionUnlocked();
+function isClassUnlocked(id){
+  if(id==='survivor') return true;
+  if(id==='engineer') return engineerUnlocked;
+  if(id==='bastion') return bastionUnlocked;
+  return false;
+}
+function getClassCost(id){
+  if(id==='engineer') return ENGINEER_GOLD_COST;
+  if(id==='bastion') return BASTION_GOLD_COST;
+  return 0;
+}
+// Guard against a stale/edited save pointing at a class that isn't actually unlocked.
+if(!isClassUnlocked(playerClass)) playerClass='survivor';
+
 function loadBloodPistolUnlocked(){ return localStorage.getItem('ob_bloodPistolUnlocked')==='1'; }
 function saveBloodPistolUnlocked(v){ localStorage.setItem('ob_bloodPistolUnlocked', v?'1':'0'); }
 let bloodPistolUnlocked = loadBloodPistolUnlocked();
@@ -706,6 +1034,18 @@ function loadEquippedSlot3(){ return localStorage.getItem('ob_equippedSlot3')||'
 function saveEquippedSlot3(v){ localStorage.setItem('ob_equippedSlot3', v); }
 let equippedSlot3 = loadEquippedSlot3();
 
+// Flamethrower is a Slot 4 alternative to the base Minigun. Like Tesla/Knife it's a
+// permanent GOLD unlock (not tied to the Blood Coin event currency), but — like the
+// Blood SMG/Staff slot overrides — swapping it INTO Slot 4 during a run costs cash.
+const FLAMETHROWER_GOLD_COST = 1800;
+const FLAMETHROWER_CASH_COST = 1500;
+function loadFlamethrowerUnlocked(){ return localStorage.getItem('ob_flamethrowerUnlocked')==='1'; }
+function saveFlamethrowerUnlocked(v){ localStorage.setItem('ob_flamethrowerUnlocked', v?'1':'0'); }
+let flamethrowerUnlocked = loadFlamethrowerUnlocked();
+function loadEquippedSlot4(){ return localStorage.getItem('ob_equippedSlot4')||'none'; }
+function saveEquippedSlot4(v){ localStorage.setItem('ob_equippedSlot4', v); }
+let equippedSlot4 = loadEquippedSlot4();
+
 // Remembers which exclusive weapon (if any) was last equipped, so the next run
 // starts already on that weapon instead of resetting to the base Pistol.
 function loadEquippedSpecial(){ return localStorage.getItem('ob_equippedSpecial')||'none'; }
@@ -716,6 +1056,11 @@ let equippedSpecial = loadEquippedSpecial();
 let turretCost   = 100;
 let mineCost     = 50;
 let barricadeCost= 50;
+// Bastion's building types each scale independently — buying a Drone shouldn't
+// also raise the price of your next Bunker or Laser Turret.
+let bunkerCost      = 100;
+let laserTurretCost = 100;
+let droneCost       = 100;
 let healthUpCost = 100;
 
 // ── Buildings ────────────────────────────────────────────
@@ -723,13 +1068,15 @@ let healthUpCost = 100;
 // mine:   explodes on zombie contact
 // barricade: blocks/slows zombies
 let buildings = [];       // {type, x, y, hp, maxHp, r, cooldown, ...}
-let buildMode  = null;    // null | 'turret' | 'mine' | 'barricade'
+let buildMode  = null;    // null | 1 | 2 | 3  (build SLOT number — the actual building type
+                           // placed by each slot depends on the active class, see slotType())
 
 // ── Game state ───────────────────────────────────────────
-let currentTier, maxTier, teslaActive, bloodActive, activeSlot;
+let currentTier, maxTier, teslaActive, bloodActive, knifeActive, activeSlot;
 function computeActiveSlot(){
   if(bloodActive) return BLOOD_IDX;
   if(teslaActive) return TESLA_IDX;
+  if(knifeActive) return KNIFE_IDX;
   return getTierWeapon(currentTier);
 }
 let money, kills, wave, score, scrapCollected;
@@ -741,6 +1088,7 @@ let bloodBursts;
 let spawnTimer, spawnInterval, waveKillTarget, waveKills;
 let running = false, autoShoot = false;
 let aimAngle = 0;
+let inBunker = false; // Bastion: true while the player is standing inside a Bunker
 let keys = {}, mouse = {x:0,y:0,down:false};
 let lastShot = 0, lastTime = 0;
 
@@ -754,12 +1102,23 @@ function resetGame(){
   maxTier = 1;
   teslaActive = equippedSpecial==='tesla' && teslaUnlocked;
   bloodActive = equippedSpecial==='blood' && bloodPistolUnlocked;
+  knifeActive = equippedSpecial==='knife' && knifeUnlocked;
   activeSlot = computeActiveSlot();
   money=0; kills=0; wave=1; score=0; scrapCollected=0;
   buildings=[]; buildMode=null; setBuildMode(null);
-  turretCost=100; mineCost=50; barricadeCost=50; healthUpCost=100;
+  // Build costs scale with the selected class (Engineer gets a discount) — building
+  // MAX HP itself is never touched here or in placeBuilding, so it stays default
+  // for every class.
+  const cls = getClass();
+  turretCost=Math.round(100*cls.buildCostMult); mineCost=Math.round(50*cls.buildCostMult);
+  barricadeCost=Math.round(50*cls.buildCostMult); healthUpCost=100;
+  bunkerCost=Math.round(100*cls.buildCostMult);
+  laserTurretCost=Math.round(100*cls.buildCostMult);
+  droneCost=Math.round(100*cls.buildCostMult);
   updateBuildCosts();
-  player={x:canvas.width/2,y:canvas.height/2,r:16,hp:100,maxHp:100,speed:3.4};
+  player={x:canvas.width/2,y:canvas.height/2,r:16,
+    hp:Math.round(100*cls.hpMult), maxHp:Math.round(100*cls.hpMult),
+    speed:+(3.4*cls.speedMult).toFixed(2), recoil:0,swing:0};
   zombies=[]; bullets=[]; particles=[]; lightningArcs=[]; bloodBursts=[];
   staffCharge=0;
   spawnTimer=0; spawnInterval=1800; waveKillTarget=8; waveKills=0;
@@ -796,7 +1155,7 @@ window.addEventListener('keydown',e=>{
 function trySelectTier(tier){
   if(tier<=maxTier){
     // Already unlocked this run — free switch, any time, even while Tesla/Blood Pistol equipped.
-    teslaActive=false; bloodActive=false; currentTier=tier; activeSlot=computeActiveSlot();
+    teslaActive=false; bloodActive=false; knifeActive=false; currentTier=tier; activeSlot=computeActiveSlot();
     showLevelup('EQUIPPED: '+WEAPONS[activeSlot].name.toUpperCase(), WEAPONS[activeSlot].color);
     updateHud();
     return;
@@ -804,7 +1163,7 @@ function trySelectTier(tier){
   const cost=getTierCost(tier);
   if(money<cost){ showLevelup('NEED $'+cost,'#e05050'); return; }
   money-=cost; maxTier=tier; currentTier=tier;
-  teslaActive=false; bloodActive=false; activeSlot=computeActiveSlot();
+  teslaActive=false; bloodActive=false; knifeActive=false; activeSlot=computeActiveSlot();
   showLevelup('EQUIPPED: '+WEAPONS[activeSlot].name.toUpperCase(), WEAPONS[activeSlot].color);
   updateHud();
 }
@@ -820,15 +1179,11 @@ window.addEventListener('keydown',e=>{
   if(k==='u') tryUpgrade();
   // Number keys disabled for weapon switching — use U to unlock next slot, click slot icon to switch
   else if(e.key==='1'||e.key==='2'||e.key==='3'||e.key==='4') showLevelup('USE U TO UNLOCK · CLICK SLOT ICON TO SWITCH','#7a8168');
-  else if(e.key==='5'||e.key==='6') showLevelup('SWAP TESLA/BLOOD IN MAIN MENU','#7a8168');
+  else if(e.key==='5'||e.key==='6'||e.key==='7') showLevelup('SWAP TESLA/BLOOD/KNIFE IN MAIN MENU','#7a8168');
   // Q/E/R quick-build hotkeys (toggle: press again to cancel)
-  else if(k==='q') setBuildMode(buildMode==='turret'   ? null : 'turret');
-  else if(k==='e'){
-    // Landmine: instant place at player position — no click needed
-    if(buildMode==='mine'){ setBuildMode(null); }
-    else { setBuildMode(null); buildMode='mine'; placeBuilding(player.x, player.y); }
-  }
-  else if(k==='r') setBuildMode(buildMode==='barricade' ? null : 'barricade');
+  else if(k==='q') toggleBuildSlot(1);
+  else if(k==='e') toggleBuildSlot(2);
+  else if(k==='r') toggleBuildSlot(3);
   // C: quick-buy a health upgrade (+10 max HP), no build mode needed
   else if(k==='c') buyHealthUpgrade();
 });
@@ -856,6 +1211,8 @@ function updateHud(){
     nameEl.innerHTML=`<span class="r-epic">${w.name}</span><span class="tag r-epic">EPIC</span>`;
   } else if(w.exclusive==='blood' || w.exclusive==='bloodsmg' || w.exclusive==='bloodstaff'){
     nameEl.innerHTML=`<span style="color:${w.color}">${w.name}</span><span class="tag" style="color:${w.color}">EVENT</span>`;
+  } else if(w.type==='knife'){
+    nameEl.innerHTML=`<span style="color:#4fa3e0">${w.name}</span><span class="tag" style="color:#4fa3e0">RARE</span>`;
   } else {
     nameEl.innerHTML=`<span style="color:${w.color}">${w.name}</span>`;
   }
@@ -886,7 +1243,7 @@ function renderSlotBar(){
   // ── Show all unlocked tiers as clickable slots ──
   for(let tier=1; tier<=maxTier; tier++){
     const wt = WEAPONS[getTierWeapon(tier)];
-    const isCurrent = !teslaActive && !bloodActive && currentTier===tier;
+    const isCurrent = !teslaActive && !bloodActive && !knifeActive && currentTier===tier;
     const btn=document.createElement('div');
     btn.className='slotBtn'+(isCurrent?' current':'');
     btn.innerHTML=`<span class="sIcon">${wt.icon}</span><span class="sCost">${isCurrent?'ON':('S'+tier)}</span>`;
@@ -984,6 +1341,10 @@ function shoot(){
     shootTesla(w);
   } else if(w.type==='staff'){
     shootStaff(w);
+  } else if(w.type==='knife'){
+    shootKnife(w);
+  } else if(w.type==='flame'){
+    shootFlame(w);
   } else {
     // Muzzle sits at the tip of the gun barrel (see draw()); jitter the spawn point
     // a little around that tip so bullets don't all pop out of one exact pixel.
@@ -1001,6 +1362,7 @@ function shoot(){
     }
     for(let i=0;i<3;i++)
       particles.push({x:mx,y:my,vx:(Math.random()-0.5)*2,vy:(Math.random()-0.5)*2,life:10,color:'#ffdd88',size:3});
+    player.recoil=1;
   }
 }
 
@@ -1013,6 +1375,7 @@ function shootTesla(w){
     if(d<bestD){ bestD=d; best=z; }
   }
   if(!best) return;
+  player.recoil=0.6;
 
   // Chain lightning: hit up to chainCount enemies
   const hit=[best];
@@ -1060,9 +1423,14 @@ function spawnLightningArc(x1,y1,x2,y2){
 let staffCharge = 0;
 const STAFF_MAX_CHARGE = 15;
 
-function killZombieWith(z, healMultiplier){
+function killZombieWith(z, healMultiplier, flatHeal){
   awardBloodCoin(z);
-  regenOnKill(z, healMultiplier);
+  if(flatHeal){
+    player.hp = Math.min(player.maxHp, player.hp + flatHeal);
+    showFloatPop(player.x, player.y-24, `+${flatHeal} HP`, '#c93030');
+  } else {
+    regenOnKill(z, healMultiplier);
+  }
   const idx = zombies.indexOf(z);
   if(idx!==-1) zombies.splice(idx,1);
   kills++; waveKills++; score+=z.tough?25:10;
@@ -1075,6 +1443,7 @@ function shootStaff(w){
   const muzzleDist=player.r+14;
   const mx=player.x+Math.cos(aimAngle)*muzzleDist;
   const my=player.y+Math.sin(aimAngle)*muzzleDist;
+  player.swing=1;
 
   // Melee swing: hits every zombie within range of the player, not just one target.
   let hitAny=false;
@@ -1116,26 +1485,210 @@ function unleashBloodBurst(w){
   }
 }
 
+// ── Flamethrower: continuous cone-of-fire, hits EVERY zombie inside the cone
+// at once each tick — pure area damage, no need to line up a single target. ──
+function shootFlame(w){
+  const half = (w.coneAngle||0.5);
+  let hitAny=false;
+  for(let j=zombies.length-1;j>=0;j--){
+    const z=zombies[j];
+    const dx=z.x-player.x, dy=z.y-player.y;
+    const dist=Math.hypot(dx,dy);
+    if(dist > w.range+z.r) continue;
+    let diff = Math.atan2(dy,dx) - aimAngle;
+    while(diff>Math.PI) diff-=Math.PI*2;
+    while(diff<-Math.PI) diff+=Math.PI*2;
+    if(Math.abs(diff) > half) continue;
+    hitAny=true;
+    z.hp-=w.dmg; z.hitFlash=6; z.burning=10;
+    if(z.hp<=0){
+      awardBloodCoin(z);
+      regenOnKill(z);
+      kills++; waveKills++; score+=z.tough?25:10;
+      const val=z.tough?(18+Math.round(Math.random()*12)):(5+Math.round(Math.random()*7));
+      money+=val; scrapCollected+=val;
+      spawnScrapPop(z.x,z.y,val);
+      zombies.splice(j,1);
+    }
+  }
+  // Cone of flame particles, spawned every tick along random angles/distances
+  // within the cone so it reads as a continuous roaring stream.
+  const muzzleDist=player.r+14;
+  for(let i=0;i<5;i++){
+    const a=aimAngle+(Math.random()-0.5)*half*2;
+    const d=muzzleDist+Math.random()*w.range*0.75;
+    particles.push({
+      x:player.x+Math.cos(a)*muzzleDist, y:player.y+Math.sin(a)*muzzleDist,
+      vx:Math.cos(a)*(3+Math.random()*3), vy:Math.sin(a)*(3+Math.random()*3),
+      life:11+Math.random()*6,
+      color: Math.random()<0.4 ? '#ffdd66' : (Math.random()<0.7 ? '#ff6a2e' : '#c93030'),
+      size:2.6+Math.random()*2.4,
+    });
+  }
+  if(hitAny) player.recoil=Math.max(player.recoil||0, 0.35);
+}
+// Slash arcs list: brief animated blade-sweep visuals drawn behind the player model.
+let slashArcs = [];
+function shootKnife(w){
+  const muzzleDist=player.r+10;
+  const mx=player.x+Math.cos(aimAngle)*muzzleDist;
+  const my=player.y+Math.sin(aimAngle)*muzzleDist;
+  player.swing=1;
+
+  const maxStacks = w.maxBleedStacks||5;
+  let hitAny=false;
+  for(let j=zombies.length-1;j>=0;j--){
+    const z=zombies[j];
+    if(Math.hypot(z.x-player.x,z.y-player.y) < w.range+z.r){
+      hitAny=true;
+      z.hp-=w.dmg; z.hitFlash=8;
+      // Each stab ADDS a fresh, independently-ticking bleed stack (instead of just
+      // refreshing a single one) — more stabs = more simultaneous DoT ticks, up to a cap.
+      if(!z.bleedStacks) z.bleedStacks=[];
+      if(z.bleedStacks.length<maxStacks){
+        z.bleedStacks.push({dmg:w.bleedDmg, ticksLeft:w.bleedTicks, timer:w.bleedInterval});
+      } else {
+        // At the stack cap, refresh the oldest stack instead of adding a new one.
+        const s=z.bleedStacks[0];
+        s.dmg=w.bleedDmg; s.ticksLeft=w.bleedTicks; s.timer=w.bleedInterval;
+      }
+      const stackCt=z.bleedStacks.length;
+      for(let k=0;k<4+stackCt;k++)
+        particles.push({x:z.x,y:z.y,vx:(Math.random()-.5)*3,vy:(Math.random()-.5)*3.2-0.4,life:14,color:stackCt>=maxStacks?'#ff3b3b':'#c93030',size:2.1+Math.min(stackCt,4)*0.35});
+      if(z.hp<=0) killZombieWith(z, null, w.healOnKill);
+    }
+  }
+  for(let i=0;i<5;i++)
+    particles.push({x:mx,y:my,vx:(Math.random()-.5)*2.5,vy:(Math.random()-.5)*2.5,life:9,color:'#c9c9c9',size:2.6});
+  // Animated slash arc — a bright crescent that sweeps through the stab direction.
+  slashArcs.push({x:player.x,y:player.y,angle:aimAngle,life:10,maxLife:10,hit:hitAny,range:w.range+18});
+}
+
+// Ticks bleed damage-over-time on every bleeding zombie, called once per frame.
+// Each zombie can carry multiple independent bleed stacks that all tick in parallel.
+function updateBleed(dt){
+  for(let j=zombies.length-1;j>=0;j--){
+    const z=zombies[j];
+    if(!z.bleedStacks || !z.bleedStacks.length) continue;
+    let dead=false;
+    for(let s=z.bleedStacks.length-1;s>=0;s--){
+      const stack=z.bleedStacks[s];
+      stack.timer -= dt*16.67;
+      if(stack.timer<=0){
+        stack.timer += 500; // bleedInterval baseline; ticks stay evenly spaced
+        z.hp -= stack.dmg; z.hitFlash=4;
+        stack.ticksLeft--;
+        particles.push({x:z.x+(Math.random()-.5)*z.r,y:z.y,vx:0,vy:-0.6,life:16,color:'#c93030',size:2.2});
+        if(z.hp<=0){ dead=true; break; }
+        if(stack.ticksLeft<=0) z.bleedStacks.splice(s,1);
+      }
+    }
+    if(dead){
+      killZombieWith(z, null, KNIFE_IDX>=0 ? WEAPONS[KNIFE_IDX].healOnKill : 0);
+    }
+  }
+}
+
 // ── Building system ──────────────────────────────────────
+// Build SLOTS are fixed (1/2/3, on Q/E/R), but WHICH building type each slot
+// places depends on the active class:
+//   Survivor: 1=Turret, 2=Mine, 3=Barricade  (defaults)
+//   Engineer: 1=Flame Turret, 2=Turret, 3=Steel Barricade
+// Each slot keeps its own cost variable regardless of which type occupies it —
+// so the Flame Turret in slot 1 always costs the same as the normal Turret
+// (turretCost), and the Steel Barricade in slot 3 always costs the same as
+// the normal Barricade (barricadeCost).
+function slotType(slot, clsId){
+  const id = clsId || playerClass;
+  if(id==='engineer'){
+    if(slot===1) return 'flameTurret';
+    if(slot===2) return 'turret';
+    if(slot===3) return 'steelBarricade';
+  }
+  if(id==='bastion'){
+    if(slot===1) return 'bunker';
+    if(slot===2) return 'laserTurret';
+    if(slot===3) return 'drone';
+  }
+  // Survivor / default loadout
+  if(slot===1) return 'turret';
+  if(slot===2) return 'mine';
+  if(slot===3) return 'barricade';
+}
+function costForType(type){
+  if(type==='turret' || type==='flameTurret') return turretCost;
+  if(type==='laserTurret') return laserTurretCost;
+  if(type==='drone') return droneCost;
+  if(type==='bunker') return bunkerCost;
+  if(type==='mine') return mineCost;
+  if(type==='barricade' || type==='steelBarricade') return barricadeCost;
+}
+function slotCost(slot){
+  return costForType(slotType(slot));
+}
+function slotIcon(type){
+  return type==='flameTurret' ? '🔥'
+       : type==='steelBarricade' ? '🛡'
+       : type==='bunker' ? '🏰'
+       : type==='laserTurret' ? '⚡'
+       : type==='drone' ? '🛸'
+       : type==='turret' ? '🌀'
+       : type==='mine' ? '💣' : '🧱';
+}
+function slotLabel(type){
+  return type==='flameTurret' ? 'FLAME TURRET'
+       : type==='steelBarricade' ? 'STEEL BARRICADE'
+       : type==='bunker' ? 'BUNKER'
+       : type==='laserTurret' ? 'LASER TURRET'
+       : type==='drone' ? 'DRONE'
+       : type==='turret' ? 'TURRET'
+       : type==='mine' ? 'LANDMINE' : 'BARRICADE';
+}
+function toggleBuildSlot(slot){
+  const type = slotType(slot);
+  if(type==='mine'){
+    // Landmine: instant place at player position — no click needed
+    if(buildMode===slot){ setBuildMode(null); }
+    else { setBuildMode(null); buildMode=slot; placeBuilding(player.x, player.y); }
+  } else {
+    setBuildMode(buildMode===slot ? null : slot);
+  }
+}
+
 function updateBuildCosts(){
   const tl=document.getElementById('turretCostLbl');
   const ml=document.getElementById('mineCostLbl');
   const bl=document.getElementById('barricadeCostLbl');
   const hl=document.getElementById('healthCostLbl');
-  if(tl) tl.textContent='$'+turretCost;
-  if(ml) ml.textContent='$'+mineCost;
-  if(bl) bl.textContent='$'+barricadeCost;
+  if(tl) tl.textContent='$'+slotCost(1);
+  if(ml) ml.textContent='$'+slotCost(2);
+  if(bl) bl.textContent='$'+slotCost(3);
   if(hl) hl.textContent='$'+healthUpCost;
+
+  // Icon/label per slot reflect whatever the active class places there
+  const t1=slotType(1), t2=slotType(2), t3=slotType(3);
+  const i1=document.getElementById('btnTurretIcon'),    l1=document.getElementById('btnTurretLabel');
+  if(i1) i1.textContent=slotIcon(t1); if(l1) l1.textContent=slotLabel(t1);
+  const i2=document.getElementById('btnMineIcon'),      l2=document.getElementById('btnMineLabel');
+  if(i2) i2.textContent=slotIcon(t2); if(l2) l2.textContent=slotLabel(t2);
+  const i3=document.getElementById('btnBarricadeIcon'), l3=document.getElementById('btnBarricadeLabel');
+  if(i3) i3.textContent=slotIcon(t3); if(l3) l3.textContent=slotLabel(t3);
 }
 
 function setBuildMode(mode){
-  buildMode = mode;
+  buildMode = mode; // null | 1 | 2 | 3
   ['btnTurret','btnMine','btnBarricade'].forEach(id=>
     document.getElementById(id).classList.remove('active'));
   const hint = document.getElementById('buildModeHint');
-  if(mode==='turret')    { document.getElementById('btnTurret').classList.add('active');    hint.style.display='block'; hint.textContent='🌀 MOVE TO POSITION · CLICK TO PLACE TURRET ON GRID — RIGHT-CLICK CANCEL'; }
-  else if(mode==='mine') { document.getElementById('btnMine').classList.add('active');      hint.style.display='block'; hint.textContent='💣 MOVE TO POSITION · CLICK TO DROP MINE HERE — RIGHT-CLICK CANCEL'; }  else if(mode==='barricade'){ document.getElementById('btnBarricade').classList.add('active'); hint.style.display='block'; hint.textContent='🧱 MOVE TO POSITION · CLICK TO PLACE BARRICADE ON GRID — RIGHT-CLICK CANCEL'; }
-  else { hint.style.display='none'; }
+  if(mode===1 || mode===2 || mode===3){
+    const btnId = mode===1?'btnTurret':mode===2?'btnMine':'btnBarricade';
+    document.getElementById(btnId).classList.add('active');
+    hint.style.display='block';
+    const t = slotType(mode);
+    const verb = t==='mine' ? 'CLICK TO DROP' : 'CLICK TO PLACE';
+    const place = t==='mine' ? 'HERE' : 'ON GRID';
+    hint.textContent = `${slotIcon(t)} MOVE TO POSITION · ${verb} ${slotLabel(t)} ${place} — RIGHT-CLICK CANCEL`;
+  } else { hint.style.display='none'; }
   // Disable normal shooting cursor feel while placing
   canvas.style.cursor = mode ? 'cell' : 'crosshair';
 }
@@ -1145,11 +1698,10 @@ function snapToGrid(v){ return Math.round(v/GRID_SIZE)*GRID_SIZE; }
 
 function placeBuilding(x, y){
   if(!running) return;
-  let cost, type;
-  if(buildMode==='turret')    { cost=turretCost;    type='turret'; }
-  else if(buildMode==='mine') { cost=mineCost;      type='mine'; }
-  else if(buildMode==='barricade'){ cost=barricadeCost; type='barricade'; }
-  else return;
+  if(!buildMode) return;
+  const slot = buildMode;
+  const type = slotType(slot);
+  const cost = slotCost(slot);
 
   // All buildings are placed at the player's current position
   x = player.x;
@@ -1164,9 +1716,15 @@ function placeBuilding(x, y){
   if(money < cost){ showLevelup('NEED $'+cost,'#e05050'); return; }
   money -= cost;
 
-  // Increase cost for next purchase
-  if(type==='turret')    { turretCost    += 50; }
-  else if(type==='barricade'){ barricadeCost += 10; }
+  // Increase cost for next purchase — each building TYPE has its own cost line,
+  // so Bastion's Bunker/Laser Turret/Drone all scale independently of each other
+  // (and of Engineer's Flame Turret / Steel Barricade). Bunker scales much
+  // steeper (+$250/purchase) to reflect how much stronger it is.
+  if(type==='bunker')                                    { bunkerCost      += 250; }
+  else if(type==='laserTurret')                          { laserTurretCost += 50;  }
+  else if(type==='drone')                                { droneCost       += 50;  }
+  else if(type==='turret' || type==='flameTurret')       { turretCost      += 50;  }
+  else if(type==='barricade' || type==='steelBarricade') { barricadeCost   += 10;  }
 
   updateBuildCosts();
 
@@ -1174,6 +1732,23 @@ function placeBuilding(x, y){
     buildings.push({ type:'turret', x, y, r:18, hp:80, maxHp:80,
       range:300, fireRate:280, lastShot:0, dmg:6 }); // slower fire rate, lower damage
     showFloatPop(x, y, '🌀 MINIGUN TURRET', '#e0a83c');
+  } else if(type==='flameTurret'){
+    buildings.push({ type:'flameTurret', x, y, r:18, hp:80, maxHp:80,
+      range:300, fireRate:280, lastShot:0, dmg:6 });
+    showFloatPop(x, y, '🔥 FLAME TURRET', '#e0653c');
+  } else if(type==='laserTurret'){
+    // Stronger than a normal Turret: more damage, faster fire rate, longer range
+    buildings.push({ type:'laserTurret', x, y, r:18, hp:80, maxHp:80,
+      range:340, fireRate:200, lastShot:0, dmg:11 });
+    showFloatPop(x, y, '⚡ LASER TURRET', '#4fd1ff');
+  } else if(type==='bunker'){
+    buildings.push({ type:'bunker', x, y, r:30, hp:900, maxHp:900 });
+    showFloatPop(x, y, '🏰 BUNKER', '#e0a83c');
+  } else if(type==='drone'){
+    buildings.push({ type:'drone', x, y, r:14, hp:50, maxHp:50,
+      range:260, fireRate:260, lastShot:0, dmg:7,
+      angle:Math.random()*Math.PI*2, orbitR:70 });
+    showFloatPop(x, y, '🛸 DRONE', '#8fd1ff');
   } else if(type==='mine'){
     buildings.push({ type:'mine', x, y, r:12, hp:1, maxHp:1,
       blastR:80, dmg:60 });
@@ -1181,6 +1756,9 @@ function placeBuilding(x, y){
   } else if(type==='barricade'){
     buildings.push({ type:'barricade', x, y, r:20, hp:120, maxHp:120 });
     showFloatPop(x, y, '🧱 BARRICADE', '#d8d3c1');
+  } else if(type==='steelBarricade'){
+    buildings.push({ type:'steelBarricade', x, y, r:20, hp:120, maxHp:120 });
+    showFloatPop(x, y, '🛡 STEEL BARRICADE', '#9fb4c7');
   }
 
   setBuildMode(null);
@@ -1200,19 +1778,75 @@ function updateBuildings(dt, now){
   for(let i=buildings.length-1; i>=0; i--){
     const b = buildings[i];
 
-    if(b.type==='turret'){
+    if(b.type==='turret' || b.type==='flameTurret' || b.type==='laserTurret'){
+      const isFlame = b.type==='flameTurret';
+      const isLaser = b.type==='laserTurret';
+      const col = isFlame ? '#e0653c' : isLaser ? '#4fd1ff' : '#e0a83c';
+      // Zombies that reach the turret melee it — same contact-damage model as the
+      // player takes, so turrets can actually be destroyed by a horde reaching them.
+      for(const z of zombies){
+        const d=Math.hypot(z.x-b.x,z.y-b.y);
+        if(d < b.r+z.r){
+          b.hp -= z.dmg*dt*0.06;
+          const ang=Math.atan2(z.y-b.y,z.x-b.x);
+          z.x -= Math.cos(ang)*1.4; z.y -= Math.sin(ang)*1.4;
+        }
+      }
+      if(b.hp<=0){
+        for(let k=0;k<16;k++)
+          particles.push({x:b.x,y:b.y,vx:(Math.random()-.5)*6,vy:(Math.random()-.5)*6,life:18,color:k%2?col:'#5c6650',size:3+Math.random()*2.5});
+        showFloatPop(b.x, b.y-20, isFlame ? '🔥 FLAME TURRET DESTROYED' : isLaser ? '⚡ LASER TURRET DESTROYED' : '🌀 TURRET DESTROYED', col);
+        buildings.splice(i,1);
+        continue;
+      }
       // Find nearest zombie in range
       let target=null, td=b.range;
       for(const z of zombies){ const d=Math.hypot(z.x-b.x,z.y-b.y); if(d<td){td=d;target=z;} }
       if(target && now-b.lastShot > b.fireRate){
         b.lastShot = now;
         const ang = Math.atan2(target.y-b.y, target.x-b.x);
-        bullets.push({x:b.x,y:b.y,vx:Math.cos(ang)*14,vy:Math.sin(ang)*14,
-          dmg:b.dmg,life:b.range/14,color:'#e0a83c',homing:false,turnRate:0,
-          style:null,trail:false,spin:0});
-        // Muzzle flash particles
-        for(let k=0;k<4;k++)
-          particles.push({x:b.x,y:b.y,vx:(Math.random()-.5)*4,vy:(Math.random()-.5)*4,life:6,color:'#e0a83c',size:2});
+
+        if(isFlame){
+          // Belches a gout of flame that burns EVERY zombie caught in the blast
+          // radius around the target — area damage, not a single bullet hit.
+          const blastR = b.flameRadius || 70;
+          const burstDist = Math.min(td, b.range*0.65);
+          const bx = b.x + Math.cos(ang)*burstDist;
+          const by = b.y + Math.sin(ang)*burstDist;
+          for(let j=zombies.length-1;j>=0;j--){
+            const z=zombies[j];
+            if(Math.hypot(z.x-bx, z.y-by) < blastR+z.r){
+              z.hp -= b.dmg; z.hitFlash=8; z.burning=10;
+              if(z.hp<=0){
+                awardBloodCoin(z); regenOnKill(z);
+                kills++; waveKills++; score+=z.tough?25:10;
+                const val=z.tough?(18+Math.round(Math.random()*12)):(5+Math.round(Math.random()*7));
+                money+=val; scrapCollected+=val;
+                spawnScrapPop(z.x,z.y,val);
+                zombies.splice(j,1);
+              }
+            }
+          }
+          // Flame burst particles, roiling out from the turret toward the blast point
+          for(let k=0;k<10;k++){
+            const a=ang+(Math.random()-0.5)*0.9;
+            const d=Math.random()*burstDist;
+            particles.push({
+              x:b.x+Math.cos(a)*d, y:b.y+Math.sin(a)*d,
+              vx:Math.cos(a)*(2+Math.random()*2), vy:Math.sin(a)*(2+Math.random()*2),
+              life:12+Math.random()*6,
+              color: Math.random()<0.4 ? '#ffdd66' : (Math.random()<0.7 ? '#ff6a2e' : '#c93030'),
+              size:2.6+Math.random()*2.6,
+            });
+          }
+        } else {
+          bullets.push({x:b.x,y:b.y,vx:Math.cos(ang)*14,vy:Math.sin(ang)*14,
+            dmg:b.dmg,life:b.range/14,color:col,homing:false,turnRate:0,
+            style:null,trail:false,spin:0});
+          // Muzzle flash particles
+          for(let k=0;k<4;k++)
+            particles.push({x:b.x,y:b.y,vx:(Math.random()-.5)*4,vy:(Math.random()-.5)*4,life:6,color:col,size:2});
+        }
       }
     } else if(b.type==='mine'){
       // Explode if zombie enters blast trigger
@@ -1241,7 +1875,7 @@ function updateBuildings(dt, now){
           break;
         }
       }
-    } else if(b.type==='barricade'){
+    } else if(b.type==='barricade' || b.type==='steelBarricade'){
       // Push back zombies that collide
       for(const z of zombies){
         const d=Math.hypot(z.x-b.x,z.y-b.y);
@@ -1254,6 +1888,59 @@ function updateBuildings(dt, now){
           if(b.hp<=0){ buildings.splice(i,1); break; }
         }
       }
+    } else if(b.type==='bunker'){
+      // A fortified wall — zombies that reach it are pushed back and chip its HP,
+      // same defensive model as a Barricade but far tougher, and it slowly repairs
+      // itself over time. Standing inside its radius (checked each frame in
+      // update()) is what grants the player their damage & regen bonus, and
+      // physically keeps zombies from reaching them.
+      if(b.hp < b.maxHp) b.hp = Math.min(b.maxHp, b.hp + 6*(dt/60)); // 6 HP/sec self-repair
+      for(const z of zombies){
+        const d=Math.hypot(z.x-b.x,z.y-b.y);
+        if(d < b.r+z.r){
+          const ang=Math.atan2(z.y-b.y,z.x-b.x);
+          z.x += Math.cos(ang)*2.5*dt;
+          z.y += Math.sin(ang)*2.5*dt;
+          b.hp -= 4*dt;
+          if(b.hp<=0){
+            for(let k=0;k<20;k++)
+              particles.push({x:b.x,y:b.y,vx:(Math.random()-.5)*6,vy:(Math.random()-.5)*6,life:20,color:k%2?'#e0a83c':'#5c6650',size:3+Math.random()*3});
+            showFloatPop(b.x, b.y-24, '🏰 BUNKER DESTROYED', '#e0a83c');
+            buildings.splice(i,1);
+            break;
+          }
+        }
+      }
+    } else if(b.type==='drone'){
+      // Orbits the player and shoots the nearest zombie in range. Fragile —
+      // zombies that touch it chip away its HP and it can be destroyed.
+      b.angle = (b.angle||0) + dt*0.03;
+      b.x = player.x + Math.cos(b.angle)*(b.orbitR||70);
+      b.y = player.y + Math.sin(b.angle)*(b.orbitR||70);
+
+      for(const z of zombies){
+        const d=Math.hypot(z.x-b.x,z.y-b.y);
+        if(d < b.r+z.r) b.hp -= z.dmg*dt*0.08;
+      }
+      if(b.hp<=0){
+        for(let k=0;k<14;k++)
+          particles.push({x:b.x,y:b.y,vx:(Math.random()-.5)*6,vy:(Math.random()-.5)*6,life:16,color:k%2?'#8fd1ff':'#5c6650',size:3+Math.random()*2});
+        showFloatPop(b.x, b.y-16, '🛸 DRONE DESTROYED', '#8fd1ff');
+        buildings.splice(i,1);
+        continue;
+      }
+
+      let target=null, td=b.range;
+      for(const z of zombies){ const d=Math.hypot(z.x-b.x,z.y-b.y); if(d<td){td=d;target=z;} }
+      if(target && now-b.lastShot > b.fireRate){
+        b.lastShot = now;
+        const ang = Math.atan2(target.y-b.y, target.x-b.x);
+        bullets.push({x:b.x,y:b.y,vx:Math.cos(ang)*14,vy:Math.sin(ang)*14,
+          dmg:b.dmg,life:b.range/14,color:'#8fd1ff',homing:false,turnRate:0,
+          style:null,trail:false,spin:0});
+        for(let k=0;k<3;k++)
+          particles.push({x:b.x,y:b.y,vx:(Math.random()-.5)*3,vy:(Math.random()-.5)*3,life:5,color:'#8fd1ff',size:2});
+      }
     }
   }
 }
@@ -1264,12 +1951,18 @@ function drawBuildings(){
     ctx.save();
     ctx.translate(b.x,b.y);
 
-    if(b.type==='turret'){
+    if(b.type==='turret' || b.type==='flameTurret' || b.type==='laserTurret'){
+      const isFlame = b.type==='flameTurret';
+      const isLaser = b.type==='laserTurret';
+      const col     = isFlame ? '#e0653c' : isLaser ? '#4fd1ff' : '#e0a83c';
+      const colDim  = isFlame ? '#3a1a08' : isLaser ? '#0a2530' : '#2a1f08';
+      const colDark = isFlame ? '#a04020' : isLaser ? '#2087a8' : '#c08020';
+      const glowRgb = isFlame ? '224,101,60' : isLaser ? '79,209,255' : '224,168,60';
       // Range ring (faint)
-      ctx.strokeStyle='rgba(224,168,60,0.07)'; ctx.lineWidth=1;
+      ctx.strokeStyle=`rgba(${glowRgb},0.07)`; ctx.lineWidth=1;
       ctx.beginPath(); ctx.arc(0,0,b.range,0,Math.PI*2); ctx.stroke();
       // Base
-      ctx.fillStyle='#2a1f08'; ctx.strokeStyle='#e0a83c'; ctx.lineWidth=2;
+      ctx.fillStyle=colDim; ctx.strokeStyle=col; ctx.lineWidth=2;
       ctx.beginPath(); ctx.arc(0,0,b.r,0,Math.PI*2); ctx.fill(); ctx.stroke();
       // Barrel toward nearest zombie
       let ang=0;
@@ -1280,7 +1973,7 @@ function drawBuildings(){
       }
       ctx.rotate(ang);
       // Triple barrel look
-      ctx.fillStyle='#e0a83c';
+      ctx.fillStyle=col;
       ctx.fillRect(0,-5,b.r+12,4);
       ctx.fillRect(0, 1,b.r+12,4);
       ctx.fillRect(0,-2,b.r+14,2);
@@ -1290,12 +1983,12 @@ function drawBuildings(){
       ctx.rotate(spin);
       for(let k=0;k<3;k++){
         ctx.rotate(Math.PI*2/3);
-        ctx.fillStyle='#c08020';
+        ctx.fillStyle=colDark;
         ctx.fillRect(3,-2,8,4);
       }
       ctx.rotate(-spin);
       ctx.font='11px serif'; ctx.textAlign='center'; ctx.textBaseline='middle';
-      ctx.fillText('🌀',0,0);
+      ctx.fillText(isFlame ? '🔥' : isLaser ? '⚡' : '🌀',0,0);
     } else if(b.type==='mine'){
       ctx.fillStyle='#3a2a08'; ctx.strokeStyle='#f0c94a'; ctx.lineWidth=2;
       ctx.beginPath(); ctx.arc(0,0,b.r,0,Math.PI*2); ctx.fill(); ctx.stroke();
@@ -1306,12 +1999,43 @@ function drawBuildings(){
       ctx.globalAlpha=0.3*pulse; ctx.strokeStyle='#f0c94a'; ctx.lineWidth=2;
       ctx.beginPath(); ctx.arc(0,0,b.r+8+pulse*6,0,Math.PI*2); ctx.stroke();
       ctx.globalAlpha=1;
-    } else if(b.type==='barricade'){
-      ctx.fillStyle='#2a2a1a'; ctx.strokeStyle='#d8d3c1'; ctx.lineWidth=2;
+    } else if(b.type==='barricade' || b.type==='steelBarricade'){
+      const isSteel = b.type==='steelBarricade';
+      ctx.fillStyle = isSteel ? '#1a222a' : '#2a2a1a';
+      ctx.strokeStyle = isSteel ? '#9fb4c7' : '#d8d3c1';
+      ctx.lineWidth=2;
       ctx.fillRect(-b.r,-b.r,b.r*2,b.r*2);
       ctx.strokeRect(-b.r,-b.r,b.r*2,b.r*2);
       ctx.font='16px serif'; ctx.textAlign='center'; ctx.textBaseline='middle';
-      ctx.fillText('🧱',0,0);
+      ctx.fillText(isSteel ? '🛡' : '🧱',0,0);
+    } else if(b.type==='bunker'){
+      const occupied = Math.hypot(player.x-b.x, player.y-b.y) < b.r;
+      // Thick fortified wall ring
+      ctx.fillStyle='#241f14'; ctx.strokeStyle='#e0a83c'; ctx.lineWidth=5;
+      ctx.beginPath(); ctx.arc(0,0,b.r,0,Math.PI*2); ctx.fill(); ctx.stroke();
+      ctx.strokeStyle='#8a6a2a'; ctx.lineWidth=2;
+      ctx.beginPath(); ctx.arc(0,0,b.r-7,0,Math.PI*2); ctx.stroke();
+      // Glow when the player is sheltering inside
+      if(occupied){
+        const pulse=(Math.sin(now*0.005)*0.5+0.5);
+        ctx.globalAlpha=0.25*pulse; ctx.strokeStyle='#8fd13f'; ctx.lineWidth=3;
+        ctx.beginPath(); ctx.arc(0,0,b.r-3,0,Math.PI*2); ctx.stroke();
+        ctx.globalAlpha=1;
+      }
+      ctx.font='18px serif'; ctx.textAlign='center'; ctx.textBaseline='middle';
+      ctx.fillText('🏰',0,-b.r-14);
+    } else if(b.type==='drone'){
+      // Faint tether line back to the player it's orbiting
+      ctx.strokeStyle='rgba(143,209,255,0.15)'; ctx.lineWidth=1;
+      ctx.beginPath(); ctx.moveTo(0,0); ctx.lineTo(player.x-b.x, player.y-b.y); ctx.stroke();
+      const bob = Math.sin(now*0.006)*2;
+      ctx.fillStyle='#0a2530'; ctx.strokeStyle='#8fd1ff'; ctx.lineWidth=2;
+      ctx.beginPath(); ctx.ellipse(0,bob,b.r,b.r*0.6,0,0,Math.PI*2); ctx.fill(); ctx.stroke();
+      ctx.globalAlpha=0.4; ctx.fillStyle='#8fd1ff';
+      ctx.beginPath(); ctx.ellipse(0,bob-4,b.r*0.5,b.r*0.35,0,0,Math.PI*2); ctx.fill();
+      ctx.globalAlpha=1;
+      ctx.font='11px serif'; ctx.textAlign='center'; ctx.textBaseline='middle';
+      ctx.fillText('🛸',0,bob);
     }
 
     // HP bar for turret & barricade
@@ -1329,17 +2053,15 @@ function drawBuildings(){
 // ── Build button wiring ──────────────────────────────────
 document.getElementById('btnTurret').addEventListener('click',()=>{
   if(!running) return;
-  setBuildMode(buildMode==='turret'?null:'turret');
+  toggleBuildSlot(1);
 });
 document.getElementById('btnMine').addEventListener('click',()=>{
   if(!running) return;
-  // Instant place at player position — no confirmation click needed
-  if(buildMode==='mine'){ setBuildMode(null); return; }
-  setBuildMode(null); buildMode='mine'; placeBuilding(player.x, player.y);
+  toggleBuildSlot(2);
 });
 document.getElementById('btnBarricade').addEventListener('click',()=>{
   if(!running) return;
-  setBuildMode(buildMode==='barricade'?null:'barricade');
+  toggleBuildSlot(3);
 });
 function buyHealthUpgrade(){
   if(!running) return;
@@ -1365,6 +2087,17 @@ function update(dt){
   player.x=Math.max(player.r,Math.min(canvas.width-player.r,player.x));
   player.y=Math.max(player.r,Math.min(canvas.height-player.r,player.y));
 
+  // Bastion: standing inside a Bunker grants +10% damage (applied in getWeaponWithStars)
+  // and 4 HP/sec passive regen, while still letting the player aim and shoot normally.
+  inBunker = false;
+  for(const b of buildings){
+    if(b.type==='bunker' && Math.hypot(player.x-b.x, player.y-b.y) < b.r){
+      inBunker = true;
+      player.hp = Math.min(player.maxHp, player.hp + 4*(dt/60));
+      break;
+    }
+  }
+
   if(autoShoot){
     const t=findNearestZombie();
     if(t){ aimAngle=Math.atan2(t.y-player.y,t.x-player.x); shoot(); }
@@ -1377,6 +2110,14 @@ function update(dt){
   spawnTimer+=dt*16.67;
   const effSpawnInterval = spawnInterval / DIFFICULTIES[difficulty].spawnMult;
   if(spawnTimer>effSpawnInterval){ spawnTimer=0; spawnZombie(); }
+
+  // Weapon animation state decay — recoil snaps back fast (guns), swing eases out (melee)
+  if(player.recoil>0) player.recoil=Math.max(0,player.recoil-dt*0.22);
+  if(player.swing>0)  player.swing =Math.max(0,player.swing -dt*0.16);
+  for(let i=slashArcs.length-1;i>=0;i--){
+    slashArcs[i].life-=dt;
+    if(slashArcs[i].life<=0) slashArcs.splice(i,1);
+  }
 
   // lightning arc lifetime
   for(let i=lightningArcs.length-1;i>=0;i--){
@@ -1431,12 +2172,17 @@ function update(dt){
     }
   }
 
+  // bleed damage-over-time (Combat Knife) — resolved before movement so a
+  // bleed-out kill this frame doesn't try to move a removed zombie below.
+  updateBleed(dt);
+
   // zombies
   for(let i=zombies.length-1;i>=0;i--){
     const z=zombies[i];
     const ang=Math.atan2(player.y-z.y,player.x-z.x);
     z.x+=Math.cos(ang)*z.speed*dt; z.y+=Math.sin(ang)*z.speed*dt;
     if(z.hitFlash>0) z.hitFlash--;
+    if(z.burning>0) z.burning--;
     const dist=Math.hypot(player.x-z.x,player.y-z.y);
     if(dist<z.r+player.r){ player.hp-=z.dmg*dt*0.06; z.x-=Math.cos(ang)*2; z.y-=Math.sin(ang)*2; }
   }
@@ -1492,7 +2238,7 @@ function draw(){
   ctx.globalAlpha=1;
 
   zombies.forEach(z=>{
-    ctx.fillStyle=z.hitFlash>0?"#fff":(z.tough?"#5a2e2e":"#3d5a2e");
+    ctx.fillStyle=z.hitFlash>0?"#fff":(z.burning>0?"#8a3a1e":(z.tough?"#5a2e2e":"#3d5a2e"));
     ctx.beginPath();ctx.arc(z.x,z.y,z.r,0,7);ctx.fill();
     ctx.strokeStyle="#111";ctx.lineWidth=2;ctx.stroke();
     ctx.fillStyle="#e0453b";
@@ -1501,6 +2247,20 @@ function draw(){
     const w2=z.r*2;
     ctx.fillStyle="#1a1f14";ctx.fillRect(z.x-w2/2,z.y-z.r-10,w2,4);
     ctx.fillStyle="#b3231c";ctx.fillRect(z.x-w2/2,z.y-z.r-10,w2*(z.hp/z.maxHp),4);
+    // Bleed stack indicator — a row of droplets above the HP bar, one per active stack.
+    if(z.bleedStacks && z.bleedStacks.length){
+      const n=z.bleedStacks.length;
+      const dropSp=6.5, startX=z.x-((n-1)*dropSp)/2;
+      for(let d=0;d<n;d++){
+        const dx=startX+d*dropSp, dy=z.y-z.r-16;
+        ctx.fillStyle= n>=5 ? '#ff3b3b' : '#c93030';
+        ctx.beginPath();
+        ctx.moveTo(dx,dy-3.2);
+        ctx.bezierCurveTo(dx+2.6,dy,dx+2.2,dy+3.2,dx,dy+3.2);
+        ctx.bezierCurveTo(dx-2.2,dy+3.2,dx-2.6,dy,dx,dy-3.2);
+        ctx.fill();
+      }
+    }
   });
 
   bullets.forEach(b=>{
@@ -1555,11 +2315,30 @@ function draw(){
     ctx.globalAlpha=1; ctx.shadowBlur=0;
   });
 
+  // Draw knife slash arcs — a bright crescent sweeping through the stab direction.
+  slashArcs.forEach(s=>{
+    const t=s.life/s.maxLife;
+    ctx.save();
+    ctx.translate(s.x,s.y);
+    ctx.rotate(s.angle);
+    ctx.globalAlpha=t*0.85;
+    ctx.strokeStyle= s.hit ? '#ffffff' : '#c9c9c9';
+    ctx.lineWidth=3*t+0.5;
+    ctx.shadowColor='#c9c9c9';
+    ctx.shadowBlur=8*t;
+    ctx.beginPath();
+    ctx.arc(0,0,s.range,-0.55,0.55);
+    ctx.stroke();
+    ctx.globalAlpha=1; ctx.shadowBlur=0;
+    ctx.restore();
+  });
+
   drawBuildings();
 
   // ── Build mode placement preview ──
   if(buildMode && running){
-    if(buildMode === 'mine'){
+    const previewType = slotType(buildMode);
+    if(previewType === 'mine'){
       // Landmine: preview at exact player position
       ctx.save();
       ctx.globalAlpha=0.55;
@@ -1573,7 +2352,13 @@ function draw(){
       // Turret/Barricade: preview snapped to grid
       const gx = snapToGrid(player.x);
       const gy = snapToGrid(player.y);
-      const col = buildMode==='turret' ? '#e0a83c' : '#d8d3c1';
+      const col = previewType==='turret' ? '#e0a83c'
+                : previewType==='flameTurret' ? '#e0653c'
+                : previewType==='laserTurret' ? '#4fd1ff'
+                : previewType==='bunker' ? '#e0a83c'
+                : previewType==='drone' ? '#8fd1ff'
+                : previewType==='steelBarricade' ? '#9fb4c7'
+                : '#d8d3c1';
       ctx.save();
       ctx.globalAlpha=0.45;
       ctx.strokeStyle=col; ctx.lineWidth=2;
@@ -1596,11 +2381,182 @@ function draw(){
   ctx.save();
   ctx.translate(player.x,player.y);
   ctx.rotate(aimAngle);
+  drawWeaponModel(getWeapon(activeSlot), player.recoil||0, player.swing||0);
   ctx.fillStyle="#8fd13f"; ctx.beginPath();ctx.arc(0,0,player.r,0,7);ctx.fill();
   ctx.strokeStyle="#0a0d08";ctx.lineWidth=2;ctx.stroke();
-  ctx.fillStyle=getWeapon(activeSlot).color;
-  ctx.fillRect(0,-3,player.r+16,6);
   ctx.restore();
+}
+
+// ── Per-weapon visual models ──────────────────────────────
+// All drawn in local space: origin = player center, +x = aim direction (already
+// translated/rotated by the caller). Body circle is drawn AFTER this so the gun
+// housing tucks naturally behind the player sprite.
+function drawWeaponModel(w, recoil, swing){
+  const r = player.r;
+  const kick = recoil*6; // gun snaps back toward the player on every shot
+  ctx.save();
+  ctx.translate(-kick,0);
+  switch(w.model){
+    case 'pistol':      drawPistolModel(w,r); break;
+    case 'shotgun':      drawShotgunModel(w,r); break;
+    case 'rifle':        drawRifleModel(w,r); break;
+    case 'minigun':      drawMinigunModel(w,r); break;
+    case 'bloodpistol':  drawBloodPistolModel(w,r); break;
+    case 'bloodsmg':     drawBloodSmgModel(w,r); break;
+    case 'tesla':        drawTeslaModel(w,r); break;
+    case 'staff':        drawStaffModel(w,r); break;
+    case 'knife':        drawKnifeModel(w,r,swing); break;
+    case 'flamethrower': drawFlamethrowerModel(w,r); break;
+    default:
+      ctx.fillStyle=w.color; ctx.fillRect(0,-3,r+16,6);
+  }
+  ctx.restore();
+}
+
+function drawPistolModel(w,r){
+  ctx.fillStyle='#2a2a28';
+  ctx.fillRect(r-3,-4.5,15,9);
+  ctx.fillStyle='#1a1a18';
+  ctx.fillRect(r+1,3,6,10); // grip
+  ctx.fillStyle=w.color;
+  ctx.fillRect(r+11,-2.6,11,5.2); // barrel
+  ctx.fillStyle='#0a0d08';
+  ctx.fillRect(r+18,-1.3,4,2.6); // muzzle tip
+}
+
+function drawShotgunModel(w,r){
+  ctx.fillStyle='#5a3a22';
+  ctx.fillRect(r-10,-3,10,6); // wood stock
+  ctx.fillStyle='#2a2a28';
+  ctx.fillRect(r,-5,12,10); // receiver
+  ctx.fillStyle=w.color;
+  ctx.fillRect(r+11,-4,22,3.2); // top barrel
+  ctx.fillRect(r+11,0.8,22,3.2); // bottom barrel
+  ctx.fillStyle='#0a0d08';
+  ctx.fillRect(r+31,-4.4,3,4); ctx.fillRect(r+31,0.4,3,4);
+}
+
+function drawRifleModel(w,r){
+  ctx.fillStyle='#3a2a1a';
+  ctx.fillRect(r-11,-2.6,11,5.2); // stock
+  ctx.fillStyle='#2a2a28';
+  ctx.fillRect(r,-3.2,11,6.4); // receiver
+  ctx.fillStyle='#1a1a18';
+  ctx.fillRect(r+3,-7,7,3.4); // scope
+  ctx.fillStyle=w.color;
+  ctx.fillRect(r+8,-1.7,32,3.4); // long barrel
+  ctx.fillStyle='#0a0d08';
+  ctx.fillRect(r+38,-2.2,4,4.4);
+}
+
+function drawMinigunModel(w,r){
+  ctx.fillStyle='#2a2a28';
+  ctx.beginPath();ctx.arc(r+3,0,8,0,7);ctx.fill();
+  ctx.strokeStyle='#111';ctx.lineWidth=1.4;ctx.stroke();
+  ctx.fillStyle=w.color;
+  for(const dy of [-4.2,0,4.2]){
+    ctx.fillRect(r+9,dy-1.5,22,3);
+  }
+  ctx.fillStyle='#0a0d08';
+  for(const dy of [-4.2,0,4.2]) ctx.fillRect(r+29,dy-1.9,3,3.8);
+}
+
+function drawBloodPistolModel(w,r){
+  ctx.save();
+  ctx.shadowColor=w.color; ctx.shadowBlur=10;
+  ctx.fillStyle='#1a0a0a';
+  ctx.fillRect(r-3,-4.5,15,9);
+  ctx.fillStyle='#0f0505';
+  ctx.fillRect(r+1,3,6,10);
+  ctx.fillStyle=w.color;
+  ctx.beginPath();
+  ctx.moveTo(r+12,-3.4); ctx.lineTo(r+26,0); ctx.lineTo(r+12,3.4);
+  ctx.closePath(); ctx.fill();
+  ctx.restore();
+}
+
+function drawBloodSmgModel(w,r){
+  ctx.save();
+  ctx.shadowColor=w.color; ctx.shadowBlur=10;
+  ctx.fillStyle='#1a0a0a';
+  ctx.fillRect(r-3,-4.5,22,9);
+  ctx.fillStyle=w.color;
+  ctx.fillRect(r+19,-2.4,15,4.8);
+  ctx.fillStyle='#0f0505';
+  ctx.fillRect(r+5,4.5,4.5,11); // curved magazine (drawn straight, simplified)
+  ctx.restore();
+  ctx.fillStyle='#3a1414';
+  ctx.fillRect(r-3,-4.5,22,2); // top rail highlight
+}
+
+function drawTeslaModel(w,r){
+  ctx.fillStyle='#26262e';
+  ctx.fillRect(r-5,-3.6,11,7.2); // grip housing
+  ctx.save();
+  ctx.strokeStyle=w.color; ctx.lineWidth=2.2;
+  ctx.shadowColor=w.color; ctx.shadowBlur=12;
+  for(const rad of [4,7,10]){
+    ctx.beginPath(); ctx.arc(r+16,0,rad,0,Math.PI*2); ctx.stroke();
+  }
+  ctx.fillStyle='#e8d0ff';
+  ctx.beginPath(); ctx.arc(r+16,0,3,0,7); ctx.fill();
+  ctx.restore();
+}
+
+function drawStaffModel(w,r){
+  ctx.strokeStyle='#5a3a22'; ctx.lineWidth=4.5; ctx.lineCap='round';
+  ctx.beginPath(); ctx.moveTo(r-8,0); ctx.lineTo(r+38,0); ctx.stroke();
+  ctx.save();
+  ctx.fillStyle=w.color;
+  ctx.shadowColor=w.color; ctx.shadowBlur=14;
+  ctx.beginPath(); ctx.arc(r+41,0,6.5,0,7); ctx.fill();
+  ctx.restore();
+  ctx.strokeStyle='#8a1414'; ctx.lineWidth=1;
+  ctx.beginPath(); ctx.arc(r+41,0,6.5,0,7); ctx.stroke();
+}
+
+function drawKnifeModel(w,r,swing){
+  // swing goes 1 -> 0 over the stab; sweep the blade from a windup angle
+  // through the strike and into a short follow-through.
+  const progress = 1-swing;
+  const angle = -0.75 + progress*1.5;
+  ctx.save();
+  ctx.translate(r+1,0);
+  ctx.rotate(angle);
+  ctx.fillStyle='#2a2a28';
+  ctx.fillRect(-3,-3,9,6); // hilt
+  ctx.fillStyle='#111';
+  ctx.fillRect(-6,-2,4,4); // pommel
+  ctx.fillStyle=w.color;
+  ctx.beginPath();
+  ctx.moveTo(6,-3.4);
+  ctx.lineTo(26,-1.1);
+  ctx.lineTo(26,1.1);
+  ctx.lineTo(6,3.4);
+  ctx.closePath();
+  ctx.fill();
+  ctx.strokeStyle='#8a8a8a'; ctx.lineWidth=0.6; ctx.stroke();
+  // blood-groove highlight down the center of the blade
+  ctx.strokeStyle='rgba(255,255,255,0.35)'; ctx.lineWidth=0.8;
+  ctx.beginPath(); ctx.moveTo(8,0); ctx.lineTo(24,0); ctx.stroke();
+  ctx.restore();
+}
+
+function drawFlamethrowerModel(w,r){
+  ctx.fillStyle='#3a3a38';
+  ctx.fillRect(r-9,-4,13,8); // grip housing
+  ctx.fillStyle='#2a2a28';
+  ctx.fillRect(r+2,-5.5,16,11); // fuel tank body
+  ctx.fillStyle='#1a1a18';
+  ctx.beginPath(); ctx.arc(r+4,-5.5,3,Math.PI,0); ctx.fill(); // tank cap
+  ctx.fillStyle=w.color;
+  ctx.fillRect(r+16,-2.4,20,4.8); // nozzle barrel
+  ctx.fillStyle='#0a0d08';
+  ctx.fillRect(r+34,-3,4,6); // nozzle tip
+  // pilot-light flicker at the very tip
+  const flick=2+Math.sin(performance.now()*0.02)*1;
+  ctx.fillStyle='#ffdd66';
+  ctx.beginPath(); ctx.arc(r+39,0,flick,0,7); ctx.fill();
 }
 
 function loop(t){
@@ -1610,9 +2566,94 @@ function loop(t){
   requestAnimationFrame(loop);
 }
 
-// ── Leaderboard (local, this game only — key is namespaced 'ob_' like all
-// other Outbreak save data, so it never collides with a separate "Base Siege"
-// or any other game's leaderboard sharing the same browser storage) ──
+// ── Siege Account (shared login — same account/keys used by Base Siege,
+// so logging in here also logs you into Base Siege on this browser) ──
+// NOTE: this is a client-side-only account store (localStorage), not a real
+// authenticated backend — good enough to gate score submission across the
+// two games sharing a browser, but not a substitute for server-side auth.
+const ACCT_USERS_KEY   = 'siege_acct_users';
+const ACCT_SESSION_KEY = 'siege_acct_session';
+
+function hashPass(pw){
+  // Simple non-cryptographic hash — just avoids storing raw passwords in localStorage.
+  let h = 5381;
+  for(let i=0;i<pw.length;i++){ h = ((h*33) ^ pw.charCodeAt(i)) >>> 0; }
+  return h.toString(36);
+}
+function loadAccounts(){
+  try{ const v=JSON.parse(localStorage.getItem(ACCT_USERS_KEY)||'{}'); return (v&&typeof v==='object')?v:{}; }
+  catch(e){ return {}; }
+}
+function saveAccounts(obj){ localStorage.setItem(ACCT_USERS_KEY, JSON.stringify(obj)); }
+function getSession(){ return localStorage.getItem(ACCT_SESSION_KEY) || null; }
+function setSession(username){ localStorage.setItem(ACCT_SESSION_KEY, username); }
+function clearSession(){ localStorage.removeItem(ACCT_SESSION_KEY); }
+function currentUser(){
+  const u = getSession();
+  const accounts = loadAccounts();
+  return (u && accounts[u.toLowerCase()]) ? u : null;
+}
+
+// If the login modal was opened specifically to submit a score, this remembers
+// to auto-submit right after a successful login.
+let pendingScoreSubmit = false;
+
+function openLoginModal(forSubmit){
+  pendingScoreSubmit = !!forSubmit;
+  document.getElementById('acctUserInput').value='';
+  document.getElementById('acctPassInput').value='';
+  const err=document.getElementById('acctError'); err.style.display='none'; err.textContent='';
+  document.getElementById('loginModal').style.display='flex';
+  document.getElementById('acctUserInput').focus();
+}
+function closeLoginModal(){
+  document.getElementById('loginModal').style.display='none';
+  pendingScoreSubmit=false;
+}
+function attemptLoginOrRegister(){
+  const userRaw=(document.getElementById('acctUserInput').value||'').trim();
+  const pass=document.getElementById('acctPassInput').value||'';
+  const err=document.getElementById('acctError');
+  const showErr=(msg)=>{ err.textContent=msg; err.style.display='block'; };
+  if(userRaw.length<3){ showErr('USERNAME MUST BE 3+ CHARACTERS'); return; }
+  if(pass.length<4){ showErr('PASSWORD MUST BE 4+ CHARACTERS'); return; }
+  const key=userRaw.toLowerCase();
+  const accounts=loadAccounts();
+  if(accounts[key]){
+    if(accounts[key].passHash !== hashPass(pass)){ showErr('WRONG PASSWORD'); return; }
+    setSession(accounts[key].displayName);
+  } else {
+    accounts[key]={ displayName:userRaw.slice(0,20), passHash:hashPass(pass), createdAt:Date.now() };
+    saveAccounts(accounts);
+    setSession(userRaw.slice(0,20));
+  }
+  closeLoginModal();
+  refreshAccountUI();
+  if(pendingScoreSubmit){ pendingScoreSubmit=false; submitScore(); }
+}
+function logout(){
+  clearSession();
+  refreshAccountUI();
+}
+function refreshAccountUI(){
+  const user=currentUser();
+  const lbStatus=document.getElementById('lbAcctStatus');
+  const lbLoginBtn=document.getElementById('lbLoginBtn');
+  const lbLogoutBtn=document.getElementById('lbLogoutBtn');
+  if(lbStatus){
+    if(user){
+      lbStatus.innerHTML=`✓ LOGGED IN AS <span class="acctName">${escapeLbName(user)}</span>`;
+      lbLoginBtn.style.display='none'; lbLogoutBtn.style.display='inline-block';
+    } else {
+      lbStatus.textContent='🔒 NOT LOGGED IN';
+      lbLoginBtn.style.display='inline-block'; lbLogoutBtn.style.display='none';
+    }
+  }
+  updateSaveScoreRow();
+}
+
+// ── Leaderboard (local scores, but gated behind the shared Siege Account —
+// entries are attributed to your logged-in username, same as Base Siege) ──
 const LEADERBOARD_KEY = 'ob_leaderboard';
 const LEADERBOARD_MAX = 20;
 function loadLeaderboard(){
@@ -1655,9 +2696,32 @@ function endGame(){
   document.getElementById('goldEarnedTxt').textContent=`+${ge} Gold earned  (Total: ${gold})`;
   document.getElementById('saveScoreRow').style.display='flex';
   document.getElementById('saveScoreMsg').style.display='none';
-  document.getElementById('saveScoreBtn').disabled=false;
-  document.getElementById('lbNameInput').value = localStorage.getItem('ob_lastName')||'';
+  scoreSubmittedThisRun=false;
+  updateSaveScoreRow();
   go.style.display='block'; go.style.pointerEvents='all';
+}
+
+// Whether the current run's score has already been submitted (prevents double-submit).
+let scoreSubmittedThisRun=false;
+
+function updateSaveScoreRow(){
+  const btn=document.getElementById('saveScoreBtn');
+  if(!btn) return;
+  if(scoreSubmittedThisRun){
+    btn.disabled=true;
+    return;
+  }
+  btn.disabled=false;
+  btn.textContent = currentUser() ? '🏆 SUBMIT SCORE' : '🔐 LOG IN TO SUBMIT SCORE';
+}
+function submitScore(){
+  const user=currentUser();
+  if(!user){ openLoginModal(true); return; }
+  saveLeaderboardEntry(user, score, wave, kills);
+  scoreSubmittedThisRun=true;
+  document.getElementById('saveScoreBtn').disabled=true;
+  const msg=document.getElementById('saveScoreMsg');
+  msg.textContent=`✓ SCORE SUBMITTED AS ${user.toUpperCase()}`; msg.style.display='block';
 }
 
 // ══════════════════════════════════════════════════════════
@@ -1673,10 +2737,10 @@ let shopSlot = 1;
 // Slot 3: Rifle(3)
 // Slot 4: Minigun(4)
 function getWeaponsForSlot(slot){
-  if(slot===1) return [0, TESLA_IDX, BLOOD_IDX];
+  if(slot===1) return [0, TESLA_IDX, KNIFE_IDX, BLOOD_IDX];
   if(slot===2) return [2, BLOOD_SMG_IDX];
   if(slot===3) return [3, BLOOD_STAFF_IDX];
-  if(slot===4) return [4];
+  if(slot===4) return [4, FLAME_IDX];
   return [];
 }
 
@@ -1685,6 +2749,7 @@ function getEquippedForSlot(slot){
   if(slot===1){
     if(equippedSpecial==='tesla' && teslaUnlocked) return TESLA_IDX;
     if(equippedSpecial==='blood' && bloodPistolUnlocked) return BLOOD_IDX;
+    if(equippedSpecial==='knife' && knifeUnlocked) return KNIFE_IDX;
     return 0; // Pistol
   }
   if(slot===2){
@@ -1694,6 +2759,10 @@ function getEquippedForSlot(slot){
   if(slot===3){
     if(equippedSlot3==='bloodstaff' && bloodStaffUnlocked) return BLOOD_STAFF_IDX;
     return 3; // Rifle
+  }
+  if(slot===4){
+    if(equippedSlot4==='flamethrower' && flamethrowerUnlocked) return FLAME_IDX;
+    return 4; // Minigun
   }
   return TIER_WEAPON[slot-1];
 }
@@ -1717,6 +2786,7 @@ function updateSlotTabs(){
 function renderShop(){
   document.getElementById('goldTxt').textContent=gold;
   document.getElementById('bloodTxt').textContent=bloodCoin;
+  if(typeof renderClasses==='function') renderClasses();
   updateSlotTabs();
 
   const grid=document.getElementById('shopGrid'); grid.innerHTML='';
@@ -1728,7 +2798,9 @@ function renderShop(){
     const isBlood=wt.exclusive==='blood';
     const isBloodSmg=wt.exclusive==='bloodsmg';
     const isBloodStaff=wt.exclusive==='bloodstaff';
-    const isBase = !isTesla && !isBlood && !isBloodSmg && !isBloodStaff;
+    const isKnife=wt.type==='knife';
+    const isFlamethrower=wt.type==='flame';
+    const isBase = !isTesla && !isBlood && !isBloodSmg && !isBloodStaff && !isKnife && !isFlamethrower;
 
     // Equipped state for this slot
     const equippedIdx = getEquippedForSlot(shopSlot);
@@ -1748,6 +2820,10 @@ function renderShop(){
         costLabel = isEquippedCard
           ? `<span class="wActBtn equipped-lbl" style="display:block">✓ EQUIPPED IN SLOT 3 · $${TIER_COST[2]} mid-run</span>`
           : `<button class="wActBtn equip" id="equipRifleBtn">EQUIP IN SLOT 3</button>`;
+      } else if(shopSlot===4){
+        costLabel = isEquippedCard
+          ? `<span class="wActBtn equipped-lbl" style="display:block">✓ EQUIPPED IN SLOT 4 · $${TIER_COST[3]} mid-run</span>`
+          : `<button class="wActBtn equip" id="equipMinigunBtn">EQUIP IN SLOT 4</button>`;
       } else {
         costLabel = `<span class="wActBtn free" style="display:block">Unlocked mid-run for $${TIER_COST[shopSlot-1]}</span>`;
       }
@@ -1759,9 +2835,17 @@ function renderShop(){
       } else {
         costLabel = `<button class="wActBtn equip" id="equipTeslaBtn">EQUIP IN SLOT 1</button>`;
       }
+    } else if(isKnife){
+      if(!knifeUnlocked){
+        costLabel = `<button class="wActBtn unlock" id="buyKnifeBtn" ${gold>=KNIFE_GOLD_COST?'':'disabled'}>◆ UNLOCK — ${KNIFE_GOLD_COST} GOLD</button>`;
+      } else if(isEquippedCard){
+        costLabel = `<span class="wActBtn equipped-lbl" style="display:block;color:#4fa3e0;border-color:#2e5a7a">✓ EQUIPPED IN SLOT 1</span>`;
+      } else {
+        costLabel = `<button class="wActBtn equip" id="equipKnifeBtn">EQUIP IN SLOT 1</button>`;
+      }
     } else if(isBlood){
       if(!bloodPistolUnlocked){
-        costLabel = `<button class="wActBtn unlock" id="buyBloodBtn" ${bloodCoin>=BLOOD_COIN_COST?'':'disabled'}>◆ UNLOCK — ${BLOOD_COIN_COST} 🩸 BLOOD COIN</button>`;
+        costLabel = `<span class="wActBtn" style="display:block;opacity:.6;cursor:not-allowed">🔒 CRATE ONLY</span>`;
       } else if(isEquippedCard){
         costLabel = `<span class="wActBtn equipped-lbl" style="display:block;color:var(--blood);border-color:#6a1414">✓ EQUIPPED IN SLOT 1</span>`;
       } else {
@@ -1769,7 +2853,7 @@ function renderShop(){
       }
     } else if(isBloodSmg){
       if(!bloodSmgUnlocked){
-        costLabel = `<button class="wActBtn unlock" id="buyBloodSmgBtn" ${bloodCoin>=BLOOD_SMG_COIN_COST?'':'disabled'}>◆ UNLOCK — ${BLOOD_SMG_COIN_COST} 🩸 BLOOD COIN</button>`;
+        costLabel = `<span class="wActBtn" style="display:block;opacity:.6;cursor:not-allowed">🔒 CRATE ONLY</span>`;
       } else if(isEquippedCard){
         costLabel = `<span class="wActBtn equipped-lbl" style="display:block;color:var(--blood);border-color:#6a1414">✓ EQUIPPED IN SLOT 2 · $${BLOOD_SMG_CASH_COST} mid-run</span>`;
       } else {
@@ -1777,11 +2861,19 @@ function renderShop(){
       }
     } else if(isBloodStaff){
       if(!bloodStaffUnlocked){
-        costLabel = `<button class="wActBtn unlock" id="buyBloodStaffBtn" ${bloodCoin>=BLOOD_STAFF_COIN_COST?'':'disabled'}>◆ UNLOCK — ${BLOOD_STAFF_COIN_COST} 🩸 BLOOD COIN</button>`;
+        costLabel = `<span class="wActBtn" style="display:block;opacity:.6;cursor:not-allowed">🔒 CRATE ONLY</span>`;
       } else if(isEquippedCard){
         costLabel = `<span class="wActBtn equipped-lbl" style="display:block;color:var(--blood);border-color:#6a1414">✓ EQUIPPED IN SLOT 3 · $${BLOOD_STAFF_CASH_COST} mid-run</span>`;
       } else {
         costLabel = `<button class="wActBtn equip" id="equipBloodStaffBtn">EQUIP IN SLOT 3</button>`;
+      }
+    } else if(isFlamethrower){
+      if(!flamethrowerUnlocked){
+        costLabel = `<button class="wActBtn unlock" id="buyFlamethrowerBtn" ${gold>=FLAMETHROWER_GOLD_COST?'':'disabled'}>◆ UNLOCK — ${FLAMETHROWER_GOLD_COST} GOLD</button>`;
+      } else if(isEquippedCard){
+        costLabel = `<span class="wActBtn equipped-lbl" style="display:block;color:#ff6a2e;border-color:#8a3a1e">✓ EQUIPPED IN SLOT 4 · $${FLAMETHROWER_CASH_COST} mid-run</span>`;
+      } else {
+        costLabel = `<button class="wActBtn equip" id="equipFlamethrowerBtn">EQUIP IN SLOT 4</button>`;
       }
     }
 
@@ -1800,6 +2892,16 @@ function renderShop(){
          <div><span class="statVal">${Math.round(1000/upgraded.fireRate)}/s</span>RATE<br><span class="statGain">${pctDown(s.rate)} cd/★</span></div>
          <div><span class="statVal">${upgraded.burstDmg}</span>BURST<br><span class="statGain">+${Math.round(((s.burst||1.18)-1)*100)}%/★</span></div>
          <div><span class="statVal">15</span>MAX CHG<br><span class="statGain">x${wt.healMult} HEAL</span></div>`
+      : isKnife
+      ? `<div><span class="statVal">${upgraded.dmg}</span>DMG<br><span class="statGain">${pct(s.dmg)}/★</span></div>
+         <div><span class="statVal">${Math.round(1000/upgraded.fireRate)}/s</span>RATE<br><span class="statGain">${pctDown(s.rate)} cd/★</span></div>
+         <div><span class="statVal">${upgraded.bleedDmg}</span>BLEED/tick<br><span class="statGain">+${Math.round(((s.bleed||1.16)-1)*100)}%/★</span></div>
+         <div><span class="statVal">+${wt.healOnKill}</span>HEAL/KILL<br><span class="statGain">on kill</span></div>`
+      : isFlamethrower
+      ? `<div><span class="statVal">${upgraded.dmg}</span>DMG/tick<br><span class="statGain">${pct(s.dmg)}/★</span></div>
+         <div><span class="statVal">${Math.round(1000/upgraded.fireRate)}/s</span>RATE<br><span class="statGain">${pctDown(s.rate)} cd/★</span></div>
+         <div><span class="statVal">${upgraded.range}</span>RANGE<br><span class="statGain">${pct(s.range)}/★</span></div>
+         <div><span class="statVal">${Math.round((upgraded.coneAngle||wt.coneAngle)*2*57.3)}°</span>CONE AOE<br><span class="statGain">hits all in cone</span></div>`
       : `<div><span class="statVal">${upgraded.dmg}</span>DMG<br><span class="statGain">${pct(s.dmg)}/★</span></div>
          <div><span class="statVal">${Math.round(1000/upgraded.fireRate)}/s</span>RATE<br><span class="statGain">${pctDown(s.rate)} cd/★</span></div>
          <div><span class="statVal">${upgraded.range}</span>RANGE<br><span class="statGain">${pct(s.range)}/★</span></div>
@@ -1811,7 +2913,9 @@ function renderShop(){
     const isLocked = (isTesla && !teslaUnlocked)
                    || (isBlood && !bloodPistolUnlocked)
                    || (isBloodSmg && !bloodSmgUnlocked)
-                   || (isBloodStaff && !bloodStaffUnlocked);
+                   || (isBloodStaff && !bloodStaffUnlocked)
+                   || (isKnife && !knifeUnlocked)
+                   || (isFlamethrower && !flamethrowerUnlocked);
 
     let upgradeHtml = '';
     if(isLocked){
@@ -1825,20 +2929,19 @@ function renderShop(){
       upgradeHtml = `<div class="maxStarLbl">★ MAX LEVEL ★</div>`;
     }
 
-    // Rarity label
+    // Rarity label — display only, doesn't affect cost/upgrade mechanics
     const rarityLabel = isTesla ? '<span style="color:var(--epic);font-size:8px;letter-spacing:2px">⬡ EPIC</span>'
                       : (isBlood||isBloodSmg||isBloodStaff) ? '<span style="color:var(--blood);font-size:8px;letter-spacing:2px">⬡ EXCLUSIVE</span>'
-                      : shopSlot===1 ? '<span style="font-size:8px;letter-spacing:2px;color:#5c6650">⬡ COMMON</span>'
-                      : shopSlot===2 ? '<span style="font-size:8px;letter-spacing:2px;color:#4fa37a">⬡ UNCOMMON</span>'
-                      : shopSlot===3 ? '<span style="color:#4fa3e0;font-size:8px;letter-spacing:2px">⬡ RARE</span>'
-                      : '<span style="color:var(--epic);font-size:8px;letter-spacing:2px">⬡ EPIC</span>';
+                      : isKnife ? '<span style="color:#4fa3e0;font-size:8px;letter-spacing:2px">⬡ RARE</span>'
+                      : isFlamethrower ? '<span style="color:#4fa37a;font-size:8px;letter-spacing:2px">⬡ UNCOMMON</span>'
+                      : '<span style="font-size:8px;letter-spacing:2px;color:#5c6650">⬡ COMMON</span>';
 
     const card=document.createElement('div');
-    card.className='wCard'+(isTesla?' tesla-card':'')+((isBlood||isBloodSmg||isBloodStaff)?' blood-card':'')+(isEquippedCard?' equipped':'');
+    card.className='wCard'+(isTesla?' tesla-card':'')+((isBlood||isBloodSmg||isBloodStaff)?' blood-card':'')+(isKnife?' knife-card':'')+(isEquippedCard?' equipped':'');
     card.innerHTML=`
       ${isEquippedCard?'<div class="wEquipTag">EQUIPPED</div>':''}
       <div class="wIcon">${wt.icon}</div>
-      <div class="wName" style="${isTesla?'color:var(--epic)':((isBlood||isBloodSmg||isBloodStaff)?'color:var(--blood)':'color:'+wt.color)}">${wt.name}</div>
+      <div class="wName" style="${isTesla?'color:var(--epic)':((isBlood||isBloodSmg||isBloodStaff)?'color:var(--blood)':isKnife?'color:#4fa3e0':isFlamethrower?'color:#ff6a2e':'color:'+wt.color)}">${wt.name}</div>
       <div class="wWeight">${rarityLabel}</div>
       <div class="wDesc">${wt.desc}</div>
       <div class="wStats">${statCols}</div>
@@ -1857,7 +2960,9 @@ function renderShop(){
       const locked = (wt.type==='tesla' && !teslaUnlocked)
                    || (wt.exclusive==='blood' && !bloodPistolUnlocked)
                    || (wt.exclusive==='bloodsmg' && !bloodSmgUnlocked)
-                   || (wt.exclusive==='bloodstaff' && !bloodStaffUnlocked);
+                   || (wt.exclusive==='bloodstaff' && !bloodStaffUnlocked)
+                   || (wt.type==='knife' && !knifeUnlocked)
+                   || (wt.type==='flame' && !flamethrowerUnlocked);
       if(locked) return;
       const stars = getStars(wIdx);
       if(stars >= MAX_STARS) return;
@@ -1879,12 +2984,14 @@ function renderShop(){
       renderShop();
     });
   }
-  const buyBloodBtn=document.getElementById('buyBloodBtn');
-  if(buyBloodBtn){
-    buyBloodBtn.addEventListener('click',()=>{
-      if(bloodCoin<BLOOD_COIN_COST) return;
-      bloodCoin-=BLOOD_COIN_COST; saveBloodCoin(bloodCoin);
-      bloodPistolUnlocked=true; saveBloodPistolUnlocked(bloodPistolUnlocked);
+  // Blood Pistol/SMG/Staff are crate-only now — no direct buy buttons/handlers
+
+  const buyKnifeBtn=document.getElementById('buyKnifeBtn');
+  if(buyKnifeBtn){
+    buyKnifeBtn.addEventListener('click',()=>{
+      if(gold<KNIFE_GOLD_COST) return;
+      gold-=KNIFE_GOLD_COST; saveGold(gold);
+      knifeUnlocked=true; saveKnifeUnlocked(knifeUnlocked);
       renderShop();
     });
   }
@@ -1892,6 +2999,10 @@ function renderShop(){
   const equipTeslaBtn=document.getElementById('equipTeslaBtn');
   if(equipTeslaBtn) equipTeslaBtn.addEventListener('click',()=>{
     equippedSpecial='tesla'; saveEquippedSpecial(equippedSpecial); renderShop();
+  });
+  const equipKnifeBtn=document.getElementById('equipKnifeBtn');
+  if(equipKnifeBtn) equipKnifeBtn.addEventListener('click',()=>{
+    equippedSpecial='knife'; saveEquippedSpecial(equippedSpecial); renderShop();
   });
   const equipBloodBtn=document.getElementById('equipBloodBtn');
   if(equipBloodBtn) equipBloodBtn.addEventListener('click',()=>{
@@ -1902,15 +3013,6 @@ function renderShop(){
     equippedSpecial='none'; saveEquippedSpecial(equippedSpecial); renderShop();
   });
 
-  const buyBloodSmgBtn=document.getElementById('buyBloodSmgBtn');
-  if(buyBloodSmgBtn){
-    buyBloodSmgBtn.addEventListener('click',()=>{
-      if(bloodCoin<BLOOD_SMG_COIN_COST) return;
-      bloodCoin-=BLOOD_SMG_COIN_COST; saveBloodCoin(bloodCoin);
-      bloodSmgUnlocked=true; saveBloodSmgUnlocked(bloodSmgUnlocked);
-      renderShop();
-    });
-  }
   const equipBloodSmgBtn=document.getElementById('equipBloodSmgBtn');
   if(equipBloodSmgBtn) equipBloodSmgBtn.addEventListener('click',()=>{
     equippedSlot2='bloodsmg'; saveEquippedSlot2(equippedSlot2); renderShop();
@@ -1920,15 +3022,6 @@ function renderShop(){
     equippedSlot2='none'; saveEquippedSlot2(equippedSlot2); renderShop();
   });
 
-  const buyBloodStaffBtn=document.getElementById('buyBloodStaffBtn');
-  if(buyBloodStaffBtn){
-    buyBloodStaffBtn.addEventListener('click',()=>{
-      if(bloodCoin<BLOOD_STAFF_COIN_COST) return;
-      bloodCoin-=BLOOD_STAFF_COIN_COST; saveBloodCoin(bloodCoin);
-      bloodStaffUnlocked=true; saveBloodStaffUnlocked(bloodStaffUnlocked);
-      renderShop();
-    });
-  }
   const equipBloodStaffBtn=document.getElementById('equipBloodStaffBtn');
   if(equipBloodStaffBtn) equipBloodStaffBtn.addEventListener('click',()=>{
     equippedSlot3='bloodstaff'; saveEquippedSlot3(equippedSlot3); renderShop();
@@ -1936,6 +3029,24 @@ function renderShop(){
   const equipRifleBtn=document.getElementById('equipRifleBtn');
   if(equipRifleBtn) equipRifleBtn.addEventListener('click',()=>{
     equippedSlot3='none'; saveEquippedSlot3(equippedSlot3); renderShop();
+  });
+
+  const buyFlamethrowerBtn=document.getElementById('buyFlamethrowerBtn');
+  if(buyFlamethrowerBtn){
+    buyFlamethrowerBtn.addEventListener('click',()=>{
+      if(gold<FLAMETHROWER_GOLD_COST) return;
+      gold-=FLAMETHROWER_GOLD_COST; saveGold(gold);
+      flamethrowerUnlocked=true; saveFlamethrowerUnlocked(flamethrowerUnlocked);
+      renderShop();
+    });
+  }
+  const equipFlamethrowerBtn=document.getElementById('equipFlamethrowerBtn');
+  if(equipFlamethrowerBtn) equipFlamethrowerBtn.addEventListener('click',()=>{
+    equippedSlot4='flamethrower'; saveEquippedSlot4(equippedSlot4); renderShop();
+  });
+  const equipMinigunBtn=document.getElementById('equipMinigunBtn');
+  if(equipMinigunBtn) equipMinigunBtn.addEventListener('click',()=>{
+    equippedSlot4='none'; saveEquippedSlot4(equippedSlot4); renderShop();
   });
 }
 
@@ -1969,6 +3080,230 @@ document.getElementById('diffRow').addEventListener('click', e=>{
 });
 renderDifficulty();
 
+// ── Class shop — Survivor is free, other classes are bought with GOLD ──
+function pct(v){ const p=Math.round((v-1)*100); return (p>=0?'+':'')+p+'%'; }
+function renderClasses(){
+  const grid = document.getElementById('clsGrid');
+  if(!grid) return;
+  grid.innerHTML='';
+  Object.keys(CLASSES).forEach(id=>{
+    const cls = CLASSES[id];
+    const unlocked = isClassUnlocked(id);
+    const cost = getClassCost(id);
+    const equipped = unlocked && id===playerClass;
+
+    const card = document.createElement('div');
+    card.className = 'clsCard' + (equipped?' equipped':'');
+
+    let actionHtml;
+    if(equipped){
+      actionHtml = `<button class="cActBtn equipped-lbl" disabled>✓ EQUIPPED</button>`;
+    } else if(unlocked){
+      actionHtml = `<button class="cActBtn equip" data-cls="${id}" data-action="equip">EQUIP</button>`;
+    } else {
+      const affordable = gold >= cost;
+      actionHtml = `<button class="cActBtn unlock" data-cls="${id}" data-action="unlock" ${affordable?'':'disabled'}>🔒 UNLOCK — ◆ ${cost}</button>`;
+    }
+
+    card.innerHTML = `
+      ${equipped?'<span class="cEquipTag">EQUIPPED</span>':''}
+      <div class="cIcon">${cls.icon}</div>
+      <div class="cName">${cls.label}</div>
+      <div class="cDesc">${cls.desc}</div>
+      <div class="cStats">
+        <div><span class="statVal">${pct(cls.hpMult)}</span>HP</div>
+        <div><span class="statVal">${pct(cls.speedMult)}</span>SPD</div>
+        <div><span class="statVal">${pct(cls.dmgMult)}</span>DMG</div>
+        <div><span class="statVal">${pct(cls.rateMult)}</span>RATE</div>
+      </div>
+      <div class="cBuildsLabel">BUILDS [Q] [E] [R]</div>
+      <div class="cBuilds">
+        <div><span class="buildIcon">${slotIcon(slotType(1,id))}</span>${slotLabel(slotType(1,id))}</div>
+        <div><span class="buildIcon">${slotIcon(slotType(2,id))}</span>${slotLabel(slotType(2,id))}</div>
+        <div><span class="buildIcon">${slotIcon(slotType(3,id))}</span>${slotLabel(slotType(3,id))}</div>
+      </div>
+      ${actionHtml}
+    `;
+    grid.appendChild(card);
+  });
+
+  const c=getClass();
+  const note=document.getElementById('clsNote');
+  if(note) note.innerHTML = c.desc + ' <span style="opacity:.7">(Turret/Mine/Barricade max HP is always the default, for every class.)</span>';
+}
+document.getElementById('clsGrid').addEventListener('click', e=>{
+  const btn = e.target.closest('.cActBtn');
+  if(!btn || !btn.dataset.action) return;
+  const id = btn.dataset.cls;
+  const action = btn.dataset.action;
+
+  if(action==='equip'){
+    playerClass = id; savePlayerClass(playerClass);
+    renderClasses();
+    renderShop(); // weapon stat previews reflect the class dmg/rate mults
+    return;
+  }
+
+  // action === 'unlock'
+  const cost = getClassCost(id);
+  if(gold < cost){
+    const note=document.getElementById('clsNote');
+    if(note) note.innerHTML = `<span style="color:#e05050">NEED ${cost} GOLD TO UNLOCK ${CLASSES[id].label}</span>`;
+    return;
+  }
+  gold -= cost; saveGold(gold);
+  if(id==='engineer'){ engineerUnlocked=true; saveEngineerUnlocked(engineerUnlocked); }
+  if(id==='bastion'){ bastionUnlocked=true; saveBastionUnlocked(bastionUnlocked); }
+  document.getElementById('goldTxt').textContent=gold;
+  playerClass = id; savePlayerClass(playerClass);
+  renderClasses();
+  renderShop();
+});
+renderClasses();
+
+// ── Blood Crate UI ──────────────────────────────────────
+function renderBloodCrate(){
+  const wrap = document.getElementById('crateWrap');
+  if(!wrap) return;
+  const affordable = bloodCoin >= CRATE_COST;
+  wrap.innerHTML = `
+    <div class="crateCard">
+      <div class="crateIcon">🎁</div>
+      <div class="crateBody">
+        <div class="crateTitle">BLOOD CRATE</div>
+        <div class="crateOdds">
+          <b>20%</b> Blood Pistol &nbsp;·&nbsp; <b>5%</b> Blood SMG &nbsp;·&nbsp; <b>1%</b> Blood Staff<br>
+          <b>74%</b> a Gold payout (${CRATE_GOLD_MIN}–${CRATE_GOLD_MAX}) &nbsp;·&nbsp; duplicates always convert to Gold
+        </div>
+        <div class="crateBtnRow">
+          <button class="crateOpenBtn" id="openCrateBtn" ${affordable?'':'disabled'}>OPEN — ${CRATE_COST} 🩸</button>
+          <span class="crateBalance">You have <b style="color:var(--bone)">${bloodCoin}</b> 🩸 Blood Coin</span>
+        </div>
+      </div>
+    </div>
+  `;
+  const btn = document.getElementById('openCrateBtn');
+  if(btn) btn.addEventListener('click', openBloodCrate);
+}
+
+const CRATE_ITEM_W = 84;   // must match .crateReelItem width in CSS
+const CRATE_TARGET_INDEX = 26; // where the winning item sits in the generated reel
+
+function buildCrateReelHtml(items, winIndex){
+  return items.map((it,i)=>`
+    <div class="crateReelItem${i===winIndex?' winner':''}">
+      <div class="riIcon" style="${i===winIndex?`filter:drop-shadow(0 0 10px ${it.color})`:''}">${it.icon}</div>
+      <div class="riLabel" style="${i===winIndex?`color:${it.color}`:''}">${it.label}</div>
+    </div>
+  `).join('');
+}
+
+function openBloodCrate(){
+  if(bloodCoin < CRATE_COST) return;
+  bloodCoin -= CRATE_COST; saveBloodCoin(bloodCoin);
+  document.getElementById('bloodTxt').textContent=bloodCoin;
+
+  const result = rollBloodCrate();
+  // Map the roll onto a reel-display item (gold gets its rolled amount baked into the label)
+  let winItem;
+  if(result.prize==='gold'){
+    const base = CRATE_REEL_POOL.find(it=>it.key==='gold');
+    winItem = { ...base, label:`+${result.amt} GOLD` };
+  } else {
+    winItem = CRATE_REEL_POOL.find(it=>it.key===result.prize);
+  }
+
+  // Build a long filler reel, then drop the actual result in at the fixed target index
+  // so the animation can scroll to a known stopping point.
+  const items = [];
+  for(let i=0;i<32;i++) items.push(pickWeightedFillerItem());
+  items[CRATE_TARGET_INDEX] = winItem;
+
+  // ── Overlay ──
+  const overlay = document.createElement('div');
+  overlay.className = 'crateReelOverlay';
+  overlay.innerHTML = `
+    <div class="crateReelBox">
+      <div class="crateReelTitle">🎁 OPENING BLOOD CRATE…</div>
+      <div class="crateReelOddsRow">
+        ${CRATE_REEL_POOL.map(it=>`
+          <div class="oddItem">
+            <span class="oddIcon">${it.icon}</span>
+            <span class="oddPct" style="color:${it.color}">${it.pct}</span>
+          </div>`).join('')}
+      </div>
+      <div class="crateReelViewport" id="crateReelViewport">
+        <div class="crateReelPointer"></div>
+        <div class="crateReelStrip" id="crateReelStrip">${buildCrateReelHtml(items, CRATE_TARGET_INDEX)}</div>
+      </div>
+      <div class="crateReelResult" id="crateReelResult">&nbsp;</div>
+      <div class="crateReelBtnRow">
+        <button class="crateReelSkipBtn" id="crateReelSkipBtn">SKIP ▶▶</button>
+        <button class="crateReelCloseBtn" id="crateReelCloseBtn">CONTINUE</button>
+      </div>
+    </div>
+  `;
+  document.body.appendChild(overlay);
+
+  const viewport = document.getElementById('crateReelViewport');
+  const strip = document.getElementById('crateReelStrip');
+  const vw = viewport.getBoundingClientRect().width;
+  const targetOffset = CRATE_TARGET_INDEX*CRATE_ITEM_W + CRATE_ITEM_W/2 - vw/2;
+
+  // Start at 0, force a layout, then animate to the target with a slot-machine ease-out.
+  strip.style.transform = 'translateX(0px)';
+  // eslint-disable-next-line no-unused-expressions
+  strip.getBoundingClientRect(); // force reflow before enabling the transition
+  strip.style.transition = 'transform 3.4s cubic-bezier(0.12,0.85,0.15,1)';
+  requestAnimationFrame(()=>{
+    strip.style.transform = `translateX(-${targetOffset}px)`;
+  });
+
+  let finished = false;
+  function finishReel(){
+    if(finished) return;
+    finished = true;
+    clearTimeout(finishTimer);
+    // Snap the strip straight to its landing spot in case Skip was hit mid-spin
+    strip.style.transition = 'none';
+    strip.style.transform = `translateX(-${targetOffset}px)`;
+
+    // Apply the actual reward now that the reel has (visually) landed on it
+    let msg, color;
+    if(result.prize==='bloodPistol'){
+      bloodPistolUnlocked=true; saveBloodPistolUnlocked(bloodPistolUnlocked);
+      msg='🎉 YOU GOT THE BLOOD PISTOL!'; color='var(--blood)';
+    } else if(result.prize==='bloodSmg'){
+      bloodSmgUnlocked=true; saveBloodSmgUnlocked(bloodSmgUnlocked);
+      msg='🎉 YOU GOT THE BLOOD SMG!'; color='var(--blood)';
+    } else if(result.prize==='bloodStaff'){
+      bloodStaffUnlocked=true; saveBloodStaffUnlocked(bloodStaffUnlocked);
+      msg='🎉 YOU GOT THE BLOOD STAFF!'; color='var(--blood)';
+    } else {
+      gold += result.amt; saveGold(gold);
+      document.getElementById('goldTxt').textContent=gold;
+      msg=`💰 +${result.amt} GOLD`; color='#f0c94a';
+    }
+    const resEl=document.getElementById('crateReelResult');
+    if(resEl){ resEl.textContent=msg; resEl.style.color=color; resEl.style.textShadow=`0 0 10px ${color}88`; }
+    const skipBtn=document.getElementById('crateReelSkipBtn');
+    if(skipBtn) skipBtn.classList.add('hide');
+    const closeBtn=document.getElementById('crateReelCloseBtn');
+    if(closeBtn) closeBtn.classList.add('show');
+
+    renderBloodCrate();
+    renderShop(); // refresh weapon cards in case a blood weapon just unlocked
+  }
+
+  const finishTimer = setTimeout(finishReel, 3500);
+  document.getElementById('crateReelSkipBtn').addEventListener('click', finishReel);
+
+  document.getElementById('crateReelCloseBtn').addEventListener('click', ()=>{
+    overlay.remove();
+  });
+}
+renderBloodCrate();
+
 renderShop();
 
 // ── Screen transitions ────────────────────────────────────
@@ -1986,27 +3321,32 @@ document.getElementById('retryBtn').addEventListener('click',()=>{
   renderShop();
 });
 
-// ── Leaderboard screen wiring ──────────────────────────────
-document.getElementById('saveScoreBtn').addEventListener('click',()=>{
-  const input=document.getElementById('lbNameInput');
-  const name=(input.value||'SURVIVOR').trim().toUpperCase().slice(0,16) || 'SURVIVOR';
-  localStorage.setItem('ob_lastName', name);
-  saveLeaderboardEntry(name, score, wave, kills);
-  document.getElementById('saveScoreRow').style.display='none';
-  document.getElementById('saveScoreBtn').disabled=true;
-  const msg=document.getElementById('saveScoreMsg');
-  msg.textContent='✓ SCORE SUBMITTED'; msg.style.display='block';
+// ── Leaderboard / account screen wiring ──────────────────────────────
+document.getElementById('saveScoreBtn').addEventListener('click', submitScore);
+
+document.getElementById('lbLoginBtn').addEventListener('click', ()=>openLoginModal(false));
+document.getElementById('lbLogoutBtn').addEventListener('click', logout);
+
+document.getElementById('acctSubmitBtn').addEventListener('click', attemptLoginOrRegister);
+document.getElementById('acctCancelBtn').addEventListener('click', closeLoginModal);
+document.getElementById('acctPassInput').addEventListener('keydown', e=>{
+  if(e.key==='Enter') attemptLoginOrRegister();
 });
-document.getElementById('lbNameInput').addEventListener('keydown',e=>{
-  if(e.key==='Enter') document.getElementById('saveScoreBtn').click();
+document.getElementById('acctUserInput').addEventListener('keydown', e=>{
+  if(e.key==='Enter') document.getElementById('acctPassInput').focus();
 });
+
 document.getElementById('openLeaderboardBtn').addEventListener('click',()=>{
   renderLeaderboard();
+  refreshAccountUI();
   document.getElementById('leaderboardScreen').style.display='flex';
 });
 document.getElementById('closeLeaderboardBtn').addEventListener('click',()=>{
   document.getElementById('leaderboardScreen').style.display='none';
 });
+
+// Reflect any existing shared session (e.g. already logged in from Base Siege) on load.
+refreshAccountUI();
 
 })();
 </script>
