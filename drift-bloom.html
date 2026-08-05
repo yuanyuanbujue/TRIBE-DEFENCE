@@ -1,3 +1,769 @@
 <!DOCTYPE html>
 <html lang="en">
-<head>Under CONSTRUCTION ~COMEBACK NEXT TIME TO CHECK UP AGAIN!</head>
+<head>
+<meta charset="UTF-8">
+<title>Drift Bloom</title>
+<style>
+  * { margin: 0; padding: 0; box-sizing: border-box; }
+  html, body {
+    width: 100%; height: 100%;
+    background: #05060f;
+    overflow: hidden;
+    font-family: 'Segoe UI', system-ui, sans-serif;
+  }
+  #wrap {
+    position: relative;
+    width: 100vw; height: 100vh;
+    display: flex; align-items: center; justify-content: center;
+    gap: 18px;
+  }
+  #stage-col {
+    position: relative;
+    display: flex; align-items: center; justify-content: center;
+  }
+  canvas {
+    display: block;
+    background: radial-gradient(circle at 50% 30%, #10122a 0%, #05060f 70%);
+    box-shadow: 0 0 60px rgba(120, 90, 255, 0.15);
+    border-radius: 12px;
+  }
+  #hud {
+    position: absolute;
+    top: 18px; left: 18px;
+    color: #e8e6ff;
+    font-size: 16px;
+    letter-spacing: 0.5px;
+    text-shadow: 0 0 8px rgba(150,120,255,0.6);
+    pointer-events: none;
+    user-select: none;
+  }
+  #hud .row { margin-bottom: 4px; opacity: 0.9; }
+  #hearts { color: #ff6ea8; }
+  #bloomLabel { color: #8fe8c8; }
+  #banner {
+    position: absolute;
+    top: 50%; left: 50%;
+    transform: translate(-50%, -50%);
+    text-align: center;
+    color: #f2f0ff;
+    display: none;
+    background: rgba(10, 8, 30, 0.72);
+    padding: 28px 40px;
+    border-radius: 16px;
+    border: 1px solid rgba(150,120,255,0.35);
+    box-shadow: 0 0 40px rgba(120,90,255,0.35);
+    z-index: 10;
+    max-width: 360px;
+  }
+  #banner h1 { font-size: 26px; margin-bottom: 10px; color: #c9bfff; }
+  #banner p { font-size: 14px; opacity: 0.85; margin-bottom: 16px; }
+  #banner input {
+    width: 100%;
+    background: rgba(255,255,255,0.06);
+    border: 1px solid rgba(150,120,255,0.4);
+    border-radius: 8px;
+    color: #f2f0ff;
+    padding: 9px 12px;
+    font-size: 14px;
+    margin-bottom: 14px;
+    outline: none;
+  }
+  #banner input::placeholder { color: rgba(230,225,255,0.4); }
+  #banner button {
+    background: linear-gradient(135deg, #7a5cff, #35d0c0);
+    border: none;
+    color: #05060f;
+    font-weight: 600;
+    padding: 10px 22px;
+    border-radius: 999px;
+    cursor: pointer;
+    font-size: 14px;
+    letter-spacing: 0.5px;
+  }
+  #banner button:hover { filter: brightness(1.08); }
+  #banner button:disabled { opacity: 0.5; cursor: not-allowed; }
+  #hint {
+    position: absolute;
+    bottom: 16px; left: 50%;
+    transform: translateX(-50%);
+    color: rgba(230,225,255,0.55);
+    font-size: 12px;
+    letter-spacing: 0.5px;
+    user-select: none;
+    pointer-events: none;
+    text-align: center;
+  }
+  #sidePanel {
+    width: 260px;
+    height: 600px;
+    display: flex;
+    flex-direction: column;
+    gap: 14px;
+  }
+  .panel {
+    background: rgba(15, 12, 35, 0.75);
+    border: 1px solid rgba(150,120,255,0.25);
+    border-radius: 12px;
+    box-shadow: 0 0 30px rgba(120,90,255,0.1);
+    display: flex;
+    flex-direction: column;
+    overflow: hidden;
+  }
+  .panel h2 {
+    font-size: 13px;
+    letter-spacing: 0.8px;
+    text-transform: uppercase;
+    color: #c9bfff;
+    padding: 10px 14px;
+    border-bottom: 1px solid rgba(150,120,255,0.2);
+  }
+  #leaderPanel { flex: 0 0 auto; max-height: 260px; }
+  #leaderList {
+    list-style: none;
+    padding: 8px 10px;
+    overflow-y: auto;
+    font-size: 13px;
+    color: #e8e6ff;
+  }
+  #leaderList li {
+    display: flex;
+    justify-content: space-between;
+    padding: 5px 6px;
+    border-radius: 6px;
+  }
+  #leaderList li:nth-child(odd) { background: rgba(255,255,255,0.03); }
+  #leaderList .rank { color: #8fe8c8; width: 22px; flex-shrink: 0; }
+  #leaderList .nm { flex: 1; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; padding: 0 6px; }
+  #leaderList .sc { color: #ffd27a; font-weight: 600; }
+  #leaderEmpty { padding: 12px 14px; font-size: 12px; color: rgba(230,225,255,0.4); }
+  #chatPanel { flex: 1 1 auto; min-height: 0; }
+  #chatMessages {
+    flex: 1;
+    overflow-y: auto;
+    padding: 8px 12px;
+    font-size: 12.5px;
+    color: #e8e6ff;
+    display: flex;
+    flex-direction: column;
+    gap: 6px;
+  }
+  #chatMessages .msg .nm { color: #8fe8c8; font-weight: 600; margin-right: 5px; }
+  #chatMessages .msg .tx { word-break: break-word; }
+  #chatForm {
+    display: flex;
+    border-top: 1px solid rgba(150,120,255,0.2);
+  }
+  #chatInput {
+    flex: 1;
+    background: transparent;
+    border: none;
+    outline: none;
+    color: #f2f0ff;
+    padding: 9px 12px;
+    font-size: 13px;
+  }
+  #chatInput::placeholder { color: rgba(230,225,255,0.35); }
+  #chatSend {
+    background: none;
+    border: none;
+    color: #8fe8c8;
+    padding: 0 14px;
+    cursor: pointer;
+    font-size: 13px;
+    font-weight: 600;
+  }
+  #chatSend:hover { color: #c9bfff; }
+  .panel::-webkit-scrollbar, #leaderList::-webkit-scrollbar, #chatMessages::-webkit-scrollbar { width: 6px; }
+  .panel::-webkit-scrollbar-thumb, #leaderList::-webkit-scrollbar-thumb, #chatMessages::-webkit-scrollbar-thumb {
+    background: rgba(150,120,255,0.3); border-radius: 3px;
+  }
+  #saveStatus { font-size: 12px; margin-top: -8px; margin-bottom: 10px; min-height: 14px; color: #8fe8c8; }
+</style>
+</head>
+<body>
+<div id="wrap">
+  <div id="stage-col">
+  <canvas id="game" width="860" height="600"></canvas>
+  <div id="hud">
+    <div class="row">Score: <span id="score">0</span> <span id="comboWrap" style="color:#ffd27a;"></span></div>
+    <div class="row" id="bloomLabel">Bloom Stage: <span id="stage">1</span></div>
+    <div class="row" id="hearts">♥ ♥ ♥</div>
+  </div>
+  <div id="hint">Move: WASD / Arrow Keys &nbsp;·&nbsp; Collect glimmers fast for combo multiplier &nbsp;·&nbsp; Watch for glowing-eyed HUNTER husks — they chase you &nbsp;·&nbsp; Stage 4+: blue CHARGER husks freeze, telegraph a line, then dash</div>
+  <div id="banner">
+    <h1 id="bannerTitle">Drift Bloom</h1>
+    <p id="bannerText">Guide your seedling of light through the drifting dark. Collect glimmers fast to build a combo multiplier. Watch for red-eyed HUNTER husks — they'll chase you down.</p>
+    <input id="nameInput" type="text" maxlength="20" placeholder="Enter your name for the leaderboard" />
+    <button id="bannerBtn">Begin</button>
+  </div>
+  </div>
+  <div id="sidePanel">
+    <div class="panel" id="leaderPanel">
+      <h2>Leaderboard</h2>
+      <ul id="leaderList"><li id="leaderEmpty" style="list-style:none;">Loading…</li></ul>
+    </div>
+    <div class="panel" id="chatPanel">
+      <h2>Chat</h2>
+      <div id="chatMessages"></div>
+      <form id="chatForm">
+        <input id="chatInput" type="text" maxlength="200" placeholder="Say something…" autocomplete="off" />
+        <button id="chatSend" type="submit">Send</button>
+      </form>
+    </div>
+  </div>
+</div>
+
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2/dist/umd/supabase.js"></script>
+<script>
+(function() {
+  const SUPABASE_URL = 'https://ootujxngqczxdoiijrve.supabase.co';
+  const SUPABASE_ANON_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Im9vdHVqeG5ncWN6eGRvaWlqcnZlIiwicm9sZSI6ImFub24iLCJpYXQiOjE3ODU2NTY5NzgsImV4cCI6MjEwMTIzMjk3OH0.JNuQ6F2M2eJDbBtP1E4Q6NVKgN2g0vrHtB1-o1VyEvQ';
+  const sb = window.supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
+  window.__driftBloomClient = sb;
+
+  const leaderList = document.getElementById('leaderList');
+  const chatMessages = document.getElementById('chatMessages');
+  const chatForm = document.getElementById('chatForm');
+  const chatInput = document.getElementById('chatInput');
+
+  function escapeHtml(s) {
+    return s.replace(/[&<>"']/g, c => ({ '&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;' }[c]));
+  }
+
+  async function loadLeaderboard() {
+    const { data, error } = await sb
+      .from('drift_bloom_leaderboard')
+      .select('player_name, score, stage')
+      .order('score', { ascending: false })
+      .limit(10);
+    if (error) {
+      leaderList.innerHTML = '<li id="leaderEmpty" style="list-style:none;">Couldn\'t load leaderboard</li>';
+      return;
+    }
+    if (!data || data.length === 0) {
+      leaderList.innerHTML = '<li id="leaderEmpty" style="list-style:none;">No scores yet — be the first to bloom!</li>';
+      return;
+    }
+    leaderList.innerHTML = data.map((row, i) => `
+      <li>
+        <span class="rank">${i + 1}</span>
+        <span class="nm">${escapeHtml(row.player_name)}</span>
+        <span class="sc">${row.score}</span>
+      </li>
+    `).join('');
+  }
+
+  window.__driftBloomSubmitScore = async function(name, score, stage) {
+    try {
+      await sb.from('drift_bloom_leaderboard').insert({ player_name: name, score, stage });
+      await loadLeaderboard();
+    } catch (e) {}
+  };
+
+  function appendChatMessage(row) {
+    const div = document.createElement('div');
+    div.className = 'msg';
+    div.innerHTML = `<span class="nm">${escapeHtml(row.player_name)}:</span><span class="tx">${escapeHtml(row.message)}</span>`;
+    chatMessages.appendChild(div);
+    chatMessages.scrollTop = chatMessages.scrollHeight;
+  }
+
+  async function loadChat() {
+    const { data, error } = await sb
+      .from('drift_bloom_chat')
+      .select('player_name, message, created_at')
+      .order('created_at', { ascending: true })
+      .limit(50);
+    if (!error && data) {
+      chatMessages.innerHTML = '';
+      data.forEach(appendChatMessage);
+    }
+    sb.channel('drift_bloom_chat_room')
+      .on('postgres_changes', { event: 'INSERT', schema: 'public', table: 'drift_bloom_chat' }, payload => {
+        appendChatMessage(payload.new);
+      })
+      .subscribe();
+  }
+
+  chatForm.addEventListener('submit', async e => {
+    e.preventDefault();
+    const text = chatInput.value.trim();
+    if (!text) return;
+    const name = (window.__driftBloomPlayerName || 'Anonymous').slice(0, 20);
+    chatInput.value = '';
+    try {
+      await sb.from('drift_bloom_chat').insert({ player_name: name, message: text.slice(0, 200) });
+    } catch (e) {}
+  });
+
+  loadLeaderboard();
+  loadChat();
+})();
+</script>
+<script>
+(function() {
+  const canvas = document.getElementById('game');
+  const ctx = canvas.getContext('2d');
+  const W = canvas.width, H = canvas.height;
+
+  const scoreEl = document.getElementById('score');
+  const stageEl = document.getElementById('stage');
+  const heartsEl = document.getElementById('hearts');
+  const banner = document.getElementById('banner');
+  const bannerTitle = document.getElementById('bannerTitle');
+  const bannerText = document.getElementById('bannerText');
+  const bannerBtn = document.getElementById('bannerBtn');
+
+  let audioCtx = null;
+  function beep(freq, dur, type, vol) {
+    try {
+      if (!audioCtx) audioCtx = new (window.AudioContext || window.webkitAudioContext)();
+      const o = audioCtx.createOscillator();
+      const g = audioCtx.createGain();
+      o.type = type || 'sine';
+      o.frequency.value = freq;
+      g.gain.value = vol || 0.05;
+      o.connect(g); g.connect(audioCtx.destination);
+      o.start();
+      g.gain.exponentialRampToValueAtTime(0.0001, audioCtx.currentTime + dur);
+      o.stop(audioCtx.currentTime + dur);
+    } catch (e) {}
+  }
+
+  const keys = {};
+  window.addEventListener('keydown', e => {
+    keys[e.key.toLowerCase()] = true;
+    if (['arrowup','arrowdown','arrowleft','arrowright',' '].includes(e.key.toLowerCase())) e.preventDefault();
+  });
+  window.addEventListener('keyup', e => { keys[e.key.toLowerCase()] = false; });
+
+  const stars = [];
+  for (let i = 0; i < 140; i++) {
+    stars.push({
+      x: Math.random() * W,
+      y: Math.random() * H,
+      r: Math.random() * 1.4 + 0.3,
+      tw: Math.random() * Math.PI * 2,
+      speed: Math.random() * 0.15 + 0.02
+    });
+  }
+
+  const player = { x: W / 2, y: H / 2, vx: 0, vy: 0, r: 12, hue: 265, trail: [] };
+
+  const ACCEL = 0.55;
+  const FRICTION = 0.90;
+  const MAX_SPEED = 5.4;
+
+  let score = 0, stage = 1, lives = 3, running = false, invuln = 0, time = 0;
+  let glimmers = [], husks = [], particles = [];
+  let combo = 0, comboTimer = 0, shake = 0;
+  const comboWrap = document.getElementById('comboWrap');
+
+  function rand(a, b) { return a + Math.random() * (b - a); }
+
+  function spawnGlimmer() {
+    let x, y;
+    do {
+      x = rand(30, W - 30);
+      y = rand(30, H - 30);
+    } while (Math.hypot(x - player.x, y - player.y) < 120);
+    glimmers.push({ x, y, r: rand(4, 6), phase: Math.random() * Math.PI * 2, drift: rand(0.2, 0.6), angle: rand(0, Math.PI * 2) });
+  }
+
+  function spawnHusk() {
+    const side = Math.floor(rand(0, 4));
+    let x, y;
+    if (side === 0) { x = -30; y = rand(0, H); }
+    else if (side === 1) { x = W + 30; y = rand(0, H); }
+    else if (side === 2) { x = rand(0, W); y = -30; }
+    else { x = rand(0, W); y = H + 30; }
+
+    const isCharger = stage >= 4 && Math.random() < Math.min(0.14 + (stage - 4) * 0.04, 0.42);
+    if (isCharger) {
+      husks.push({
+        x, y,
+        r: rand(13, 17),
+        vx: 0, vy: 0,
+        wobble: Math.random() * Math.PI * 2,
+        hunter: false,
+        charger: true,
+        chargeState: 'idle',
+        stateTimer: Math.floor(rand(55, 80)),
+        aimX: 0, aimY: 0,
+        speed: 0,
+        trail: []
+      });
+      return;
+    }
+
+    const isHunter = stage >= 2 && Math.random() < Math.min(0.15 + stage * 0.05, 0.55);
+    const angle = Math.atan2(H/2 - y, W/2 - x) + rand(-0.6, 0.6);
+    const speed = rand(0.75, 1.3) + stage * 0.13;
+    husks.push({
+      x, y,
+      r: isHunter ? rand(11, 15) : rand(14, 20),
+      vx: Math.cos(angle) * speed, vy: Math.sin(angle) * speed,
+      wobble: Math.random() * Math.PI * 2,
+      hunter: isHunter,
+      speed: isHunter ? speed * rand(1.3, 1.7) : speed
+    });
+  }
+
+  function resetGame() {
+    score = 0; stage = 1; lives = 3; invuln = 90; time = 0;
+    combo = 0; comboTimer = 0; shake = 0;
+    player.x = W / 2; player.y = H / 2;
+    player.vx = 0; player.vy = 0; player.r = 12; player.trail = [];
+    glimmers = []; husks = []; particles = [];
+    for (let i = 0; i < 5; i++) spawnGlimmer();
+    updateHud();
+  }
+
+  function updateHud() {
+    scoreEl.textContent = score;
+    stageEl.textContent = stage;
+    let h = '';
+    for (let i = 0; i < lives; i++) h += '♥ ';
+    heartsEl.textContent = h.trim() || '—';
+    comboWrap.textContent = combo > 1 ? `×${combo} combo!` : '';
+  }
+
+  function popParticles(x, y, hue, n) {
+    for (let i = 0; i < n; i++) {
+      const a = Math.random() * Math.PI * 2;
+      const s = rand(0.6, 3.2);
+      particles.push({ x, y, vx: Math.cos(a) * s, vy: Math.sin(a) * s, life: rand(20, 40), maxLife: 40, hue });
+    }
+  }
+
+  function gameOver() {
+    running = false;
+    bannerTitle.textContent = 'Withered';
+    bannerText.textContent = `Your light faded at Bloom Stage ${stage} with a score of ${score}. Try again?`;
+    bannerBtn.textContent = 'Bloom Again';
+    document.getElementById('nameInput').style.display = 'none';
+    banner.style.display = 'block';
+    if (window.__driftBloomSubmitScore && window.__driftBloomPlayerName) {
+      window.__driftBloomSubmitScore(window.__driftBloomPlayerName, score, stage);
+    }
+  }
+
+  function update() {
+    time++;
+    let ax = 0, ay = 0;
+    if (keys['w'] || keys['arrowup']) ay -= 1;
+    if (keys['s'] || keys['arrowdown']) ay += 1;
+    if (keys['a'] || keys['arrowleft']) ax -= 1;
+    if (keys['d'] || keys['arrowright']) ax += 1;
+    const len = Math.hypot(ax, ay);
+    if (len > 0) { ax /= len; ay /= len; }
+
+    player.vx += ax * ACCEL;
+    player.vy += ay * ACCEL;
+    player.vx *= FRICTION;
+    player.vy *= FRICTION;
+    const speed = Math.hypot(player.vx, player.vy);
+    if (speed > MAX_SPEED) {
+      player.vx = (player.vx / speed) * MAX_SPEED;
+      player.vy = (player.vy / speed) * MAX_SPEED;
+    }
+    player.x += player.vx;
+    player.y += player.vy;
+    player.x = Math.max(player.r, Math.min(W - player.r, player.x));
+    player.y = Math.max(player.r, Math.min(H - player.r, player.y));
+
+    player.trail.push({ x: player.x, y: player.y });
+    if (player.trail.length > 14) player.trail.shift();
+
+    if (invuln > 0) invuln--;
+
+    for (const g of glimmers) {
+      g.phase += 0.05;
+      g.x += Math.cos(g.angle) * g.drift * 0.3;
+      g.y += Math.sin(g.angle) * g.drift * 0.3;
+      g.x = Math.max(15, Math.min(W - 15, g.x));
+      g.y = Math.max(15, Math.min(H - 15, g.y));
+    }
+
+    if (comboTimer > 0) { comboTimer--; if (comboTimer === 0) combo = 0; }
+
+    for (let i = glimmers.length - 1; i >= 0; i--) {
+      const g = glimmers[i];
+      const d = Math.hypot(g.x - player.x, g.y - player.y);
+      if (d < g.r + player.r) {
+        glimmers.splice(i, 1);
+        combo++;
+        comboTimer = 70;
+        const mult = 1 + Math.min(combo - 1, 8) * 0.5;
+        score += Math.round(10 * mult);
+        popParticles(g.x, g.y, 165, 14);
+        beep(520 + Math.random() * 120 + combo * 6, 0.12, 'triangle', 0.045);
+        spawnGlimmer();
+        if (player.r < 26) player.r += 0.35;
+        if (score > 0 && Math.floor(score / 120) + 1 > stage) {
+          stage++;
+          spawnHusk();
+          if (stage % 2 === 0) spawnHusk();
+          beep(320, 0.25, 'sine', 0.06);
+        }
+      }
+    }
+
+    for (const h of husks) {
+      h.wobble += 0.04;
+      if (h.charger) {
+        if (h.chargeState === 'idle') {
+          h.stateTimer--;
+          if (h.stateTimer <= 0) {
+            const dx = player.x - h.x, dy = player.y - h.y;
+            const d = Math.hypot(dx, dy) || 1;
+            h.aimX = dx / d; h.aimY = dy / d;
+            h.chargeState = 'telegraph';
+            h.stateTimer = 38;
+            beep(200, 0.15, 'square', 0.03);
+          }
+        } else if (h.chargeState === 'telegraph') {
+          h.stateTimer--;
+          if (h.stateTimer <= 0) {
+            h.chargeState = 'charging';
+            h.speed = 12.5;
+            h.vx = h.aimX * h.speed;
+            h.vy = h.aimY * h.speed;
+            beep(500, 0.12, 'sawtooth', 0.05);
+          }
+        } else if (h.chargeState === 'charging') {
+          h.x += h.vx;
+          h.y += h.vy;
+          h.trail.push({ x: h.x, y: h.y });
+          if (h.trail.length > 10) h.trail.shift();
+        }
+        continue;
+      }
+      if (h.hunter) {
+        const dx = player.x - h.x, dy = player.y - h.y;
+        const dist = Math.hypot(dx, dy) || 1;
+        const turn = 0.06;
+        h.vx += (dx / dist) * h.speed * turn;
+        h.vy += (dy / dist) * h.speed * turn;
+        const sp = Math.hypot(h.vx, h.vy);
+        if (sp > h.speed) { h.vx = (h.vx / sp) * h.speed; h.vy = (h.vy / sp) * h.speed; }
+        h.x += h.vx + Math.sin(h.wobble) * 0.1;
+        h.y += h.vy + Math.cos(h.wobble) * 0.1;
+      } else {
+        h.x += h.vx + Math.sin(h.wobble) * 0.15;
+        h.y += h.vy + Math.cos(h.wobble) * 0.15;
+      }
+    }
+    husks = husks.filter(h => h.x > -80 && h.x < W + 80 && h.y > -80 && h.y < H + 80);
+    if (time % Math.max(28, 110 - stage * 9) === 0) spawnHusk();
+
+    if (invuln <= 0) {
+      for (const h of husks) {
+        const d = Math.hypot(h.x - player.x, h.y - player.y);
+        if (d < h.r + player.r * 0.8) {
+          lives--;
+          invuln = 100;
+          combo = 0; comboTimer = 0;
+          shake = 14;
+          player.r = Math.max(9, player.r - 3);
+          popParticles(player.x, player.y, 340, 22);
+          beep(140, 0.3, 'sawtooth', 0.07);
+          if (lives <= 0) {
+            updateHud();
+            gameOver();
+            return;
+          }
+          break;
+        }
+      }
+    }
+
+    for (let i = particles.length - 1; i >= 0; i--) {
+      const p = particles[i];
+      p.x += p.vx; p.y += p.vy;
+      p.vx *= 0.96; p.vy *= 0.96;
+      p.life--;
+      if (p.life <= 0) particles.splice(i, 1);
+    }
+
+    if (shake > 0) shake *= 0.88;
+    if (shake < 0.3) shake = 0;
+
+    updateHud();
+  }
+
+  function draw() {
+    ctx.save();
+    if (shake > 0) {
+      ctx.translate(rand(-shake, shake), rand(-shake, shake));
+    }
+    ctx.clearRect(-20, -20, W + 40, H + 40);
+
+    for (const s of stars) {
+      s.tw += s.speed;
+      const a = 0.4 + Math.sin(s.tw) * 0.35;
+      ctx.fillStyle = `rgba(200,190,255,${Math.max(0, a)})`;
+      ctx.beginPath();
+      ctx.arc(s.x, s.y, s.r, 0, Math.PI * 2);
+      ctx.fill();
+    }
+
+    for (const g of glimmers) {
+      const pulse = 1 + Math.sin(g.phase) * 0.25;
+      const grad = ctx.createRadialGradient(g.x, g.y, 0, g.x, g.y, g.r * 3 * pulse);
+      grad.addColorStop(0, 'rgba(150,255,220,0.9)');
+      grad.addColorStop(1, 'rgba(150,255,220,0)');
+      ctx.fillStyle = grad;
+      ctx.beginPath();
+      ctx.arc(g.x, g.y, g.r * 3 * pulse, 0, Math.PI * 2);
+      ctx.fill();
+      ctx.fillStyle = '#eafff5';
+      ctx.beginPath();
+      ctx.arc(g.x, g.y, g.r * pulse, 0, Math.PI * 2);
+      ctx.fill();
+    }
+
+    for (const h of husks) {
+      if (h.charger) {
+        if (h.chargeState === 'charging' && h.trail.length) {
+          for (let i = 0; i < h.trail.length; i++) {
+            const t = h.trail[i];
+            const a = (i / h.trail.length) * 0.4;
+            ctx.fillStyle = `rgba(90,190,255,${a})`;
+            ctx.beginPath();
+            ctx.arc(t.x, t.y, h.r * (i / h.trail.length) * 0.8, 0, Math.PI * 2);
+            ctx.fill();
+          }
+        }
+        if (h.chargeState === 'telegraph') {
+          const tpulse = 0.5 + Math.sin(time * 0.3) * 0.3;
+          ctx.save();
+          ctx.strokeStyle = `rgba(90,190,255,${0.3 + tpulse * 0.25})`;
+          ctx.lineWidth = 2;
+          ctx.setLineDash([7, 9]);
+          ctx.beginPath();
+          ctx.moveTo(h.x, h.y);
+          ctx.lineTo(h.x + h.aimX * 900, h.y + h.aimY * 900);
+          ctx.stroke();
+          ctx.setLineDash([]);
+          ctx.restore();
+        }
+        const cGlowMult = h.chargeState === 'charging' ? 2.4 : 1.8;
+        const cGrad = ctx.createRadialGradient(h.x, h.y, 0, h.x, h.y, h.r * cGlowMult);
+        cGrad.addColorStop(0, 'rgba(20,60,130,0.95)');
+        cGrad.addColorStop(1, 'rgba(20,60,130,0)');
+        ctx.fillStyle = cGrad;
+        ctx.beginPath();
+        ctx.arc(h.x, h.y, h.r * cGlowMult, 0, Math.PI * 2);
+        ctx.fill();
+        ctx.fillStyle = '#0b1e3a';
+        ctx.beginPath();
+        ctx.arc(h.x, h.y, h.r, 0, Math.PI * 2);
+        ctx.fill();
+        ctx.strokeStyle = 'rgba(90,190,255,0.75)';
+        ctx.lineWidth = 2;
+        ctx.stroke();
+        const eyeAng = h.chargeState === 'idle'
+          ? Math.atan2(player.y - h.y, player.x - h.x)
+          : Math.atan2(h.aimY, h.aimX);
+        const ex = Math.cos(eyeAng) * h.r * 0.4, ey = Math.sin(eyeAng) * h.r * 0.4;
+        const epulse = 0.6 + Math.sin(time * 0.2 + h.wobble) * 0.4;
+        ctx.fillStyle = `rgba(110,210,255,${0.7 + epulse * 0.3})`;
+        ctx.beginPath();
+        ctx.arc(h.x + ex - h.r * 0.25, h.y + ey - h.r * 0.15, 2, 0, Math.PI * 2);
+        ctx.arc(h.x + ex + h.r * 0.25, h.y + ey - h.r * 0.15, 2, 0, Math.PI * 2);
+        ctx.fill();
+        continue;
+      }
+      const glowColor = h.hunter ? 'rgba(90,15,15,0.95)' : 'rgba(60,20,50,0.95)';
+      const glowColor2 = h.hunter ? 'rgba(90,15,15,0)' : 'rgba(60,20,50,0)';
+      const grad = ctx.createRadialGradient(h.x, h.y, 0, h.x, h.y, h.r * (h.hunter ? 2.2 : 1.8));
+      grad.addColorStop(0, glowColor);
+      grad.addColorStop(1, glowColor2);
+      ctx.fillStyle = grad;
+      ctx.beginPath();
+      ctx.arc(h.x, h.y, h.r * (h.hunter ? 2.2 : 1.8), 0, Math.PI * 2);
+      ctx.fill();
+      ctx.fillStyle = h.hunter ? '#1f0808' : '#2a0f22';
+      ctx.beginPath();
+      ctx.arc(h.x, h.y, h.r, 0, Math.PI * 2);
+      ctx.fill();
+      ctx.strokeStyle = h.hunter ? 'rgba(255,80,80,0.7)' : 'rgba(255,110,168,0.5)';
+      ctx.lineWidth = h.hunter ? 2 : 1.5;
+      ctx.stroke();
+      if (h.hunter) {
+        const ang = Math.atan2(h.vy, h.vx);
+        const ex = Math.cos(ang) * h.r * 0.4, ey = Math.sin(ang) * h.r * 0.4;
+        const pulse = 0.6 + Math.sin(time * 0.2 + h.wobble) * 0.4;
+        ctx.fillStyle = `rgba(255,60,60,${0.7 + pulse * 0.3})`;
+        ctx.beginPath();
+        ctx.arc(h.x + ex - h.r * 0.25, h.y + ey - h.r * 0.15, 2, 0, Math.PI * 2);
+        ctx.arc(h.x + ex + h.r * 0.25, h.y + ey - h.r * 0.15, 2, 0, Math.PI * 2);
+        ctx.fill();
+      }
+    }
+
+    for (const p of particles) {
+      const alpha = p.life / p.maxLife;
+      ctx.fillStyle = `hsla(${p.hue}, 90%, 70%, ${alpha})`;
+      ctx.beginPath();
+      ctx.arc(p.x, p.y, 2.2 * alpha + 0.4, 0, Math.PI * 2);
+      ctx.fill();
+    }
+
+    for (let i = 0; i < player.trail.length; i++) {
+      const t = player.trail[i];
+      const a = (i / player.trail.length) * 0.35;
+      ctx.fillStyle = `hsla(${player.hue}, 90%, 75%, ${a})`;
+      ctx.beginPath();
+      ctx.arc(t.x, t.y, player.r * (i / player.trail.length), 0, Math.PI * 2);
+      ctx.fill();
+    }
+
+    const flicker = invuln > 0 && Math.floor(time / 4) % 2 === 0 ? 0.35 : 1;
+    const glow = ctx.createRadialGradient(player.x, player.y, 0, player.x, player.y, player.r * 3);
+    glow.addColorStop(0, `hsla(${player.hue}, 95%, 75%, ${0.55 * flicker})`);
+    glow.addColorStop(1, `hsla(${player.hue}, 95%, 75%, 0)`);
+    ctx.fillStyle = glow;
+    ctx.beginPath();
+    ctx.arc(player.x, player.y, player.r * 3, 0, Math.PI * 2);
+    ctx.fill();
+
+    ctx.fillStyle = `hsla(${player.hue}, 100%, 88%, ${flicker})`;
+    ctx.beginPath();
+    ctx.arc(player.x, player.y, player.r, 0, Math.PI * 2);
+    ctx.fill();
+    ctx.fillStyle = `hsla(${player.hue}, 100%, 98%, ${flicker})`;
+    ctx.beginPath();
+    ctx.arc(player.x, player.y, player.r * 0.45, 0, Math.PI * 2);
+    ctx.fill();
+
+    ctx.restore();
+  }
+
+  function loop() {
+    if (running) { update(); draw(); }
+    requestAnimationFrame(loop);
+  }
+
+  const nameInput = document.getElementById('nameInput');
+  const savedName = (function() { try { return localStorage.getItem('driftBloomName') || ''; } catch (e) { return ''; } })();
+  if (savedName) nameInput.value = savedName;
+
+  bannerBtn.addEventListener('click', () => {
+    const name = nameInput.value.trim().slice(0, 20) || 'Anonymous';
+    window.__driftBloomPlayerName = name;
+    try { localStorage.setItem('driftBloomName', name); } catch (e) {}
+    if (audioCtx && audioCtx.state === 'suspended') audioCtx.resume();
+    resetGame();
+    banner.style.display = 'none';
+    running = true;
+  });
+
+  banner.style.display = 'block';
+  draw();
+  requestAnimationFrame(loop);
+})();
+</script>
+</body>
+</html>
