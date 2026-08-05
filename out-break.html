@@ -3,6 +3,7 @@
 <head>
 <meta charset="UTF-8">
 <title>OUTBREAK :: Last Stand</title>
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2/dist/umd/supabase.js"></script>
 <style>
   :root{
     --bg:#0a0d08;
@@ -514,6 +515,64 @@
     position:absolute;inset:0;z-index:30;display:none;
     background:rgba(5,7,4,.92);align-items:center;justify-content:center;
   }
+
+  /* ── Multiplayer ── */
+  #mpLobbyScreen, #mpRoomScreen{
+    position:absolute;inset:0;z-index:30;display:none;
+    background:rgba(5,7,4,.92);align-items:center;justify-content:center;
+  }
+  .mpCard{
+    width:min(560px,92vw);max-height:86vh;overflow-y:auto;
+    background:linear-gradient(180deg,#151a10,#0e120c);
+    border:1px solid #4fa3e0;box-shadow:0 0 30px rgba(79,163,224,.15);
+    padding:24px 26px;text-align:center;
+  }
+  .mpCard h1{font-size:20px;letter-spacing:4px;color:#4fa3e0;text-shadow:0 0 14px rgba(79,163,224,.4);}
+  .mpSub{color:#7a8168;font-size:10px;letter-spacing:1px;margin:8px 0 16px;}
+  .mpConfigWarn{
+    color:#e05050;font-size:10px;letter-spacing:1px;border:1px solid #6a1414;
+    background:rgba(179,35,28,.08);padding:10px 12px;margin-bottom:16px;text-align:left;line-height:1.6;
+  }
+  .mpCreateRow{display:flex;gap:8px;margin-bottom:18px;}
+  .mpCreateRow input{
+    flex:1;background:#0a0d08;border:1px solid var(--line);color:var(--bone);
+    font-family:inherit;font-size:12px;padding:9px 10px;
+  }
+  .mpCreateRow input:focus{outline:none;border-color:#4fa3e0;}
+  .mpBtn{
+    background:none;border:1px solid #4fa3e0;color:#4fa3e0;
+    font-family:inherit;letter-spacing:2px;font-size:11px;font-weight:bold;
+    padding:9px 16px;cursor:pointer;transition:.15s;white-space:nowrap;
+  }
+  .mpBtn:hover:not(:disabled){background:#4fa3e0;color:#0a0d08;}
+  .mpBtn:disabled{opacity:.4;cursor:not-allowed;}
+  .mpBtnGhost{background:none;border:1px solid var(--line);color:#7a8168;}
+  .mpBtnGhost:hover{border-color:var(--bone);color:var(--bone);}
+  .mpRoomList{display:flex;flex-direction:column;gap:6px;margin-bottom:16px;text-align:left;max-height:340px;overflow-y:auto;}
+  .mpRoomRow{
+    display:grid;grid-template-columns:1fr auto auto auto;gap:10px;align-items:center;
+    padding:10px 12px;border:1px solid var(--line);background:rgba(255,255,255,.02);font-size:11px;
+  }
+  .mpRoomName{font-weight:bold;letter-spacing:.5px;}
+  .mpRoomHost{color:#7a8168;font-size:9px;}
+  .mpRoomPlayers{color:#4fa37a;font-size:10px;white-space:nowrap;}
+  .mpRoomStatus{font-size:8px;letter-spacing:1px;padding:2px 6px;border:1px solid var(--line);white-space:nowrap;}
+  .mpRoomStatus.waiting{color:#4fa37a;border-color:#4fa37a;}
+  .mpRoomStatus.playing{color:#e0a83c;border-color:#e0a83c;}
+  .mpEmptyNote{color:#5c6650;font-size:11px;letter-spacing:1px;padding:24px 0;}
+  .mpFooterRow{display:flex;justify-content:center;gap:10px;}
+
+  .mpPlayerList{display:flex;flex-direction:column;gap:6px;margin-bottom:18px;text-align:left;}
+  .mpPlayerRow{
+    display:flex;align-items:center;gap:10px;padding:8px 12px;
+    border:1px solid var(--line);background:rgba(255,255,255,.02);font-size:12px;
+  }
+  .mpPlayerRow .mpDot{width:9px;height:9px;border-radius:50%;flex:0 0 auto;}
+  .mpPlayerRow .mpHostTag{margin-left:auto;font-size:8px;letter-spacing:1px;color:#f0c94a;border:1px solid #f0c94a;padding:1px 5px;}
+
+  /* Other players rendered on the canvas during a match */
+  .mpNameTag{font-size:9px;letter-spacing:.5px;}
+
   .lbCard{
     width:min(520px,92vw);max-height:80vh;overflow-y:auto;
     background:linear-gradient(180deg,#151a10,#0e120c);
@@ -649,7 +708,43 @@
 
     <div class="menuFooter">
       <button class="startBtn" id="startBtn">▶ ENTER THE FIELD</button>
+      <button class="lbBtn" id="openMultiplayerBtn" style="border-color:#4fa3e0;color:#4fa3e0">🌐 MULTIPLAYER</button>
       <button class="lbBtn" id="openLeaderboardBtn">🏆 OUTBREAK LEADERBOARD</button>
+    </div>
+  </div>
+
+  <!-- ══ MULTIPLAYER LOBBY (separate from Base Siege — its own Supabase tables/rooms) ══ -->
+  <div id="mpLobbyScreen">
+    <div class="mpCard">
+      <h1>🌐 MULTIPLAYER</h1>
+      <div class="mpSub">Co-op — up to 8 players share one zombie horde. Rooms are separate from Base Siege.</div>
+      <div id="mpConfigWarn" class="mpConfigWarn" style="display:none">
+        Multiplayer needs a Supabase project connected. Set <b>SUPABASE_URL</b> and <b>SUPABASE_ANON_KEY</b>
+        near the top of the script, and run the setup SQL once in your project's SQL editor (see comment above those constants).
+      </div>
+      <div class="mpCreateRow">
+        <input id="mpNameInput" maxlength="20" placeholder="Your player name">
+        <input id="mpRoomNameInput" maxlength="24" placeholder="New room name">
+        <button class="mpBtn" id="mpCreateRoomBtn">CREATE</button>
+      </div>
+      <div class="mpRoomList" id="mpRoomList"></div>
+      <div class="mpFooterRow">
+        <button class="mpBtn mpBtnGhost" id="mpRefreshBtn">↻ REFRESH</button>
+        <button class="mpBtn mpBtnGhost" id="mpBackBtn">← BACK</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- ══ MULTIPLAYER ROOM (waiting room before a match starts) ══ -->
+  <div id="mpRoomScreen">
+    <div class="mpCard">
+      <h1 id="mpRoomTitle">ROOM</h1>
+      <div class="mpSub" id="mpRoomSub">Waiting for players…</div>
+      <div class="mpPlayerList" id="mpPlayerList"></div>
+      <div class="mpFooterRow">
+        <button class="mpBtn" id="mpStartBtn" style="display:none">▶ START MATCH</button>
+        <button class="mpBtn mpBtnGhost" id="mpLeaveBtn">← LEAVE ROOM</button>
+      </div>
     </div>
   </div>
 
@@ -702,6 +797,71 @@ const canvas = document.getElementById('game');
 const ctx = canvas.getContext('2d');
 function resize(){ canvas.width=window.innerWidth; canvas.height=window.innerHeight; }
 resize(); window.addEventListener('resize', resize);
+
+// ══════════════════════════════════════════════════════════════════════
+// MULTIPLAYER (Supabase) — completely separate from the single-player
+// "Base Siege" mode/save data above. Uses its own table (ob_mp_rooms) so it
+// never touches whatever Base Siege stores in the same Supabase project.
+//
+// SETUP (one-time):
+//   1. Fill in SUPABASE_URL and SUPABASE_ANON_KEY below with your project's
+//      values (Project Settings → API in the Supabase dashboard).
+//   2. Run this once in your project's SQL editor:
+//
+//   create extension if not exists pgcrypto;
+//   create table if not exists ob_mp_rooms (
+//     id uuid primary key default gen_random_uuid(),
+//     name text not null,
+//     host_name text not null,
+//     host_id text not null,
+//     max_players int not null default 8,
+//     player_count int not null default 1,
+//     status text not null default 'waiting',
+//     wave int not null default 1,
+//     created_at timestamptz not null default now()
+//   );
+//   alter table ob_mp_rooms enable row level security;
+//   create policy "ob_mp_rooms_select" on ob_mp_rooms for select using (true);
+//   create policy "ob_mp_rooms_insert" on ob_mp_rooms for insert with check (true);
+//   create policy "ob_mp_rooms_update" on ob_mp_rooms for update using (true);
+//   create policy "ob_mp_rooms_delete" on ob_mp_rooms for delete using (true);
+//   alter publication supabase_realtime add table ob_mp_rooms;
+//
+// Player presence, zombie snapshots, and hit/reward events all travel over a
+// per-room Realtime Broadcast+Presence channel — no extra tables needed for
+// those, so a stale/abandoned room is just one row to clean up.
+// ══════════════════════════════════════════════════════════════════════
+const SUPABASE_URL = '';      // e.g. 'https://xxxxxxxx.supabase.co'
+const SUPABASE_ANON_KEY = ''; // your project's publishable/anon key
+
+let supa = null;
+try{
+  if(window.supabase && SUPABASE_URL && SUPABASE_ANON_KEY){
+    supa = window.supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
+  }
+}catch(e){ supa=null; }
+
+const MP_MAX_PLAYERS = 8;
+const MP_COLORS = ['#8fd13f','#4fa3e0','#e0a83c','#e0453b','#c084fc','#4fd1ff','#ff8fb3','#f0e14a'];
+
+// `mp` is null while playing single-player Base Siege. Once a match starts it
+// holds everything needed to keep this client's view of the shared horde and
+// the other players in sync with the room's host.
+let mp = null;
+let mpLobbyRooms = [];
+let mpLobbyChannel = null;
+let mpZombieIdSeq = 1;
+
+function mpGetName(){
+  let n = localStorage.getItem('ob_mp_name');
+  if(!n){ n='Survivor'+Math.floor(Math.random()*9000+1000); localStorage.setItem('ob_mp_name',n); }
+  return n;
+}
+function mpMyId(){
+  let id = localStorage.getItem('ob_mp_id');
+  if(!id){ id = 'p_'+Math.random().toString(36).slice(2,10); localStorage.setItem('ob_mp_id',id); }
+  return id;
+}
 
 // ── Weapon data ──────────────────────────────────────────
 // No rarity system — each weapon is a single fixed profile
@@ -1318,6 +1478,7 @@ function spawnZombie(){
   const tough=Math.random()<Math.min(0.1+wave*0.03,0.45);
   const baseHp=(22+wave*4)*diff.hpMult;
   zombies.push({
+    id: mpZombieIdSeq++,
     x,y,r:tough?22:15,
     hp:tough?baseHp*3.2:baseHp, maxHp:tough?baseHp*3.2:baseHp,
     speed:(tough?(0.45+Math.random()*0.15):(1.1+Math.random()*0.7+wave*0.02))*diff.speedMult,
@@ -1645,6 +1806,7 @@ function slotLabel(type){
        : type==='mine' ? 'LANDMINE' : 'BARRICADE';
 }
 function toggleBuildSlot(slot){
+  if(mp) return; // Buildings are Base Siege (single-player) only for now
   const type = slotType(slot);
   if(type==='mine'){
     // Landmine: instant place at player position — no click needed
@@ -2107,9 +2269,13 @@ function update(dt){
     if(mouse.down) shoot();
   }
 
-  spawnTimer+=dt*16.67;
-  const effSpawnInterval = spawnInterval / DIFFICULTIES[difficulty].spawnMult;
-  if(spawnTimer>effSpawnInterval){ spawnTimer=0; spawnZombie(); }
+  // In multiplayer, only the host spawns zombies — guests receive them via
+  // the host's zombie snapshot broadcast instead (see mpApplyZombieSnapshot).
+  if(!mp || mp.isHost){
+    spawnTimer+=dt*16.67;
+    const effSpawnInterval = spawnInterval / DIFFICULTIES[difficulty].spawnMult;
+    if(spawnTimer>effSpawnInterval){ spawnTimer=0; spawnZombie(); }
+  }
 
   // Weapon animation state decay — recoil snaps back fast (guns), swing eases out (melee)
   if(player.recoil>0) player.recoil=Math.max(0,player.recoil-dt*0.22);
@@ -2157,15 +2323,23 @@ function update(dt){
     for(let j=zombies.length-1;j>=0;j--){
       const z=zombies[j];
       if(Math.hypot(b.x-z.x,b.y-z.y)<z.r){
-        z.hp-=b.dmg; z.hitFlash=6; bullets.splice(i,1);
+        bullets.splice(i,1);
         for(let k=0;k<4;k++) particles.push({x:b.x,y:b.y,vx:(Math.random()-.5)*3,vy:(Math.random()-.5)*3,life:14,color:'#5fbf2f',size:2.5});
-        if(z.hp<=0){
-          awardBloodCoin(z);
-          regenOnKill(z);
-          zombies.splice(j,1); kills++; waveKills++; score+=z.tough?25:10;
-          const val=z.tough?(18+Math.round(Math.random()*12)):(5+Math.round(Math.random()*7));
-          money+=val; scrapCollected+=val;
-          spawnScrapPop(z.x,z.y,val);
+        if(mp && !mp.isHost){
+          // Guests don't own the zombie list — report the hit to the host
+          // instead of mutating hp directly, so state never desyncs.
+          mpReportHit(z.id, b.dmg);
+          z.hitFlash=6; // optimistic visual only; corrected by the next host snapshot
+        } else {
+          z.hp-=b.dmg; z.hitFlash=6;
+          if(z.hp<=0){
+            awardBloodCoin(z);
+            regenOnKill(z);
+            zombies.splice(j,1); kills++; waveKills++; score+=z.tough?25:10;
+            const val=z.tough?(18+Math.round(Math.random()*12)):(5+Math.round(Math.random()*7));
+            money+=val; scrapCollected+=val;
+            spawnScrapPop(z.x,z.y,val);
+          }
         }
         break;
       }
@@ -2176,15 +2350,22 @@ function update(dt){
   // bleed-out kill this frame doesn't try to move a removed zombie below.
   updateBleed(dt);
 
-  // zombies
+  // zombies — in multiplayer, only the host simulates zombie movement/AI;
+  // guests get positions from the host's snapshot and only resolve their own
+  // player's local contact damage/knockback against those synced positions.
   for(let i=zombies.length-1;i>=0;i--){
     const z=zombies[i];
     const ang=Math.atan2(player.y-z.y,player.x-z.x);
-    z.x+=Math.cos(ang)*z.speed*dt; z.y+=Math.sin(ang)*z.speed*dt;
+    if(!mp || mp.isHost){
+      z.x+=Math.cos(ang)*z.speed*dt; z.y+=Math.sin(ang)*z.speed*dt;
+    }
     if(z.hitFlash>0) z.hitFlash--;
     if(z.burning>0) z.burning--;
     const dist=Math.hypot(player.x-z.x,player.y-z.y);
-    if(dist<z.r+player.r){ player.hp-=z.dmg*dt*0.06; z.x-=Math.cos(ang)*2; z.y-=Math.sin(ang)*2; }
+    if(dist<z.r+player.r){
+      player.hp-=z.dmg*dt*0.06;
+      if(!mp || mp.isHost){ z.x-=Math.cos(ang)*2; z.y-=Math.sin(ang)*2; }
+    }
   }
 
   // particles
@@ -2210,6 +2391,7 @@ function update(dt){
   }
   if(player.hp<=0) endGame();
   updateHud();
+  mpNetworkTick(dt, performance.now());
 }
 
 // ── Lightning zigzag helper ──────────────────────────────
@@ -2334,6 +2516,7 @@ function draw(){
   });
 
   drawBuildings();
+  mpDrawOtherPlayers();
 
   // ── Build mode placement preview ──
   if(buildMode && running){
@@ -3306,8 +3489,292 @@ renderBloodCrate();
 
 renderShop();
 
+// ══════════════════════════════════════════════════════════════════════
+// MULTIPLAYER — lobby (room browser), room (waiting area), and the
+// in-match networking layer (presence sync + host-authoritative zombies).
+// ══════════════════════════════════════════════════════════════════════
+
+function mpShowConfigWarning(show){
+  const el = document.getElementById('mpConfigWarn');
+  if(el) el.style.display = show ? 'block' : 'none';
+}
+
+// ── Lobby: browse / create rooms ──
+async function mpRefreshRoomList(){
+  const listEl = document.getElementById('mpRoomList');
+  if(!supa){ listEl.innerHTML=''; mpShowConfigWarning(true); return; }
+  mpShowConfigWarning(false);
+  const { data, error } = await supa.from('ob_mp_rooms')
+    .select('*').order('created_at', { ascending:false }).limit(50);
+  if(error){ listEl.innerHTML=`<div class="mpEmptyNote">Couldn't reach Supabase — ${error.message}</div>`; return; }
+  mpLobbyRooms = data || [];
+  mpRenderRoomList();
+}
+function mpRenderRoomList(){
+  const listEl = document.getElementById('mpRoomList');
+  if(!listEl) return;
+  if(!mpLobbyRooms.length){
+    listEl.innerHTML = `<div class="mpEmptyNote">No rooms open right now — create one!</div>`;
+    return;
+  }
+  listEl.innerHTML = mpLobbyRooms.map(r=>{
+    const full = r.player_count >= r.max_players;
+    const joinable = r.status==='waiting' && !full;
+    return `
+      <div class="mpRoomRow">
+        <div>
+          <div class="mpRoomName">${escapeMpText(r.name)}</div>
+          <div class="mpRoomHost">host: ${escapeMpText(r.host_name)}</div>
+        </div>
+        <div class="mpRoomPlayers">${r.player_count}/${r.max_players} 👤</div>
+        <div class="mpRoomStatus ${r.status}">${r.status.toUpperCase()}</div>
+        <button class="mpBtn" data-room="${r.id}" ${joinable?'':'disabled'}>${full?'FULL':(r.status!=='waiting'?'IN PROGRESS':'JOIN')}</button>
+      </div>`;
+  }).join('');
+  listEl.querySelectorAll('button[data-room]').forEach(btn=>{
+    btn.addEventListener('click', ()=> mpJoinRoom(btn.dataset.room));
+  });
+}
+function escapeMpText(s){
+  return String(s||'').replace(/[&<>"']/g, c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
+}
+function mpSubscribeLobby(){
+  if(!supa || mpLobbyChannel) return;
+  mpLobbyChannel = supa.channel('ob_mp_rooms_watch')
+    .on('postgres_changes', { event:'*', schema:'public', table:'ob_mp_rooms' }, mpRefreshRoomList)
+    .subscribe();
+}
+function mpUnsubscribeLobby(){
+  if(mpLobbyChannel){ supa.removeChannel(mpLobbyChannel); mpLobbyChannel=null; }
+}
+
+async function mpCreateRoom(){
+  if(!supa){ mpShowConfigWarning(true); return; }
+  const name = (document.getElementById('mpRoomNameInput').value||'').trim().slice(0,24) || `${mpGetName()}'s Room`;
+  const { data, error } = await supa.from('ob_mp_rooms').insert({
+    name, host_name: mpGetName(), host_id: mpMyId(),
+    max_players: MP_MAX_PLAYERS, player_count: 1, status:'waiting', wave:1,
+  }).select().single();
+  if(error){ alert('Could not create room: '+error.message); return; }
+  mpEnterRoom(data, true);
+}
+
+async function mpJoinRoom(roomId){
+  if(!supa) return;
+  const room = mpLobbyRooms.find(r=>r.id===roomId);
+  if(!room) return;
+  mpEnterRoom(room, false);
+}
+
+// ── Room: waiting area + presence-backed player list ──
+function mpEnterRoom(room, isHost){
+  document.getElementById('mpNameInput').value && (localStorage.setItem('ob_mp_name', document.getElementById('mpNameInput').value.trim().slice(0,20)||mpGetName()));
+  mpUnsubscribeLobby();
+
+  mp = {
+    roomId: room.id,
+    roomRow: room,
+    isHost,
+    myId: mpMyId(),
+    myName: mpGetName(),
+    color: MP_COLORS[Math.floor(Math.random()*MP_COLORS.length)],
+    channel: null,
+    players: {},       // presence state, keyed by player id
+    matchStarted: false,
+    lastNetTick: 0,
+    zombieSnapshot: [], // guests: latest zombie state from host
+  };
+
+  mp.channel = supa.channel('ob_mp_room_'+room.id, {
+    config: { presence: { key: mp.myId } }
+  });
+
+  mp.channel.on('presence', { event:'sync' }, ()=>{
+    const state = mp.channel.presenceState();
+    mp.players = {};
+    for(const key in state){ if(state[key][0]) mp.players[key]=state[key][0]; }
+    mpRenderPlayerList();
+  });
+  mp.channel.on('broadcast', { event:'zsnap' }, ({payload})=>{
+    if(!mp.isHost) mpApplyZombieSnapshot(payload);
+  });
+  mp.channel.on('broadcast', { event:'hit' }, ({payload})=>{
+    if(mp.isHost) mpHandleGuestHit(payload);
+  });
+  mp.channel.on('broadcast', { event:'reward' }, ({payload})=>{
+    if(payload.to===mp.myId) mpApplyReward(payload);
+  });
+  mp.channel.on('broadcast', { event:'start' }, mpBeginMatch);
+
+  mp.channel.subscribe(async status=>{
+    if(status!=='SUBSCRIBED') return;
+    await mp.channel.track({ name:mp.myName, color:mp.color, x:0, y:0, hp:100, maxHp:100, aim:0, alive:true });
+    if(!isHost){
+      await supa.from('ob_mp_rooms').update({ player_count: room.player_count+1 }).eq('id', room.id);
+    }
+  });
+
+  document.getElementById('mpLobbyScreen').style.display='none';
+  document.getElementById('mpRoomScreen').style.display='flex';
+  document.getElementById('mpRoomTitle').textContent = room.name.toUpperCase();
+  document.getElementById('mpRoomSub').textContent = isHost
+    ? 'You are hosting — start whenever you\'re ready.'
+    : 'Waiting for the host to start the match…';
+  document.getElementById('mpStartBtn').style.display = isHost ? 'inline-block' : 'none';
+}
+
+function mpRenderPlayerList(){
+  const el = document.getElementById('mpPlayerList');
+  if(!el) return;
+  const rows = Object.entries(mp.players).map(([id,p])=>`
+    <div class="mpPlayerRow">
+      <span class="mpDot" style="background:${p.color||'#8fd13f'}"></span>
+      <span>${escapeMpText(p.name)}</span>
+      ${id===mp.roomRow.host_id ? '<span class="mpHostTag">HOST</span>' : ''}
+    </div>`).join('');
+  el.innerHTML = rows || `<div class="mpEmptyNote">Just you so far…</div>`;
+}
+
+async function mpLeaveRoom(){
+  if(!mp) return;
+  const wasHost = mp.isHost;
+  const roomId = mp.roomId;
+  if(mp.channel){ await mp.channel.untrack(); supa.removeChannel(mp.channel); }
+  if(supa){
+    if(wasHost){ await supa.from('ob_mp_rooms').delete().eq('id', roomId); }
+    else {
+      const { data } = await supa.from('ob_mp_rooms').select('player_count').eq('id', roomId).single();
+      if(data) await supa.from('ob_mp_rooms').update({ player_count: Math.max(1,data.player_count-1) }).eq('id', roomId);
+    }
+  }
+  mp = null;
+  document.getElementById('mpRoomScreen').style.display='none';
+  document.getElementById('mpLobbyScreen').style.display='flex';
+  mpSubscribeLobby();
+  mpRefreshRoomList();
+}
+
+async function mpStartMatch(){
+  if(!mp || !mp.isHost) return;
+  await supa.from('ob_mp_rooms').update({ status:'playing' }).eq('id', mp.roomId);
+  mp.channel.send({ type:'broadcast', event:'start', payload:{} });
+  mpBeginMatch();
+}
+
+function mpBeginMatch(){
+  if(!mp || mp.matchStarted) return;
+  mp.matchStarted = true;
+  document.getElementById('mpRoomScreen').style.display='none';
+  document.getElementById('buildPanel').style.display='none'; // buildings are Base Siege-only for now
+  resetGame();
+  running = true; lastTime = performance.now();
+  requestAnimationFrame(loop);
+}
+
+// ── In-match networking (called from update()/draw()) ──
+function mpNetworkTick(dt, now){
+  if(!mp || !mp.channel) return;
+  mp.lastNetTick += dt*16.67;
+  if(mp.lastNetTick < 110) return; // ~9Hz
+  mp.lastNetTick = 0;
+
+  mp.channel.track({
+    name: mp.myName, color: mp.color,
+    x: Math.round(player.x), y: Math.round(player.y),
+    hp: Math.round(player.hp), maxHp: Math.round(player.maxHp),
+    aim: +aimAngle.toFixed(2), alive: player.hp>0,
+  });
+
+  if(mp.isHost){
+    mp.channel.send({ type:'broadcast', event:'zsnap', payload:{
+      wave, waveKills, waveKillTarget,
+      zs: zombies.map(z=>({ id:z.id, x:Math.round(z.x), y:Math.round(z.y),
+        hp:Math.round(z.hp), maxHp:Math.round(z.maxHp), tough:!!z.tough, r:z.r })),
+    }});
+  }
+}
+function mpApplyZombieSnapshot(payload){
+  if(!mp || mp.isHost) return;
+  wave = payload.wave; waveKills = payload.waveKills; waveKillTarget = payload.waveKillTarget;
+  const prevFlash = new Map(zombies.map(z=>[z.id, z.hitFlash||0]));
+  zombies = payload.zs.map(zz=>({
+    ...zz, speed:0, dmg: zz.tough?18:9, hitFlash: prevFlash.get(zz.id)||0, burning:0,
+  }));
+}
+// A guest's shot lands on a HOST-authoritative zombie — report it instead of
+// mutating the zombie directly, so hp/kills never desync between players.
+function mpReportHit(zombieId, dmg){
+  if(!mp || mp.isHost || !mp.channel) return;
+  mp.channel.send({ type:'broadcast', event:'hit', payload:{ id:zombieId, dmg, from:mp.myId } });
+}
+function mpHandleGuestHit(payload){
+  if(!mp || !mp.isHost) return;
+  const z = zombies.find(zz=>zz.id===payload.id);
+  if(!z) return;
+  z.hp -= payload.dmg; z.hitFlash = 6;
+  if(z.hp<=0){
+    const idx = zombies.indexOf(z);
+    if(idx>-1) zombies.splice(idx,1);
+    kills++; waveKills++; score += z.tough?25:10;
+    const val = z.tough ? (18+Math.round(Math.random()*12)) : (5+Math.round(Math.random()*7));
+    spawnScrapPop(z.x, z.y, val);
+    mp.channel.send({ type:'broadcast', event:'reward', payload:{ to:payload.from, cash:val } });
+  }
+}
+function mpApplyReward(payload){
+  money += payload.cash||0; scrapCollected += payload.cash||0;
+}
+
+// ── Draw other players on the canvas each frame ──
+function mpDrawOtherPlayers(){
+  if(!mp) return;
+  for(const id in mp.players){
+    if(id===mp.myId) continue;
+    const p = mp.players[id];
+    if(!p || p.alive===false) continue;
+    ctx.save();
+    ctx.translate(p.x, p.y);
+    ctx.rotate(p.aim||0);
+    ctx.fillStyle = p.color||'#8fd13f';
+    ctx.beginPath(); ctx.arc(0,0,14,0,Math.PI*2); ctx.fill();
+    ctx.fillStyle='rgba(0,0,0,.4)';
+    ctx.fillRect(6,-2,12,4);
+    ctx.restore();
+    ctx.font='10px monospace'; ctx.textAlign='center';
+    ctx.fillStyle=p.color||'#8fd13f';
+    ctx.fillText(p.name||'?', p.x, p.y-24);
+    if(typeof p.hp==='number' && typeof p.maxHp==='number'){
+      const w=30;
+      ctx.fillStyle='#1a1f14'; ctx.fillRect(p.x-w/2,p.y-20,w,3);
+      ctx.fillStyle=p.color||'#8fd13f'; ctx.fillRect(p.x-w/2,p.y-20,w*Math.max(0,p.hp/p.maxHp),3);
+    }
+  }
+}
+
+// ── Menu wiring ──
+document.getElementById('openMultiplayerBtn').addEventListener('click',()=>{
+  document.getElementById('startScreen').style.display='none';
+  document.getElementById('mpLobbyScreen').style.display='flex';
+  document.getElementById('mpNameInput').value = mpGetName();
+  mpSubscribeLobby();
+  mpRefreshRoomList();
+});
+document.getElementById('mpBackBtn').addEventListener('click',()=>{
+  mpUnsubscribeLobby();
+  document.getElementById('mpLobbyScreen').style.display='none';
+  document.getElementById('startScreen').style.display='flex';
+});
+document.getElementById('mpRefreshBtn').addEventListener('click', mpRefreshRoomList);
+document.getElementById('mpCreateRoomBtn').addEventListener('click', mpCreateRoom);
+document.getElementById('mpStartBtn').addEventListener('click', mpStartMatch);
+document.getElementById('mpLeaveBtn').addEventListener('click', mpLeaveRoom);
+document.getElementById('mpNameInput').addEventListener('change', e=>{
+  localStorage.setItem('ob_mp_name', (e.target.value||'').trim().slice(0,20) || mpGetName());
+});
+
 // ── Screen transitions ────────────────────────────────────
 document.getElementById('startBtn').addEventListener('click',()=>{
+  mp = null; // make sure a stray multiplayer session can't leak into Base Siege
   document.getElementById('startScreen').style.display='none';
   document.getElementById('buildPanel').style.display='flex';
   resetGame(); running=true; lastTime=performance.now();
@@ -3317,8 +3784,14 @@ document.getElementById('retryBtn').addEventListener('click',()=>{
   const go=document.getElementById('gameOverScreen');
   go.style.display='none'; go.style.pointerEvents='none';
   document.getElementById('buildPanel').style.display='none';
-  document.getElementById('startScreen').style.display='flex';
-  renderShop();
+  if(mp){
+    // Coming out of a multiplayer match — leave the room instead of
+    // dropping straight back into single-player Base Siege.
+    mpLeaveRoom();
+  } else {
+    document.getElementById('startScreen').style.display='flex';
+    renderShop();
+  }
 });
 
 // ── Leaderboard / account screen wiring ──────────────────────────────
