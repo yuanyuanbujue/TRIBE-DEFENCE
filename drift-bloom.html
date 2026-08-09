@@ -193,7 +193,8 @@
   <div id="banner">
     <h1 id="bannerTitle">Drift Bloom</h1>
     <p id="bannerText">Guide your seedling of light through the drifting dark. Collect glimmers fast to build a combo multiplier. Watch for red-eyed HUNTER husks — they'll chase you down.</p>
-    <input id="nameInput" type="text" maxlength="20" placeholder="Enter your name for the leaderboard" oninput="this.value = this.value.replace(/\s/g, '')" />
+    <input id="nameInput" type="text" maxlength="20" placeholder="Enter your name for the leaderboard" />
+    <div id="nameError" style="display:none; color:#ff8a8a; font-size:12px; margin-top:-10px; margin-bottom:10px;">Please choose an appropriate name.</div>
     <button id="bannerBtn">Begin</button>
   </div>
   </div>
@@ -206,7 +207,7 @@
       <h2>Chat</h2>
       <div id="chatMessages"></div>
       <form id="chatForm">
-        <input id="chatInput" type="text" maxlength="200" placeholder="Say something…" autocomplete="off" oninput="this.value = this.value.replace(/\s/g, '')" />
+        <input id="chatInput" type="text" maxlength="200" placeholder="Say something…" autocomplete="off" />
         <button id="chatSend" type="submit">Send</button>
       </form>
     </div>
@@ -225,6 +226,12 @@
   const chatMessages = document.getElementById('chatMessages');
   const chatForm = document.getElementById('chatForm');
   const chatInput = document.getElementById('chatInput');
+  chatInput.addEventListener('keydown', e => {
+    if (e.key === 'Enter') {
+      e.preventDefault();
+      chatForm.requestSubmit ? chatForm.requestSubmit() : chatForm.dispatchEvent(new Event('submit', { cancelable: true }));
+    }
+  });
 
   function escapeHtml(s) {
     return s.replace(/[&<>"']/g, c => ({ '&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;' }[c]));
@@ -290,7 +297,12 @@
     e.preventDefault();
     const text = chatInput.value.trim();
     if (!text) return;
-    const name = (window.__driftBloomPlayerName || 'Anonymous').slice(0, 20);
+    if (!window.__driftBloomPlayerName) {
+      chatInput.value = '';
+      chatInput.placeholder = 'Enter your name and start playing to chat';
+      return;
+    }
+    const name = window.__driftBloomPlayerName.slice(0, 20);
     chatInput.value = '';
     try {
       await sb.from('drift_bloom_chat').insert({ player_name: name, message: text.slice(0, 200) });
@@ -333,6 +345,8 @@
 
   const keys = {};
   window.addEventListener('keydown', e => {
+    const tag = (document.activeElement && document.activeElement.tagName) || '';
+    if (tag === 'INPUT' || tag === 'TEXTAREA') return;
     keys[e.key.toLowerCase()] = true;
     if (['arrowup','arrowdown','arrowleft','arrowright',' '].includes(e.key.toLowerCase())) e.preventDefault();
   });
@@ -650,13 +664,47 @@
   }
 
   const nameInput = document.getElementById('nameInput');
+  const nameError = document.getElementById('nameError');
   const savedName = (function() { try { return localStorage.getItem('driftBloomName') || ''; } catch (e) { return ''; } })();
   if (savedName) nameInput.value = savedName;
 
+  const BAD_WORDS = ['fuck','shit','bitch','ass','asshole','bastard','cunt','dick','penis','pussy','cock','whore','slut','nigger','nigga','fag','faggot','retard','rape','porn','sex','vagina','boobs','tits','damn','hell','piss','crap','douche','twat','wank','arse','bollocks'];
+  function normalizeForFilter(s) {
+    return s.toLowerCase()
+      .replace(/0/g, 'o').replace(/1/g, 'i').replace(/3/g, 'e')
+      .replace(/4/g, 'a').replace(/5/g, 's').replace(/7/g, 't')
+      .replace(/@/g, 'a').replace(/\$/g, 's')
+      .replace(/[^a-z]/g, '');
+  }
+  function containsProfanity(str) {
+    const norm = normalizeForFilter(str);
+    if (!norm) return false;
+    return BAD_WORDS.some(w => norm.includes(w));
+  }
+
   bannerBtn.addEventListener('click', () => {
-    const name = nameInput.value.trim().slice(0, 20) || 'Anonymous';
-    window.__driftBloomPlayerName = name;
-    try { localStorage.setItem('driftBloomName', name); } catch (e) {}
+    const rawName = nameInput.value.trim().slice(0, 20);
+    if (!rawName) {
+      nameError.textContent = 'Please enter a name to play.';
+      nameError.style.display = 'block';
+      nameInput.focus();
+      return;
+    }
+    if (rawName.toLowerCase() === 'anonymous') {
+      nameError.textContent = 'That name is not allowed. Please choose another.';
+      nameError.style.display = 'block';
+      nameInput.focus();
+      return;
+    }
+    if (containsProfanity(rawName)) {
+      nameError.textContent = 'Please choose an appropriate name.';
+      nameError.style.display = 'block';
+      nameInput.focus();
+      return;
+    }
+    nameError.style.display = 'none';
+    window.__driftBloomPlayerName = rawName;
+    try { localStorage.setItem('driftBloomName', rawName); } catch (e) {}
     if (audioCtx && audioCtx.state === 'suspended') audioCtx.resume();
     resetGame();
     banner.style.display = 'none';
