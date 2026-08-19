@@ -148,7 +148,7 @@
     border-bottom:1px solid var(--line);
   }
   .menuHeader h1{
-    font-size:34px;letter-spacing:10px;color:var(--blood);
+    font-size:38px;letter-spacing:11px;color:var(--blood);
     text-shadow:0 0 18px rgba(179,35,28,.85);
   }
   .menuHeader .tagline{color:#8a9078;letter-spacing:3px;font-size:10px;margin:4px 0 10px;}
@@ -185,6 +185,7 @@
   .clsBtn:hover{border-color:#5c6650;color:var(--bone);}
   .clsBtn[data-cls="survivor"].active{border-color:#8fd13f;color:#8fd13f;box-shadow:0 0 10px rgba(143,209,63,.25) inset;}
   .clsBtn[data-cls="engineer"].active{border-color:#4fa3e0;color:#4fa3e0;box-shadow:0 0 10px rgba(79,163,224,.25) inset;}
+  .clsBtn[data-cls="necromancer"].active{border-color:#9a5ee0;color:#9a5ee0;box-shadow:0 0 10px rgba(154,94,224,.25) inset;}
   .clsBtn.locked{opacity:.6;color:#7a8168;}
   .clsBtn.locked:hover{border-color:var(--legend);color:var(--legend);}
   .clsBtn:disabled{cursor:not-allowed;opacity:.4;}
@@ -192,7 +193,7 @@
 
   /* scrollable body */
   .menuBody{
-    flex:1;overflow-y:auto;padding:14px 20px 12px;
+    flex:1;overflow-y:auto;padding:18px 28px 16px;
     scrollbar-width:thin;scrollbar-color:#2b3323 #0a0d08;
   }
   .menuBody::-webkit-scrollbar{width:5px;}
@@ -201,12 +202,12 @@
 
   .shopNote{
     font-size:10px;letter-spacing:.3px;color:#7a8168;
-    max-width:860px;margin:0 auto 14px;text-align:center;line-height:1.7;
+    max-width:1100px;margin:0 auto 16px;text-align:center;line-height:1.8;font-size:11.5px;
   }
   .shopNote b{color:var(--bone);}
 
   .sectionLabel{
-    max-width:1040px;margin:0 auto 10px;
+    max-width:1300px;margin:0 auto 12px;
     display:flex;align-items:center;gap:12px;
     font-size:10px;letter-spacing:4px;color:var(--toxic-dim);text-transform:uppercase;
   }
@@ -214,7 +215,7 @@
 
   /* ── Slot Tabs ── */
   .slotTabs{
-    display:flex;gap:8px;max-width:860px;margin:0 auto 14px;
+    display:flex;gap:10px;max-width:1100px;margin:0 auto 16px;
   }
   .slotTab{
     flex:1;display:flex;flex-direction:column;align-items:center;gap:3px;
@@ -237,12 +238,12 @@
 
   /* weapon card grid — compact */
   .weaponGrid{
-    display:grid;grid-template-columns:repeat(auto-fill,minmax(190px,1fr));
-    gap:10px;max-width:1200px;margin:0 auto 18px;
+    display:grid;grid-template-columns:repeat(auto-fill,minmax(215px,1fr));
+    gap:14px;max-width:1440px;margin:0 auto 22px;
   }
   .wCard{
     position:relative;background:linear-gradient(180deg,var(--panel),#0d1109);
-    border:1px solid var(--line);padding:12px 12px 10px;
+    border:1px solid var(--line);padding:16px 16px 13px;
     display:flex;flex-direction:column;align-items:center;text-align:center;
     transition:border-color .15s,box-shadow .15s,transform .15s;
   }
@@ -264,17 +265,17 @@
     color:var(--toxic);border:1px solid var(--toxic);padding:1px 5px;background:rgba(143,209,63,.08);
   }
   .wCard.tesla-card .wEquipTag{color:var(--epic);border-color:var(--epic);background:rgba(154,94,224,.08);}
-  .wCard .wIcon{font-size:24px;margin-bottom:4px;filter:drop-shadow(0 0 5px rgba(0,0,0,.6));}
-  .wCard .wName{font-size:13px;letter-spacing:2px;margin-bottom:1px;}
+  .wCard .wIcon{font-size:30px;margin-bottom:6px;filter:drop-shadow(0 0 5px rgba(0,0,0,.6));}
+  .wCard .wName{font-size:15px;letter-spacing:2px;margin-bottom:2px;}
   .wCard .wWeight{font-size:8px;letter-spacing:2px;color:var(--toxic-dim);text-transform:uppercase;margin-bottom:6px;}
-  .wCard .wDesc{font-size:9.5px;color:#7a8168;line-height:1.5;min-height:28px;margin-bottom:8px;}
+  .wCard .wDesc{font-size:10.5px;color:#7a8168;line-height:1.6;min-height:30px;margin-bottom:10px;}
   .wCard .wStats{
     display:flex;justify-content:space-around;width:100%;
     font-size:7.5px;letter-spacing:1px;color:#5c6650;text-transform:uppercase;
     border-top:1px solid var(--line);border-bottom:1px solid var(--line);
     padding:6px 0;margin-bottom:8px;gap:2px;
   }
-  .wCard .wStats .statVal{display:block;font-size:12px;letter-spacing:0;color:var(--bone);margin-bottom:1px;font-weight:bold;}
+  .wCard .wStats .statVal{display:block;font-size:14px;letter-spacing:0;color:var(--bone);margin-bottom:1px;font-weight:bold;}
   .wCard .wStats .statGain{display:block;font-size:7px;letter-spacing:.5px;color:var(--toxic-dim);margin-top:1px;}
   .wCard .wAction{width:100%;margin-top:auto;}
 
@@ -344,7 +345,7 @@
 
   /* ── Blood Crate ── */
   .crateCard{
-    max-width:520px;margin:0 auto 20px;background:linear-gradient(180deg,var(--panel),#0d1109);
+    max-width:640px;margin:0 auto 24px;background:linear-gradient(180deg,var(--panel),#0d1109);
     border:1px solid var(--blood);box-shadow:0 0 14px rgba(179,35,28,.15) inset;
     padding:16px;display:flex;gap:14px;align-items:center;
   }
@@ -369,12 +370,12 @@
 
   /* ── Class Shop ── */
   .clsGrid{
-    display:grid;grid-template-columns:repeat(auto-fill,minmax(190px,1fr));
-    gap:10px;max-width:900px;margin:0 auto 18px;
+    display:grid;grid-template-columns:repeat(auto-fill,minmax(215px,1fr));
+    gap:14px;max-width:1100px;margin:0 auto 22px;
   }
   .clsCard{
     position:relative;background:linear-gradient(180deg,var(--panel),#0d1109);
-    border:1px solid var(--line);padding:12px 12px 10px;
+    border:1px solid var(--line);padding:16px 16px 13px;
     display:flex;flex-direction:column;align-items:center;text-align:center;
     transition:border-color .15s,box-shadow .15s,transform .15s;
   }
@@ -384,9 +385,9 @@
     position:absolute;top:6px;right:6px;font-size:8px;letter-spacing:1px;
     color:var(--toxic);border:1px solid var(--toxic);padding:1px 5px;background:rgba(143,209,63,.08);
   }
-  .clsCard .cIcon{font-size:24px;margin-bottom:4px;filter:drop-shadow(0 0 5px rgba(0,0,0,.6));}
-  .clsCard .cName{font-size:13px;letter-spacing:2px;margin-bottom:6px;}
-  .clsCard .cDesc{font-size:9.5px;color:#7a8168;line-height:1.5;min-height:28px;margin-bottom:8px;}
+  .clsCard .cIcon{font-size:30px;margin-bottom:6px;filter:drop-shadow(0 0 5px rgba(0,0,0,.6));}
+  .clsCard .cName{font-size:15px;letter-spacing:2px;margin-bottom:7px;}
+  .clsCard .cDesc{font-size:10.5px;color:#7a8168;line-height:1.6;min-height:30px;margin-bottom:10px;}
   .clsCard .cStats{
     display:flex;justify-content:space-around;width:100%;
     font-size:7.5px;letter-spacing:1px;color:#5c6650;text-transform:uppercase;
@@ -573,6 +574,54 @@
   /* Other players rendered on the canvas during a match */
   .mpNameTag{font-size:9px;letter-spacing:.5px;}
 
+  /* ── Global Chat ── */
+  #globalChat{
+    position:absolute;bottom:100px;left:18px;z-index:7;
+    width:280px;display:flex;flex-direction:column;gap:0;
+    pointer-events:none;
+  }
+  #globalChat.open{ pointer-events:all; }
+  #chatToggleBtn{
+    pointer-events:all;
+    background:#12160f;border:1px solid #4fa3e0;color:#4fa3e0;
+    font-family:inherit;font-size:10px;letter-spacing:2px;
+    padding:5px 12px;cursor:pointer;align-self:flex-start;
+    transition:background .15s;
+  }
+  #chatToggleBtn:hover{background:#1a2a3a;}
+  #chatBox{
+    display:none;flex-direction:column;
+    background:rgba(10,13,8,0.92);border:1px solid #2b3a4a;border-bottom:none;
+    width:280px;
+  }
+  #globalChat.open #chatBox{display:flex;}
+  #chatMessages{
+    height:160px;overflow-y:auto;padding:8px 10px;
+    font-size:11px;line-height:1.6;letter-spacing:.3px;
+    scrollbar-width:thin;scrollbar-color:#2b3323 transparent;
+  }
+  #chatMessages::-webkit-scrollbar{width:4px;}
+  #chatMessages::-webkit-scrollbar-thumb{background:#2b3323;}
+  .chatMsg{ margin:1px 0; word-break:break-word; }
+  .chatMsg .chatName{ font-weight:bold; }
+  .chatMsg .chatGame{ font-size:9px;letter-spacing:1px;opacity:.55;margin-left:4px; }
+  .chatMsg .chatText{ color:#d8d3c1; }
+  .chatMsg.system{ color:#5c6650;font-style:italic;font-size:10px; }
+  #chatInputRow{
+    display:flex;border-top:1px solid #2b3323;
+  }
+  #chatInput{
+    flex:1;background:transparent;border:none;outline:none;
+    color:var(--bone);font-family:inherit;font-size:11px;
+    padding:6px 10px;letter-spacing:.5px;
+  }
+  #chatSendBtn{
+    background:none;border:none;border-left:1px solid #2b3323;
+    color:#4fa3e0;font-family:inherit;font-size:10px;letter-spacing:1px;
+    padding:6px 10px;cursor:pointer;
+  }
+  #chatSendBtn:hover{background:#1a2a3a;}
+
   .lbCard{
     width:min(520px,92vw);max-height:80vh;overflow-y:auto;
     background:linear-gradient(180deg,#151a10,#0e120c);
@@ -620,6 +669,7 @@
       </div>
       <div class="row" style="margin-top:8px"><span>Cash</span><span id="moneyTxt">$0</span></div>
       <div class="row"><span>🩸 Blood Coin</span><span id="bloodCoinTxt">0</span></div>
+      <div class="row" id="soulRow" style="display:none"><span>💀 Souls</span><span id="soulTxt">0</span></div>
       <div id="slotBar" style="display:flex;gap:6px;justify-content:flex-end;margin-top:10px"></div>
     </div>
   </div>
@@ -647,6 +697,18 @@
     <button class="buildBtn" id="btnHealthUp">❤ +10 MAX HP <span style="opacity:.5;font-size:9px">[C]</span> <span class="bCost" id="healthCostLbl">$100</span></button>
   </div>
   <div id="buildModeHint">CLICK TO PLACE — RIGHT-CLICK CANCEL</div>
+
+  <!-- ══ GLOBAL CHAT (shared with Base Siege) ══ -->
+  <div id="globalChat">
+    <div id="chatBox">
+      <div id="chatMessages"></div>
+      <div id="chatInputRow">
+        <input id="chatInput" maxlength="120" placeholder="message…" autocomplete="off">
+        <button id="chatSendBtn">SEND</button>
+      </div>
+    </div>
+    <button id="chatToggleBtn">💬 GLOBAL CHAT</button>
+  </div>
 
   <!-- ══ MENU SCREEN ══ -->
   <div id="startScreen">
@@ -831,8 +893,8 @@ resize(); window.addEventListener('resize', resize);
 // per-room Realtime Broadcast+Presence channel — no extra tables needed for
 // those, so a stale/abandoned room is just one row to clean up.
 // ══════════════════════════════════════════════════════════════════════
-const SUPABASE_URL = '';      // e.g. 'https://xxxxxxxx.supabase.co'
-const SUPABASE_ANON_KEY = ''; // your project's publishable/anon key
+const SUPABASE_URL = 'https://qzupfyqizurpkvifkmnn.supabase.co';
+const SUPABASE_ANON_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InF6dXBmeXFpenVycGt2aWZrbW5uIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzYwNjEyNDYsImV4cCI6MjA5MTYzNzI0Nn0.fRfg6wAeCMteat6Jf9yNT__g-N97LFCnWqlSF9rg6jo';
 
 let supa = null;
 try{
@@ -1139,6 +1201,8 @@ const CLASSES = {
     desc:'Same combat stats as Survivor. Swaps the build loadout for a Flame Turret and Steel Barricade.' },
   bastion:   { label:'BASTION',   icon:'🏰', hpMult:1.00, speedMult:1.00, dmgMult:1.00, rateMult:1.00, buildCostMult:1.00, color:'#e0a83c',
     desc:'Swaps the build loadout for a Bunker, Laser Turret, and Drone. Standing inside your Bunker grants +10% damage and 4 HP/sec regen.' },
+  necromancer: { label:'NECROMANCER', icon:'💀', hpMult:1.00, speedMult:1.00, dmgMult:1.00, rateMult:1.00, buildCostMult:1.00, color:'#9a5ee0',
+    desc:'Swaps the build loadout for Soul Absorber, Summon Zombie, and Explode. Harvest souls instead of scrap, then spend them raising an undead horde to fight for you.' },
 };
 function loadPlayerClass(){ const v=localStorage.getItem('ob_playerClass'); return CLASSES[v] ? v : 'survivor'; }
 function savePlayerClass(v){ localStorage.setItem('ob_playerClass', v); }
@@ -1148,21 +1212,27 @@ function getClass(){ return CLASSES[playerClass] || CLASSES.survivor; }
 // ── Class unlocks — Survivor is always free; other classes are bought with GOLD ──
 const ENGINEER_GOLD_COST = 500;
 const BASTION_GOLD_COST  = 5000;
+const NECROMANCER_GOLD_COST = 5000;
 function loadEngineerUnlocked(){ return localStorage.getItem('ob_engineerUnlocked')==='1'; }
 function saveEngineerUnlocked(v){ localStorage.setItem('ob_engineerUnlocked', v?'1':'0'); }
 let engineerUnlocked = loadEngineerUnlocked();
 function loadBastionUnlocked(){ return localStorage.getItem('ob_bastionUnlocked')==='1'; }
 function saveBastionUnlocked(v){ localStorage.setItem('ob_bastionUnlocked', v?'1':'0'); }
 let bastionUnlocked = loadBastionUnlocked();
+function loadNecromancerUnlocked(){ return localStorage.getItem('ob_necromancerUnlocked')==='1'; }
+function saveNecromancerUnlocked(v){ localStorage.setItem('ob_necromancerUnlocked', v?'1':'0'); }
+let necromancerUnlocked = loadNecromancerUnlocked();
 function isClassUnlocked(id){
   if(id==='survivor') return true;
   if(id==='engineer') return engineerUnlocked;
   if(id==='bastion') return bastionUnlocked;
+  if(id==='necromancer') return necromancerUnlocked;
   return false;
 }
 function getClassCost(id){
   if(id==='engineer') return ENGINEER_GOLD_COST;
   if(id==='bastion') return BASTION_GOLD_COST;
+  if(id==='necromancer') return NECROMANCER_GOLD_COST;
   return 0;
 }
 // Guard against a stale/edited save pointing at a class that isn't actually unlocked.
@@ -1223,6 +1293,9 @@ let laserTurretCost = 100;
 let droneCost       = 100;
 let healthUpCost = 100;
 
+const SUMMON_ZOMBIE_SOUL_COST = 5;  // paid in souls, fixed
+const EXPLODE_SOUL_COST       = 10; // paid in souls, fixed
+
 // ── Buildings ────────────────────────────────────────────
 // turret: auto-shoots nearest zombie
 // mine:   explodes on zombie contact
@@ -1239,7 +1312,7 @@ function computeActiveSlot(){
   if(knifeActive) return KNIFE_IDX;
   return getTierWeapon(currentTier);
 }
-let money, kills, wave, score, scrapCollected;
+let money, kills, wave, score, scrapCollected, souls;
 let player, zombies, bullets, particles;
 // lightning arcs: [{x1,y1,x2,y2,life}]
 let lightningArcs;
@@ -1264,7 +1337,7 @@ function resetGame(){
   bloodActive = equippedSpecial==='blood' && bloodPistolUnlocked;
   knifeActive = equippedSpecial==='knife' && knifeUnlocked;
   activeSlot = computeActiveSlot();
-  money=0; kills=0; wave=1; score=0; scrapCollected=0;
+  money=0; kills=0; wave=1; score=0; scrapCollected=0; souls=0;
   buildings=[]; buildMode=null; setBuildMode(null);
   // Build costs scale with the selected class (Engineer gets a discount) — building
   // MAX HP itself is never touched here or in placeBuilding, so it stays default
@@ -1364,6 +1437,11 @@ function updateHud(){
   document.getElementById('killTxt').textContent=kills;
   document.getElementById('moneyTxt').textContent='$'+money;
   document.getElementById('bloodCoinTxt').textContent=bloodCoin;
+  const soulRow=document.getElementById('soulRow');
+  if(soulRow){
+    soulRow.style.display = playerClass==='necromancer' ? 'flex' : 'none';
+    document.getElementById('soulTxt').textContent = souls;
+  }
 
   const w=getWeapon(activeSlot);
   const nameEl=document.getElementById('weaponName');
@@ -1771,6 +1849,11 @@ function slotType(slot, clsId){
     if(slot===2) return 'laserTurret';
     if(slot===3) return 'drone';
   }
+  if(id==='necromancer'){
+    if(slot===1) return 'soulAbsorber';
+    if(slot===2) return 'summonZombie';
+    if(slot===3) return 'explode';
+  }
   // Survivor / default loadout
   if(slot===1) return 'turret';
   if(slot===2) return 'mine';
@@ -1783,6 +1866,13 @@ function costForType(type){
   if(type==='bunker') return bunkerCost;
   if(type==='mine') return mineCost;
   if(type==='barricade' || type==='steelBarricade') return barricadeCost;
+  if(type==='soulAbsorber') return 0;
+  if(type==='summonZombie') return SUMMON_ZOMBIE_SOUL_COST;
+  if(type==='explode') return EXPLODE_SOUL_COST;
+}
+// Necromancer's two soul-powered slots are paid for with souls, not cash.
+function costCurrency(type){
+  return (type==='summonZombie' || type==='explode') ? 'soul' : 'money';
 }
 function slotCost(slot){
   return costForType(slotType(slot));
@@ -1794,6 +1884,9 @@ function slotIcon(type){
        : type==='laserTurret' ? '⚡'
        : type==='drone' ? '🛸'
        : type==='turret' ? '🌀'
+       : type==='soulAbsorber' ? '👻'
+       : type==='summonZombie' ? '🧟'
+       : type==='explode' ? '☠️'
        : type==='mine' ? '💣' : '🧱';
 }
 function slotLabel(type){
@@ -1803,13 +1896,17 @@ function slotLabel(type){
        : type==='laserTurret' ? 'LASER TURRET'
        : type==='drone' ? 'DRONE'
        : type==='turret' ? 'TURRET'
+       : type==='soulAbsorber' ? 'SOUL ABSORBER'
+       : type==='summonZombie' ? 'SUMMON ZOMBIE'
+       : type==='explode' ? 'EXPLODE'
        : type==='mine' ? 'LANDMINE' : 'BARRICADE';
 }
 function toggleBuildSlot(slot){
   if(mp) return; // Buildings are Base Siege (single-player) only for now
   const type = slotType(slot);
-  if(type==='mine'){
-    // Landmine: instant place at player position — no click needed
+  if(type==='mine' || type==='explode' || type==='soulAbsorber' || type==='summonZombie'){
+    // Landmine / Explode / Soul Absorb / Summon Zombie: instant trigger at
+    // player position — no click/placement needed.
     if(buildMode===slot){ setBuildMode(null); }
     else { setBuildMode(null); buildMode=slot; placeBuilding(player.x, player.y); }
   } else {
@@ -1822,9 +1919,10 @@ function updateBuildCosts(){
   const ml=document.getElementById('mineCostLbl');
   const bl=document.getElementById('barricadeCostLbl');
   const hl=document.getElementById('healthCostLbl');
-  if(tl) tl.textContent='$'+slotCost(1);
-  if(ml) ml.textContent='$'+slotCost(2);
-  if(bl) bl.textContent='$'+slotCost(3);
+  const cur1=costCurrency(slotType(1)), cur2=costCurrency(slotType(2)), cur3=costCurrency(slotType(3));
+  if(tl) tl.textContent = slotType(1)==='soulAbsorber' ? 'FREE' : (cur1==='soul'?'💀':'$')+slotCost(1);
+  if(ml) ml.textContent=(cur2==='soul'?'💀':'$')+slotCost(2);
+  if(bl) bl.textContent=(cur3==='soul'?'💀':'$')+slotCost(3);
   if(hl) hl.textContent='$'+healthUpCost;
 
   // Icon/label per slot reflect whatever the active class places there
@@ -1847,8 +1945,8 @@ function setBuildMode(mode){
     document.getElementById(btnId).classList.add('active');
     hint.style.display='block';
     const t = slotType(mode);
-    const verb = t==='mine' ? 'CLICK TO DROP' : 'CLICK TO PLACE';
-    const place = t==='mine' ? 'HERE' : 'ON GRID';
+    const verb = (t==='mine' || t==='explode' || t==='soulAbsorber' || t==='summonZombie') ? 'CLICK TO TRIGGER' : 'CLICK TO PLACE';
+    const place = (t==='mine' || t==='explode' || t==='soulAbsorber' || t==='summonZombie') ? 'HERE' : 'ON GRID';
     hint.textContent = `${slotIcon(t)} MOVE TO POSITION · ${verb} ${slotLabel(t)} ${place} — RIGHT-CLICK CANCEL`;
   } else { hint.style.display='none'; }
   // Disable normal shooting cursor feel while placing
@@ -1858,11 +1956,85 @@ function setBuildMode(mode){
 const GRID_SIZE = 60; // matches the background grid drawn at 60px intervals
 function snapToGrid(v){ return Math.round(v/GRID_SIZE)*GRID_SIZE; }
 
+function buildRadiusFor(type){
+  if(type==='bunker') return 30;
+  if(type==='barricade' || type==='steelBarricade') return 20;
+  if(type==='mine') return 12;
+  if(type==='drone') return 14;
+  if(type==='allyZombie') return 14;
+  return 18; // turret, flameTurret, laserTurret, soulAbsorber
+}
+
 function placeBuilding(x, y){
   if(!running) return;
   if(!buildMode) return;
   const slot = buildMode;
   const type = slotType(slot);
+
+  // Soul Absorb: instant, free, no cooldown — pulls souls from every zombie
+  // near the player's current position, right where they're standing.
+  // Doesn't kill the zombies — just drains a soul from each, they live on.
+  if(type==='soulAbsorber'){
+    const radius = 220;
+    let absorbed = 0;
+    for(const z of zombies){
+      if(Math.hypot(z.x-player.x, z.y-player.y) < radius){
+        souls += 1; absorbed++;
+        for(let k=0;k<8;k++)
+          particles.push({x:z.x,y:z.y,vx:(Math.random()-.5)*3,vy:(Math.random()-.5)*3-1,life:16,color:'#9a5ee0',size:2+Math.random()*2});
+        showFloatPop(z.x,z.y-10,'👻 +1 SOUL','#9a5ee0');
+      }
+    }
+    if(absorbed>0) showLevelup('👻 ABSORBED '+absorbed+' SOUL'+(absorbed>1?'S':''),'#9a5ee0');
+    setBuildMode(null);
+    updateHud();
+    return;
+  }
+
+  // Explode: instant global ability, not a placed structure — no grid/overlap
+  // checks needed. Detonates every currently-summoned zombie ally, dealing
+  // AoE damage to nearby enemy zombies around each one.
+  if(type==='explode'){
+    const cost = EXPLODE_SOUL_COST;
+    if(souls < cost){ showLevelup('NEED '+cost+' SOULS','#9a5ee0'); setBuildMode(null); return; }
+    const allies = buildings.filter(b=>b.type==='allyZombie');
+    if(allies.length===0){ showLevelup('NO SUMMONED ZOMBIES TO DETONATE','#e05050'); setBuildMode(null); return; }
+    souls -= cost;
+    const blastR = 100, blastDmg = 70;
+    for(const ally of allies){
+      for(let k=zombies.length-1;k>=0;k--){
+        const zz=zombies[k];
+        if(Math.hypot(zz.x-ally.x, zz.y-ally.y) < blastR){
+          zz.hp -= blastDmg; zz.hitFlash=10;
+          if(zz.hp<=0){
+            const val=zz.tough?(18+Math.round(Math.random()*12)):(5+Math.round(Math.random()*7));
+            money+=val; scrapCollected+=val; kills++; waveKills++; score+=zz.tough?25:10;
+            spawnScrapPop(zz.x,zz.y,val); awardBloodCoin(zz); regenOnKill(zz);
+            zombies.splice(k,1);
+          }
+        }
+      }
+      for(let k=0;k<20;k++)
+        particles.push({x:ally.x,y:ally.y,vx:(Math.random()-.5)*7,vy:(Math.random()-.5)*7,life:20,color:k%2?'#9a5ee0':'#5c6650',size:3+Math.random()*3});
+    }
+    buildings = buildings.filter(b=>b.type!=='allyZombie');
+    showLevelup('☠️ ZOMBIES DETONATED!','#9a5ee0');
+    setBuildMode(null);
+    updateHud();
+    return;
+  }
+  // Summon Zombie: instant, straight from the button — no placement/aiming
+  // needed. Spawns immediately at the player's position if souls allow.
+  if(type==='summonZombie'){
+    const cost = SUMMON_ZOMBIE_SOUL_COST;
+    if(souls < cost){ showLevelup('NEED '+cost+' SOULS','#9a5ee0'); setBuildMode(null); return; }
+    souls -= cost;
+    buildings.push({ type:'allyZombie', x:player.x, y:player.y, r:14, hp:70, maxHp:70, dmg:10, speed:1.6 });
+    showFloatPop(player.x, player.y, '🧟 ZOMBIE SUMMONED', '#9a5ee0');
+    setBuildMode(null);
+    updateHud();
+    return;
+  }
   const cost = slotCost(slot);
 
   // All buildings are placed at the player's current position
@@ -1875,13 +2047,32 @@ function placeBuilding(x, y){
     y = snapToGrid(y);
   }
 
-  if(money < cost){ showLevelup('NEED $'+cost,'#e05050'); return; }
-  money -= cost;
+  // Buildings can't be stacked on top of each other — reject the placement if
+  // it would overlap an existing building of any type.
+  const newR = buildRadiusFor(type);
+  const GAP = 8; // small buffer so structures don't visually touch
+  for(const b of buildings){
+    if(Math.hypot(x-b.x, y-b.y) < (b.r||18) + newR + GAP){
+      showLevelup('TOO CLOSE TO ANOTHER BUILDING', '#e05050');
+      return;
+    }
+  }
+
+  const currency = costCurrency(type);
+  if(currency==='soul'){
+    if(souls < cost){ showLevelup('NEED '+cost+' SOULS','#9a5ee0'); return; }
+    souls -= cost;
+  } else {
+    if(money < cost){ showLevelup('NEED $'+cost,'#e05050'); return; }
+    money -= cost;
+  }
 
   // Increase cost for next purchase — each building TYPE has its own cost line,
   // so Bastion's Bunker/Laser Turret/Drone all scale independently of each other
   // (and of Engineer's Flame Turret / Steel Barricade). Bunker scales much
   // steeper (+$250/purchase) to reflect how much stronger it is.
+  // Necromancer's soul-powered slots (Summon Zombie / Explode) stay at their
+  // fixed soul cost — no scaling.
   if(type==='bunker')                                    { bunkerCost      += 250; }
   else if(type==='laserTurret')                          { laserTurretCost += 50;  }
   else if(type==='drone')                                { droneCost       += 50;  }
@@ -1889,6 +2080,7 @@ function placeBuilding(x, y){
   else if(type==='barricade' || type==='steelBarricade') { barricadeCost   += 10;  }
 
   updateBuildCosts();
+  updateHud();
 
   if(type==='turret'){
     buildings.push({ type:'turret', x, y, r:18, hp:80, maxHp:80,
@@ -2103,6 +2295,33 @@ function updateBuildings(dt, now){
         for(let k=0;k<3;k++)
           particles.push({x:b.x,y:b.y,vx:(Math.random()-.5)*3,vy:(Math.random()-.5)*3,life:5,color:'#8fd1ff',size:2});
       }
+    } else if(b.type==='allyZombie'){
+      // Friendly summoned zombie: shambles toward the nearest enemy zombie and melees it.
+      let target=null, td=Infinity;
+      for(const z of zombies){ const d=Math.hypot(z.x-b.x,z.y-b.y); if(d<td){td=d;target=z;} }
+      if(target){
+        if(td > b.r+target.r){
+          const ang=Math.atan2(target.y-b.y, target.x-b.x);
+          b.x += Math.cos(ang)*b.speed*dt;
+          b.y += Math.sin(ang)*b.speed*dt;
+        } else {
+          target.hp -= b.dmg*dt*0.05;
+          b.hp -= target.dmg*dt*0.05;
+          if(target.hp<=0){
+            const val=target.tough?(18+Math.round(Math.random()*12)):(5+Math.round(Math.random()*7));
+            money+=val; scrapCollected+=val; kills++; waveKills++; score+=target.tough?25:10;
+            spawnScrapPop(target.x,target.y,val); awardBloodCoin(target); regenOnKill(target);
+            const idx=zombies.indexOf(target);
+            if(idx>=0) zombies.splice(idx,1);
+          }
+        }
+      }
+      if(b.hp<=0){
+        for(let k=0;k<12;k++)
+          particles.push({x:b.x,y:b.y,vx:(Math.random()-.5)*5,vy:(Math.random()-.5)*5,life:14,color:k%2?'#9a5ee0':'#5c6650',size:2.5+Math.random()*2});
+        buildings.splice(i,1);
+        continue;
+      }
     }
   }
 }
@@ -2198,6 +2417,13 @@ function drawBuildings(){
       ctx.globalAlpha=1;
       ctx.font='11px serif'; ctx.textAlign='center'; ctx.textBaseline='middle';
       ctx.fillText('🛸',0,bob);
+    }
+
+    else if(b.type==='allyZombie'){
+      ctx.fillStyle='#1c2812'; ctx.strokeStyle='#9a5ee0'; ctx.lineWidth=2;
+      ctx.beginPath(); ctx.arc(0,0,b.r,0,Math.PI*2); ctx.fill(); ctx.stroke();
+      ctx.font='14px serif'; ctx.textAlign='center'; ctx.textBaseline='middle';
+      ctx.fillText('🧟',0,0);
     }
 
     // HP bar for turret & barricade
@@ -3337,6 +3563,7 @@ document.getElementById('clsGrid').addEventListener('click', e=>{
   gold -= cost; saveGold(gold);
   if(id==='engineer'){ engineerUnlocked=true; saveEngineerUnlocked(engineerUnlocked); }
   if(id==='bastion'){ bastionUnlocked=true; saveBastionUnlocked(bastionUnlocked); }
+  if(id==='necromancer'){ necromancerUnlocked=true; saveNecromancerUnlocked(necromancerUnlocked); }
   document.getElementById('goldTxt').textContent=gold;
   playerClass = id; savePlayerClass(playerClass);
   renderClasses();
@@ -3592,7 +3819,16 @@ function mpEnterRoom(room, isHost){
   mp.channel.on('presence', { event:'sync' }, ()=>{
     const state = mp.channel.presenceState();
     mp.players = {};
-    for(const key in state){ if(state[key][0]) mp.players[key]=state[key][0]; }
+    for(const key in state){
+      const presences = state[key];
+      if(!presences || !presences.length) continue;
+      // Take the most recent presence entry for this key
+      const p = presences[presences.length - 1];
+      // Store under the player's own id (embedded in payload) so self-filter works
+      // even if Supabase changes how it keys presence entries.
+      const pid = p.playerId || key;
+      mp.players[pid] = p;
+    }
     mpRenderPlayerList();
   });
   mp.channel.on('broadcast', { event:'zsnap' }, ({payload})=>{
@@ -3608,7 +3844,7 @@ function mpEnterRoom(room, isHost){
 
   mp.channel.subscribe(async status=>{
     if(status!=='SUBSCRIBED') return;
-    await mp.channel.track({ name:mp.myName, color:mp.color, x:0, y:0, hp:100, maxHp:100, aim:0, alive:true });
+    await mp.channel.track({ playerId:mp.myId, name:mp.myName, color:mp.color, x:0, y:0, hp:100, maxHp:100, aim:0, alive:true });
     if(!isHost){
       await supa.from('ob_mp_rooms').update({ player_count: room.player_count+1 }).eq('id', room.id);
     }
@@ -3679,7 +3915,7 @@ function mpNetworkTick(dt, now){
   mp.lastNetTick = 0;
 
   mp.channel.track({
-    name: mp.myName, color: mp.color,
+    playerId: mp.myId, name: mp.myName, color: mp.color,
     x: Math.round(player.x), y: Math.round(player.y),
     hp: Math.round(player.hp), maxHp: Math.round(player.maxHp),
     aim: +aimAngle.toFixed(2), alive: player.hp>0,
@@ -3729,27 +3965,174 @@ function mpApplyReward(payload){
 function mpDrawOtherPlayers(){
   if(!mp) return;
   for(const id in mp.players){
-    if(id===mp.myId) continue;
     const p = mp.players[id];
-    if(!p || p.alive===false) continue;
+    if(!p) continue;
+    // Skip self — check both the map key and the embedded playerId field
+    if(id === mp.myId) continue;
+    if(p.playerId && p.playerId === mp.myId) continue;
+    if(p.alive === false) continue;
+    // Sanity check — skip if coordinates aren't valid numbers yet
+    if(typeof p.x !== 'number' || typeof p.y !== 'number') continue;
+    if(isNaN(p.x) || isNaN(p.y)) continue;
+
+    const col = p.color || '#4fa3e0';
+
+    // Player body + gun barrel
     ctx.save();
     ctx.translate(p.x, p.y);
-    ctx.rotate(p.aim||0);
-    ctx.fillStyle = p.color||'#8fd13f';
-    ctx.beginPath(); ctx.arc(0,0,14,0,Math.PI*2); ctx.fill();
-    ctx.fillStyle='rgba(0,0,0,.4)';
-    ctx.fillRect(6,-2,12,4);
+    ctx.rotate(p.aim || 0);
+    // Outer glow ring so remote players are distinct from green local player
+    ctx.shadowColor = col; ctx.shadowBlur = 10;
+    ctx.fillStyle = col;
+    ctx.beginPath(); ctx.arc(0, 0, 14, 0, Math.PI*2); ctx.fill();
+    ctx.shadowBlur = 0;
+    ctx.fillStyle = 'rgba(0,0,0,.45)';
+    ctx.fillRect(6, -2, 14, 4); // gun barrel stub
     ctx.restore();
-    ctx.font='10px monospace'; ctx.textAlign='center';
-    ctx.fillStyle=p.color||'#8fd13f';
-    ctx.fillText(p.name||'?', p.x, p.y-24);
-    if(typeof p.hp==='number' && typeof p.maxHp==='number'){
-      const w=30;
-      ctx.fillStyle='#1a1f14'; ctx.fillRect(p.x-w/2,p.y-20,w,3);
-      ctx.fillStyle=p.color||'#8fd13f'; ctx.fillRect(p.x-w/2,p.y-20,w*Math.max(0,p.hp/p.maxHp),3);
+
+    // Name tag above player
+    ctx.save();
+    ctx.font = 'bold 11px monospace';
+    ctx.textAlign = 'center';
+    ctx.textBaseline = 'bottom';
+    // subtle dark backing for readability
+    const label = p.name || '?';
+    const tw = ctx.measureText(label).width;
+    ctx.fillStyle = 'rgba(0,0,0,.55)';
+    ctx.fillRect(p.x - tw/2 - 3, p.y - 30, tw + 6, 14);
+    ctx.fillStyle = col;
+    ctx.fillText(label, p.x, p.y - 18);
+    ctx.restore();
+
+    // HP bar
+    if(typeof p.hp === 'number' && typeof p.maxHp === 'number' && p.maxHp > 0){
+      const bw = 32;
+      ctx.fillStyle = '#1a1f14';
+      ctx.fillRect(p.x - bw/2, p.y - 18, bw, 4);
+      ctx.fillStyle = col;
+      ctx.fillRect(p.x - bw/2, p.y - 18, bw * Math.max(0, Math.min(1, p.hp / p.maxHp)), 4);
     }
   }
 }
+
+// ══════════════════════════════════════════════════════════════════════
+// GLOBAL CHAT — shared Supabase Realtime broadcast channel,
+// linked to Base Siege so players from both games can talk.
+// Channel name 'siege_global_chat' is intentionally the same string
+// Base Siege uses so the chat is cross-game.
+// ══════════════════════════════════════════════════════════════════════
+const CHAT_CHANNEL_NAME = 'siege_global_chat';
+const CHAT_GAME_TAG = 'OUTBREAK';   // shown next to sender name
+const CHAT_MAX_MESSAGES = 80;
+let chatChannel = null;
+let chatOpen = false;
+let chatUnread = 0;
+
+function chatGetName(){
+  // Prefer MP name if set, then account name, then a guest label
+  return (localStorage.getItem('ob_mp_name') || currentUser() || 'Guest').slice(0, 20);
+}
+
+function chatInitChannel(){
+  if(!supa || chatChannel) return;
+  chatChannel = supa.channel(CHAT_CHANNEL_NAME)
+    .on('broadcast', { event:'msg' }, ({ payload }) => {
+      chatReceiveMessage(payload);
+    })
+    .subscribe(status => {
+      if(status === 'SUBSCRIBED'){
+        chatReceiveSystem('Connected to global chat (shared with Base Siege)');
+      }
+    });
+}
+
+function chatReceiveSystem(text){
+  const el = document.getElementById('chatMessages');
+  if(!el) return;
+  const div = document.createElement('div');
+  div.className = 'chatMsg system';
+  div.textContent = '— ' + text + ' —';
+  el.appendChild(div);
+  chatTrimMessages(el);
+  el.scrollTop = el.scrollHeight;
+}
+
+function chatReceiveMessage(payload){
+  if(!payload || !payload.text) return;
+  const el = document.getElementById('chatMessages');
+  if(!el) return;
+  const div = document.createElement('div');
+  div.className = 'chatMsg';
+  const nameSpan = document.createElement('span');
+  nameSpan.className = 'chatName';
+  nameSpan.style.color = payload.color || '#8fd13f';
+  nameSpan.textContent = (payload.name || '?').slice(0, 20);
+  const gameSpan = document.createElement('span');
+  gameSpan.className = 'chatGame';
+  gameSpan.textContent = '[' + (payload.game || '?') + ']';
+  const textSpan = document.createElement('span');
+  textSpan.className = 'chatText';
+  textSpan.textContent = ': ' + String(payload.text).slice(0, 120);
+  div.appendChild(nameSpan);
+  div.appendChild(gameSpan);
+  div.appendChild(textSpan);
+  el.appendChild(div);
+  chatTrimMessages(el);
+  el.scrollTop = el.scrollHeight;
+  // Unread badge when chat is closed
+  if(!chatOpen){
+    chatUnread++;
+    document.getElementById('chatToggleBtn').textContent = `💬 GLOBAL CHAT (${chatUnread})`;
+  }
+}
+
+function chatTrimMessages(el){
+  while(el.children.length > CHAT_MAX_MESSAGES) el.removeChild(el.firstChild);
+}
+
+function chatSendMessage(){
+  const input = document.getElementById('chatInput');
+  if(!input) return;
+  const text = input.value.trim();
+  if(!text || !chatChannel) return;
+  input.value = '';
+  const payload = {
+    name: chatGetName(),
+    game: CHAT_GAME_TAG,
+    color: (mp && mp.color) || '#8fd13f',
+    text,
+  };
+  // Show locally immediately
+  chatReceiveMessage(payload);
+  // Broadcast to everyone
+  chatChannel.send({ type:'broadcast', event:'msg', payload });
+}
+
+// Toggle chat open/closed
+document.getElementById('chatToggleBtn').addEventListener('click', () => {
+  chatOpen = !chatOpen;
+  const gc = document.getElementById('globalChat');
+  gc.classList.toggle('open', chatOpen);
+  if(chatOpen){
+    chatUnread = 0;
+    document.getElementById('chatToggleBtn').textContent = '💬 GLOBAL CHAT ✕';
+    const el = document.getElementById('chatMessages');
+    if(el) el.scrollTop = el.scrollHeight;
+    // Init channel lazily on first open
+    chatInitChannel();
+    setTimeout(() => document.getElementById('chatInput').focus(), 50);
+  } else {
+    document.getElementById('chatToggleBtn').textContent = '💬 GLOBAL CHAT';
+  }
+});
+
+document.getElementById('chatSendBtn').addEventListener('click', chatSendMessage);
+document.getElementById('chatInput').addEventListener('keydown', e => {
+  if(e.key === 'Enter'){ e.preventDefault(); chatSendMessage(); }
+  // Don't let chat keypresses bleed into WASD movement
+  e.stopPropagation();
+});
+document.getElementById('chatInput').addEventListener('keyup', e => e.stopPropagation());
 
 // ── Menu wiring ──
 document.getElementById('openMultiplayerBtn').addEventListener('click',()=>{
