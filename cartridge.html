@@ -1,0 +1,863 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+<title>CARTRIDGE — share your code</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Space+Mono:wght@400;700&family=JetBrains+Mono:wght@400;500;700&family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2/dist/umd/supabase.js"></script>
+<link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/prismjs@1.29.0/themes/prism-tomorrow.min.css">
+<script src="https://cdn.jsdelivr.net/npm/prismjs@1.29.0/components/prism-core.min.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/prismjs@1.29.0/plugins/autoloader/prism-autoloader.min.js"></script>
+<style>
+  :root{
+    --bg:#0a0c11;
+    --panel:#12151d;
+    --panel-2:#171b26;
+    --line:#252a38;
+    --lime:#c3ff3c;
+    --violet:#7c5cff;
+    --text:#e7e9ee;
+    --muted:#8a93a6;
+    --danger:#ff5c7a;
+    --radius:14px;
+  }
+  *{box-sizing:border-box;}
+  html,body{margin:0;padding:0;}
+  body{
+    background:
+      radial-gradient(1200px 500px at 15% -10%, rgba(124,92,255,0.15), transparent 60%),
+      radial-gradient(1000px 400px at 100% 0%, rgba(195,255,60,0.08), transparent 55%),
+      var(--bg);
+    color:var(--text);
+    font-family:'Inter',sans-serif;
+    min-height:100vh;
+  }
+  ::selection{background:var(--lime); color:#0a0c11;}
+  a{color:inherit;}
+  .wrap{max-width:1120px; margin:0 auto; padding:0 24px 80px;}
+
+  /* ---- topbar ---- */
+  header.top{
+    display:flex; align-items:center; justify-content:space-between;
+    padding:22px 24px; max-width:1120px; margin:0 auto;
+    border-bottom:1px solid var(--line);
+  }
+  .brand{display:flex; align-items:center; gap:10px; font-family:'JetBrains Mono',monospace; font-weight:700; letter-spacing:0.5px;}
+  .brand .chip{
+    width:26px; height:20px; border-radius:4px;
+    background:linear-gradient(135deg,var(--lime),#8fe000);
+    position:relative; flex:none;
+  }
+  .brand .chip::after{
+    content:""; position:absolute; left:50%; top:-5px; transform:translateX(-50%);
+    width:12px; height:6px; background:var(--bg); border-radius:2px 2px 0 0;
+  }
+  .brand span{font-size:15px;}
+  .brand .sub{color:var(--muted); font-weight:400; font-size:12px; margin-left:6px;}
+
+  nav.actions{display:flex; align-items:center; gap:10px;}
+  .who{font-family:'JetBrains Mono',monospace; font-size:12px; color:var(--muted); margin-right:6px; display:none;}
+  @media(min-width:640px){ .who{display:inline;} }
+
+  button{font-family:'Inter',sans-serif; cursor:pointer; border:none;}
+  .btn{
+    padding:10px 16px; border-radius:9px; font-weight:600; font-size:13.5px;
+    border:1px solid var(--line); background:var(--panel-2); color:var(--text);
+    transition:transform .12s ease, border-color .12s ease;
+  }
+  .btn:hover{border-color:#3a4256; transform:translateY(-1px);}
+  .btn.primary{
+    background:var(--lime); color:#0a0c11; border-color:var(--lime);
+  }
+  .btn.primary:hover{background:#d4ff6b;}
+  .btn.ghost{background:transparent;}
+  .btn:disabled{opacity:.5; cursor:default; transform:none;}
+
+  /* ---- hero ---- */
+  .hero{padding:64px 0 40px; position:relative;}
+  .eyebrow{
+    font-family:'JetBrains Mono',monospace; color:var(--lime); font-size:12.5px;
+    letter-spacing:2px; text-transform:uppercase; margin:0 0 14px;
+  }
+  h1{
+    font-family:'Space Mono',monospace; font-size:clamp(32px,5.5vw,54px);
+    line-height:1.05; margin:0 0 18px; letter-spacing:-0.5px;
+  }
+  h1 em{font-style:normal; color:var(--lime);}
+  .hero p.desc{color:var(--muted); font-size:16px; max-width:520px; line-height:1.6; margin:0 0 26px;}
+  .hero-actions{display:flex; gap:12px; flex-wrap:wrap;}
+
+  /* ---- toolbar / filters ---- */
+  .toolbar{
+    display:flex; align-items:center; justify-content:space-between; flex-wrap:wrap; gap:14px;
+    margin:44px 0 22px; padding-top:24px; border-top:1px solid var(--line);
+  }
+  .tabs{display:flex; gap:6px; background:var(--panel); border:1px solid var(--line); border-radius:10px; padding:4px;}
+  .tabs button{
+    background:transparent; color:var(--muted); padding:8px 14px; border-radius:7px; font-size:13px; font-weight:600;
+  }
+  .tabs button.active{background:var(--panel-2); color:var(--text);}
+  .search{
+    display:flex; align-items:center; gap:8px; background:var(--panel); border:1px solid var(--line);
+    border-radius:10px; padding:9px 12px; min-width:220px; flex:1; max-width:320px;
+  }
+  .search input{
+    background:transparent; border:none; outline:none; color:var(--text); font-size:13.5px; width:100%;
+    font-family:'JetBrains Mono',monospace;
+  }
+  .search svg{flex:none; opacity:.6;}
+
+  /* ---- grid of cartridges ---- */
+  .grid{
+    display:grid; grid-template-columns:repeat(auto-fill,minmax(270px,1fr)); gap:18px;
+  }
+  .empty{
+    grid-column:1/-1; text-align:center; padding:60px 20px; color:var(--muted);
+    border:1px dashed var(--line); border-radius:var(--radius); font-family:'JetBrains Mono',monospace; font-size:13px;
+  }
+
+  .card{
+    background:linear-gradient(180deg,var(--panel-2),var(--panel));
+    border:1px solid var(--line); border-radius:var(--radius);
+    padding:0; overflow:hidden; position:relative; display:flex; flex-direction:column;
+    transition:transform .15s ease, border-color .15s ease;
+  }
+  .card:hover{transform:translateY(-3px); border-color:#3a4256;}
+  .card::before{
+    /* cartridge notch */
+    content:""; position:absolute; top:0; left:22px; width:34px; height:9px;
+    background:var(--bg); border-radius:0 0 6px 6px; z-index:2;
+  }
+  .card-top{
+    padding:20px 18px 14px; display:flex; flex-direction:column; gap:8px;
+  }
+  .lang-tag{
+    align-self:flex-start; font-family:'JetBrains Mono',monospace; font-size:11px; font-weight:700;
+    text-transform:uppercase; letter-spacing:.5px; color:#0a0c11; background:var(--lime);
+    padding:3px 8px; border-radius:5px;
+  }
+  .lang-tag.private{background:var(--panel); color:var(--muted); border:1px solid var(--line);}
+  .card h3{margin:4px 0 0; font-size:17px; font-family:'JetBrains Mono',monospace; line-height:1.3;}
+  .card .desc{color:var(--muted); font-size:13px; line-height:1.5; margin:2px 0 0; min-height:18px;}
+  .card .by{font-size:12px; color:var(--muted); margin-top:2px;}
+  .card .by b{color:var(--text); font-weight:600;}
+
+  .card-preview{
+    margin:0 18px; border:1px solid var(--line); border-radius:9px; background:#080a0f;
+    font-family:'JetBrains Mono',monospace; font-size:11.5px; color:#c9d1d9; line-height:1.6;
+    padding:10px 12px; height:74px; overflow:hidden; position:relative;
+  }
+  .card-preview pre, .card-preview code{background:transparent !important; text-shadow:none !important;}
+  .card-preview.locked{
+    display:flex; align-items:center; justify-content:center; color:var(--muted); filter:none;
+  }
+  .card-preview pre{margin:0; white-space:pre-wrap; word-break:break-word;}
+  .card-preview::after{
+    content:""; position:absolute; left:0; right:0; bottom:0; height:28px;
+    background:linear-gradient(180deg, rgba(8,10,15,0), #080a0f);
+  }
+
+  .card-bottom{
+    margin-top:auto; display:flex; align-items:center; justify-content:space-between;
+    padding:14px 18px 18px;
+  }
+  .like-btn{
+    display:flex; align-items:center; gap:6px; background:transparent; border:1px solid var(--line);
+    color:var(--muted); padding:6px 10px; border-radius:8px; font-size:12.5px; font-weight:600;
+  }
+  .like-btn svg{width:14px; height:14px;}
+  .like-btn.liked{color:var(--danger); border-color:rgba(255,92,122,.4); background:rgba(255,92,122,.08);}
+  .like-btn:hover{border-color:#3a4256;}
+  .view-link{font-size:12.5px; font-weight:700; color:var(--violet); display:flex; align-items:center; gap:4px;}
+  .owner-badge{font-size:11px; color:var(--muted); font-family:'JetBrains Mono',monospace;}
+
+  /* ---- modal ---- */
+  .overlay{
+    position:fixed; inset:0; background:rgba(6,7,11,.72); backdrop-filter:blur(3px);
+    display:none; align-items:flex-start; justify-content:center; z-index:50; padding:40px 16px; overflow-y:auto;
+  }
+  .overlay.open{display:flex;}
+  .modal{
+    background:var(--panel); border:1px solid var(--line); border-radius:16px;
+    width:100%; max-width:640px; padding:26px; position:relative;
+  }
+  .modal h2{font-family:'Space Mono',monospace; margin:0 0 18px; font-size:22px;}
+  .modal .close{position:absolute; top:18px; right:18px; background:transparent; color:var(--muted); font-size:18px;}
+  .field{margin-bottom:14px;}
+  .field label{display:block; font-size:12.5px; color:var(--muted); margin-bottom:6px; font-weight:600;}
+  .field input[type=text], .field textarea, .field select{
+    width:100%; background:var(--panel-2); border:1px solid var(--line); color:var(--text);
+    padding:10px 12px; border-radius:9px; font-size:13.5px; font-family:inherit; outline:none;
+  }
+  .field textarea{font-family:'JetBrains Mono',monospace; font-size:12.5px; min-height:180px; resize:vertical; line-height:1.55;}
+  .field select{font-family:'JetBrains Mono',monospace;}
+  .field input:focus, .field textarea:focus, .field select:focus{border-color:var(--violet);}
+  .row2{display:grid; grid-template-columns:1fr 1fr; gap:12px;}
+  .visibility{display:flex; gap:10px; margin-top:4px;}
+  .visibility label{
+    flex:1; display:flex; align-items:center; gap:8px; border:1px solid var(--line); border-radius:9px;
+    padding:10px 12px; cursor:pointer; font-size:13px; color:var(--muted);
+  }
+  .visibility input{accent-color:var(--lime);}
+  .visibility label:has(input:checked){border-color:var(--lime); color:var(--text);}
+  .modal-actions{display:flex; justify-content:flex-end; gap:10px; margin-top:6px;}
+  .err{color:var(--danger); font-size:12.5px; margin-top:8px; display:none;}
+
+  .code-view pre{
+    background:#080a0f; border:1px solid var(--line); border-radius:10px; padding:16px;
+    font-family:'JetBrains Mono',monospace; font-size:12.5px; line-height:1.6; color:#c9d1d9;
+    max-height:420px; overflow:auto; margin:0; white-space:pre-wrap; word-break:break-word;
+  }
+  .locked-msg{
+    display:flex; flex-direction:column; align-items:center; gap:10px; padding:40px 10px; color:var(--muted);
+    font-family:'JetBrains Mono',monospace; font-size:13px; text-align:center;
+  }
+
+  .view-tabs{display:flex; gap:6px; background:var(--panel); border:1px solid var(--line); border-radius:10px; padding:4px; margin-bottom:14px; width:max-content;}
+  .view-tabs button{background:transparent; color:var(--muted); padding:7px 14px; border-radius:7px; font-size:12.5px; font-weight:600;}
+  .view-tabs button.active{background:var(--panel-2); color:var(--text);}
+
+  .run-frame-wrap{
+    border:1px solid var(--line); border-radius:10px; background:#08090d; overflow:hidden;
+  }
+  .run-frame-wrap .device-bar{
+    display:flex; align-items:center; gap:6px; padding:8px 12px; background:var(--panel-2); border-bottom:1px solid var(--line);
+  }
+  .run-frame-wrap .dot{width:9px; height:9px; border-radius:50%; background:#3a4256;}
+  .run-frame-wrap .dot:nth-child(1){background:#ff5c7a;}
+  .run-frame-wrap .dot:nth-child(2){background:#ffd166;}
+  .run-frame-wrap .dot:nth-child(3){background:#c3ff3c;}
+  .run-frame-wrap iframe{width:100%; height:360px; border:none; background:#fff; display:block;}
+  .run-console{
+    font-family:'JetBrains Mono',monospace; font-size:12px; color:#7ee787; background:#080a0f;
+    padding:12px 14px; max-height:300px; overflow:auto; white-space:pre-wrap; word-break:break-word; line-height:1.6;
+  }
+  .run-console .err{color:var(--danger); display:block;}
+  .run-unsupported{
+    display:flex; flex-direction:column; align-items:center; gap:10px; padding:44px 16px; color:var(--muted);
+    font-family:'JetBrains Mono',monospace; font-size:13px; text-align:center; border:1px dashed var(--line); border-radius:10px;
+  }
+
+  footer{text-align:center; color:var(--muted); font-size:12px; padding:30px 0; font-family:'JetBrains Mono',monospace;}
+  .toast{
+    position:fixed; bottom:22px; left:50%; transform:translateX(-50%) translateY(20px);
+    background:var(--panel-2); border:1px solid var(--line); color:var(--text); padding:11px 18px;
+    border-radius:10px; font-size:13px; opacity:0; pointer-events:none; transition:all .25s ease; z-index:99;
+    font-family:'JetBrains Mono',monospace;
+  }
+  .toast.show{opacity:1; transform:translateX(-50%) translateY(0);}
+</style>
+</head>
+<body>
+
+<header class="top">
+  <div class="brand">
+    <div class="chip"></div>
+    <span>CARTRIDGE</span>
+    <span class="sub">// player-made code, out in the open (or not)</span>
+  </div>
+  <nav class="actions">
+    <span class="who" id="whoLabel"></span>
+    <button class="btn ghost" id="renameBtn" style="display:none;">rename</button>
+    <button class="btn primary" id="newBtn">+ New cartridge</button>
+  </nav>
+</header>
+
+<div class="wrap">
+  <section class="hero">
+    <p class="eyebrow">// insert code, press play</p>
+    <h1>Drop your build.<br>Let other players <em>see inside</em>.</h1>
+    <p class="desc">Paste any snippet into a cartridge. Make it public so anyone can pop it open and inspect the code, or keep it private and just show off the label. Like the ones you rate.</p>
+    <div class="hero-actions">
+      <button class="btn primary" id="heroNewBtn">+ New cartridge</button>
+      <button class="btn ghost" id="heroPublicBtn">Browse public cartridges</button>
+    </div>
+  </section>
+
+  <div class="toolbar">
+    <div class="tabs" id="tabs">
+      <button data-tab="public" class="active">Public</button>
+      <button data-tab="mine">My cartridges</button>
+      <button data-tab="liked">Liked</button>
+    </div>
+    <div style="display:flex; gap:10px; flex-wrap:wrap; align-items:center;">
+      <div class="tabs" id="sortTabs">
+        <button data-sort="newest" class="active">Newest</button>
+        <button data-sort="trending">🔥 Trending</button>
+      </div>
+      <div class="search">
+        <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="11" cy="11" r="8"/><path d="m21 21-4.3-4.3"/></svg>
+        <input id="searchInput" type="text" placeholder="search cartridges..." />
+      </div>
+    </div>
+  </div>
+
+  <div class="grid" id="grid">
+    <div class="empty">Loading cartridges…</div>
+  </div>
+</div>
+
+<footer>CARTRIDGE — built on Supabase — every player gets one save slot</footer>
+
+<!-- New/Edit cartridge modal -->
+<div class="overlay" id="newOverlay">
+  <div class="modal">
+    <button class="close" id="newClose">✕</button>
+    <h2>New cartridge</h2>
+    <form id="newForm">
+      <div class="row2">
+        <div class="field">
+          <label>Title</label>
+          <input type="text" id="fTitle" maxlength="80" placeholder="Pathfinding in 40 lines" required />
+        </div>
+        <div class="field">
+          <label>Language</label>
+          <select id="fLang">
+            <option>JavaScript</option><option>TypeScript</option><option>Python</option>
+            <option>Java</option><option>C++</option><option>C#</option><option>Rust</option>
+            <option>Go</option><option>Lua</option><option>GLSL</option><option>SQL</option>
+            <option>HTML/CSS</option><option>Other</option>
+          </select>
+        </div>
+      </div>
+      <div class="field">
+        <label>Thumbnail (optional)</label>
+        <div id="thumbDrop" style="display:flex; align-items:center; gap:12px;">
+          <div id="thumbPreviewWrap" style="width:70px; height:52px; border:1px dashed var(--line); border-radius:8px; overflow:hidden; display:flex; align-items:center; justify-content:center; flex:none; background:var(--panel-2); color:var(--muted); font-size:10px; text-align:center;">
+            <span id="thumbPlaceholder">no image</span>
+            <img id="thumbPreviewImg" style="display:none; width:100%; height:100%; object-fit:cover;" />
+          </div>
+          <input type="file" id="fThumb" accept="image/*" style="font-size:12px; color:var(--muted);" />
+        </div>
+      </div>
+      <div class="field">
+        <label>Short description</label>
+        <input type="text" id="fDesc" maxlength="140" placeholder="What does this code do?" />
+      </div>
+      <div class="field">
+        <label>Code</label>
+        <textarea id="fCode" placeholder="paste your code here..." required></textarea>
+      </div>
+      <div class="field">
+        <label>Visibility</label>
+        <div class="visibility">
+          <label><input type="radio" name="vis" value="public" checked /> Public — anyone can click "see inside"</label>
+          <label><input type="radio" name="vis" value="private" /> Private — label only, code hidden</label>
+        </div>
+      </div>
+      <div class="err" id="formErr"></div>
+      <div class="modal-actions">
+        <button type="button" class="btn ghost" id="cancelBtn">Cancel</button>
+        <button type="submit" class="btn primary" id="saveBtn">Save cartridge</button>
+      </div>
+    </form>
+  </div>
+</div>
+
+<!-- View cartridge modal -->
+<div class="overlay" id="viewOverlay">
+  <div class="modal" style="max-width:760px;">
+    <button class="close" id="viewClose">✕</button>
+    <h2 id="vTitle">Title</h2>
+    <p class="desc" id="vDesc" style="color:var(--muted); margin-top:-10px; font-size:13.5px;"></p>
+    <p class="by" id="vBy" style="margin:6px 0 14px;"></p>
+    <div class="view-tabs" id="viewTabs">
+      <button data-vtab="run" class="active">▶ Run</button>
+      <button data-vtab="code">🔍 See inside</button>
+    </div>
+    <div id="viewBody" class="code-view"></div>
+    <div class="modal-actions" id="viewActions" style="margin-top:16px;"></div>
+  </div>
+</div>
+
+<div class="toast" id="toast"></div>
+
+<script>
+const SUPABASE_URL = "https://qzupfyqizurpkvifkmnn.supabase.co";
+const SUPABASE_ANON_KEY = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InF6dXBmeXFpenVycGt2aWZrbW5uIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzYwNjEyNDYsImV4cCI6MjA5MTYzNzI0Nn0.fRfg6wAeCMteat6Jf9yNT__g-N97LFCnWqlSF9rg6jo";
+const sb = supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
+
+let currentUser = null;
+let currentTab = 'public';
+let sortMode = 'newest';
+let searchTerm = '';
+
+const PRISM_LANG = {
+  'JavaScript':'javascript','TypeScript':'typescript','Python':'python','Java':'java',
+  'C++':'cpp','C#':'csharp','Rust':'rust','Go':'go','Lua':'lua','GLSL':'glsl','SQL':'sql',
+  'HTML/CSS':'markup','Other':'none'
+};
+function prismLang(language){ return PRISM_LANG[language] || 'none'; }
+let allLikeCounts = {}; // project_id -> count
+let myLikedIds = new Set();
+let projectsCache = [];
+
+const $ = (sel) => document.querySelector(sel);
+const grid = $('#grid');
+const toast = $('#toast');
+
+function showToast(msg){
+  toast.textContent = msg;
+  toast.classList.add('show');
+  setTimeout(()=> toast.classList.remove('show'), 2200);
+}
+
+function escapeHtml(str){
+  return (str||'').replace(/[&<>"']/g, m => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[m]));
+}
+
+// ---------- AUTH ----------
+async function initAuth(){
+  const { data: { session } } = await sb.auth.getSession();
+  if (session){
+    currentUser = session.user;
+  } else {
+    const { data, error } = await sb.auth.signInAnonymously();
+    if (error){
+      console.error(error);
+      showAuthError(error);
+      return;
+    }
+    currentUser = data.user;
+  }
+  await ensureProfile();
+  renderWho();
+}
+
+function showAuthError(error){
+  grid.innerHTML = `<div class="empty" style="color:var(--danger); border-color:rgba(255,92,122,.4);">
+    Couldn't sign you in (${escapeHtml(error.message || 'unknown error')}).<br/><br/>
+    This site needs <b>Anonymous sign-ins</b> turned on in Supabase → Authentication → Sign In / Providers.
+  </div>`;
+  showToast('Sign-in failed — anonymous auth may be disabled');
+}
+
+async function ensureProfile(){
+  if (!currentUser) return;
+  const { data } = await sb.from('cs_profiles').select('*').eq('id', currentUser.id).maybeSingle();
+  if (!data){
+    const name = 'Player' + Math.floor(1000 + Math.random()*9000);
+    await sb.from('cs_profiles').insert({ id: currentUser.id, display_name: name });
+  }
+}
+
+async function getMyProfile(){
+  if (!currentUser) return null;
+  const { data } = await sb.from('cs_profiles').select('*').eq('id', currentUser.id).maybeSingle();
+  return data;
+}
+
+function renderWho(){
+  getMyProfile().then(p=>{
+    $('#whoLabel').textContent = p ? ('playing as ' + p.display_name) : '';
+    $('#renameBtn').style.display = p ? 'inline-block' : 'none';
+  });
+}
+
+$('#renameBtn').addEventListener('click', async ()=>{
+  const p = await getMyProfile();
+  const name = prompt('Choose your player name', p ? p.display_name : '');
+  if (!name) return;
+  await sb.from('cs_profiles').update({ display_name: name.slice(0,40) }).eq('id', currentUser.id);
+  renderWho();
+  loadProjects();
+});
+
+// ---------- DATA LOADING ----------
+async function loadProjects(){
+  grid.innerHTML = '<div class="empty">Loading cartridges…</div>';
+
+  let query = sb.from('cs_projects').select('*, cs_profiles!cs_projects_owner_id_fkey(display_name)').order('created_at', {ascending:false});
+
+  if (currentTab === 'public'){
+    query = query.eq('is_public', true);
+  } else if (currentTab === 'mine'){
+    query = query.eq('owner_id', currentUser.id);
+  }
+  // 'liked' tab handled after fetching likes
+
+  const { data: projects, error } = await query;
+  if (error){ console.error(error); grid.innerHTML = '<div class="empty">Could not load cartridges: '+escapeHtml(error.message)+'</div>'; return; }
+
+  const { data: likeRows } = await sb.from('cs_likes').select('project_id, player_id');
+  allLikeCounts = {};
+  myLikedIds = new Set();
+  (likeRows||[]).forEach(r=>{
+    allLikeCounts[r.project_id] = (allLikeCounts[r.project_id]||0) + 1;
+    if (currentUser && r.player_id === currentUser.id) myLikedIds.add(r.project_id);
+  });
+
+  let list = projects || [];
+  if (currentTab === 'liked'){
+    list = list.filter(p => myLikedIds.has(p.id));
+  }
+  if (searchTerm.trim()){
+    const t = searchTerm.toLowerCase();
+    list = list.filter(p => p.title.toLowerCase().includes(t) || (p.description||'').toLowerCase().includes(t) || p.language.toLowerCase().includes(t));
+  }
+
+  if (sortMode === 'trending'){
+    list = list.slice().sort((a,b)=> (allLikeCounts[b.id]||0) - (allLikeCounts[a.id]||0));
+  }
+
+  projectsCache = list;
+  renderGrid(list);
+}
+
+function renderGrid(list){
+  if (!list.length){
+    grid.innerHTML = '<div class="empty">No cartridges here yet. Be the first to load one in.</div>';
+    return;
+  }
+  grid.innerHTML = list.map(p => cardHtml(p)).join('');
+  list.forEach(p=>{
+    document.getElementById('card-'+p.id).addEventListener('click', (e)=>{
+      if (e.target.closest('.like-btn')) return;
+      openView(p);
+    });
+    const likeBtn = document.querySelector('#card-'+p.id+' .like-btn');
+    if (likeBtn) likeBtn.addEventListener('click', (e)=>{ e.stopPropagation(); toggleLike(p.id); });
+  });
+  if (window.Prism) Prism.highlightAllUnder(grid);
+}
+
+function cardHtml(p){
+  const ownerName = p.cs_profiles ? p.cs_profiles.display_name : 'Unknown';
+  const isOwner = currentUser && p.owner_id === currentUser.id;
+  const likeCount = allLikeCounts[p.id] || 0;
+  const liked = myLikedIds.has(p.id);
+  const preview = p.thumbnail_url
+    ? `<div class="card-preview" style="padding:0;"><img src="${escapeHtml(p.thumbnail_url)}" alt="" style="width:100%; height:100%; object-fit:cover; display:block;" /></div>`
+    : (p.is_public
+        ? `<div class="card-preview"><pre style="background:transparent; padding:0; margin:0;"><code class="language-${prismLang(p.language)}">${escapeHtml(p.code.slice(0,220))}</code></pre></div>`
+        : `<div class="card-preview locked">🔒 private cartridge</div>`);
+  return `
+    <div class="card" id="card-${p.id}">
+      <div class="card-top">
+        <span class="lang-tag ${p.is_public?'':'private'}">${escapeHtml(p.language)}${p.is_public?'':' · private'}</span>
+        <h3>${escapeHtml(p.title)}</h3>
+        <div class="desc">${escapeHtml(p.description||'')}</div>
+        <div class="by">by <b>${escapeHtml(ownerName)}</b>${isOwner ? ' (you)' : ''}</div>
+      </div>
+      ${preview}
+      <div class="card-bottom">
+        <button class="like-btn ${liked?'liked':''}">
+          <svg viewBox="0 0 24 24" fill="${liked?'currentColor':'none'}" stroke="currentColor" stroke-width="2"><path d="M20.8 4.6a5.5 5.5 0 0 0-7.8 0L12 5.6l-1-1a5.5 5.5 0 0 0-7.8 7.8l1 1L12 21l7.8-7.6 1-1a5.5 5.5 0 0 0 0-7.8Z"/></svg>
+          ${likeCount}
+        </button>
+        <span class="view-link">${p.is_public ? '▶ run & see inside' : (isOwner ? '▶ run yours' : 'label only')}</span>
+      </div>
+    </div>`;
+}
+
+async function toggleLike(projectId){
+  if (!currentUser) return;
+  if (myLikedIds.has(projectId)){
+    await sb.from('cs_likes').delete().eq('project_id', projectId).eq('player_id', currentUser.id);
+  } else {
+    await sb.from('cs_likes').insert({ project_id: projectId, player_id: currentUser.id });
+  }
+  loadProjects();
+}
+
+// ---------- VIEW MODAL ----------
+let currentViewProject = null;
+let currentViewTab = 'run';
+
+function openView(p){
+  currentViewProject = p;
+  currentViewTab = 'run';
+  const isOwner = currentUser && p.owner_id === currentUser.id;
+  const ownerName = p.cs_profiles ? p.cs_profiles.display_name : 'Unknown';
+  $('#vTitle').textContent = p.title;
+  $('#vDesc').textContent = p.description || '';
+  $('#vBy').innerHTML = `by <b>${escapeHtml(ownerName)}</b> · ${escapeHtml(p.language)} · ${p.is_public ? 'public' : 'private'}`;
+
+  document.querySelectorAll('#viewTabs button').forEach(b=> b.classList.toggle('active', b.dataset.vtab === 'run'));
+  renderViewBody(p, isOwner, ownerName);
+  renderViewActions(p, isOwner);
+  $('#viewOverlay').classList.add('open');
+}
+
+function renderViewBody(p, isOwner, ownerName){
+  const body = $('#viewBody');
+  const canSee = p.is_public || isOwner;
+
+  if (!canSee){
+    body.innerHTML = `<div class="locked-msg">🔒<br/>This cartridge is private.<br/>Only ${escapeHtml(ownerName)} can run it or see inside.</div>`;
+    return;
+  }
+
+  if (currentViewTab === 'code'){
+    body.innerHTML = `<pre><code class="language-${prismLang(p.language)}">${escapeHtml(p.code)}</code></pre>`;
+    if (window.Prism) Prism.highlightAllUnder(body);
+    return;
+  }
+
+  // RUN tab — do not auto-execute; require an explicit click
+  const lang = p.language;
+  if (lang === 'HTML/CSS' || lang === 'JavaScript'){
+    body.innerHTML = `
+      <div class="run-unsupported">
+        ▶<br/>
+        Ready to run this ${escapeHtml(lang)} cartridge.<br/>
+        It'll open in a new tab.<br/>
+        <button class="btn primary" id="runNowBtn" style="margin-top:6px;">▶ Run it</button>
+      </div>`;
+    document.getElementById('runNowBtn').addEventListener('click', ()=> executeRun(p));
+  } else {
+    body.innerHTML = `
+      <div class="run-unsupported">
+        ▶<br/>
+        Live run isn't available for ${escapeHtml(lang)} cartridges yet.<br/>
+        Click "See inside" to read the code.
+      </div>`;
+  }
+}
+
+function executeRun(p){
+  const lang = p.language;
+  let html;
+  if (lang === 'HTML/CSS'){
+    const looksFull = /<html|<!doctype/i.test(p.code);
+    html = looksFull ? p.code : `<!doctype html><html><head><meta charset="utf-8"><title>${escapeHtml(p.title)}</title><style>body{font-family:sans-serif;margin:16px;}</style></head><body>${p.code}</body></html>`;
+  } else if (lang === 'JavaScript'){
+    html = buildJsRunShell(p.code, p.title);
+  } else {
+    return;
+  }
+
+  // Open the tab synchronously first (preserves the user-gesture so it isn't
+  // treated as a popup), then write the content in. This is far more
+  // reliable across browsers than blob: URLs, which can fail to resolve
+  // when opened in a fresh browsing context.
+  const win = window.open('', '_blank');
+  if (!win){
+    showToast('Pop-up blocked — allow pop-ups for this site to run cartridges');
+    return;
+  }
+  try{
+    win.document.open();
+    win.document.write(html);
+    win.document.close();
+  } catch(err){
+    console.error(err);
+    showToast('Could not open the run tab: ' + err.message);
+  }
+}
+
+function buildJsRunShell(code, title){
+  const escapedForScript = code
+    .replace(/\\/g,'\\\\')
+    .replace(/`/g,'\\`')
+    .replace(/\$\{/g,'\\${');
+  return `<!doctype html><html><head><meta charset="utf-8"><title>${escapeHtml(title||'Cartridge output')}</title><style>
+    body{margin:0;background:#080a0f;color:#7ee787;font-family:'JetBrains Mono',monospace;font-size:13px;padding:18px;line-height:1.6;white-space:pre-wrap;word-break:break-word;}
+    .err{color:#ff5c7a;}
+  </style></head><body><div id="out"></div><script>
+    const out = document.getElementById('out');
+    function line(text, cls){
+      const div = document.createElement('div');
+      if (cls) div.className = cls;
+      div.textContent = text;
+      out.appendChild(div);
+    }
+    ['log','info','warn','error'].forEach(function(m){
+      console[m] = function(){
+        const args = Array.prototype.slice.call(arguments).map(function(a){
+          try { return typeof a === 'string' ? a : JSON.stringify(a); } catch(e){ return String(a); }
+        });
+        line(args.join(' '), m === 'error' ? 'err' : '');
+      };
+    });
+    try {
+      new Function(\`${escapedForScript}\`)();
+      if (!out.childNodes.length) line('(no console output — code ran without errors)');
+    } catch (e) {
+      line('Error: ' + e.message, 'err');
+    }
+  <\/script></body></html>`;
+}
+
+function renderViewActions(p, isOwner){
+  const actions = $('#viewActions');
+  actions.innerHTML = '';
+  if (isOwner){
+    const del = document.createElement('button');
+    del.className = 'btn ghost'; del.textContent = 'Delete';
+    del.onclick = async ()=>{
+      if (!confirm('Delete this cartridge? This cannot be undone.')) return;
+      await sb.from('cs_projects').delete().eq('id', p.id);
+      $('#viewOverlay').classList.remove('open');
+      showToast('Cartridge deleted');
+      loadProjects();
+    };
+    const toggleVis = document.createElement('button');
+    toggleVis.className = 'btn primary';
+    toggleVis.textContent = p.is_public ? 'Make private' : 'Make public';
+    toggleVis.onclick = async ()=>{
+      await sb.from('cs_projects').update({ is_public: !p.is_public }).eq('id', p.id);
+      $('#viewOverlay').classList.remove('open');
+      showToast(p.is_public ? 'Now private' : 'Now public');
+      loadProjects();
+    };
+    actions.append(del, toggleVis);
+  }
+}
+
+document.querySelectorAll('#viewTabs button').forEach(b=>{
+  b.addEventListener('click', ()=>{
+    currentViewTab = b.dataset.vtab;
+    document.querySelectorAll('#viewTabs button').forEach(x=> x.classList.toggle('active', x===b));
+    if (currentViewProject){
+      const isOwner = currentUser && currentViewProject.owner_id === currentUser.id;
+      const ownerName = currentViewProject.cs_profiles ? currentViewProject.cs_profiles.display_name : 'Unknown';
+      renderViewBody(currentViewProject, isOwner, ownerName);
+    }
+  });
+});
+
+$('#viewClose').addEventListener('click', ()=> $('#viewOverlay').classList.remove('open'));
+$('#viewOverlay').addEventListener('click', (e)=>{ if (e.target.id==='viewOverlay') $('#viewOverlay').classList.remove('open'); });
+
+// ---------- NEW CARTRIDGE MODAL ----------
+function openNew(){
+  $('#newForm').reset();
+  $('#formErr').style.display = 'none';
+  pendingThumbFile = null;
+  $('#thumbPreviewImg').style.display = 'none';
+  $('#thumbPreviewImg').src = '';
+  $('#thumbPlaceholder').style.display = 'block';
+  $('#newOverlay').classList.add('open');
+}
+$('#newBtn').addEventListener('click', openNew);
+$('#heroNewBtn').addEventListener('click', openNew);
+$('#heroPublicBtn').addEventListener('click', ()=>{ setTab('public'); });
+$('#newClose').addEventListener('click', ()=> $('#newOverlay').classList.remove('open'));
+$('#cancelBtn').addEventListener('click', ()=> $('#newOverlay').classList.remove('open'));
+$('#newOverlay').addEventListener('click', (e)=>{ if (e.target.id==='newOverlay') $('#newOverlay').classList.remove('open'); });
+
+let pendingThumbFile = null;
+
+$('#fThumb').addEventListener('change', (e)=>{
+  const file = e.target.files[0];
+  const img = $('#thumbPreviewImg');
+  const placeholder = $('#thumbPlaceholder');
+
+  if (!file){
+    pendingThumbFile = null;
+    img.style.display = 'none';
+    placeholder.style.display = 'block';
+    return;
+  }
+
+  const okTypes = ['image/png','image/jpeg','image/webp','image/gif','image/heic','image/heif','image/avif','image/svg+xml'];
+  if (!okTypes.includes(file.type)){
+    showToast('That image type isn\'t supported — try PNG, JPG, WEBP or GIF');
+    e.target.value = '';
+    pendingThumbFile = null;
+    return;
+  }
+  if (file.size > 8 * 1024 * 1024){
+    showToast('Image is too big (max 8MB) — try a smaller file');
+    e.target.value = '';
+    pendingThumbFile = null;
+    return;
+  }
+
+  pendingThumbFile = file;
+  const url = URL.createObjectURL(file);
+  img.src = url;
+  img.style.display = 'block';
+  placeholder.style.display = 'none';
+});
+
+async function uploadThumbnail(file){
+  if (!file) return null;
+  if (!currentUser){
+    showToast('Not signed in yet — try again in a moment');
+    return null;
+  }
+  const ext = (file.name.split('.').pop() || 'png').toLowerCase();
+  const path = `${currentUser.id}/${Date.now()}.${ext}`;
+  const { error } = await sb.storage.from('cs_thumbnails').upload(path, file, { upsert: false, contentType: file.type || undefined });
+  if (error){
+    console.error(error);
+    showToast('Thumbnail upload failed: ' + error.message);
+    return null;
+  }
+  const { data } = sb.storage.from('cs_thumbnails').getPublicUrl(path);
+  return data ? data.publicUrl : null;
+}
+
+$('#newForm').addEventListener('submit', async (e)=>{
+  e.preventDefault();
+  const title = $('#fTitle').value.trim();
+  const language = $('#fLang').value;
+  const description = $('#fDesc').value.trim();
+  const code = $('#fCode').value;
+  const isPublic = document.querySelector('input[name=vis]:checked').value === 'public';
+  const errEl = $('#formErr');
+  errEl.style.display = 'none';
+
+  if (!title || !code.trim()){
+    errEl.textContent = 'Title and code are required.';
+    errEl.style.display = 'block';
+    return;
+  }
+  $('#saveBtn').disabled = true;
+  $('#saveBtn').textContent = 'Saving…';
+
+  let thumbnail_url = null;
+  if (pendingThumbFile){
+    thumbnail_url = await uploadThumbnail(pendingThumbFile);
+  }
+
+  const { error } = await sb.from('cs_projects').insert({
+    owner_id: currentUser.id, title, language, description, code, is_public: isPublic, thumbnail_url
+  });
+  $('#saveBtn').disabled = false;
+  $('#saveBtn').textContent = 'Save cartridge';
+  if (error){
+    errEl.textContent = error.message;
+    errEl.style.display = 'block';
+    return;
+  }
+  pendingThumbFile = null;
+  $('#newOverlay').classList.remove('open');
+  showToast('Cartridge saved');
+  setTab(isPublic ? 'public' : 'mine');
+});
+
+// ---------- TABS + SEARCH ----------
+function setTab(tab){
+  currentTab = tab;
+  document.querySelectorAll('#tabs button').forEach(b=> b.classList.toggle('active', b.dataset.tab === tab));
+  loadProjects();
+}
+document.querySelectorAll('#tabs button').forEach(b=>{
+  b.addEventListener('click', ()=> setTab(b.dataset.tab));
+});
+document.querySelectorAll('#sortTabs button').forEach(b=>{
+  b.addEventListener('click', ()=>{
+    sortMode = b.dataset.sort;
+    document.querySelectorAll('#sortTabs button').forEach(x=> x.classList.toggle('active', x===b));
+    loadProjects();
+  });
+});
+let searchDebounce;
+$('#searchInput').addEventListener('input', (e)=>{
+  clearTimeout(searchDebounce);
+  searchDebounce = setTimeout(()=>{ searchTerm = e.target.value; loadProjects(); }, 250);
+});
+
+// ---------- BOOT ----------
+(async function(){
+  await initAuth();
+  if (currentUser) loadProjects();
+})();
+</script>
+</body>
+</html>
