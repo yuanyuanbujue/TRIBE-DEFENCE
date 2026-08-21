@@ -159,6 +159,14 @@
     background:linear-gradient(180deg, rgba(8,10,15,0), #080a0f);
   }
 
+  .card-thumb{
+    width:100%; aspect-ratio:16/10; overflow:hidden; background:#080a0f;
+    border-bottom:1px solid var(--line); position:relative;
+  }
+  .card-thumb img{
+    width:100%; height:100%; object-fit:cover; object-position:center; display:block;
+  }
+
   .card-bottom{
     margin-top:auto; display:flex; align-items:center; justify-content:space-between;
     padding:14px 18px 18px;
@@ -218,6 +226,55 @@
   .view-tabs{display:flex; gap:6px; background:var(--panel); border:1px solid var(--line); border-radius:10px; padding:4px; margin-bottom:14px; width:max-content;}
   .view-tabs button{background:transparent; color:var(--muted); padding:7px 14px; border-radius:7px; font-size:12.5px; font-weight:600;}
   .view-tabs button.active{background:var(--panel-2); color:var(--text);}
+
+  /* ---- redesigned view modal ---- */
+  .view-modal{max-width:720px; padding:0; overflow:hidden;}
+  .view-modal .close{
+    position:absolute; top:14px; right:14px; z-index:5; background:rgba(8,10,15,.55);
+    width:30px; height:30px; border-radius:50%; display:flex; align-items:center; justify-content:center;
+    backdrop-filter:blur(4px);
+  }
+  .view-thumb-banner{width:100%; aspect-ratio:16/7; overflow:hidden; background:#080a0f; border-bottom:1px solid var(--line);}
+  .view-thumb-banner img{width:100%; height:100%; object-fit:cover; display:block;}
+  .view-modal-inner{padding:26px;}
+  .view-head{margin-bottom:4px;}
+  .view-head h2{font-family:'Space Mono',monospace; margin:8px 0 4px; font-size:22px; line-height:1.25;}
+  .view-head .by{margin:0; font-size:12.5px; color:var(--muted);}
+  .view-desc{
+    color:var(--text); font-size:14px; line-height:1.6; margin:12px 0 20px;
+    padding:12px 14px; background:var(--panel-2); border:1px solid var(--line); border-radius:10px;
+  }
+  .view-desc:empty{display:none;}
+
+  .comments-section{margin-top:28px; border-top:1px solid var(--line); padding-top:20px;}
+  .comments-title{font-family:'JetBrains Mono',monospace; font-size:14px; margin:0 0 14px; display:flex; align-items:baseline; gap:6px;}
+  .comments-title #commentCount{color:var(--muted); font-weight:400; font-size:12px;}
+  .comment-form{display:flex; gap:8px; margin-bottom:16px;}
+  .comment-form input{
+    flex:1; background:var(--panel-2); border:1px solid var(--line); color:var(--text);
+    padding:10px 12px; border-radius:9px; font-size:13.5px; outline:none; font-family:inherit;
+  }
+  .comment-form input:focus{border-color:var(--violet);}
+  .comments-list{display:flex; flex-direction:column; gap:12px; max-height:280px; overflow-y:auto;}
+  .comment-item{
+    display:flex; gap:10px; align-items:flex-start; padding-bottom:12px; border-bottom:1px solid var(--line);
+  }
+  .comment-item:last-child{border-bottom:none; padding-bottom:0;}
+  .comment-avatar{
+    width:28px; height:28px; border-radius:50%; background:linear-gradient(135deg,var(--violet),#4a35b8);
+    display:flex; align-items:center; justify-content:center; font-family:'JetBrains Mono',monospace;
+    font-size:11px; font-weight:700; color:#fff; flex:none;
+  }
+  .comment-body-wrap{flex:1; min-width:0;}
+  .comment-meta{display:flex; align-items:baseline; gap:8px; margin-bottom:2px;}
+  .comment-meta b{font-size:12.5px; font-weight:600;}
+  .comment-meta span{font-size:11px; color:var(--muted); font-family:'JetBrains Mono',monospace;}
+  .comment-text{font-size:13.5px; line-height:1.5; color:var(--text); word-break:break-word;}
+  .comment-del{
+    background:transparent; color:var(--muted); font-size:11px; padding:2px 6px; border-radius:5px; flex:none;
+  }
+  .comment-del:hover{color:var(--danger);}
+  .comments-empty{color:var(--muted); font-size:13px; font-family:'JetBrains Mono',monospace; text-align:center; padding:16px 0;}
 
   .run-frame-wrap{
     border:1px solid var(--line); border-radius:10px; background:#08090d; overflow:hidden;
@@ -305,7 +362,7 @@
 <div class="overlay" id="newOverlay">
   <div class="modal">
     <button class="close" id="newClose">✕</button>
-    <h2>New cartridge</h2>
+    <h2 id="newModalTitle">New cartridge</h2>
     <form id="newForm">
       <div class="row2">
         <div class="field">
@@ -330,6 +387,7 @@
             <img id="thumbPreviewImg" style="display:none; width:100%; height:100%; object-fit:cover;" />
           </div>
           <input type="file" id="fThumb" accept="image/*" style="font-size:12px; color:var(--muted);" />
+          <button type="button" class="btn ghost" id="removeThumbBtn" style="display:none; padding:6px 10px; font-size:12px;">Remove</button>
         </div>
       </div>
       <div class="field">
@@ -358,17 +416,33 @@
 
 <!-- View cartridge modal -->
 <div class="overlay" id="viewOverlay">
-  <div class="modal" style="max-width:760px;">
+  <div class="modal view-modal">
     <button class="close" id="viewClose">✕</button>
-    <h2 id="vTitle">Title</h2>
-    <p class="desc" id="vDesc" style="color:var(--muted); margin-top:-10px; font-size:13.5px;"></p>
-    <p class="by" id="vBy" style="margin:6px 0 14px;"></p>
-    <div class="view-tabs" id="viewTabs">
-      <button data-vtab="run" class="active">▶ Run</button>
-      <button data-vtab="code">🔍 See inside</button>
+    <div id="vThumbBanner" class="view-thumb-banner" style="display:none;"><img id="vThumbImg" alt="" /></div>
+    <div class="view-modal-inner">
+      <div class="view-head">
+        <span class="lang-tag" id="vLangTag"></span>
+        <h2 id="vTitle">Title</h2>
+        <p class="by" id="vBy"></p>
+      </div>
+      <p class="view-desc" id="vDesc"></p>
+
+      <div class="view-tabs" id="viewTabs">
+        <button data-vtab="run" class="active">▶ Run</button>
+        <button data-vtab="code">🔍 See inside</button>
+      </div>
+      <div id="viewBody" class="code-view"></div>
+      <div class="modal-actions" id="viewActions" style="margin-top:16px;"></div>
+
+      <div class="comments-section">
+        <h3 class="comments-title">Comments <span id="commentCount"></span></h3>
+        <form id="commentForm" class="comment-form">
+          <input type="text" id="commentInput" maxlength="500" placeholder="Say something about this cartridge…" />
+          <button type="submit" class="btn primary" id="commentSubmitBtn">Post</button>
+        </form>
+        <div id="commentsList" class="comments-list"></div>
+      </div>
     </div>
-    <div id="viewBody" class="code-view"></div>
-    <div class="modal-actions" id="viewActions" style="margin-top:16px;"></div>
   </div>
 </div>
 
@@ -528,20 +602,27 @@ function cardHtml(p){
   const isOwner = currentUser && p.owner_id === currentUser.id;
   const likeCount = allLikeCounts[p.id] || 0;
   const liked = myLikedIds.has(p.id);
-  const preview = p.thumbnail_url
-    ? `<div class="card-preview" style="padding:0;"><img src="${escapeHtml(p.thumbnail_url)}" alt="" style="width:100%; height:100%; object-fit:cover; display:block;" /></div>`
+
+  const thumbBanner = p.thumbnail_url
+    ? `<div class="card-thumb"><img src="${escapeHtml(p.thumbnail_url)}" alt="" loading="lazy" /></div>`
+    : '';
+
+  const codePreview = p.thumbnail_url
+    ? ''
     : (p.is_public
         ? `<div class="card-preview"><pre style="background:transparent; padding:0; margin:0;"><code class="language-${prismLang(p.language)}">${escapeHtml(p.code.slice(0,220))}</code></pre></div>`
         : `<div class="card-preview locked">🔒 private cartridge</div>`);
+
   return `
     <div class="card" id="card-${p.id}">
+      ${thumbBanner}
       <div class="card-top">
         <span class="lang-tag ${p.is_public?'':'private'}">${escapeHtml(p.language)}${p.is_public?'':' · private'}</span>
         <h3>${escapeHtml(p.title)}</h3>
         <div class="desc">${escapeHtml(p.description||'')}</div>
         <div class="by">by <b>${escapeHtml(ownerName)}</b>${isOwner ? ' (you)' : ''}</div>
       </div>
-      ${preview}
+      ${codePreview}
       <div class="card-bottom">
         <button class="like-btn ${liked?'liked':''}">
           <svg viewBox="0 0 24 24" fill="${liked?'currentColor':'none'}" stroke="currentColor" stroke-width="2"><path d="M20.8 4.6a5.5 5.5 0 0 0-7.8 0L12 5.6l-1-1a5.5 5.5 0 0 0-7.8 7.8l1 1L12 21l7.8-7.6 1-1a5.5 5.5 0 0 0 0-7.8Z"/></svg>
@@ -571,14 +652,30 @@ function openView(p){
   currentViewTab = 'run';
   const isOwner = currentUser && p.owner_id === currentUser.id;
   const ownerName = p.cs_profiles ? p.cs_profiles.display_name : 'Unknown';
+
   $('#vTitle').textContent = p.title;
   $('#vDesc').textContent = p.description || '';
-  $('#vBy').innerHTML = `by <b>${escapeHtml(ownerName)}</b> · ${escapeHtml(p.language)} · ${p.is_public ? 'public' : 'private'}`;
+  $('#vBy').innerHTML = `by <b>${escapeHtml(ownerName)}</b>${isOwner ? ' (you)' : ''} · ${p.is_public ? 'public' : 'private'}`;
+  $('#vLangTag').textContent = p.language;
+  $('#vLangTag').className = 'lang-tag' + (p.is_public ? '' : ' private');
+
+  if (p.thumbnail_url){
+    $('#vThumbImg').src = p.thumbnail_url;
+    $('#vThumbBanner').style.display = 'block';
+  } else {
+    $('#vThumbBanner').style.display = 'none';
+    $('#vThumbImg').src = '';
+  }
 
   document.querySelectorAll('#viewTabs button').forEach(b=> b.classList.toggle('active', b.dataset.vtab === 'run'));
   renderViewBody(p, isOwner, ownerName);
   renderViewActions(p, isOwner);
   $('#viewOverlay').classList.add('open');
+
+  const canSee = p.is_public || isOwner;
+  $('.comments-section').style.display = canSee ? 'block' : 'none';
+  $('#commentInput').value = '';
+  if (canSee) loadComments(p.id);
 }
 
 function renderViewBody(p, isOwner, ownerName){
@@ -694,6 +791,9 @@ function renderViewActions(p, isOwner){
       showToast('Cartridge deleted');
       loadProjects();
     };
+    const edit = document.createElement('button');
+    edit.className = 'btn ghost'; edit.textContent = 'Edit';
+    edit.onclick = ()=> openEdit(p);
     const toggleVis = document.createElement('button');
     toggleVis.className = 'btn primary';
     toggleVis.textContent = p.is_public ? 'Make private' : 'Make public';
@@ -703,7 +803,7 @@ function renderViewActions(p, isOwner){
       showToast(p.is_public ? 'Now private' : 'Now public');
       loadProjects();
     };
-    actions.append(del, toggleVis);
+    actions.append(del, edit, toggleVis);
   }
 }
 
@@ -719,27 +819,147 @@ document.querySelectorAll('#viewTabs button').forEach(b=>{
   });
 });
 
+// ---------- COMMENTS ----------
+function initials(name){
+  return (name||'?').trim().slice(0,2).toUpperCase();
+}
+function timeAgo(iso){
+  const diff = (Date.now() - new Date(iso).getTime()) / 1000;
+  if (diff < 60) return 'just now';
+  if (diff < 3600) return Math.floor(diff/60) + 'm ago';
+  if (diff < 86400) return Math.floor(diff/3600) + 'h ago';
+  if (diff < 2592000) return Math.floor(diff/86400) + 'd ago';
+  return new Date(iso).toLocaleDateString();
+}
+
+async function loadComments(projectId){
+  const list = $('#commentsList');
+  list.innerHTML = '<div class="comments-empty">Loading comments…</div>';
+  const { data, error } = await sb
+    .from('cs_comments')
+    .select('*, cs_profiles!cs_comments_player_id_fkey(display_name)')
+    .eq('project_id', projectId)
+    .order('created_at', { ascending: false });
+
+  if (error){ console.error(error); list.innerHTML = '<div class="comments-empty">Could not load comments.</div>'; return; }
+
+  $('#commentCount').textContent = data.length ? `(${data.length})` : '';
+
+  if (!data.length){
+    list.innerHTML = '<div class="comments-empty">No comments yet — be the first to say something.</div>';
+    return;
+  }
+
+  list.innerHTML = data.map(c=>{
+    const name = c.cs_profiles ? c.cs_profiles.display_name : 'Player';
+    const mine = currentUser && c.player_id === currentUser.id;
+    return `
+      <div class="comment-item" data-id="${c.id}">
+        <div class="comment-avatar">${escapeHtml(initials(name))}</div>
+        <div class="comment-body-wrap">
+          <div class="comment-meta">
+            <b>${escapeHtml(name)}</b>
+            <span>${timeAgo(c.created_at)}</span>
+          </div>
+          <div class="comment-text">${escapeHtml(c.body)}</div>
+        </div>
+        ${mine ? `<button class="comment-del" data-del="${c.id}">delete</button>` : ''}
+      </div>`;
+  }).join('');
+
+  list.querySelectorAll('[data-del]').forEach(btn=>{
+    btn.addEventListener('click', async ()=>{
+      const id = btn.dataset.del;
+      await sb.from('cs_comments').delete().eq('id', id);
+      loadComments(projectId);
+    });
+  });
+}
+
+$('#commentForm').addEventListener('submit', async (e)=>{
+  e.preventDefault();
+  if (!currentViewProject || !currentUser) return;
+  const input = $('#commentInput');
+  const body = input.value.trim();
+  if (!body) return;
+  $('#commentSubmitBtn').disabled = true;
+  const { error } = await sb.from('cs_comments').insert({
+    project_id: currentViewProject.id, player_id: currentUser.id, body
+  });
+  $('#commentSubmitBtn').disabled = false;
+  if (error){ showToast('Could not post comment: ' + error.message); return; }
+  input.value = '';
+  loadComments(currentViewProject.id);
+});
+
 $('#viewClose').addEventListener('click', ()=> $('#viewOverlay').classList.remove('open'));
 $('#viewOverlay').addEventListener('click', (e)=>{ if (e.target.id==='viewOverlay') $('#viewOverlay').classList.remove('open'); });
 
-// ---------- NEW CARTRIDGE MODAL ----------
-function openNew(){
-  $('#newForm').reset();
-  $('#formErr').style.display = 'none';
+// ---------- NEW / EDIT CARTRIDGE MODAL ----------
+let editingProject = null;      // null = creating new, otherwise the project object being edited
+let pendingThumbFile = null;    // a newly chosen file, if any
+let removeExistingThumb = false; // true if the user explicitly removed the existing thumbnail
+
+function resetThumbUI(){
   pendingThumbFile = null;
+  removeExistingThumb = false;
   $('#thumbPreviewImg').style.display = 'none';
   $('#thumbPreviewImg').src = '';
   $('#thumbPlaceholder').style.display = 'block';
+  $('#removeThumbBtn').style.display = 'none';
+  $('#fThumb').value = '';
+}
+
+function openNew(){
+  editingProject = null;
+  $('#newModalTitle').textContent = 'New cartridge';
+  $('#saveBtn').textContent = 'Save cartridge';
+  $('#newForm').reset();
+  $('#formErr').style.display = 'none';
+  resetThumbUI();
   $('#newOverlay').classList.add('open');
 }
+
+function openEdit(p){
+  editingProject = p;
+  $('#newModalTitle').textContent = 'Edit cartridge';
+  $('#saveBtn').textContent = 'Save changes';
+  $('#formErr').style.display = 'none';
+
+  $('#fTitle').value = p.title;
+  $('#fLang').value = p.language;
+  $('#fDesc').value = p.description || '';
+  $('#fCode').value = p.code;
+  document.querySelector(`input[name=vis][value=${p.is_public ? 'public' : 'private'}]`).checked = true;
+
+  resetThumbUI();
+  if (p.thumbnail_url){
+    $('#thumbPreviewImg').src = p.thumbnail_url;
+    $('#thumbPreviewImg').style.display = 'block';
+    $('#thumbPlaceholder').style.display = 'none';
+    $('#removeThumbBtn').style.display = 'inline-block';
+  }
+
+  $('#viewOverlay').classList.remove('open');
+  $('#newOverlay').classList.add('open');
+}
+
+$('#removeThumbBtn').addEventListener('click', ()=>{
+  pendingThumbFile = null;
+  removeExistingThumb = true;
+  $('#fThumb').value = '';
+  $('#thumbPreviewImg').style.display = 'none';
+  $('#thumbPreviewImg').src = '';
+  $('#thumbPlaceholder').style.display = 'block';
+  $('#removeThumbBtn').style.display = 'none';
+});
+
 $('#newBtn').addEventListener('click', openNew);
 $('#heroNewBtn').addEventListener('click', openNew);
 $('#heroPublicBtn').addEventListener('click', ()=>{ setTab('public'); });
 $('#newClose').addEventListener('click', ()=> $('#newOverlay').classList.remove('open'));
 $('#cancelBtn').addEventListener('click', ()=> $('#newOverlay').classList.remove('open'));
 $('#newOverlay').addEventListener('click', (e)=>{ if (e.target.id==='newOverlay') $('#newOverlay').classList.remove('open'); });
-
-let pendingThumbFile = null;
 
 $('#fThumb').addEventListener('change', (e)=>{
   const file = e.target.files[0];
@@ -750,6 +970,7 @@ $('#fThumb').addEventListener('change', (e)=>{
     pendingThumbFile = null;
     img.style.display = 'none';
     placeholder.style.display = 'block';
+    $('#removeThumbBtn').style.display = 'none';
     return;
   }
 
@@ -768,10 +989,12 @@ $('#fThumb').addEventListener('change', (e)=>{
   }
 
   pendingThumbFile = file;
+  removeExistingThumb = false;
   const url = URL.createObjectURL(file);
   img.src = url;
   img.style.display = 'block';
   placeholder.style.display = 'none';
+  $('#removeThumbBtn').style.display = 'inline-block';
 });
 
 async function uploadThumbnail(file){
@@ -808,26 +1031,41 @@ $('#newForm').addEventListener('submit', async (e)=>{
     return;
   }
   $('#saveBtn').disabled = true;
-  $('#saveBtn').textContent = 'Saving…';
+  $('#saveBtn').textContent = editingProject ? 'Saving changes…' : 'Saving…';
 
-  let thumbnail_url = null;
+  // Work out the final thumbnail_url: keep existing unless a new file was
+  // chosen or the user explicitly removed it.
+  let thumbnail_url = editingProject ? editingProject.thumbnail_url || null : null;
   if (pendingThumbFile){
-    thumbnail_url = await uploadThumbnail(pendingThumbFile);
+    const uploaded = await uploadThumbnail(pendingThumbFile);
+    if (uploaded) thumbnail_url = uploaded;
+  } else if (removeExistingThumb){
+    thumbnail_url = null;
   }
 
-  const { error } = await sb.from('cs_projects').insert({
-    owner_id: currentUser.id, title, language, description, code, is_public: isPublic, thumbnail_url
-  });
+  const payload = { title, language, description, code, is_public: isPublic, thumbnail_url };
+
+  let error;
+  if (editingProject){
+    ({ error } = await sb.from('cs_projects').update(payload).eq('id', editingProject.id));
+  } else {
+    ({ error } = await sb.from('cs_projects').insert({ ...payload, owner_id: currentUser.id }));
+  }
+
   $('#saveBtn').disabled = false;
-  $('#saveBtn').textContent = 'Save cartridge';
+  $('#saveBtn').textContent = editingProject ? 'Save changes' : 'Save cartridge';
   if (error){
     errEl.textContent = error.message;
     errEl.style.display = 'block';
     return;
   }
+
+  const wasEditing = !!editingProject;
+  editingProject = null;
   pendingThumbFile = null;
+  removeExistingThumb = false;
   $('#newOverlay').classList.remove('open');
-  showToast('Cartridge saved');
+  showToast(wasEditing ? 'Cartridge updated' : 'Cartridge saved');
   setTab(isPublic ? 'public' : 'mine');
 });
 
