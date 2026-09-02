@@ -1,5 +1,6 @@
 <!DOCTYPE html>
 <html lang="en">
+
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
@@ -8,361 +9,497 @@
 
 <style>
 
-*{
-    margin:0;
-    padding:0;
-    box-sizing:border-box;
+/* =========================
+   BASIC PAGE SETTINGS
+========================= */
+
+* {
+    margin: 0;
+    padding: 0;
+    box-sizing: border-box;
 }
 
-body{
-    font-family:Arial, Helvetica, sans-serif;
-    background:linear-gradient(135deg,#111,#1b1b1b,#222);
-    color:white;
-    text-align:center;
-}
-
-/* Header */
-
-header{
-    padding:60px 20px;
-    background:linear-gradient(180deg,#2c2c2c,#181818);
-    box-shadow:0 5px 20px rgba(0,0,0,0.5);
-}
-
-header h1{
-    color:gold;
-    font-size:60px;
-    letter-spacing:3px;
-}
-
-header p{
-    margin-top:10px;
-    font-size:20px;
-    color:#d6d6d6;
-}
-
-/* Main Card */
-
-section{
-    width:80%;
-    max-width:900px;
-    margin:50px auto;
-    background:#2a2a2a;
-    padding:40px;
-    border-radius:15px;
-    box-shadow:0 10px 25px rgba(0,0,0,0.4);
-}
-
-h2{
-    color:gold;
-    margin-bottom:20px;
-}
-
-section p{
-    font-size:18px;
-    line-height:1.6;
-    color:#dddddd;
-}
-
-/* Buttons */
-
-.buttons{
-    margin-top:40px;
-}
-
-/* Base Siege */
-
-.baseBtn{
-    background:black;
-    color:#00ff66;
-    border:3px solid #FF000094FFF9;;
-    padding:15px 35px;
-    font-size:18px;
-    border-radius:10px;
-    cursor:pointer;
-    margin:15px;
-    transition:.3s;
-}
-
-.baseBtn:hover{
-    background:#00ff66;
-    color:black;
-    box-shadow:0 0 20px #00ff66;
-    transform:translateY(-4px);
-}
-
-/* SILENCIO */
-
-.SILENCIOBtn{
-    background:black;
-    color:#FF0088;
-    border:3px solid  #FF000094FFF9;
-    padding:15px 35px;
-    font-size:18px;
-    border-radius:10px;
-    cursor:pointer;
-    margin:15px;
-    transition:.3s;
-}
-
-.SILENCIOBtn:hover{
-    background:#FF0088;
-    color:black;
-    box-shadow:0 0 20px #FF0088;
-    transform:translateY(-4px);
-}
-/* Tribe Defence */
-
-.tribeBtn{
-    background:black;
-    color:#4da6ff;
-    border:3px solid #FF000094FFF9;;
-    padding:15px 35px;
-    font-size:18px;
-    border-radius:10px;
-    cursor:pointer;
-    margin:15px;
-    transition:.3s;
-}
-
-.tribeBtn:hover{
-    background:#4da6ff;
-    color:black;
-    box-shadow:0 0 20px #4da6ff;
-    transform:translateY(-4px);
-}
-    /*buck shot*/
-    .buckshotBtn{
-    background:black;
-    color:#FF0000;
-    border:3px solid #FF000094FFF9;
-    padding:15px 35px;
-    font-size:18px;
-    border-radius:10px;
-    cursor:pointer;
-    margin:15px;
-    transition:.3s;
-}
-
-.buckshotBtn:hover{
-    background:#FF0000;
-    color:black;
-    box-shadow:0 0 20px #FF0000;
-    transform:translateY(-4px);
-}
-
-     /*gem hunter*/
-    .gemhunterBtn{
-    background:black;
-    color:#94FFF9;
-    border:3px solid #FF000094FFF9;
-    padding:15px 35px;
-    font-size:18px;
-    border-radius:10px;
-    cursor:pointer;
-    margin:15px;
-    transition:.3s;
-}
-
-.gemhunterBtn:hover{
-    background:#94FFF9;
-    color:black;
-    box-shadow:0 0 20px #94FFF9;
-    transform:translateY(-4px);
-}
-    
-   /*beeak out*/
-    .breakBtn{
-    background:black;
-    color:#336600;
-    border:3px solid #FF000094FFF9;
-    padding:15px 35px;
-    font-size:18px;
-    border-radius:10px;
-    cursor:pointer;
-    margin:15px;
-    transition:.3s;
-}
-
-.breakBtn:hover{
-    background:#336600;
-    color:black;
-    box-shadow:0 0 20px #336600;
-    transform:translateY(-4px);
+body {
+    font-family: Arial, Helvetica, sans-serif;
+    background: linear-gradient(135deg, #111, #1b1b1b, #222);
+    color: white;
+    text-align: center;
 }
 
 
- /*drift bloom*/
-    .driftBtn{
-    background:black;
-    color:#4DFFA4;
-    border:3px solid #FF000094FFF9;
-    padding:15px 35px;
-    font-size:18px;
-    border-radius:10px;
-    cursor:pointer;
-    margin:15px;
-    transition:.3s;
+/* =========================
+   HEADER
+========================= */
+
+header {
+    padding: 60px 20px;
+    background: linear-gradient(180deg, #2c2c2c, #181818);
+    box-shadow: 0 5px 20px rgba(0, 0, 0, 0.5);
 }
 
-.driftBtn:hover{
-    background:#4DFFA4;
-    color:black;
-    box-shadow:0 0 20px #4DFFA4;
-    transform:translateY(-4px);
+header h1 {
+    color: gold;
+    font-size: 60px;
+    letter-spacing: 3px;
 }
 
-     /*1v1-showdown*/
-    .l1v1Btn{
-    background:white;
-    color:#878787;
-    border:3px solid #FF000094FFF9;
-    padding:15px 35px;
-    font-size:18px;
-    border-radius:10px;
-    cursor:pointer;
-    margin:15px;
-    transition:.3s;
+header p {
+    margin-top: 10px;
+    font-size: 20px;
+    color: #d6d6d6;
 }
 
-.l1v1Btn:hover{
-    background:#878787;
-    color:white;
-    box-shadow:0 0 20px #878787;
-    transform:translateY(-4px);
+
+/* =========================
+   MAIN SECTION
+========================= */
+
+section {
+    width: 80%;
+    max-width: 900px;
+    margin: 50px auto;
+    background: #2a2a2a;
+    padding: 40px;
+    border-radius: 15px;
+    box-shadow: 0 10px 25px rgba(0, 0, 0, 0.4);
 }
 
-     /*cartridge*/
-    .cartBtn{
-    background:black;
-    color:#90EE90;
-    border:3px solid #FF000094FFF9;
-    padding:15px 35px;
-    font-size:18px;
-    border-radius:10px;
-    cursor:pointer;
-    margin:15px;
-    transition:.3s;
+h2 {
+    color: gold;
+    margin-bottom: 20px;
 }
 
-.cartBtn:hover{
-    background:#90EE90;
-    color:black;
-    box-shadow:0 0 20px #90EE90;
-    transform:translateY(-4px);
+section p {
+    font-size: 18px;
+    line-height: 1.6;
+    color: #dddddd;
 }
 
-     /*VOLTEX*/
-    .voltexBtn{
-    background:black;
-    color:#90EE90;
-    border:3px solid #FF000094FFF9;
-    padding:15px 35px;
-    font-size:18px;
-    border-radius:10px;
-    cursor:pointer;
-    margin:15px;
-    transition:.3s;
+
+/* =========================
+   BUTTON AREA
+========================= */
+
+.buttons {
+    margin-top: 40px;
 }
 
-.voltexBtn:hover{
-    background:#27F527;
-    color:black;
-    box-shadow:0 0 20px #27F527;
-    transform:translateY(-4px);
+
+/* =========================
+   BASIC BUTTON
+========================= */
+
+.baseBtn {
+    background: black;
+    color: #00ff66;
+    border: 3px solid #00ff66;
+    padding: 15px 35px;
+    font-size: 18px;
+    border-radius: 10px;
+    cursor: pointer;
+    margin: 15px;
+    transition: 0.3s;
 }
 
-/* Footer */
+.baseBtn:hover {
+    background: #00ff66;
+    color: black;
+    box-shadow: 0 0 20px #00ff66;
+    transform: translateY(-4px);
+}
 
-footer{
-    margin-top:50px;
-    padding:20px;
-    color:gray;
+
+/* =========================
+   SILENCIO BUTTON
+========================= */
+
+.SILENCIOBtn {
+    background: black;
+    color: #ff0088;
+    border: 3px solid #ff0088;
+    padding: 15px 35px;
+    font-size: 18px;
+    border-radius: 10px;
+    cursor: pointer;
+    margin: 15px;
+    transition: 0.3s;
+}
+
+.SILENCIOBtn:hover {
+    background: #ff0088;
+    color: black;
+    box-shadow: 0 0 20px #ff0088;
+    transform: translateY(-4px);
+}
+
+
+/* =========================
+   TRIBE DEFENCE BUTTON
+========================= */
+
+.tribeBtn {
+    background: black;
+    color: #4da6ff;
+    border: 3px solid #4da6ff;
+    padding: 15px 35px;
+    font-size: 18px;
+    border-radius: 10px;
+    cursor: pointer;
+    margin: 15px;
+    transition: 0.3s;
+}
+
+.tribeBtn:hover {
+    background: #4da6ff;
+    color: black;
+    box-shadow: 0 0 20px #4da6ff;
+    transform: translateY(-4px);
+}
+
+
+/* =========================
+   BUCKSHOT BUTTON
+========================= */
+
+.buckshotBtn {
+    background: black;
+    color: #ff0000;
+    border: 3px solid #ff0000;
+    padding: 15px 35px;
+    font-size: 18px;
+    border-radius: 10px;
+    cursor: pointer;
+    margin: 15px;
+    transition: 0.3s;
+}
+
+.buckshotBtn:hover {
+    background: #ff0000;
+    color: black;
+    box-shadow: 0 0 20px #ff0000;
+    transform: translateY(-4px);
+}
+
+
+/* =========================
+   GEM HUNTER BUTTON
+========================= */
+
+.gemhunterBtn {
+    background: black;
+    color: #94fff9;
+    border: 3px solid #94fff9;
+    padding: 15px 35px;
+    font-size: 18px;
+    border-radius: 10px;
+    cursor: pointer;
+    margin: 15px;
+    transition: 0.3s;
+}
+
+.gemhunterBtn:hover {
+    background: #94fff9;
+    color: black;
+    box-shadow: 0 0 20px #94fff9;
+    transform: translateY(-4px);
+}
+
+
+/* =========================
+   OUT BREAK BUTTON
+========================= */
+
+.breakBtn {
+    background: black;
+    color: #336600;
+    border: 3px solid #336600;
+    padding: 15px 35px;
+    font-size: 18px;
+    border-radius: 10px;
+    cursor: pointer;
+    margin: 15px;
+    transition: 0.3s;
+}
+
+.breakBtn:hover {
+    background: #336600;
+    color: black;
+    box-shadow: 0 0 20px #336600;
+    transform: translateY(-4px);
+}
+
+
+/* =========================
+   DRIFT BLOOM BUTTON
+========================= */
+
+.driftBtn {
+    background: black;
+    color: #4dffa4;
+    border: 3px solid #4dffa4;
+    padding: 15px 35px;
+    font-size: 18px;
+    border-radius: 10px;
+    cursor: pointer;
+    margin: 15px;
+    transition: 0.3s;
+}
+
+.driftBtn:hover {
+    background: #4dffa4;
+    color: black;
+    box-shadow: 0 0 20px #4dffa4;
+    transform: translateY(-4px);
+}
+
+
+/* =========================
+   1V1 SHOWDOWN BUTTON
+========================= */
+
+.l1v1Btn {
+    background: white;
+    color: black;
+    border: 3px solid white;
+    padding: 15px 35px;
+    font-size: 18px;
+    border-radius: 10px;
+    cursor: pointer;
+    margin: 15px;
+    transition: 0.3s;
+}
+
+.l1v1Btn:hover {
+    background: black;
+    color: white;
+    box-shadow: 0 0 20px white;
+    transform: translateY(-4px);
+}
+
+
+/* =========================
+   CARTRIDGE BUTTON
+========================= */
+
+.cartBtn {
+    background: black;
+    color: #90ee90;
+    border: 3px solid #90ee90;
+    padding: 15px 35px;
+    font-size: 18px;
+    border-radius: 10px;
+    cursor: pointer;
+    margin: 15px;
+    transition: 0.3s;
+}
+
+.cartBtn:hover {
+    background: #90ee90;
+    color: black;
+    box-shadow: 0 0 20px #90ee90;
+    transform: translateY(-4px);
+}
+
+
+/* =========================
+   VOLTEX BUTTON
+========================= */
+
+.voltexBtn {
+    background: black;
+    color: #90ee90;
+    border: 3px solid #90ee90;
+    padding: 15px 35px;
+    font-size: 18px;
+    border-radius: 10px;
+    cursor: pointer;
+    margin: 15px;
+    transition: 0.3s;
+}
+
+.voltexBtn:hover {
+    background: #27f527;
+    color: black;
+    box-shadow: 0 0 20px #27f527;
+    transform: translateY(-4px);
+}
+
+
+/* =========================
+   CREDITS
+========================= */
+
+.credits {
+    width: 80%;
+    max-width: 900px;
+    margin: 30px auto;
+    background: #202020;
+    padding: 30px;
+    border-radius: 15px;
+    box-shadow: 0 5px 20px rgba(0, 0, 0, 0.4);
+}
+
+.credits h2 {
+    color: gold;
+    margin-bottom: 20px;
+}
+
+.credits p {
+    margin: 10px;
+    font-size: 17px;
+    color: #cccccc;
+}
+
+
+/* =========================
+   FOOTER
+========================= */
+
+footer {
+    margin-top: 50px;
+    padding: 20px;
+    color: gray;
 }
 
 </style>
-
 </head>
+
 
 <body>
 
+
+<!-- =========================
+     HEADER
+========================= -->
+
 <header>
 
-<h1>FORTRESSED</h1>
+    <h1>FORTRESSED</h1>
 
-<p><strong>Future Project</strong></p>
+    <p><strong>Future Project</strong></p>
 
-<p>Choose your adventure and defend your legacy.</p>
+    <p>Choose your adventure and defend your legacy.</p>
 
 </header>
 
+
+<!-- =========================
+     MAIN CONTENT
+========================= -->
+
 <section>
 
-<h2>Welcome</h2>
+    <h2>Welcome</h2>
 
-<p>
-<b>Fortressed</b> More games and updates will be added in the future.
-</p>
+    <p>
+        <b>Fortressed</b> - More games and updates will be added in the future.
+    </p>
 
-<div class="buttons">
 
-<button class="baseBtn"
-onclick="location.href='base-siege.html'">
-Base Siege
-</button>
+    <!-- =========================
+         GAME BUTTONS
+    ========================= -->
 
-<button class="tribeBtn"
-onclick="location.href='tribe-defence.html'">
-Tribe Defence
-</button>
+    <div class="buttons">
 
-<button class="buckshotBtn"
-onclick="location.href='BUCKSHOT-ROULETTE.html'">
-BUCKSHOT ROULETTE
-</button>
-</div>
+        <button class="baseBtn"
+        onclick="location.href='base-siege.html'">
+            Base Siege
+        </button>
 
-<button class="breakBtn"
-onclick="location.href='out-break.html'">
-Out Break
-</button>
 
-<button class="SILENCIOBtn"
-onclick="location.href='silencio.html'">
-SILENCIO
-</button>
+        <button class="tribeBtn"
+        onclick="location.href='tribe-defence.html'">
+            Tribe Defence
+        </button>
 
-<button class="driftBtn"
-onclick="location.href='drift-bloom.html'">
-Drift Bloom
-</button>
-    
-<button class="l1v1Btn"
-onclick="location.href='1v1-showdown.html'">
-1v1 showdown
-</button>
 
-    
-<button class="cartBtn"
-onclick="location.href='cartridge.html'">
-cartridge
-</button>
+        <button class="buckshotBtn"
+        onclick="location.href='BUCKSHOT-ROULETTE.html'">
+            BUCKSHOT ROULETTE
+        </button>
 
-<button class="gemhunterBtn"
-onclick="location.href='gem-hunter.html'">
-Gem Hunter (PRE-RELEASE)
-</button>
 
-<button class="voltexBtn"
-onclick="location.href='voltex.html'">
-voltex(incomplete)
-</button>
-    
+        <button class="breakBtn"
+        onclick="location.href='out-break.html'">
+            Out Break
+        </button>
+
+
+        <button class="SILENCIOBtn"
+        onclick="location.href='silencio.html'">
+            SILENCIO
+        </button>
+
+
+        <button class="driftBtn"
+        onclick="location.href='drift-bloom.html'">
+            Drift Bloom
+        </button>
+
+
+        <button class="l1v1Btn"
+        onclick="location.href='1v1-showdown.html'">
+            1v1 Showdown
+        </button>
+
+
+        <button class="cartBtn"
+        onclick="location.href='cartridge.html'">
+            Cartridge
+        </button>
+
+
+        <button class="gemhunterBtn"
+        onclick="location.href='gem-hunter.html'">
+            Gem Hunter (PRE-RELEASE)
+        </button>
+
+
+        <button class="voltexBtn"
+        onclick="location.href='voltex.html'">
+            Voltex (Incomplete)
+        </button>
+
+    </div>
+
 </section>
 
+
+<!-- =========================
+     CREDITS
+========================= -->
+
+<section class="credits">
+
+    <h2>Credits</h2>
+
+    <!-- Change the names below -->
+
+    <p>
+        <b>creator:</b>Zi Yuan & Edric
+    </p>
+
+    <p>
+        <b>Game Designer:</b>Zi Yuan,game:Base siege,Out break,1v1 showdown,cartridge,Voltex Edric,game:Tribe defence,BUCKSHOT ROULTTE,SILENCIO,Driftbloom,Gem hunter
+    </p>
+
+    <p>
+        <b>Special Thanks:</b>Edric for the new design of game button
+    </p>
+</section>
+
+
+<!-- =========================
+     FOOTER
+========================= -->
+
 <footer>
-© 2026 Fortressed | Future Project
+
+    © 2026 Fortressed | Future Project
+
 </footer>
+
 
 </body>
 </html>
