@@ -1,0 +1,2317 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<title>Voltex</title>
+<style>
+  html, body { margin: 0; padding: 0; overflow: hidden; background: #7ec0ee; font-family: 'Segoe UI', Arial, sans-serif; user-select: none; }
+  canvas { display: block; }
+  #crosshair {
+    position: fixed; top: 50%; left: 50%; transform: translate(-50%, -50%);
+    width: 20px; height: 20px; pointer-events: none; z-index: 10;
+  }
+  #crosshair::before, #crosshair::after {
+    content: ''; position: absolute; background: rgba(255,255,255,0.85);
+  }
+  #crosshair::before { left: 9px; top: 0; width: 2px; height: 20px; }
+  #crosshair::after { top: 9px; left: 0; width: 20px; height: 2px; }
+
+  #mineProgressWrap {
+    position: fixed; top: calc(50% + 22px); left: 50%; transform: translateX(-50%);
+    width: 60px; height: 6px; background: rgba(0,0,0,0.4); border-radius: 3px;
+    overflow: hidden; z-index: 10; display: none;
+  }
+  #mineProgressBar {
+    height: 100%; width: 0%; background: #ffd54a;
+  }
+  #mineProgressBar.eating { background: #8bd15a; }
+
+  #hpBarWrap {
+    position: fixed; bottom: 72px; left: 50%; transform: translateX(-50%);
+    width: 220px; height: 16px; background: rgba(0,0,0,0.4); border-radius: 8px;
+    overflow: hidden; z-index: 10; border: 1px solid rgba(255,255,255,0.4);
+  }
+  #hpBarFill {
+    height: 100%; width: 100%; background: linear-gradient(#ff5555, #cc2222);
+    transition: width 0.2s;
+  }
+  #hpBarText {
+    position: fixed; bottom: 72px; left: 50%; transform: translateX(-50%);
+    width: 220px; height: 16px; z-index: 11; color: #fff; font-size: 11px;
+    font-weight: bold; text-align: center; line-height: 16px;
+    text-shadow: 1px 1px 2px rgba(0,0,0,0.9); pointer-events: none;
+  }
+  #damageFlash {
+    position: fixed; inset: 0; background: rgba(255,0,0,0.35); z-index: 20;
+    pointer-events: none; opacity: 0; transition: opacity 0.15s;
+  }
+
+  #chatLog {
+    position: fixed; bottom: 100px; left: 12px; width: 340px; max-height: 180px;
+    overflow-y: auto; z-index: 15; display: flex; flex-direction: column; gap: 2px;
+    pointer-events: none; font-size: 13px;
+  }
+  #chatLog .chatLine {
+    color: #fff; background: rgba(0,0,0,0.4); padding: 3px 8px; border-radius: 4px;
+    text-shadow: 1px 1px 2px rgba(0,0,0,0.8); width: fit-content; max-width: 100%;
+    word-break: break-word;
+  }
+  #chatLog .chatLine .chatName { font-weight: bold; }
+  #chatInputWrap {
+    position: fixed; bottom: 100px; left: 12px; width: 340px; z-index: 16; display: none;
+  }
+  #chatInput {
+    width: 100%; box-sizing: border-box; padding: 6px 10px; border-radius: 4px;
+    border: 1px solid rgba(255,255,255,0.5); background: rgba(0,0,0,0.6); color: #fff;
+    font-size: 13px; outline: none;
+  }
+  .chatBubble {
+    position: absolute; top: -0.55em; left: 50%; transform: translateX(-50%);
+    background: rgba(0,0,0,0.6); color: #fff; padding: 4px 8px; border-radius: 6px;
+    font-size: 24px; white-space: nowrap; pointer-events: none;
+  }
+
+  #hud {
+    position: fixed; top: 12px; left: 12px; color: white; z-index: 10;
+    text-shadow: 1px 1px 2px rgba(0,0,0,0.8); font-size: 12px; line-height: 1.5;
+    background: rgba(0,0,0,0.35); padding: 8px 12px; border-radius: 8px;
+    max-width: 240px;
+  }
+  #hotbar {
+    position: fixed; bottom: 16px; left: 50%; transform: translateX(-50%);
+    display: flex; gap: 6px; z-index: 10;
+  }
+  .slot {
+    width: 46px; height: 46px; border: 2px solid rgba(255,255,255,0.6);
+    border-radius: 6px; background: rgba(0,0,0,0.35);
+    display: flex; align-items: center; justify-content: center;
+    font-size: 22px; cursor: pointer; position: relative;
+  }
+  .slot .num { position:absolute; top:1px; left:3px; font-size:9px; color:#fff; opacity:0.7; }
+  .slot .count { position:absolute; bottom:1px; right:3px; font-size:10px; color:#fff; font-weight:bold; text-shadow:1px 1px 1px black; }
+  .slot.active { border-color: #fff; background: rgba(255,255,255,0.25); box-shadow: 0 0 8px rgba(255,255,255,0.7); }
+  .slot.empty { opacity: 0.45; }
+
+  #startScreen {
+    position: fixed; inset: 0;
+    background:
+      radial-gradient(ellipse at 50% -10%, rgba(255,255,255,0.18), transparent 55%),
+      linear-gradient(180deg, #1b2a4a 0%, #16213e 45%, #0d1224 100%);
+    display: flex; flex-direction: column; align-items: center; justify-content: center;
+    z-index: 100; color: white; text-align: center; overflow: hidden;
+  }
+  #startScreen::before {
+    content: ''; position: absolute; inset: 0; pointer-events: none; opacity: 0.5;
+    background-image:
+      radial-gradient(2px 2px at 10% 20%, rgba(255,255,255,0.5), transparent),
+      radial-gradient(2px 2px at 80% 60%, rgba(255,255,255,0.4), transparent),
+      radial-gradient(1.5px 1.5px at 60% 15%, rgba(255,255,255,0.5), transparent),
+      radial-gradient(1.5px 1.5px at 30% 80%, rgba(255,255,255,0.4), transparent),
+      radial-gradient(2px 2px at 90% 30%, rgba(255,255,255,0.35), transparent),
+      radial-gradient(1.5px 1.5px at 45% 55%, rgba(255,255,255,0.3), transparent);
+  }
+  #menuCard {
+    position: relative; z-index: 1;
+    background: rgba(20, 26, 46, 0.72); backdrop-filter: blur(6px);
+    border: 1px solid rgba(255,255,255,0.14); border-radius: 18px;
+    padding: 34px 44px 30px; max-width: 520px; width: 88%;
+    box-shadow: 0 20px 60px rgba(0,0,0,0.45);
+    animation: menuIn 0.5s ease-out;
+  }
+  @keyframes menuIn { from { opacity: 0; transform: translateY(14px) scale(0.98); } to { opacity: 1; transform: none; } }
+  #startScreen h1 {
+    font-size: 52px; margin: 0 0 4px; letter-spacing: 2px; font-weight: 800;
+    background: linear-gradient(90deg, #7ee8fa 0%, #a78bfa 50%, #f6a5ff 100%);
+    -webkit-background-clip: text; background-clip: text; color: transparent;
+    text-shadow: none; filter: drop-shadow(0 2px 10px rgba(120,140,255,0.35));
+  }
+  #startScreen .tagline { font-size: 12px; letter-spacing: 3px; text-transform: uppercase; opacity: 0.55; margin: 0 0 18px; }
+  #startScreen p { max-width: 460px; line-height: 1.6; margin: 6px auto; font-size: 13.5px; opacity: 0.88; }
+  #startScreen .kbd-line { font-size: 12.5px; opacity: 0.75; background: rgba(255,255,255,0.06); border-radius: 8px; padding: 8px 12px; }
+
+  #nameInput {
+    margin-top: 14px; padding: 10px 14px; font-size: 14px; border-radius: 8px;
+    border: 1px solid rgba(255,255,255,0.25); background: rgba(255,255,255,0.08); color: #fff;
+    text-align: center; outline: none; transition: border-color 0.15s, background 0.15s;
+  }
+  #nameInput:focus { border-color: #7ee8fa; background: rgba(255,255,255,0.13); }
+  #nameInput::placeholder { color: rgba(255,255,255,0.45); }
+
+  #connStatus { margin-top: 10px; font-size: 12px; opacity: 0.75; display: flex; align-items: center; justify-content: center; gap: 8px; }
+  .connDot { width: 8px; height: 8px; border-radius: 50%; background: #ffd54a; box-shadow: 0 0 8px #ffd54a; animation: pulse 1.2s infinite ease-in-out; }
+  .connDot.ready { background: #5ce87a; box-shadow: 0 0 8px #5ce87a; animation: none; }
+  @keyframes pulse { 0%,100% { opacity: 1; } 50% { opacity: 0.35; } }
+
+  #loadBarWrap { width: 100%; max-width: 300px; height: 6px; margin: 14px auto 0; background: rgba(255,255,255,0.12); border-radius: 4px; overflow: hidden; }
+  #loadBarFill { height: 100%; width: 0%; background: linear-gradient(90deg, #7ee8fa, #a78bfa); transition: width 0.25s ease-out; }
+
+  #startBtn, #resetBtn {
+    margin-top: 20px; padding: 14px 40px; font-size: 18px; font-weight: 700; letter-spacing: 0.5px;
+    background: linear-gradient(180deg, #6ee7a4, #34c774); color: #0d1224; border: none; border-radius: 10px;
+    cursor: pointer; box-shadow: 0 6px 18px rgba(52,199,116,0.35); transition: transform 0.12s, box-shadow 0.12s, opacity 0.2s;
+  }
+  #startBtn:hover { transform: translateY(-1px); box-shadow: 0 8px 22px rgba(52,199,116,0.45); }
+  #startBtn:disabled { background: #454b5e; color: rgba(255,255,255,0.5); cursor: not-allowed; box-shadow: none; transform: none; }
+  #resetBtn {
+    background: transparent; color: rgba(255,150,150,0.85); border: 1px solid rgba(255,120,120,0.35);
+    font-size: 12.5px; padding: 7px 18px; margin-top: 12px; box-shadow: none; font-weight: 600;
+  }
+  #resetBtn:hover { background: rgba(255,100,100,0.12); color: #ff9d9d; transform: none; box-shadow: none; }
+
+  /* ===== Confirm reset modal ===== */
+  #confirmOverlay {
+    position: fixed; inset: 0; z-index: 200; display: none;
+    background: rgba(0,0,0,0.55); align-items: center; justify-content: center;
+  }
+  #confirmBox {
+    background: #1b2338; border: 1px solid rgba(255,120,120,0.35); border-radius: 14px;
+    padding: 26px 28px; max-width: 340px; width: 86%; text-align: center; color: #fff;
+    box-shadow: 0 20px 50px rgba(0,0,0,0.5); animation: menuIn 0.25s ease-out;
+  }
+  #confirmBox h3 { margin: 0 0 8px; font-size: 17px; color: #ff9d9d; }
+  #confirmBox p { font-size: 13px; line-height: 1.5; opacity: 0.85; margin: 0 0 18px; }
+  #confirmActions { display: flex; gap: 10px; justify-content: center; }
+  #confirmCancel, #confirmDelete {
+    padding: 9px 18px; border-radius: 8px; font-size: 13px; font-weight: 700; cursor: pointer; border: none;
+  }
+  #confirmCancel { background: rgba(255,255,255,0.1); color: #fff; }
+  #confirmCancel:hover { background: rgba(255,255,255,0.18); }
+  #confirmDelete { background: #d9534f; color: #fff; }
+  #confirmDelete:hover { background: #e8635e; }
+  #fps { position: fixed; top: 12px; right: 12px; color: white; z-index: 10; text-shadow: 1px 1px 2px black; font-size: 12px; text-align: right; }
+  #pauseOverlay {
+    position: fixed; inset:0; z-index: 50; display:none;
+    background: rgba(0,0,0,0.45); color:white; align-items:center; justify-content:center;
+    flex-direction: column; text-align:center;
+  }
+  #pauseOverlay h2 { text-shadow: 2px 2px 0 rgba(0,0,0,0.5); }
+
+  /* ===== Minecraft-style inventory / crafting panel ===== */
+  #invPanel {
+    position: fixed; inset: 0; z-index: 60; display: none;
+    background: rgba(0,0,0,0.6); color: white; align-items: center; justify-content: center;
+    flex-direction: column; text-align: center;
+  }
+  #invPanel h2 { text-shadow: 2px 2px 0 rgba(0,0,0,0.5); margin: 4px 0; font-size: 16px; }
+  #invPanelBox {
+    background: rgba(40,32,24,0.92); border: 3px solid rgba(255,255,255,0.4); border-radius: 10px;
+    padding: 16px 20px; display: flex; flex-direction: column; align-items: center; gap: 4px;
+  }
+  #craftSection { display: flex; align-items: center; gap: 14px; margin: 6px 0 14px; }
+  #craftGrid { display: grid; gap: 6px; }
+  #craftArrow { font-size: 26px; opacity: 0.85; }
+  #craftOutputWrap { display: flex; align-items: center; }
+  .invSlot {
+    width: 52px; height: 52px; border: 2px solid rgba(255,255,255,0.5); border-radius: 6px;
+    background: rgba(255,255,255,0.08); display: flex; align-items: center; justify-content: center;
+    font-size: 26px; cursor: pointer; position: relative; box-sizing: border-box; user-select: none;
+  }
+  .invSlot.output { border-color: rgba(255,215,110,0.85); background: rgba(255,215,110,0.12); }
+  .invSlot .count { position:absolute; bottom:1px; right:3px; font-size:11px; color:#fff; font-weight:bold; text-shadow:1px 1px 1px black; }
+  .invSlot.dim { opacity: 0.35; }
+  #mainGrid { display: grid; grid-template-columns: repeat(9, 52px); gap: 5px; margin-bottom: 12px; }
+  #hotbarGrid { display: grid; grid-template-columns: repeat(9, 52px); gap: 5px; margin-top: 6px; padding-top: 10px; border-top: 2px solid rgba(255,255,255,0.25); }
+  #cursorItem {
+    position: fixed; z-index: 70; pointer-events: none; font-size: 28px; display: none;
+    text-shadow: 2px 2px 2px rgba(0,0,0,0.7); transform: translate(-50%,-50%);
+  }
+  #cursorItem .count { position:absolute; bottom:-8px; right:-10px; font-size:12px; color:#fff; font-weight:bold; text-shadow:1px 1px 1px black; }
+  #invHint { font-size: 12px; opacity: 0.8; margin-top: 6px; max-width: 480px; }
+</style>
+</head>
+<body>
+
+<div id="startScreen">
+  <div id="menuCard">
+    <h1>⚡ Voltex</h1>
+    <div class="tagline">Shared Voxel Sandbox</div>
+    <p>A tiny Minecraft-style voxel sandbox with textured blocks, water, trees, and a day/night cycle.</p>
+    <p class="kbd-line"><b>WASD</b> move · <b>Space</b> jump · <b>Mouse</b> look · <b>Left Click</b> break/mine · <b>Right Click</b> place · <b>1-9</b> select block · <b>E</b> inventory · <b>Esc</b> release mouse</p>
+    <p>🌐 This is one shared multiplayer world — everyone who opens this page joins the same server and sees the same blocks and players in real time.</p>
+    <input id="nameInput" maxlength="16" placeholder="Your name">
+    <div id="loadBarWrap"><div id="loadBarFill"></div></div>
+    <div id="connStatus"><span class="connDot" id="connDot"></span><span id="connText">Connecting to server…</span></div>
+    <button id="startBtn" disabled>Start Game</button><br>
+    <button id="resetBtn">Reset My Local Data</button>
+  </div>
+</div>
+
+<div id="confirmOverlay">
+  <div id="confirmBox">
+    <h3>⚠️ Reset local data?</h3>
+    <p>This deletes your saved position, inventory, and name stored on this device for Voltex. It cannot be undone — the shared world itself is not affected.</p>
+    <div id="confirmActions">
+      <button id="confirmCancel">Cancel</button>
+      <button id="confirmDelete">Delete it</button>
+    </div>
+  </div>
+</div>
+
+<div id="pauseOverlay"><h2>Paused</h2><p>Click to resume</p></div>
+
+<div id="invPanel">
+  <div id="invPanelBox">
+    <h2 id="craftTitle">Crafting</h2>
+    <div id="craftSection">
+      <div id="craftGrid"></div>
+      <div id="craftArrow">➜</div>
+      <div id="craftOutputWrap"></div>
+    </div>
+    <h2>Inventory</h2>
+    <div id="mainGrid"></div>
+    <div id="hotbarGrid"></div>
+    <p id="invHint">Left-click: pick up / place stack · Right-click: pick up half / place one · Click a slot while holding an item to swap or stack · Press E to close</p>
+  </div>
+</div>
+<div id="cursorItem"></div>
+
+<div id="crosshair"></div>
+<div id="mineProgressWrap"><div id="mineProgressBar"></div></div>
+<div id="hpBarWrap"><div id="hpBarFill"></div></div>
+<div id="hpBarText">20 / 20</div>
+<div id="chatLog"></div>
+<div id="chatInputWrap"><input id="chatInput" type="text" maxlength="200" placeholder="Say something... (Enter to send, Esc to cancel)"></div>
+<div id="damageFlash"></div>
+<div id="hud">Mine blocks to collect materials · place them from your inventory.<br>Press <b>E</b> for inventory · <b>F5</b> for third-person · <b>F</b> to eat food · <b>Q</b> to throw item · <b>T</b> to chat. World auto-saves as you play.</div>
+<div id="fps">FPS: --<br><span id="playerCount">Players online: 1</span></div>
+<div id="hotbar"></div>
+
+<script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2/dist/umd/supabase.js"></script>
+<script>
+'use strict';
+
+// ================= Multiplayer (Supabase) =================
+// One shared world: everyone connects to the same Supabase project.
+// The `world_blocks` table holds every block change (add or remove) as a
+// row keyed by (x,y,z). Loading = read the whole table and apply it as a
+// diff on top of everyone's identically-generated base terrain. Placing or
+// breaking a block = upsert a row; Supabase Realtime then pushes that same
+// row to every other connected browser, which applies it the same way.
+const SUPABASE_URL = 'https://qzupfyqizurpkvifkmnn.supabase.co';
+const SUPABASE_ANON_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InF6dXBmeXFpenVycGt2aWZrbW5uIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzYwNjEyNDYsImV4cCI6MjA5MTYzNzI0Nn0.fRfg6wAeCMteat6Jf9yNT__g-N97LFCnWqlSF9rg6jo';
+const sb = window.supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
+const MY_ID = Math.random().toString(36).slice(2, 10);
+let MY_NAME = 'Player' + Math.floor(Math.random() * 1000);
+
+// ================= Renderer / Scene =================
+const scene = new THREE.Scene();
+const camera = new THREE.PerspectiveCamera(75, window.innerWidth/window.innerHeight, 0.1, 1000);
+const renderer = new THREE.WebGLRenderer({ antialias: true, powerPreference: 'high-performance' });
+renderer.setSize(window.innerWidth, window.innerHeight);
+document.body.appendChild(renderer.domElement);
+
+window.addEventListener('resize', () => {
+  camera.aspect = window.innerWidth/window.innerHeight;
+  camera.updateProjectionMatrix();
+  renderer.setSize(window.innerWidth, window.innerHeight);
+});
+
+// Sky / fog (updated per-frame for day-night cycle)
+const skyColor = new THREE.Color(0x7ec0ee);
+scene.background = skyColor.clone();
+scene.fog = new THREE.Fog(skyColor.getHex(), 40, 110);
+
+// Lighting
+const ambient = new THREE.AmbientLight(0xffffff, 0.55);
+scene.add(ambient);
+const sun = new THREE.DirectionalLight(0xffffff, 0.9);
+sun.position.set(50, 80, 30);
+scene.add(sun);
+const hemi = new THREE.HemisphereLight(0xbfe3ff, 0x554433, 0.35);
+scene.add(hemi);
+
+// ================= Procedural textures =================
+function makeTexture(drawFn) {
+  const c = document.createElement('canvas');
+  c.width = 16; c.height = 16;
+  const ctx = c.getContext('2d');
+  drawFn(ctx);
+  const tex = new THREE.CanvasTexture(c);
+  tex.magFilter = THREE.NearestFilter;
+  tex.minFilter = THREE.NearestFilter;
+  return tex;
+}
+function speckle(ctx, base, variants, count) {
+  ctx.fillStyle = base;
+  ctx.fillRect(0,0,16,16);
+  for (let i=0;i<count;i++){
+    ctx.fillStyle = variants[Math.floor(Math.random()*variants.length)];
+    const x = Math.floor(Math.random()*16), y = Math.floor(Math.random()*16);
+    ctx.fillRect(x,y,1,1);
+  }
+}
+
+const TEX = {
+  grassTop:  makeTexture(ctx => speckle(ctx, '#5cae4c', ['#6dc44f','#4c9a3e','#7bd15e'], 40)),
+  grassSide: makeTexture(ctx => {
+    speckle(ctx, '#8b5a2b', ['#7a4d24','#96622f'], 30);
+    ctx.fillStyle = '#5cae4c'; ctx.fillRect(0,0,16,4);
+    for (let x=0;x<16;x++) if (Math.random()<0.6) ctx.fillRect(x,4,1,2);
+  }),
+  dirt:  makeTexture(ctx => speckle(ctx, '#8b5a2b', ['#7a4d24','#96622f','#6f4420'], 40)),
+  stone: makeTexture(ctx => speckle(ctx, '#8a8a8a', ['#7d7d7d','#959595','#6f6f6f'], 40)),
+  wood:  makeTexture(ctx => {
+    ctx.fillStyle = '#8a5a2b'; ctx.fillRect(0,0,16,16);
+    ctx.strokeStyle = '#6f4420';
+    for (let i=0;i<16;i+=4){ ctx.strokeRect(i,0,4,16); }
+  }),
+  woodTop: makeTexture(ctx => {
+    ctx.fillStyle = '#a97b45'; ctx.fillRect(0,0,16,16);
+    ctx.strokeStyle = '#8a5a2b';
+    ctx.beginPath(); ctx.arc(8,8,6,0,7); ctx.stroke();
+    ctx.beginPath(); ctx.arc(8,8,3,0,7); ctx.stroke();
+  }),
+  leaves: makeTexture(ctx => speckle(ctx, '#3f8f2f', ['#4fa53c','#357c28','#5bb544'], 50)),
+  sand:  makeTexture(ctx => speckle(ctx, '#e0d18a', ['#d6c47a','#eadb9a'], 30)),
+  water: makeTexture(ctx => speckle(ctx, '#3a6fd8', ['#4a7fe8','#2e5fc0'], 25)),
+  planks: makeTexture(ctx => {
+    ctx.fillStyle = '#b98a4e'; ctx.fillRect(0,0,16,16);
+    ctx.strokeStyle = '#96622f';
+    for (let i=0;i<16;i+=4){ ctx.strokeRect(0,i,16,4); }
+  }),
+  glass: makeTexture(ctx => {
+    ctx.fillStyle = 'rgba(200,230,255,0.35)'; ctx.fillRect(0,0,16,16);
+    ctx.strokeStyle = 'rgba(255,255,255,0.6)'; ctx.strokeRect(0,0,16,16);
+  }),
+  brick: makeTexture(ctx => {
+    ctx.fillStyle = '#9c4a3a'; ctx.fillRect(0,0,16,16);
+    ctx.strokeStyle = '#7a3327';
+    ctx.strokeRect(0,0,8,4); ctx.strokeRect(8,0,8,4);
+    ctx.strokeRect(-4,4,8,4); ctx.strokeRect(4,4,8,4); ctx.strokeRect(12,4,8,4);
+    ctx.strokeRect(0,8,8,4); ctx.strokeRect(8,8,8,4);
+    ctx.strokeRect(-4,12,8,4); ctx.strokeRect(4,12,8,4); ctx.strokeRect(12,12,8,4);
+  }),
+  craftTop: makeTexture(ctx => {
+    ctx.fillStyle = '#a97b45'; ctx.fillRect(0,0,16,16);
+    ctx.strokeStyle = '#6f4420'; ctx.strokeRect(0,0,16,16);
+    ctx.beginPath(); ctx.moveTo(0,0); ctx.lineTo(16,16); ctx.moveTo(16,0); ctx.lineTo(0,16); ctx.stroke();
+    ctx.strokeStyle = '#5a3417'; ctx.strokeRect(3,3,10,10);
+  }),
+  sapling: makeTexture(ctx => {
+    ctx.clearRect(0,0,16,16);
+    ctx.strokeStyle = '#5a3417'; ctx.lineWidth = 1;
+    ctx.beginPath(); ctx.moveTo(8,15); ctx.lineTo(8,8); ctx.stroke();
+    ctx.fillStyle = '#4fa53c';
+    ctx.beginPath(); ctx.ellipse(6,7,3,2,0.6,0,7); ctx.fill();
+    ctx.fillStyle = '#5bb544';
+    ctx.beginPath(); ctx.ellipse(10,6,3,2,-0.6,0,7); ctx.fill();
+    ctx.fillStyle = '#357c28';
+    ctx.beginPath(); ctx.ellipse(8,4,2.5,2,0,0,7); ctx.fill();
+  }),
+};
+
+// ================= Block types =================
+const BLOCK_TYPES = {
+  grass:  { icon: '🟩', transparent: false, hardness: 0.6, tool: 'shovel' },
+  dirt:   { icon: '🟫', transparent: false, hardness: 0.5, tool: 'shovel' },
+  stone:  { icon: '⬜', transparent: false, hardness: 1.5, tool: 'pickaxe' },
+  wood:   { icon: '🪵', transparent: false, hardness: 1.0, tool: 'axe' },
+  leaves: { icon: '🍃', transparent: false, hardness: 0.2, tool: null },
+  sand:   { icon: '🟨', transparent: false, hardness: 0.5, tool: 'shovel' },
+  planks: { icon: '🟧', transparent: false, hardness: 1.0, tool: 'axe' },
+  brick:  { icon: '🧱', transparent: false, hardness: 1.5, tool: 'pickaxe' },
+  glass:  { icon: '⬛', transparent: true, hardness: 0.3, tool: null },
+  water:  { icon: '💧', transparent: true, hardness: 0 },
+  crafting_table: { icon: '🛠️', transparent: false, hardness: 1.0, tool: 'axe' },
+  sapling: { icon: '🌱', transparent: true, hardness: 0.1, tool: null },
+};
+// Non-block items: sticks, tools, and food. Tools don't stack (max 1 per slot).
+const ITEM_INFO = {
+  stick:          { icon: '🥢' },
+  wood_pickaxe:   { icon: '⛏️', maxStack: 1 },
+  wood_axe:       { icon: '🪓', maxStack: 1 },
+  wood_shovel:    { icon: '🥄', maxStack: 1 },
+  stone_pickaxe:  { icon: '⛏️', maxStack: 1 },
+  stone_axe:      { icon: '🪓', maxStack: 1 },
+  stone_shovel:   { icon: '🥄', maxStack: 1 },
+  wood_sword:     { icon: '🗡️', maxStack: 1, attack: 4 },
+  stone_sword:    { icon: '🗡️', maxStack: 1, attack: 6 },
+  raw_meat:       { icon: '🥩', food: 3 },
+  apple:          { icon: '🍎', food: 2 },
+  sapling:        { icon: '🌱' },
+};
+function isSword(type) { return type === 'wood_sword' || type === 'stone_sword'; }
+function isFood(type) { return !!(ITEM_INFO[type] && ITEM_INFO[type].food); }
+function iconFor(type) { return (BLOCK_TYPES[type] || ITEM_INFO[type]).icon; }
+function maxStackFor(type) {
+  const info = ITEM_INFO[type];
+  return info && info.maxStack ? info.maxStack : 64;
+}
+function isPlaceable(type) { return !!BLOCK_TYPES[type] && type !== 'water'; }
+
+// ================= Mining time =================
+// Base hardness (seconds with bare hands) comes from BLOCK_TYPES; the right
+// tool speeds it up a lot, the wrong tool (or no tool) is much slower.
+function toolMatches(toolType, blockToolReq) {
+  if (!blockToolReq) return false;
+  return toolType === blockToolReq;
+}
+function miningTimeFor(blockType) {
+  const def = BLOCK_TYPES[blockType];
+  if (!def || !def.hardness) return 0.15; // trivial/instant for undefined or 0-hardness blocks
+  const held = currentItem();
+  const heldType = held ? held.type : null;
+  let toolKind = null;
+  if (heldType && heldType.endsWith('_pickaxe')) toolKind = 'pickaxe';
+  else if (heldType && heldType.endsWith('_axe')) toolKind = 'axe';
+  else if (heldType && heldType.endsWith('_shovel')) toolKind = 'shovel';
+
+  let speedMult = 1; // bare hands
+  if (toolKind && toolMatches(toolKind, def.tool)) {
+    // stone tools are a bit faster than wood tools
+    const tier = heldType.startsWith('stone_') ? 4 : 2.5;
+    speedMult = tier;
+  } else if (toolKind) {
+    speedMult = 1; // wrong tool, no bonus (same as hand)
+  }
+  return def.hardness / speedMult;
+}
+function displayName(type) { return type.replace(/_/g, ' '); }
+
+// ---------- Recipes ----------
+// Each recipe is a shape: an array of rows (top-to-bottom), each row an
+// array of ingredient type strings or null for an empty cell. The shape is
+// matched against the crafting grid *after* trimming empty border rows/
+// columns, so it can be placed anywhere in a 2x2 (inventory) or 3x3
+// (crafting table) grid, but the relative arrangement must match exactly
+// (just like real Minecraft — no rotating/mirroring).
+const RECIPES = [
+  { shape: [['wood']], out: 'planks', outCount: 4, needsTable: false },
+  { shape: [['planks'],['planks']], out: 'stick', outCount: 4, needsTable: false },
+  { shape: [['planks','planks'],['planks','planks']], out: 'crafting_table', outCount: 1, needsTable: false },
+
+  { shape: [['planks','planks','planks'],[null,'stick',null],[null,'stick',null]], out: 'wood_pickaxe', outCount: 1, needsTable: true },
+  { shape: [['planks','planks'],['planks','stick'],[null,'stick']], out: 'wood_axe', outCount: 1, needsTable: true },
+  { shape: [['planks'],['stick'],['stick']], out: 'wood_shovel', outCount: 1, needsTable: true },
+
+  { shape: [['stone','stone','stone'],[null,'stick',null],[null,'stick',null]], out: 'stone_pickaxe', outCount: 1, needsTable: true },
+  { shape: [['stone','stone'],['stone','stick'],[null,'stick']], out: 'stone_axe', outCount: 1, needsTable: true },
+  { shape: [['stone'],['stick'],['stick']], out: 'stone_shovel', outCount: 1, needsTable: true },
+
+  { shape: [['planks'],['planks'],['stick']], out: 'wood_sword', outCount: 1, needsTable: true },
+  { shape: [['stone'],['stone'],['stick']], out: 'stone_sword', outCount: 1, needsTable: true },
+];
+// Trim a sparse w x h grid (row-major array of type|null) down to the
+// bounding box of its non-null cells. Returns {rows, w, h} or null if empty.
+function trimShape(cells, w, h) {
+  let minR=h,maxR=-1,minC=w,maxC=-1;
+  for (let r=0;r<h;r++) for (let c=0;c<w;c++) {
+    if (cells[r*w+c]) { if(r<minR)minR=r; if(r>maxR)maxR=r; if(c<minC)minC=c; if(c>maxC)maxC=c; }
+  }
+  if (maxR < 0) return null;
+  const rows = [];
+  for (let r=minR; r<=maxR; r++) {
+    const row = [];
+    for (let c=minC; c<=maxC; c++) row.push(cells[r*w+c]);
+    rows.push(row);
+  }
+  return { rows, w: maxC-minC+1, h: maxR-minR+1 };
+}
+function shapesMatch(a, b) {
+  if (a.w !== b.w || a.h !== b.h) return false;
+  for (let r=0;r<a.h;r++) for (let c=0;c<a.w;c++) if (a.rows[r][c] !== b.rows[r][c]) return false;
+  return true;
+}
+// gridSlots: array of {type,count}|null, length w*h. Returns the matching
+// recipe, or null. `atTable` = true when crafting at a placed crafting table.
+function matchRecipe(gridSlots, w, h, atTable) {
+  const cells = gridSlots.map(s => s ? s.type : null);
+  const trimmed = trimShape(cells, w, h);
+  if (!trimmed) return null;
+  for (const r of RECIPES) {
+    if (r.needsTable && !atTable) continue;
+    const rw = r.shape[0].length, rh = r.shape.length;
+    const rCells = [];
+    for (let rr=0; rr<rh; rr++) for (let cc=0; cc<rw; cc++) rCells.push(r.shape[rr][cc]);
+    const rTrim = trimShape(rCells, rw, rh);
+    if (rTrim && shapesMatch(trimmed, rTrim)) return r;
+  }
+  return null;
+}
+
+// ================= Chunked mesh rendering (fast!) =================
+// Instead of one THREE.Mesh per block (which was the main FPS bottleneck),
+// blocks are stored as plain data and merged into a handful of chunk meshes
+// with hidden (fully-enclosed) faces culled out entirely.
+const MAT_LIST = [];
+function regMat(tex, transparent) {
+  const m = new THREE.MeshLambertMaterial({
+    map: tex, transparent: !!transparent, opacity: transparent ? 0.75 : 1, side: THREE.FrontSide
+  });
+  MAT_LIST.push(m);
+  return MAT_LIST.length - 1;
+}
+const MI = {
+  grassSide: regMat(TEX.grassSide),
+  grassTop:  regMat(TEX.grassTop),
+  dirt:      regMat(TEX.dirt),
+  stone:     regMat(TEX.stone),
+  wood:      regMat(TEX.wood),
+  woodTop:   regMat(TEX.woodTop),
+  leaves:    regMat(TEX.leaves),
+  sand:      regMat(TEX.sand),
+  planks:    regMat(TEX.planks),
+  brick:     regMat(TEX.brick),
+  glass:     regMat(TEX.glass, true),
+  water:     regMat(TEX.water, true),
+  craftTop:  regMat(TEX.craftTop),
+  sapling:   regMat(TEX.sapling, true),
+};
+function faceMatIndex(type, faceIdx) {
+  // faceIdx: 0=+x,1=-x,2=+y,3=-y,4=+z,5=-z
+  switch (type) {
+    case 'grass': return faceIdx===2 ? MI.grassTop : (faceIdx===3 ? MI.dirt : MI.grassSide);
+    case 'wood':  return (faceIdx===2 || faceIdx===3) ? MI.woodTop : MI.wood;
+    case 'crafting_table': return (faceIdx===2 || faceIdx===3) ? MI.craftTop : MI.planks;
+    default: return MI[type];
+  }
+}
+function shouldRenderFace(type, neighborType) {
+  if (!neighborType) return true;
+  const curTrans = BLOCK_TYPES[type].transparent;
+  const nbrTrans = BLOCK_TYPES[neighborType] ? BLOCK_TYPES[neighborType].transparent : false;
+  if (!curTrans) return !!nbrTrans;      // opaque block: only visible next to transparent/air
+  if (!nbrTrans) return false;           // transparent block hidden behind opaque neighbor
+  return type !== neighborType;          // e.g. water-water hidden, water-glass shown
+}
+
+// Verified-winding cube face corners (CCW from outside => correct normal / visible from outside).
+// Each face also carries its own UVs matching its corner order, so textures sit right-side-up
+// and consistently oriented on every face instead of rotated/mirrored on some sides.
+const FACES = [
+  { dir:[1,0,0],  normal:[1,0,0],  corners:[[0.5,-0.5,-0.5],[0.5,0.5,-0.5],[0.5,0.5,0.5],[0.5,-0.5,0.5]],
+    uvs:[[0,0],[0,1],[1,1],[1,0]] },   // +x
+  { dir:[-1,0,0], normal:[-1,0,0], corners:[[-0.5,-0.5,0.5],[-0.5,0.5,0.5],[-0.5,0.5,-0.5],[-0.5,-0.5,-0.5]],
+    uvs:[[1,0],[1,1],[0,1],[0,0]] }, // -x
+  { dir:[0,1,0],  normal:[0,1,0],  corners:[[-0.5,0.5,-0.5],[-0.5,0.5,0.5],[0.5,0.5,0.5],[0.5,0.5,-0.5]],
+    uvs:[[0,0],[0,1],[1,1],[1,0]] },   // +y
+  { dir:[0,-1,0], normal:[0,-1,0], corners:[[-0.5,-0.5,-0.5],[0.5,-0.5,-0.5],[0.5,-0.5,0.5],[-0.5,-0.5,0.5]],
+    uvs:[[0,0],[1,0],[1,1],[0,1]] }, // -y
+  { dir:[0,0,1],  normal:[0,0,1],  corners:[[-0.5,-0.5,0.5],[0.5,-0.5,0.5],[0.5,0.5,0.5],[-0.5,0.5,0.5]],
+    uvs:[[0,0],[1,0],[1,1],[0,1]] },   // +z
+  { dir:[0,0,-1], normal:[0,0,-1], corners:[[0.5,-0.5,-0.5],[-0.5,-0.5,-0.5],[-0.5,0.5,-0.5],[0.5,0.5,-0.5]],
+    uvs:[[1,0],[0,0],[0,1],[1,1]] }, // -z
+];
+
+const CHUNK_SIZE = 16;
+const Y_MIN = -20, Y_MAX = 60;
+const chunks = new Map();       // "cx,cz" -> { mesh, dirty }
+const dirtyChunkKeys = new Set();
+
+function chunkCoord(x,z){ return [Math.floor(x/CHUNK_SIZE), Math.floor(z/CHUNK_SIZE)]; }
+function markOne(cx,cz){
+  const k = cx+','+cz;
+  let c = chunks.get(k);
+  if (!c) { c = { mesh:null, dirty:true }; chunks.set(k,c); }
+  else c.dirty = true;
+  dirtyChunkKeys.add(k);
+}
+function markChunkDirty(x,z){
+  const [cx,cz] = chunkCoord(x,z);
+  markOne(cx,cz);
+  const lx = ((x % CHUNK_SIZE)+CHUNK_SIZE)%CHUNK_SIZE;
+  const lz = ((z % CHUNK_SIZE)+CHUNK_SIZE)%CHUNK_SIZE;
+  if (lx===0) markOne(cx-1,cz);
+  if (lx===CHUNK_SIZE-1) markOne(cx+1,cz);
+  if (lz===0) markOne(cx,cz-1);
+  if (lz===CHUNK_SIZE-1) markOne(cx,cz+1);
+}
+function addFace(buffers, mi, x,y,z, faceIdx) {
+  const f = FACES[faceIdx];
+  let buf = buffers[mi];
+  if (!buf) buf = buffers[mi] = { pos:[], norm:[], uv:[], idx:[], count:0 };
+  const start = buf.count;
+  for (let i=0;i<4;i++){
+    const c = f.corners[i];
+    buf.pos.push(x+c[0], y+c[1], z+c[2]);
+    buf.norm.push(f.normal[0], f.normal[1], f.normal[2]);
+  }
+  for (let i=0;i<4;i++) buf.uv.push(f.uvs[i][0], f.uvs[i][1]);
+  buf.idx.push(start,start+1,start+2, start,start+2,start+3);
+  buf.count += 4;
+}
+function rebuildChunk(cx, cz) {
+  const ck = cx+','+cz;
+  const chunk = chunks.get(ck);
+  if (!chunk) return;
+  const buffers = {};
+  const x0 = cx*CHUNK_SIZE, x1 = x0+CHUNK_SIZE-1;
+  const z0 = cz*CHUNK_SIZE, z1 = z0+CHUNK_SIZE-1;
+  for (let x=x0; x<=x1; x++){
+    for (let z=z0; z<=z1; z++){
+      for (let y=Y_MIN; y<=Y_MAX; y++){
+        const b = world.get(key(x,y,z));
+        if (!b) continue;
+        for (let f=0; f<6; f++){
+          const d = FACES[f].dir;
+          const nb = world.get(key(x+d[0], y+d[1], z+d[2]));
+          if (shouldRenderFace(b.type, nb ? nb.type : null)) {
+            addFace(buffers, faceMatIndex(b.type, f), x, y, z, f);
+          }
+        }
+      }
+    }
+  }
+  if (chunk.mesh) {
+    scene.remove(chunk.mesh);
+    chunk.mesh.geometry.dispose();
+    chunk.mesh = null;
+  }
+  const matIndices = Object.keys(buffers);
+  chunk.dirty = false;
+  if (matIndices.length === 0) return;
+
+  let totalVerts = 0, totalIdx = 0;
+  matIndices.forEach(mi => { totalVerts += buffers[mi].pos.length/3; totalIdx += buffers[mi].idx.length; });
+  const positions = new Float32Array(totalVerts*3);
+  const normals = new Float32Array(totalVerts*3);
+  const uvs = new Float32Array(totalVerts*2);
+  const indices = new Uint32Array(totalIdx);
+  const groups = [];
+  let vOff = 0, iOff = 0;
+  matIndices.forEach(mi => {
+    const b = buffers[mi];
+    positions.set(b.pos, vOff*3);
+    normals.set(b.norm, vOff*3);
+    uvs.set(b.uv, vOff*2);
+    for (let k=0;k<b.idx.length;k++) indices[iOff+k] = b.idx[k] + vOff;
+    groups.push({ start: iOff, count: b.idx.length, materialIndex: Number(mi) });
+    vOff += b.pos.length/3;
+    iOff += b.idx.length;
+  });
+  const geo = new THREE.BufferGeometry();
+  geo.setAttribute('position', new THREE.BufferAttribute(positions,3));
+  geo.setAttribute('normal', new THREE.BufferAttribute(normals,3));
+  geo.setAttribute('uv', new THREE.BufferAttribute(uvs,2));
+  geo.setIndex(new THREE.BufferAttribute(indices,1));
+  groups.forEach(g => geo.addGroup(g.start, g.count, g.materialIndex));
+  const mesh = new THREE.Mesh(geo, MAT_LIST);
+  scene.add(mesh);
+  chunk.mesh = mesh;
+}
+function flushDirtyChunks() {
+  dirtyChunkKeys.forEach(k => {
+    const [cx,cz] = k.split(',').map(Number);
+    rebuildChunk(cx,cz);
+  });
+  dirtyChunkKeys.clear();
+}
+function markAllChunksFromWorld() {
+  const seen = new Set();
+  world.forEach(b => { const [cx,cz] = chunkCoord(b.x,b.z); seen.add(cx+','+cz); });
+  seen.forEach(k => { const [cx,cz] = k.split(',').map(Number); markOne(cx,cz); });
+}
+
+// ================= World data =================
+const world = new Map(); // key "x,y,z" -> {type,x,y,z}
+function key(x,y,z){ return x+','+y+','+z; }
+
+function addBlock(x,y,z,type,skipMark) {
+  x=Math.round(x); y=Math.round(y); z=Math.round(z);
+  const k = key(x,y,z);
+  if (world.has(k)) return false;
+  world.set(k, { type, x, y, z });
+  if (!skipMark) markChunkDirty(x,z);
+  return true;
+}
+function removeBlock(x,y,z,skipMark) {
+  x=Math.round(x); y=Math.round(y); z=Math.round(z);
+  const k = key(x,y,z);
+  if (!world.has(k)) return false;
+  world.delete(k);
+  if (!skipMark) markChunkDirty(x,z);
+  return true;
+}
+function getBlock(x,y,z){
+  return world.get(key(Math.round(x),Math.round(y),Math.round(z)));
+}
+
+// ---------- Terrain generation ----------
+function noise2D(x, z) {
+  return Math.floor(
+    3.2 * Math.sin(x*0.22) * Math.cos(z*0.22) +
+    2.2 * Math.sin(x*0.09 + z*0.15) +
+    1.6 * Math.cos(x*0.05 - z*0.07) +
+    1.0
+  );
+}
+const WATER_LEVEL = -1;
+const WORLD_SIZE = 96;
+
+// Every browser must produce the exact same base terrain (including tree
+// placement) since only *changes* to it are synced through Supabase. A
+// fixed-seed PRNG makes the "random" parts of generation deterministic
+// instead of different per client.
+function mulberry32(seed) {
+  return function() {
+    seed |= 0; seed = (seed + 0x6D2B79F5) | 0;
+    let t = Math.imul(seed ^ (seed >>> 15), 1 | seed);
+    t = (t + Math.imul(t ^ (t >>> 7), 61 | t)) ^ t;
+    return ((t ^ (t >>> 14)) >>> 0) / 4294967296;
+  };
+}
+const worldRandom = mulberry32(1337);
+
+function generateWorld() {
+  for (let x = -WORLD_SIZE; x <= WORLD_SIZE; x++) {
+    for (let z = -WORLD_SIZE; z <= WORLD_SIZE; z++) {
+      const h = noise2D(x,z);
+      for (let y = -6; y <= h; y++) {
+        let type = 'stone';
+        if (y === h) type = (h <= WATER_LEVEL) ? 'sand' : 'grass';
+        else if (y > h - 3) type = 'dirt';
+        addBlock(x,y,z,type,true);
+      }
+      for (let y = h+1; y <= WATER_LEVEL; y++) {
+        addBlock(x,y,z,'water',true);
+      }
+    }
+  }
+  const treeSpots = [];
+  for (let i=0;i<14;i++){
+    const x = Math.floor((worldRandom()-0.5)*WORLD_SIZE*1.6);
+    const z = Math.floor((worldRandom()-0.5)*WORLD_SIZE*1.6);
+    const h = noise2D(x,z);
+    if (h > WATER_LEVEL) treeSpots.push([x,z]);
+  }
+  treeSpots.forEach(([x,z]) => addTree(x,z));
+}
+
+function addTree(x,z) {
+  const h = noise2D(x,z);
+  const baseY = h+1;
+  const trunkHeight = 4 + Math.floor(worldRandom()*2);
+  for (let i=0;i<trunkHeight;i++) addBlock(x, baseY+i, z, 'wood', true);
+  const topY = baseY + trunkHeight;
+  for (let dx=-2; dx<=2; dx++)
+    for (let dz=-2; dz<=2; dz++)
+      for (let dy=-1; dy<=2; dy++) {
+        const dist = Math.abs(dx)+Math.abs(dz)+Math.abs(dy);
+        if (dist <= 3 && !(dx===0&&dz===0&&dy<1)) {
+          if (worldRandom() < 0.85) addBlock(x+dx, topY+dy, z+dz, 'leaves', true);
+        }
+      }
+}
+
+// ---------- Save / Load ----------
+// World blocks are the single shared, authoritative state and live in
+// Supabase (table `world_blocks`), not in this browser. Only this player's
+// personal stuff (position, inventory, chosen block) is kept locally so a
+// refresh drops you back where you were.
+const SAVE_KEY = 'voltex_save_v2';
+function saveLocalPlayer() {
+  try {
+    localStorage.setItem(SAVE_KEY, JSON.stringify({
+      playerPos: [player.pos.x, player.pos.y, player.pos.z],
+      inventory,
+      currentSlot,
+      hp: player.hp
+    }));
+  } catch(e) { /* storage may be unavailable; fail silently */ }
+}
+function loadLocalPlayer() {
+  try {
+    const raw = localStorage.getItem(SAVE_KEY);
+    if (!raw) return false;
+    const data = JSON.parse(raw);
+    if (data.playerPos) player.pos.set(data.playerPos[0], data.playerPos[1], data.playerPos[2]);
+    if (Array.isArray(data.inventory)) inventory = data.inventory;
+    if (Number.isInteger(data.currentSlot)) currentSlot = data.currentSlot;
+    if (typeof data.hp === 'number') player.hp = Math.max(1, Math.min(player.maxHp, data.hp));
+    return true;
+  } catch(e) { return false; }
+}
+
+// Apply one row from `world_blocks` to the local world: type 'air' means
+// the block there was removed; anything else means a block of that type
+// was placed (overwriting whatever was there, including base terrain).
+function applyBlockDiff(row, skipMark) {
+  const { x, y, z, type } = row;
+  const k = key(x,y,z);
+  if (type === 'air') {
+    if (world.has(k)) world.delete(k);
+  } else {
+    world.set(k, { type, x, y, z });
+  }
+  if (!skipMark) markChunkDirty(x,z);
+}
+
+// Read the entire diff table once at startup and lay it on top of the
+// locally-generated base terrain.
+async function loadWorldDiffs() {
+  let from = 0;
+  const pageSize = 1000;
+  for (;;) {
+    const { data, error } = await sb.from('world_blocks').select('x,y,z,type').range(from, from + pageSize - 1);
+    if (error) { console.error('loadWorldDiffs', error); break; }
+    if (!data || data.length === 0) break;
+    data.forEach(row => applyBlockDiff(row, true));
+    if (data.length < pageSize) break;
+    from += pageSize;
+  }
+}
+
+// Push this player's block change to Supabase so every other connected
+// browser's realtime subscription picks it up and applies the same diff.
+async function pushBlockDiff(x, y, z, type) {
+  const { error } = await sb.from('world_blocks').upsert({ x, y, z, type, updated_at: new Date().toISOString() });
+  if (error) console.error('pushBlockDiff', error);
+}
+
+// Live sync: any insert/update to world_blocks (from any player, including
+// other tabs) is applied here. `self: true`-ish — our own writes come back
+// too, but applyBlockDiff is idempotent so that's harmless.
+function subscribeWorldChanges() {
+  sb.channel('world_blocks_changes')
+    .on('postgres_changes', { event: '*', schema: 'public', table: 'world_blocks' }, payload => {
+      if (!payload.new) return;
+      applyBlockDiff(payload.new, false);
+      flushDirtyChunks();
+    })
+    .subscribe();
+}
+
+// ================= Inventory (slot-based, Minecraft-style) =================
+// Slots 0-8 are the hotbar; slots 9-35 are the main inventory (3 rows of 9).
+// Each slot holds either null or { type, count }. This is exactly the same
+// array the bottom hotbar HUD and the full inventory screen both read from.
+const HOTBAR_SIZE = 9, MAIN_SIZE = 27, INV_SIZE = HOTBAR_SIZE + MAIN_SIZE;
+let inventory = new Array(INV_SIZE).fill(null);
+let currentSlot = 1; // index into hotbar (0-8); starts on the dirt-ish slot once picked up
+
+function currentItem() { return inventory[currentSlot]; }
+function currentBlockType() {
+  const it = currentItem();
+  return it && isPlaceable(it.type) ? it.type : null;
+}
+
+// Adds `count` of `type` into the inventory: first topping up existing
+// matching stacks, then filling empty slots. Returns leftover count that
+// didn't fit (0 if it all fit).
+function addItemToInventory(type, count) {
+  const maxStack = maxStackFor(type);
+  for (let i = 0; i < INV_SIZE && count > 0; i++) {
+    const s = inventory[i];
+    if (s && s.type === type && s.count < maxStack) {
+      const add = Math.min(maxStack - s.count, count);
+      s.count += add; count -= add;
+    }
+  }
+  for (let i = 0; i < INV_SIZE && count > 0; i++) {
+    if (!inventory[i]) {
+      const add = Math.min(maxStack, count);
+      inventory[i] = { type, count: add }; count -= add;
+    }
+  }
+  return count;
+}
+function removeFromCurrentSlot(n) {
+  const s = inventory[currentSlot];
+  if (!s) return;
+  s.count -= n;
+  if (s.count <= 0) inventory[currentSlot] = null;
+}
+
+const hotbar = document.getElementById('hotbar');
+function renderHotbar() {
+  hotbar.innerHTML = '';
+  for (let i = 0; i < HOTBAR_SIZE; i++) {
+    const s = inventory[i];
+    const div = document.createElement('div');
+    div.className = 'slot' + (i === currentSlot ? ' active' : '') + (!s ? ' empty' : '');
+    div.innerHTML = `<span class="num">${i+1}</span>${s ? iconFor(s.type) : ''}${s ? `<span class="count">${s.count}</span>` : ''}`;
+    div.title = s ? displayName(s.type) : '';
+    div.addEventListener('click', () => selectSlot(i));
+    hotbar.appendChild(div);
+  }
+}
+function selectSlot(i) {
+  currentSlot = i;
+  renderHotbar();
+}
+
+// ---------- Full inventory screen: crafting grid + drag & drop ----------
+const invPanel = document.getElementById('invPanel');
+const mainGridEl = document.getElementById('mainGrid');
+const hotbarGridEl = document.getElementById('hotbarGrid');
+const craftGridEl = document.getElementById('craftGrid');
+const craftOutputWrap = document.getElementById('craftOutputWrap');
+const craftTitleEl = document.getElementById('craftTitle');
+const cursorItemEl = document.getElementById('cursorItem');
+let inventoryOpen = false;
+let cursorItem = null; // item currently "held" by the mouse while dragging
+
+// The crafting grid: 2x2 in the personal inventory, 3x3 at a placed
+// crafting table. `craftAtTable` tracks which mode is open; `craftBlockPos`
+// remembers which world crafting_table block this session is bound to (so
+// walking away could later be handled — kept simple here).
+let craftSize = 2;
+let craftSlots = new Array(craftSize*craftSize).fill(null);
+let craftAtTable = false;
+
+function setCraftSize(n, atTable) {
+  craftSize = n; craftAtTable = atTable;
+  craftSlots = new Array(n*n).fill(null);
+  craftTitleEl.textContent = atTable ? 'Crafting Table' : 'Crafting';
+  craftGridEl.style.gridTemplateColumns = `repeat(${n}, 52px)`;
+}
+
+function computeCraftOutput() {
+  return matchRecipe(craftSlots, craftSize, craftSize, craftAtTable);
+}
+
+function iconHtml(item) {
+  if (!item) return '';
+  return `${iconFor(item.type)}${item.count > 1 ? `<span class="count">${item.count}</span>` : ''}`;
+}
+
+function makeSlotEl(getItem, onLeftClick, onRightClick, extraClass) {
+  const div = document.createElement('div');
+  div.className = 'invSlot' + (extraClass ? ' ' + extraClass : '');
+  const item = getItem();
+  if (!item) div.classList.add('dim');
+  div.innerHTML = iconHtml(item);
+  div.title = item ? displayName(item.type) : '';
+  div.addEventListener('click', e => { e.preventDefault(); onLeftClick(); });
+  div.addEventListener('contextmenu', e => { e.preventDefault(); onRightClick(); });
+  return div;
+}
+
+// --- generic pick up / place logic shared by every slot type ---
+function clickSlot(getItem, setItem, isRight) {
+  const slotItem = getItem();
+  if (!cursorItem) {
+    if (!slotItem) return;
+    if (isRight) {
+      const take = Math.ceil(slotItem.count / 2);
+      cursorItem = { type: slotItem.type, count: take };
+      const remain = slotItem.count - take;
+      setItem(remain > 0 ? { type: slotItem.type, count: remain } : null);
+    } else {
+      cursorItem = slotItem;
+      setItem(null);
+    }
+  } else {
+    if (!slotItem) {
+      if (isRight) {
+        setItem({ type: cursorItem.type, count: 1 });
+        cursorItem.count--; if (cursorItem.count <= 0) cursorItem = null;
+      } else {
+        setItem(cursorItem);
+        cursorItem = null;
+      }
+    } else if (slotItem.type === cursorItem.type) {
+      const max = maxStackFor(slotItem.type);
+      if (isRight) {
+        if (slotItem.count < max) { slotItem.count++; cursorItem.count--; if (cursorItem.count<=0) cursorItem=null; }
+      } else {
+        const add = Math.min(max - slotItem.count, cursorItem.count);
+        slotItem.count += add; cursorItem.count -= add;
+        if (cursorItem.count <= 0) cursorItem = null;
+      }
+    } else if (!isRight) {
+      setItem(cursorItem);
+      cursorItem = slotItem;
+    }
+  }
+  renderInventoryPanel();
+  renderHotbar();
+  saveLocalPlayer();
+}
+
+function clickCraftOutput() {
+  const recipe = computeCraftOutput();
+  if (!recipe) return;
+  const produced = { type: recipe.out, count: recipe.outCount };
+  if (cursorItem && (cursorItem.type !== produced.type || cursorItem.count + produced.count > maxStackFor(produced.type))) return;
+  // consume one of every filled ingredient cell, then hand over the output
+  for (let i = 0; i < craftSlots.length; i++) {
+    if (craftSlots[i]) { craftSlots[i].count--; if (craftSlots[i].count <= 0) craftSlots[i] = null; }
+  }
+  if (cursorItem) cursorItem.count += produced.count;
+  else cursorItem = produced;
+  renderInventoryPanel();
+  renderHotbar();
+  saveLocalPlayer();
+}
+
+function renderInventoryPanel() {
+  // main inventory (slots 9..35)
+  mainGridEl.innerHTML = '';
+  for (let i = HOTBAR_SIZE; i < INV_SIZE; i++) {
+    const idx = i;
+    mainGridEl.appendChild(makeSlotEl(
+      () => inventory[idx],
+      () => clickSlot(() => inventory[idx], v => inventory[idx] = v, false),
+      () => clickSlot(() => inventory[idx], v => inventory[idx] = v, true)
+    ));
+  }
+  // hotbar row (slots 0..8) shown inside the panel too, same array
+  hotbarGridEl.innerHTML = '';
+  for (let i = 0; i < HOTBAR_SIZE; i++) {
+    const idx = i;
+    const el = makeSlotEl(
+      () => inventory[idx],
+      () => clickSlot(() => inventory[idx], v => inventory[idx] = v, false),
+      () => clickSlot(() => inventory[idx], v => inventory[idx] = v, true)
+    );
+    if (idx === currentSlot) el.style.borderColor = '#fff';
+    hotbarGridEl.appendChild(el);
+  }
+  // crafting grid
+  craftGridEl.innerHTML = '';
+  for (let i = 0; i < craftSlots.length; i++) {
+    const idx = i;
+    craftGridEl.appendChild(makeSlotEl(
+      () => craftSlots[idx],
+      () => clickSlot(() => craftSlots[idx], v => craftSlots[idx] = v, false),
+      () => clickSlot(() => craftSlots[idx], v => craftSlots[idx] = v, true)
+    ));
+  }
+  // craft output (read-only ingredients-wise; clicking crafts + collects)
+  craftOutputWrap.innerHTML = '';
+  const recipe = computeCraftOutput();
+  const outItem = recipe ? { type: recipe.out, count: recipe.outCount } : null;
+  const outEl = makeSlotEl(() => outItem, clickCraftOutput, clickCraftOutput, 'output');
+  craftOutputWrap.appendChild(outEl);
+
+  cursorItemEl.style.display = cursorItem ? 'block' : 'none';
+  if (cursorItem) cursorItemEl.innerHTML = iconHtml(cursorItem);
+}
+
+document.addEventListener('mousemove', e => {
+  cursorItemEl.style.left = e.clientX + 'px';
+  cursorItemEl.style.top = e.clientY + 'px';
+});
+
+function returnCursorItemToInventory() {
+  if (!cursorItem) return;
+  const leftover = addItemToInventory(cursorItem.type, cursorItem.count);
+  cursorItem = leftover > 0 ? { type: cursorItem.type, count: leftover } : null;
+}
+
+function openInventory(atTable) {
+  inventoryOpen = true;
+  setCraftSize(atTable ? 3 : 2, atTable);
+  invPanel.style.display = 'flex';
+  renderInventoryPanel();
+  document.exitPointerLock();
+}
+function closeInventory() {
+  inventoryOpen = false;
+  invPanel.style.display = 'none';
+  // return any grid/cursor contents to the inventory rather than deleting items
+  craftSlots.forEach((s, i) => { if (s) { addItemToInventory(s.type, s.count); craftSlots[i] = null; } });
+  returnCursorItemToInventory();
+  renderHotbar();
+  saveLocalPlayer();
+}
+function toggleInventory() {
+  if (inventoryOpen) closeInventory();
+  else openInventory(false);
+}
+function openWorkbench() {
+  openInventory(true);
+}
+
+// ================= Physics / collision =================
+function solidAt(x,y,z) {
+  const b = getBlock(x,y,z);
+  return !!b && b.type !== 'water';
+}
+
+function checkCollision(x,y,z,r,h) {
+  for (let dy = 0.05; dy < h; dy += 0.4) {
+    for (const [dx,dz] of [[-r,-r],[r,-r],[-r,r],[r,r]]) {
+      if (solidAt(x+dx, y+dy, z+dz)) return true;
+    }
+  }
+  for (const [dx,dz] of [[-r,-r],[r,-r],[-r,r],[r,r]]) {
+    if (solidAt(x+dx, y+h, z+dz)) return true;
+  }
+  return false;
+}
+
+function collideAndMove(pos, vel, dt) {
+  const r = player.radius;
+  const h = player.height;
+
+  let newX = pos.x + vel.x*dt;
+  if (!checkCollision(newX, pos.y, pos.z, r, h)) pos.x = newX; else vel.x = 0;
+
+  let newZ = pos.z + vel.z*dt;
+  if (!checkCollision(pos.x, pos.y, newZ, r, h)) pos.z = newZ; else vel.z = 0;
+
+  let newY = pos.y + vel.y*dt;
+  if (!checkCollision(pos.x, newY, pos.z, r, h)) {
+    pos.y = newY;
+    player.onGround = false;
+  } else {
+    if (vel.y < 0) player.onGround = true;
+    vel.y = 0;
+  }
+}
+
+// Called once after real terrain (base + saved diffs) has fully loaded.
+// If the player's saved/spawn Y is way above the actual ground below them
+// (e.g. stale localStorage position from a previous session), snap them
+// down onto the surface so they don't stay floating in the sky.
+function unstickPlayerIfFloating() {
+  const x = Math.floor(player.pos.x);
+  const z = Math.floor(player.pos.z);
+  let groundY = null;
+  for (let y = Math.floor(player.pos.y); y > -10; y--) {
+    if (solidAt(x, y, z)) { groundY = y; break; }
+  }
+  if (groundY === null) {
+    // No ground found below (e.g. spawned over a hole/water gap) — fall
+    // back to the terrain height function directly under the player.
+    groundY = Math.max(noise2D(x, z), WATER_LEVEL);
+  }
+  let targetY = groundY + 1.1;
+  // The spot above ground might itself be blocked (tree, leaves, etc).
+  // Walk upward until we find clearance for the player's full height.
+  let tries = 0;
+  while (checkCollision(x + 0.5, targetY, z + 0.5, player.radius, player.height) && tries < 30) {
+    targetY += 1;
+    tries++;
+  }
+  if (player.pos.y - targetY > 3 || checkCollision(player.pos.x, player.pos.y, player.pos.z, player.radius, player.height)) {
+    player.pos.set(x + 0.5, targetY, z + 0.5);
+    player.vel.set(0, 0, 0);
+  }
+}
+
+function isInWater(pos) {
+  const b = getBlock(pos.x, pos.y + 0.9, pos.z);
+  return !!b && b.type === 'water';
+}
+
+// ================= Day/Night cycle =================
+let worldTime = 0.25;
+const DAY_LENGTH = 180;
+
+function updateDayNight(dt) {
+  worldTime += dt / DAY_LENGTH;
+  if (worldTime > 1) worldTime -= 1;
+  const angle = worldTime * Math.PI * 2;
+  const sunHeight = Math.sin(angle - Math.PI/2);
+  sun.position.set(Math.cos(angle)*100, Math.max(sunHeight,0.05)*100 + 10, 40);
+  const brightness = Math.max(0.08, sunHeight * 0.5 + 0.5);
+  sun.intensity = 0.15 + brightness * 0.85;
+  ambient.intensity = 0.15 + brightness * 0.45;
+
+  const dayCol = new THREE.Color(0x7ec0ee);
+  const nightCol = new THREE.Color(0x0a0e2a);
+  const mixed = dayCol.clone().lerp(nightCol, 1 - brightness);
+  scene.background = mixed;
+  scene.fog.color = mixed;
+}
+
+// ================= Player =================
+const player = {
+  pos: new THREE.Vector3(0, 12, 0),
+  vel: new THREE.Vector3(0,0,0),
+  yaw: 0,
+  pitch: 0,
+  onGround: false,
+  height: 1.7,
+  radius: 0.3,
+  hp: 20,
+  maxHp: 20,
+};
+
+// ================= Health system =================
+const hpBarFill = document.getElementById('hpBarFill');
+const hpBarText = document.getElementById('hpBarText');
+const damageFlash = document.getElementById('damageFlash');
+function updateHpUI() {
+  const pct = Math.max(0, Math.min(100, (player.hp / player.maxHp) * 100));
+  hpBarFill.style.width = pct + '%';
+  hpBarText.textContent = Math.max(0, Math.round(player.hp)) + ' / ' + player.maxHp;
+}
+function flashDamage() {
+  damageFlash.style.opacity = '1';
+  setTimeout(() => { damageFlash.style.opacity = '0'; }, 150);
+}
+function damagePlayer(amount) {
+  if (amount <= 0 || player.hp <= 0) return;
+  const applied = isBlocking ? amount * 0.5 : amount; // sword block halves incoming damage
+  player.hp = Math.max(0, player.hp - applied);
+  updateHpUI();
+  flashDamage();
+  flashRed(myModel.group);
+  if (player.hp <= 0) respawnPlayer();
+}
+function healPlayer(amount) {
+  if (amount <= 0) return;
+  player.hp = Math.min(player.maxHp, player.hp + amount);
+  updateHpUI();
+}
+function respawnPlayer() {
+  const h = noise2D(0.5, 0.5);
+  player.pos.set(0.5, Math.max(h, WATER_LEVEL) + 5, 0.5);
+  player.vel.set(0, 0, 0);
+  player.hp = player.maxHp;
+  updateHpUI();
+}
+function eatCurrentFood() {
+  const it = currentItem();
+  if (!it || !isFood(it.type)) return;
+  if (player.hp >= player.maxHp) return;
+  healPlayer(ITEM_INFO[it.type].food);
+  removeFromCurrentSlot(1);
+  renderHotbar();
+  if (typeof inventoryOpen !== 'undefined' && inventoryOpen) renderInventoryPanel();
+}
+
+// ================= Eating (hold right-click on food) =================
+// Minecraft-style: holding right-click on a food item takes a beat before
+// it's actually consumed, during which the arm animates raising the food
+// to the mouth. Releasing early, switching items, or running out of food
+// cancels it.
+const eating = { active: false, progress: 0, duration: 1.3, type: null };
+let isBlocking = false; // true while holding right-click with a sword equipped
+function startEating() {
+  const it = currentItem();
+  if (!it || !isFood(it.type) || player.hp >= player.maxHp) return false;
+  mining.active = false;
+  mining.progress = 0;
+  mining.target = null;
+  eating.active = true;
+  eating.progress = 0;
+  eating.type = it.type;
+  return true;
+}
+function cancelEating() {
+  eating.active = false;
+  eating.progress = 0;
+  mineProgressWrap.style.display = 'none';
+  mineProgressBar.classList.remove('eating');
+}
+function updateEating(dt) {
+  if (!eating.active) return;
+  const it = currentItem();
+  if (!it || it.type !== eating.type || !isFood(it.type)) { cancelEating(); return; }
+  eating.progress += dt;
+  mineProgressWrap.style.display = 'block';
+  mineProgressBar.classList.add('eating');
+  mineProgressBar.style.width = Math.min(100, (eating.progress / eating.duration) * 100) + '%';
+  if (eating.progress >= eating.duration) {
+    eatCurrentFood();
+    cancelEating();
+  }
+}
+
+// Local player's own visible body. Hidden in first-person (camera sits
+// inside the head), shown when third-person view is toggled with F5.
+let thirdPerson = false;
+const myModel = buildHumanoid(colorForId(MY_ID));
+myModel.group.visible = false;
+scene.add(myModel.group);
+let myWalkCycle = 0;
+let mineSwingCycle = 0;
+
+function updateMyModel(dt, isMoving) {
+  myModel.group.position.set(player.pos.x, player.pos.y, player.pos.z);
+  myModel.group.rotation.y = player.yaw;
+  if (isMoving && player.onGround) myWalkCycle += dt * 8;
+  const walkSwing = (isMoving && player.onGround) ? Math.sin(myWalkCycle) * 0.6 : 0;
+  myModel.legL.rotation.x = walkSwing;
+  myModel.legR.rotation.x = -walkSwing;
+  myModel.armL.rotation.x = -walkSwing;
+  myModel.armR.rotation.x = walkSwing;
+  myModel.armR.rotation.z = 0;
+  myModel.head.rotation.x = player.pitch;
+
+  if (mining.active) {
+    // Punch/swing the mining arm forward and back, faster than a walk cycle.
+    mineSwingCycle += dt * 9;
+    myModel.armR.rotation.x = -1.9 + Math.sin(mineSwingCycle) * 0.9;
+  } else if (eating.active) {
+    // Raise the arm to the mouth and give it a quick "bite" bob.
+    myModel.armR.rotation.x = -2.1 + Math.sin(eating.progress * 16) * 0.12;
+  } else if (isBlocking) {
+    // Hold the sword up and across the body in a guard stance.
+    myModel.armR.rotation.x = -1.6;
+    myModel.armR.rotation.z = -0.5;
+    myModel.armL.rotation.x = -1.2;
+  }
+}
+
+// ================= Other players (Supabase Realtime) =================
+// Presence tracks who is connected (join/leave); broadcast carries frequent
+// position updates. Each other player is drawn as a simple colored body +
+// head with a floating name tag, and smoothly interpolated toward their
+// latest reported position.
+const otherPlayers = new Map(); // id -> { group, target: {x,y,z,yaw}, name }
+function colorForId(id) {
+  let h = 0;
+  for (let i=0;i<id.length;i++) h = (h*31 + id.charCodeAt(i)) >>> 0;
+  return new THREE.Color().setHSL((h % 360)/360, 0.65, 0.55);
+}
+function makeNameSprite(name) {
+  const c = document.createElement('canvas');
+  c.width = 256; c.height = 64;
+  const ctx = c.getContext('2d');
+  ctx.font = 'bold 32px sans-serif';
+  ctx.textAlign = 'center';
+  ctx.fillStyle = 'rgba(0,0,0,0.5)';
+  ctx.fillRect(0, 8, 256, 40);
+  ctx.fillStyle = '#fff';
+  ctx.fillText(name, 128, 36);
+  const tex = new THREE.CanvasTexture(c);
+  const mat = new THREE.SpriteMaterial({ map: tex, depthTest: false });
+  const sprite = new THREE.Sprite(mat);
+  sprite.scale.set(1.6, 0.4, 1);
+  sprite.position.y = 2.35;
+  return sprite;
+}
+
+// Floating speech-bubble sprite shown above a player's head for a few
+// seconds after they send a chat message. Wraps long lines onto the canvas.
+function makeChatBubble(text) {
+  const c = document.createElement('canvas');
+  c.width = 320; c.height = 128;
+  const ctx = c.getContext('2d');
+  ctx.font = '26px sans-serif';
+  const maxWidth = 300;
+  const words = text.split(' ');
+  const lines = [];
+  let line = '';
+  words.forEach(w => {
+    const test = line ? line + ' ' + w : w;
+    if (ctx.measureText(test).width > maxWidth && line) {
+      lines.push(line);
+      line = w;
+    } else {
+      line = test;
+    }
+  });
+  if (line) lines.push(line);
+  const shown = lines.slice(0, 3);
+  const lineH = 30;
+  const boxH = shown.length * lineH + 16;
+  ctx.clearRect(0, 0, c.width, c.height);
+  ctx.fillStyle = 'rgba(0,0,0,0.65)';
+  const boxW = Math.min(300, Math.max(...shown.map(l => ctx.measureText(l).width)) + 24);
+  ctx.fillRect((c.width-boxW)/2, 4, boxW, boxH);
+  ctx.fillStyle = '#fff';
+  ctx.textAlign = 'center';
+  shown.forEach((l, i) => ctx.fillText(l, c.width/2, 4 + lineH*(i+1) - 4));
+  const tex = new THREE.CanvasTexture(c);
+  const mat = new THREE.SpriteMaterial({ map: tex, depthTest: false });
+  const sprite = new THREE.Sprite(mat);
+  const aspect = c.width / c.height;
+  const h = 0.9;
+  sprite.scale.set(h*aspect, h, 1);
+  sprite.position.y = 2.9;
+  return sprite;
+}
+
+// Briefly flashes every mesh in an entity's group solid red, then restores
+// its original color — the classic Minecraft "hit flash" feedback. Safe to
+// call repeatedly (e.g. rapid hits); it just resets the revert timer.
+function flashRed(group) {
+  if (!group) return;
+  if (!group.userData._flashMeshes) {
+    const meshes = [];
+    group.traverse(o => {
+      if (o.isMesh && o.material && o.material.color) {
+        meshes.push({ mesh: o, orig: o.material.color.clone() });
+      }
+    });
+    group.userData._flashMeshes = meshes;
+  }
+  group.userData._flashMeshes.forEach(({ mesh }) => mesh.material.color.set(0xff3333));
+  clearTimeout(group.userData._flashTimer);
+  group.userData._flashTimer = setTimeout(() => {
+    group.userData._flashMeshes.forEach(({ mesh, orig }) => mesh.material.color.copy(orig));
+  }, 180);
+}
+
+// Shared limbed humanoid builder — used for both the local player's
+// (optional third-person) model and every other connected player.
+function buildHumanoid(color) {
+  const group = new THREE.Group();
+  const skin = color.clone().offsetHSL(0, 0, 0.15);
+
+  const torso = new THREE.Mesh(
+    new THREE.BoxGeometry(0.6, 0.75, 0.35),
+    new THREE.MeshLambertMaterial({ color })
+  );
+  torso.position.y = 1.125;
+
+  const head = new THREE.Mesh(
+    new THREE.BoxGeometry(0.45, 0.45, 0.45),
+    new THREE.MeshLambertMaterial({ color: skin })
+  );
+  head.position.y = 1.75;
+
+  const legGeo = new THREE.BoxGeometry(0.22, 0.75, 0.25);
+  legGeo.translate(0, -0.375, 0); // pivot at hip so rotation.x swings the leg
+  const legMat = new THREE.MeshLambertMaterial({ color: color.clone().offsetHSL(0, 0, -0.15) });
+  const legL = new THREE.Mesh(legGeo, legMat);
+  legL.position.set(-0.14, 0.75, 0);
+  const legR = new THREE.Mesh(legGeo, legMat);
+  legR.position.set(0.14, 0.75, 0);
+
+  const armGeo = new THREE.BoxGeometry(0.2, 0.7, 0.2);
+  armGeo.translate(0, -0.35, 0); // pivot at shoulder
+  const armMat = new THREE.MeshLambertMaterial({ color: skin });
+  const armL = new THREE.Mesh(armGeo, armMat);
+  armL.position.set(-0.4, 1.5, 0);
+  const armR = new THREE.Mesh(armGeo, armMat);
+  armR.position.set(0.4, 1.5, 0);
+
+  group.add(torso, head, legL, legR, armL, armR);
+  return { group, head, legL, legR, armL, armR };
+}
+
+// ================= Animals =================
+// Simple wandering pigs. Punch them (left-click while in range) to damage;
+// killing one drops raw meat straight into your inventory.
+function buildPig() {
+  const group = new THREE.Group();
+  const bodyMat = new THREE.MeshLambertMaterial({ color: 0xf3b6c6 });
+  const snoutMat = new THREE.MeshLambertMaterial({ color: 0xe08fa6 });
+  const legMat = new THREE.MeshLambertMaterial({ color: 0xd89bab });
+
+  const body = new THREE.Mesh(new THREE.BoxGeometry(0.7, 0.5, 0.9), bodyMat);
+  body.position.y = 0.55;
+  const head = new THREE.Mesh(new THREE.BoxGeometry(0.4, 0.4, 0.4), bodyMat);
+  head.position.set(0, 0.6, 0.55);
+  const snout = new THREE.Mesh(new THREE.BoxGeometry(0.22, 0.18, 0.1), snoutMat);
+  snout.position.set(0, 0.55, 0.78);
+
+  const legGeo = new THREE.BoxGeometry(0.16, 0.35, 0.16);
+  const legPositions = [[-0.25,0.175,0.3],[0.25,0.175,0.3],[-0.25,0.175,-0.3],[0.25,0.175,-0.3]];
+  const legs = legPositions.map(([x,y,z]) => {
+    const l = new THREE.Mesh(legGeo, legMat);
+    l.position.set(x,y,z);
+    return l;
+  });
+
+  group.add(body, head, snout, ...legs);
+  return group;
+}
+
+const animals = [];
+function spawnAnimal(x, z) {
+  const h = noise2D(x, z);
+  if (h <= WATER_LEVEL) return; // don't spawn in/under water
+  const group = buildPig();
+  scene.add(group);
+  const pos = new THREE.Vector3(x + 0.5, h + 1.5, z + 0.5);
+  group.position.copy(pos);
+  animals.push({
+    group, pos, vel: new THREE.Vector3(0,0,0),
+    hp: 6, maxHp: 6, alive: true,
+    radius: 0.35, height: 0.7,
+    wanderTimer: Math.random()*2, facing: 0,
+  });
+}
+function spawnAnimals(count) {
+  for (let i = 0; i < count; i++) {
+    const x = Math.floor((worldRandom()-0.5) * WORLD_SIZE * 1.4);
+    const z = Math.floor((worldRandom()-0.5) * WORLD_SIZE * 1.4);
+    spawnAnimal(x, z);
+  }
+}
+
+// Generic gravity+collision mover for non-player entities (reuses the same
+// voxel collision check the player uses, but with its own radius/height).
+function moveEntity(pos, vel, dt, r, h) {
+  let newX = pos.x + vel.x*dt;
+  if (!checkCollision(newX, pos.y, pos.z, r, h)) pos.x = newX; else vel.x = 0;
+  let newZ = pos.z + vel.z*dt;
+  if (!checkCollision(pos.x, pos.y, newZ, r, h)) pos.z = newZ; else vel.z = 0;
+  let newY = pos.y + vel.y*dt;
+  let onGround = false;
+  if (!checkCollision(pos.x, newY, pos.z, r, h)) { pos.y = newY; }
+  else { if (vel.y < 0) onGround = true; vel.y = 0; }
+  return onGround;
+}
+
+function updateAnimals(dt) {
+  animals.forEach(a => {
+    if (!a.alive) return;
+    a.wanderTimer -= dt;
+    if (a.wanderTimer <= 0) {
+      a.wanderTimer = 1.5 + Math.random()*2.5;
+      if (Math.random() < 0.35) {
+        a.vel.x = 0; a.vel.z = 0; // pause
+      } else {
+        a.facing = Math.random()*Math.PI*2;
+        const speed = 0.8;
+        a.vel.x = Math.sin(a.facing)*speed;
+        a.vel.z = Math.cos(a.facing)*speed;
+      }
+    }
+    a.vel.y -= 20*dt;
+    const onGround = moveEntity(a.pos, a.vel, dt, a.radius, a.height);
+    if (onGround) a.vel.y = 0;
+    if (a.pos.y < -30) { a.alive = false; scene.remove(a.group); return; } // fell into the void
+    a.group.position.copy(a.pos);
+    a.group.rotation.y = a.facing;
+  });
+}
+
+function damageAnimal(animal, dmg) {
+  animal.hp -= dmg;
+  flashRed(animal.group);
+  if (animal.hp <= 0) killAnimal(animal);
+}
+function killAnimal(animal) {
+  animal.alive = false;
+  scene.remove(animal.group);
+  const dropCount = 1 + Math.floor(Math.random()*2);
+  addItemToInventory('raw_meat', dropCount);
+  renderHotbar();
+  if (inventoryOpen) renderInventoryPanel();
+}
+// ================= Dropped items =================
+// When a block is mined (or an item is thrown with Q), it pops out into the
+// world as a small floating icon instead of going straight into the
+// inventory. Walk over it to pick it up.
+function makeItemSprite(type) {
+  const c = document.createElement('canvas');
+  c.width = 64; c.height = 64;
+  const ctx = c.getContext('2d');
+  ctx.font = '44px sans-serif';
+  ctx.textAlign = 'center';
+  ctx.textBaseline = 'middle';
+  ctx.fillText(iconFor(type), 32, 36);
+  const tex = new THREE.CanvasTexture(c);
+  const mat = new THREE.SpriteMaterial({ map: tex, depthTest: true });
+  const sprite = new THREE.Sprite(mat);
+  sprite.scale.set(0.4, 0.4, 1);
+  return sprite;
+}
+
+const droppedItems = [];
+function spawnDroppedItem(type, count, pos, vel) {
+  if (!type || count <= 0) return;
+  const sprite = makeItemSprite(type);
+  sprite.position.copy(pos);
+  scene.add(sprite);
+  droppedItems.push({
+    sprite, type, count,
+    pos: pos.clone(),
+    // Gentler, mostly-upward pop so items don't get launched sideways into
+    // a neighboring solid block and end up visually wedged inside it.
+    vel: vel ? vel.clone() : new THREE.Vector3((Math.random()-0.5)*0.6, 2.5, (Math.random()-0.5)*0.6),
+    radius: 0.15, height: 0.15,
+    bornAt: performance.now(),
+    bobPhase: Math.random()*Math.PI*2,
+  });
+}
+function updateDroppedItems(dt) {
+  const now = performance.now();
+  for (let i = droppedItems.length - 1; i >= 0; i--) {
+    const it = droppedItems[i];
+
+    // Safety net: if an item ever ends up embedded in solid geometry (e.g.
+    // it popped out right where a neighboring block's edge overlaps), nudge
+    // it straight up until it finds clear space instead of staying stuck.
+    if (checkCollision(it.pos.x, it.pos.y, it.pos.z, it.radius, it.height)) {
+      let tries = 0;
+      while (checkCollision(it.pos.x, it.pos.y, it.pos.z, it.radius, it.height) && tries < 20) {
+        it.pos.y += 0.2;
+        tries++;
+      }
+      it.vel.set(0, 0, 0);
+    }
+
+    it.vel.y -= 20*dt;
+    moveEntity(it.pos, it.vel, dt, it.radius, it.height);
+    it.vel.x *= 0.9; it.vel.z *= 0.9; // ground friction / air drag
+    it.bobPhase += dt*3;
+    it.sprite.position.set(it.pos.x, it.pos.y + 0.15 + Math.sin(it.bobPhase)*0.05, it.pos.z);
+
+    // Fell into the void — despawn.
+    if (it.pos.y < -30) { scene.remove(it.sprite); droppedItems.splice(i,1); continue; }
+
+    // Pickup: only after a short delay (so freshly popped/thrown items don't
+    // insta-return), and only within reach of the player.
+    const age = (now - it.bornAt) / 1000;
+    if (age > 1.0) {
+      const dx = it.pos.x - player.pos.x, dz = it.pos.z - player.pos.z;
+      const dy = it.pos.y - (player.pos.y + player.height*0.5);
+      if (dx*dx + dz*dz < 1.6*1.6 && Math.abs(dy) < 2.2) {
+        const leftover = addItemToInventory(it.type, it.count);
+        renderHotbar();
+        if (inventoryOpen) renderInventoryPanel();
+        if (leftover > 0) {
+          it.count = leftover; // inventory full — leave the remainder on the ground
+        } else {
+          scene.remove(it.sprite);
+          droppedItems.splice(i,1);
+        }
+      }
+    }
+  }
+}
+
+// Throw the currently held item out in front of the player (Q).
+function throwCurrentItem() {
+  const held = currentItem();
+  if (!held) return;
+  const dir = new THREE.Vector3();
+  camera.getWorldDirection(dir);
+  const startPos = new THREE.Vector3(player.pos.x, player.pos.y + player.height*0.6, player.pos.z)
+    .add(dir.clone().multiplyScalar(0.6));
+  const vel = dir.clone().multiplyScalar(5).add(new THREE.Vector3(0, 2.5, 0));
+  spawnDroppedItem(held.type, 1, startPos, vel);
+  removeFromCurrentSlot(1);
+  renderHotbar();
+  if (inventoryOpen) renderInventoryPanel();
+}
+
+function findTargetAnimal() {
+  const dir = new THREE.Vector3();
+  camera.getWorldDirection(dir);
+  let best = null, bestDist = Infinity;
+  animals.forEach(a => {
+    if (!a.alive) return;
+    const center = new THREE.Vector3(a.pos.x, a.pos.y + 0.4, a.pos.z);
+    const toA = center.clone().sub(camera.position);
+    const dist = toA.length();
+    if (dist > 4.5) return;
+    toA.normalize();
+    const angle = dir.angleTo(toA);
+    if (angle < 0.4 && dist < bestDist) { best = a; bestDist = dist; }
+  });
+  return best;
+}
+let attackCooldown = 0;
+
+// Finds the closest other player within melee range and looking angle —
+// mirrors findTargetAnimal() above, so PvP punches use the same feel as
+// hitting animals.
+function findTargetPlayer() {
+  const dir = new THREE.Vector3();
+  camera.getWorldDirection(dir);
+  let best = null, bestId = null, bestDist = Infinity;
+  otherPlayers.forEach((entry, id) => {
+    const center = new THREE.Vector3(entry.group.position.x, entry.group.position.y + 1, entry.group.position.z);
+    const toP = center.clone().sub(camera.position);
+    const dist = toP.length();
+    if (dist > 4.5) return;
+    toP.normalize();
+    const angle = dir.angleTo(toP);
+    if (angle < 0.4 && dist < bestDist) { best = entry; bestId = id; bestDist = dist; }
+  });
+  return best ? { entry: best, id: bestId } : null;
+}
+
+function createOtherPlayer(id, name) {
+  const color = colorForId(id);
+  const model = buildHumanoid(color);
+  model.group.add(makeNameSprite(name));
+  scene.add(model.group);
+  const entry = {
+    group: model.group, head: model.head, legL: model.legL, legR: model.legR, armL: model.armL, armR: model.armR,
+    target: { x: model.group.position.x, y: model.group.position.y, z: model.group.position.z, yaw: 0 },
+    name, walkCycle: 0, lastPos: { x: 0, y: 0, z: 0 }
+  };
+  otherPlayers.set(id, entry);
+  updatePlayerCountHUD();
+  return entry;
+}
+function removeOtherPlayer(id) {
+  const entry = otherPlayers.get(id);
+  if (!entry) return;
+  scene.remove(entry.group);
+  otherPlayers.delete(id);
+  updatePlayerCountHUD();
+}
+function updatePlayerCountHUD() {
+  const el = document.getElementById('playerCount');
+  if (el) el.textContent = 'Players online: ' + (otherPlayers.size + 1);
+}
+
+const playersChannel = sb.channel('game_room', { config: { presence: { key: MY_ID } } });
+playersChannel
+  .on('presence', { event: 'sync' }, () => {
+    const state = playersChannel.presenceState();
+    const seen = new Set(Object.keys(state));
+    seen.forEach(id => {
+      if (id === MY_ID) return;
+      if (!otherPlayers.has(id)) {
+        const meta = state[id][0] || {};
+        createOtherPlayer(id, meta.name || 'Player');
+      }
+    });
+    Array.from(otherPlayers.keys()).forEach(id => { if (!seen.has(id)) removeOtherPlayer(id); });
+  })
+  .on('broadcast', { event: 'pos' }, ({ payload }) => {
+    if (!payload || payload.id === MY_ID) return;
+    let entry = otherPlayers.get(payload.id);
+    if (!entry) entry = createOtherPlayer(payload.id, payload.name || 'Player');
+    entry.target.x = payload.x; entry.target.y = payload.y; entry.target.z = payload.z; entry.target.yaw = payload.yaw;
+  })
+  .on('broadcast', { event: 'chat' }, ({ payload }) => {
+    if (!payload || payload.id === MY_ID) return;
+    addChatLine(payload.name || 'Player', payload.text || '', false);
+    let entry = otherPlayers.get(payload.id);
+    if (!entry) entry = createOtherPlayer(payload.id, payload.name || 'Player');
+    showChatBubbleOn(entry, payload.text || '');
+  })
+  // PvP: the attacker broadcasts who they hit and for how much. Everyone
+  // who can see the target flashes their model red; only the actual target
+  // (whoever matches targetId) applies the damage/knockback to themselves.
+  // Each client stays authoritative over its own hp, same as respawn.
+  .on('broadcast', { event: 'hit' }, ({ payload }) => {
+    if (!payload) return;
+    if (payload.targetId === MY_ID) {
+      damagePlayer(payload.amount);
+    } else {
+      const entry = otherPlayers.get(payload.targetId);
+      if (entry) flashRed(entry.group);
+    }
+  });
+
+let posBroadcastTimer = 0;
+function broadcastMyPosition(dt) {
+  posBroadcastTimer += dt;
+  if (posBroadcastTimer < 0.1) return;
+  posBroadcastTimer = 0;
+  playersChannel.send({
+    type: 'broadcast', event: 'pos',
+    payload: { id: MY_ID, name: MY_NAME, x: player.pos.x, y: player.pos.y, z: player.pos.z, yaw: player.yaw }
+  });
+}
+function updateOtherPlayerVisuals(dt) {
+  const lerpT = Math.min(1, dt * 10);
+  otherPlayers.forEach(entry => {
+    const dx = entry.target.x - entry.group.position.x;
+    const dz = entry.target.z - entry.group.position.z;
+    const moving = Math.hypot(entry.target.x - entry.lastPos.x, entry.target.z - entry.lastPos.z) > 0.01;
+    entry.lastPos.x = entry.target.x; entry.lastPos.y = entry.target.y; entry.lastPos.z = entry.target.z;
+
+    entry.group.position.x += dx * lerpT;
+    entry.group.position.y += (entry.target.y - entry.group.position.y) * lerpT;
+    entry.group.position.z += dz * lerpT;
+    entry.group.rotation.y = entry.target.yaw;
+
+    if (moving) entry.walkCycle += dt * 8; 
+    const swing = moving ? Math.sin(entry.walkCycle) * 0.6 : 0;
+    entry.legL.rotation.x = swing;
+    entry.legR.rotation.x = -swing;
+    entry.armL.rotation.x = -swing;
+    entry.armR.rotation.x = swing;
+  });
+}
+
+// ================= Chat =================
+let chatOpen = false;
+const chatLog = document.getElementById('chatLog');
+const chatInputWrap = document.getElementById('chatInputWrap');
+const chatInput = document.getElementById('chatInput');
+
+function escapeHtml(s) {
+  const d = document.createElement('div');
+  d.textContent = s;
+  return d.innerHTML;
+}
+function addChatLine(name, text, isMe) {
+  const div = document.createElement('div');
+  div.className = 'chatLine';
+  div.innerHTML = `<span class="chatName" style="color:${isMe ? '#7ec8ff' : '#ffd54a'}">${escapeHtml(name)}:</span> ${escapeHtml(text)}`;
+  chatLog.appendChild(div);
+  while (chatLog.children.length > 50) chatLog.removeChild(chatLog.firstChild);
+  chatLog.scrollTop = chatLog.scrollHeight;
+}
+// Attaches a temporary floating speech bubble above an entity's head.
+// `target` is anything with a `.group` (myModel or an otherPlayers entry).
+function showChatBubbleOn(target, text) {
+  if (target.bubble) { target.group.remove(target.bubble); target.bubble = null; }
+  if (target.bubbleTimer) clearTimeout(target.bubbleTimer);
+  const sprite = makeChatBubble(text);
+  target.group.add(sprite);
+  target.bubble = sprite;
+  target.bubbleTimer = setTimeout(() => {
+    target.group.remove(sprite);
+    if (target.bubble === sprite) target.bubble = null;
+  }, 5000);
+}
+function openChat() {
+  if (chatOpen || !gameStarted) return;
+  chatOpen = true;
+  chatInputWrap.style.display = 'block';
+  chatInput.value = '';
+  chatInput.focus();
+  if (pointerLocked) document.exitPointerLock();
+}
+function closeChat() {
+  chatOpen = false;
+  chatInputWrap.style.display = 'none';
+  chatInput.blur();
+}
+function sendChatMessage() {
+  const text = chatInput.value.trim().slice(0, 200);
+  closeChat();
+  if (!text) return;
+  addChatLine(MY_NAME, text, true);
+  showChatBubbleOn(myModel, text);
+  playersChannel.send({ type: 'broadcast', event: 'chat', payload: { id: MY_ID, name: MY_NAME, text } });
+}
+chatInput.addEventListener('keydown', e => {
+  e.stopPropagation(); // don't let WASD/etc leak through to game controls while typing
+  if (e.code === 'Enter') sendChatMessage();
+  else if (e.code === 'Escape') closeChat();
+});
+
+const keys = {};
+let lastWTapTime = 0;
+let isSprinting = false;
+document.addEventListener('keydown', e => {
+  if (!gameStarted || chatOpen) return;
+  if (e.code === 'Escape') { document.exitPointerLock(); return; }
+  if (e.code === 'KeyE') { toggleInventory(); return; }
+  if (e.code === 'F5') { thirdPerson = !thirdPerson; myModel.group.visible = thirdPerson; e.preventDefault(); return; }
+  if (e.code === 'KeyF') { startEating(); return; }
+  if (e.code === 'KeyQ') { throwCurrentItem(); return; }
+  if (e.code === 'KeyT') { openChat(); e.preventDefault(); return; }
+  if (e.code === 'KeyW' && !e.repeat) {
+    const now = performance.now();
+    if (now - lastWTapTime < 300) isSprinting = true;
+    lastWTapTime = now;
+  }
+  keys[e.code] = true;
+  const num = parseInt(e.key);
+  if (num >= 1 && num <= HOTBAR_SIZE) selectSlot(num-1);
+});
+document.addEventListener('keyup', e => {
+  keys[e.code] = false;
+  // Sprint stops the moment you let go of forward (or move some other way),
+  // same as vanilla Minecraft — you have to double-tap again to resume it.
+  if (e.code === 'KeyW') isSprinting = false;
+});
+
+let pointerLocked = false;
+const canvas = renderer.domElement;
+const pauseOverlay = document.getElementById('pauseOverlay');
+const startScreen = document.getElementById('startScreen');
+let gameStarted = false;
+
+const nameInput = document.getElementById('nameInput');
+nameInput.value = MY_NAME;
+function startGame() {
+  MY_NAME = (nameInput.value || MY_NAME).trim().slice(0, 16) || MY_NAME;
+  startScreen.style.display = 'none';
+  gameStarted = true;
+  canvas.requestPointerLock();
+  playersChannel.track({ name: MY_NAME });
+}
+document.getElementById('startBtn').addEventListener('click', startGame);
+
+const confirmOverlay = document.getElementById('confirmOverlay');
+document.getElementById('resetBtn').addEventListener('click', () => {
+  confirmOverlay.style.display = 'flex';
+});
+document.getElementById('confirmCancel').addEventListener('click', () => {
+  confirmOverlay.style.display = 'none';
+});
+document.getElementById('confirmDelete').addEventListener('click', () => {
+  try { localStorage.removeItem(SAVE_KEY); } catch(e){}
+  location.reload();
+});
+confirmOverlay.addEventListener('click', e => {
+  if (e.target === confirmOverlay) confirmOverlay.style.display = 'none';
+});
+canvas.addEventListener('click', () => {
+  if (!pointerLocked && gameStarted && !inventoryOpen && !chatOpen) canvas.requestPointerLock();
+});
+document.addEventListener('pointerlockchange', () => {
+  pointerLocked = document.pointerLockElement === canvas;
+  pauseOverlay.style.display = (!pointerLocked && gameStarted && !inventoryOpen && !chatOpen) ? 'flex' : 'none';
+});
+
+document.addEventListener('mousemove', e => {
+  if (!pointerLocked) return;
+  player.yaw -= e.movementX * 0.0022;
+  player.pitch -= e.movementY * 0.0022;
+  player.pitch = Math.max(-Math.PI/2+0.05, Math.min(Math.PI/2-0.05, player.pitch));
+});
+
+// ================= Voxel raycasting for block interaction =================
+// Walking the ray through the voxel grid directly (instead of THREE.Raycaster
+// against thousands of individual meshes) is both simpler and much cheaper now
+// that blocks aren't separate scene objects.
+const RAY_DIST = 7;
+function castVoxelRay(origin, dir, maxDist) {
+  const step = 0.02;
+  let px = Math.round(origin.x), py = Math.round(origin.y), pz = Math.round(origin.z);
+  for (let t = 0; t <= maxDist; t += step) {
+    const x = origin.x + dir.x*t, y = origin.y + dir.y*t, z = origin.z + dir.z*t;
+    const bx = Math.round(x), by = Math.round(y), bz = Math.round(z);
+    const b = world.get(key(bx,by,bz));
+    if (b && b.type !== 'water') return { x:bx, y:by, z:bz, px, py, pz };
+    px = bx; py = by; pz = bz;
+  }
+  return null;
+}
+
+// ================= Mining (hold-to-break) =================
+const mining = { active: false, progress: 0, target: null }; // target: {x,y,z} of block currently being broken
+const mineProgressWrap = document.getElementById('mineProgressWrap');
+const mineProgressBar = document.getElementById('mineProgressBar');
+
+function updateMining(dt) {
+  if (!mining.active || !pointerLocked) {
+    mining.progress = 0;
+    mining.target = null;
+    mineProgressWrap.style.display = 'none';
+    return;
+  }
+  const dir = new THREE.Vector3();
+  camera.getWorldDirection(dir);
+  const hit = castVoxelRay(camera.position, dir, RAY_DIST);
+  if (!hit) {
+    mining.progress = 0;
+    mining.target = null;
+    mineProgressWrap.style.display = 'none';
+    return;
+  }
+  // If the player looked away to a different block, restart progress.
+  if (!mining.target || mining.target.x !== hit.x || mining.target.y !== hit.y || mining.target.z !== hit.z) {
+    mining.target = { x: hit.x, y: hit.y, z: hit.z };
+    mining.progress = 0;
+  }
+  const b = getBlock(hit.x, hit.y, hit.z);
+  if (!b) { mineProgressWrap.style.display = 'none'; return; }
+  const needed = miningTimeFor(b.type);
+  mining.progress += dt;
+  mineProgressWrap.style.display = 'block';
+  mineProgressBar.style.width = Math.min(100, (mining.progress / needed) * 100) + '%';
+
+  if (mining.progress >= needed) {
+    if (removeBlock(hit.x, hit.y, hit.z)) {
+      const def = BLOCK_TYPES[b.type];
+      const held = currentItem();
+      const heldType = held ? held.type : null;
+      let toolKind = null;
+      if (heldType && heldType.endsWith('_pickaxe')) toolKind = 'pickaxe';
+      else if (heldType && heldType.endsWith('_axe')) toolKind = 'axe';
+      else if (heldType && heldType.endsWith('_shovel')) toolKind = 'shovel';
+      // Blocks that require a pickaxe (stone, brick) only drop their item
+      // when actually mined with a pickaxe — matching real Minecraft, where
+      // punching stone by hand (or with the wrong tool) breaks it but drops
+      // nothing.
+      const requiresPickaxe = def && def.tool === 'pickaxe';
+      const canDrop = !requiresPickaxe || toolKind === 'pickaxe';
+      const popPos = new THREE.Vector3(hit.x + 0.5, hit.y + 0.5, hit.z + 0.5);
+      if (canDrop) {
+        if (b.type === 'leaves') {
+          // Leaves don't drop themselves — small chance of a sapling, stick, or apple.
+          const roll = Math.random();
+          if (roll < 0.05) spawnDroppedItem('sapling', 1, popPos);
+          else if (roll < 0.10) spawnDroppedItem('apple', 1, popPos);
+          else if (roll < 0.20) spawnDroppedItem('stick', 1, popPos);
+          // otherwise: nothing drops
+        } else {
+          const drop = b.type === 'grass' ? 'dirt' : b.type;
+          spawnDroppedItem(drop, 1, popPos);
+        }
+      }
+      flushDirtyChunks();
+      renderHotbar();
+      if (inventoryOpen) renderInventoryPanel();
+      pushBlockDiff(hit.x, hit.y, hit.z, 'air'); // tell the server (and everyone else) this block is gone
+    }
+    mining.progress = 0;
+    mining.target = null;
+    mineProgressWrap.style.display = 'none';
+  }
+}
+
+canvas.addEventListener('mouseup', e => {
+  if (e.button === 0) {
+    mining.active = false;
+    mining.progress = 0;
+    mining.target = null;
+    mineProgressWrap.style.display = 'none';
+  } else if (e.button === 2) {
+    if (eating.active) cancelEating();
+    isBlocking = false;
+  }
+});
+document.addEventListener('pointerlockchange', () => {
+  if (!document.pointerLockElement) {
+    mining.active = false;
+    mining.progress = 0;
+    mining.target = null;
+    mineProgressWrap.style.display = 'none';
+    isBlocking = false;
+  }
+});
+
+canvas.addEventListener('mousedown', e => {
+  if (!pointerLocked) return;
+  if (e.button === 0) {
+    if (eating.active) cancelEating();
+    if (attackCooldown <= 0) {
+      const held = currentItem();
+      const dmg = (held && ITEM_INFO[held.type] && ITEM_INFO[held.type].attack) || 2;
+      const playerTarget = findTargetPlayer();
+      if (playerTarget) {
+        playersChannel.send({
+          type: 'broadcast', event: 'hit',
+          payload: { targetId: playerTarget.id, amount: dmg, attackerId: MY_ID }
+        });
+        flashRed(playerTarget.entry.group); // instant local feedback; target also flashes when they apply the hit
+        attackCooldown = 0.4;
+        return; // hitting a player takes priority over mining that click
+      }
+      const target = findTargetAnimal();
+      if (target) {
+        damageAnimal(target, held && isSword(held.type) ? dmg : 3);
+        attackCooldown = 0.4;
+        return; // hitting an animal takes priority over mining that click
+      }
+    }
+    mining.active = true;
+    mining.progress = 0;
+    mining.target = null; // resolved fresh each frame in updateMining()
+  } else if (e.button === 2) {
+    if (startEating()) return; // holding food takes priority over placing a block
+    const heldItem = currentItem();
+    if (heldItem && isSword(heldItem.type)) { isBlocking = true; return; } // hold right-click with a sword to block
+    const dir = new THREE.Vector3();
+    camera.getWorldDirection(dir);
+    const hit = castVoxelRay(camera.position, dir, RAY_DIST);
+    if (!hit) return;
+    const targeted = getBlock(hit.x, hit.y, hit.z);
+    if (targeted && targeted.type === 'crafting_table') {
+      openWorkbench(); // interacting with a functional block takes priority over placing
+      return;
+    }
+    const type = currentBlockType();
+    if (!type) return;
+    const nx = hit.px, ny = hit.py, nz = hit.pz;
+    // Only block placement if the new block's cube would actually overlap
+    // the player's hitbox (a precise AABB test), not just "roughly below
+    // you" — that looser check used to block legit pillaring/bridging
+    // (placing a block right under your feet while jumping).
+    const blockMinX = nx - 0.5, blockMaxX = nx + 0.5;
+    const blockMinY = ny - 0.5, blockMaxY = ny + 0.5;
+    const blockMinZ = nz - 0.5, blockMaxZ = nz + 0.5;
+    const pMinX = player.pos.x - player.radius, pMaxX = player.pos.x + player.radius;
+    const pMinY = player.pos.y, pMaxY = player.pos.y + player.height;
+    const pMinZ = player.pos.z - player.radius, pMaxZ = player.pos.z + player.radius;
+    const overlaps = blockMaxX > pMinX && blockMinX < pMaxX &&
+                      blockMaxY > pMinY && blockMinY < pMaxY &&
+                      blockMaxZ > pMinZ && blockMinZ < pMaxZ;
+    if (!overlaps) {
+      if (addBlock(nx, ny, nz, type)) {
+        removeFromCurrentSlot(1);
+        flushDirtyChunks();
+        renderHotbar();
+        if (inventoryOpen) renderInventoryPanel();
+        pushBlockDiff(nx, ny, nz, type); // tell the server (and everyone else) about the new block
+      }
+    }
+  }
+});
+canvas.addEventListener('contextmenu', e => e.preventDefault());
+
+// ================= Init world =================
+generateWorld(); // same base terrain in every browser (seeded)
+spawnAnimals(10);
+const hadLocalPos = loadLocalPlayer(); // this player's own position/inventory, if any
+if (!hadLocalPos) {
+  const startH = noise2D(0,0);
+  player.pos.set(0.5, Math.max(startH, WATER_LEVEL) + 3, 0.5);
+}
+renderHotbar();
+updateHpUI();
+
+const connText = document.getElementById('connText');
+const connDot = document.getElementById('connDot');
+const loadBarFill = document.getElementById('loadBarFill');
+const startBtn = document.getElementById('startBtn');
+
+function setLoadProgress(pct, label) {
+  loadBarFill.style.width = Math.max(0, Math.min(100, pct)) + '%';
+  if (label) connText.textContent = label;
+}
+
+setLoadProgress(10, 'Connecting to server…');
+(async () => {
+  try {
+    setLoadProgress(30, 'Loading shared world…');
+    await loadWorldDiffs();       // pull every change anyone has ever made
+    setLoadProgress(60, 'Syncing live changes…');
+    subscribeWorldChanges();      // then start listening live for new ones
+    markAllChunksFromWorld();
+    flushDirtyChunks();
+    setLoadProgress(85, 'Placing you in the world…');
+    unstickPlayerIfFloating();    // fix stale saved Y that no longer matches real terrain
+    playersChannel.subscribe(status => {
+      if (status === 'SUBSCRIBED') {
+        setLoadProgress(100, 'Connected to shared world ✔');
+        connDot.classList.add('ready');
+        startBtn.disabled = false;
+      }
+    });
+  } catch (err) {
+    console.error(err);
+    connText.textContent = 'Could not reach the server — check your connection and reload.';
+    connDot.style.background = '#ff6b6b';
+    connDot.style.boxShadow = '0 0 8px #ff6b6b';
+    connDot.style.animation = 'none';
+  }
+})();
+
+let saveTimer = 0;
+
+// ================= Main loop =================
+let lastTime = performance.now();
+let frameCount = 0, fpsTimer = 0;
+
+function animate() {
+  requestAnimationFrame(animate);
+  const now = performance.now();
+  let dt = (now - lastTime) / 1000;
+  dt = Math.min(dt, 0.05);
+  lastTime = now;
+
+  frameCount++;
+  fpsTimer += dt;
+  if (fpsTimer >= 0.5) {
+    document.getElementById('fps').textContent = 'FPS: ' + Math.round(frameCount/fpsTimer);
+    frameCount = 0; fpsTimer = 0;
+  }
+
+  updateDayNight(dt);
+  updateMining(dt);
+  updateEating(dt);
+  if (isBlocking) {
+    const held = currentItem();
+    if (!held || !isSword(held.type)) isBlocking = false; // item switched away mid-block
+  }
+  updateAnimals(dt);
+  updateDroppedItems(dt);
+  if (attackCooldown > 0) attackCooldown -= dt;
+
+  let isMoving = false;
+  const inWater = isInWater(player.pos);
+  // Sprint (from double-tapping W, or holding Shift as a fallback) only
+  // applies while actually holding forward and not also backpedaling —
+  // matches vanilla Minecraft, where sprint cancels out of those states.
+  // Only reads keys while pointer-locked, so opening chat/inventory can't
+  // leave a stuck sprint/move key active.
+  const sprinting = pointerLocked && (isSprinting || keys['ShiftLeft']) && keys['KeyW'] && !keys['KeyS'];
+  const baseSpeed = sprinting ? 8 : 5;
+  let speed = inWater ? baseSpeed*0.5 : baseSpeed;
+  if (isBlocking) speed *= 0.35; // raising a sword to block plants your feet, like a shield
+
+  if (pointerLocked) {
+    const forward = new THREE.Vector3(-Math.sin(player.yaw), 0, -Math.cos(player.yaw));
+    const right = new THREE.Vector3(Math.cos(player.yaw), 0, -Math.sin(player.yaw));
+
+    let move = new THREE.Vector3();
+    if (keys['KeyW']) move.add(forward);
+    if (keys['KeyS']) move.sub(forward);
+    if (keys['KeyD']) move.add(right);
+    if (keys['KeyA']) move.sub(right);
+    isMoving = move.lengthSq() > 0;
+    if (isMoving) move.normalize().multiplyScalar(speed);
+
+    player.vel.x = move.x;
+    player.vel.z = move.z;
+  } else {
+    // Menu/chat open: no movement input, but don't leave stale velocity
+    // sliding the player around while they can't see/control it.
+    player.vel.x = 0;
+    player.vel.z = 0;
+  }
+
+  // Gravity, swimming, and jumping always run — this is what previously
+  // only happened while pointer-locked, which made the player float in
+  // place (ignoring gravity) whenever chat or the inventory was open.
+  if (inWater) {
+    player.vel.y -= 6*dt;
+    if (pointerLocked && keys['Space']) player.vel.y = 4;
+    player.vel.y = Math.max(player.vel.y, -3);
+  } else {
+    player.vel.y -= 20*dt;
+    if (player.onGround && pointerLocked && keys['Space']) {
+      player.vel.y = 8;
+      player.onGround = false;
+    }
+  }
+
+  const wasOnGround = player.onGround;
+  const preFallVel = player.vel.y;
+  collideAndMove(player.pos, player.vel, dt);
+
+  // Fall damage: only triggers on a hard landing (fast downward speed
+  // right before impact), not on normal jumps or gentle steps.
+  if (!wasOnGround && player.onGround && preFallVel < -13) {
+    const dmg = Math.floor((-preFallVel - 13) * 0.7);
+    if (dmg > 0) damagePlayer(dmg);
+  }
+
+  if (player.pos.y < -30) {
+    const h = noise2D(0,0);
+    player.pos.set(0.5, Math.max(h, WATER_LEVEL) + 5, 0.5);
+    player.vel.set(0,0,0);
+  }
+
+  saveTimer += dt;
+  if (saveTimer > 5) { saveLocalPlayer(); saveTimer = 0; }
+
+  if (pointerLocked) {
+    // Widen FOV slightly while sprinting for speed feedback, ease back otherwise.
+    const targetFov = sprinting ? 82 : 75;
+    camera.fov += (targetFov - camera.fov) * Math.min(1, dt * 8);
+    camera.updateProjectionMatrix();
+  }
+  broadcastMyPosition(dt);
+
+  updateOtherPlayerVisuals(dt);
+  updateMyModel(dt, isMoving);
+
+  if (thirdPerson) {
+    // Orbit camera behind and slightly above the player's head, pulled in
+    // if a wall/block is in the way so it doesn't clip through terrain.
+    const dir = new THREE.Vector3(-Math.sin(player.yaw)*Math.cos(player.pitch), -Math.sin(player.pitch), -Math.cos(player.yaw)*Math.cos(player.pitch));
+    const desiredDist = 4.5;
+    const eye = new THREE.Vector3(player.pos.x, player.pos.y + player.height*0.9, player.pos.z);
+    let dist = desiredDist;
+    const steps = 20;
+    for (let i = 1; i <= steps; i++) {
+      const t = (desiredDist * i) / steps;
+      const px = eye.x - dir.x*t, py = eye.y - dir.y*t, pz = eye.z - dir.z*t;
+      if (solidAt(px, py, pz)) { dist = Math.max(0.5, t - desiredDist/steps); break; }
+    }
+    camera.position.set(eye.x - dir.x*dist, eye.y - dir.y*dist, eye.z - dir.z*dist);
+    camera.rotation.order = 'YXZ';
+    camera.rotation.y = player.yaw;
+    camera.rotation.x = player.pitch;
+    camera.rotation.z = 0;
+  } else {
+    camera.position.set(player.pos.x, player.pos.y + player.height, player.pos.z);
+    camera.rotation.order = 'YXZ';
+    camera.rotation.y = player.yaw;
+    camera.rotation.x = player.pitch;
+    // Subtle first-person feedback for swinging/eating, since there's no
+    // visible hand model in first-person — a gentle camera roll fakes it.
+    if (mining.active) camera.rotation.z = Math.sin(mineSwingCycle) * 0.02;
+    else if (eating.active) camera.rotation.z = Math.sin(eating.progress * 16) * 0.008;
+    else camera.rotation.z = 0;
+  }
+
+  renderer.render(scene, camera);
+}
+
+window.addEventListener('beforeunload', saveLocalPlayer);
+
+animate();
+</script>
+</body>
+</html>
