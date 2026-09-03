@@ -178,9 +178,57 @@
   #confirmCancel:hover { background: rgba(255,255,255,0.18); }
   #confirmDelete { background: #d9534f; color: #fff; }
   #confirmDelete:hover { background: #e8635e; }
-  #fps { position: fixed; top: 12px; right: 12px; color: white; z-index: 10; text-shadow: 1px 1px 2px black; font-size: 12px; text-align: right; }
+  #fps { position: fixed; top: 50px; right: 12px; color: white; z-index: 10; text-shadow: 1px 1px 2px black; font-size: 12px; text-align: right; }
+  #coordsDisplay {
+    position: fixed; top: 86px; right: 12px; color: white; z-index: 10;
+    text-shadow: 1px 1px 2px black; font-size: 12px; text-align: right; display: none;
+  }
+
+  #settingsBtn {
+    position: fixed; top: 12px; right: 12px; z-index: 55; width: 30px; height: 30px;
+    border-radius: 6px; border: 1px solid rgba(255,255,255,0.5); background: rgba(0,0,0,0.4);
+    color: #fff; font-size: 15px; cursor: pointer; display: flex; align-items: center; justify-content: center;
+  }
+  #settingsBtn:hover { background: rgba(0,0,0,0.6); }
+
+  #settingsOverlay {
+    position: fixed; inset: 0; z-index: 90; display: none;
+    background: rgba(0,0,0,0.55); color: white; align-items: center; justify-content: center;
+  }
+  #settingsBox {
+    background: #1b2338; border: 1px solid rgba(255,255,255,0.18); border-radius: 14px;
+    padding: 24px 26px; max-width: 380px; width: 88%; max-height: 80vh; overflow-y: auto;
+    box-shadow: 0 20px 50px rgba(0,0,0,0.5); animation: menuIn 0.2s ease-out; text-align: left;
+  }
+  #settingsBox h3 { margin: 0 0 14px; font-size: 18px; text-align: center; }
+  #settingsBox h4 { margin: 18px 0 8px; font-size: 12.5px; letter-spacing: 1px; text-transform: uppercase; opacity: 0.6; }
+  .settingRow {
+    display: flex; align-items: center; justify-content: space-between;
+    background: rgba(255,255,255,0.06); padding: 9px 12px; border-radius: 8px; font-size: 13.5px;
+  }
+  .settingRow input[type=checkbox] { width: 17px; height: 17px; cursor: pointer; }
+  .settingRow { margin-bottom: 6px; }
+  .settingRow select {
+    background: rgba(255,255,255,0.1); color: #fff; border: 1px solid rgba(255,255,255,0.25);
+    border-radius: 5px; padding: 3px 6px; font-size: 12.5px; cursor: pointer;
+  }
+  .settingRow input[type=range] { width: 110px; vertical-align: middle; accent-color: #7ec8ff; }
+  .settingRow input[type=checkbox]:disabled { opacity: 0.4; cursor: not-allowed; }
+  .keybindRow {
+    display: flex; align-items: center; justify-content: space-between;
+    padding: 5px 4px; font-size: 12.5px; border-bottom: 1px solid rgba(255,255,255,0.07);
+  }
+  .keybindRow .keyLabel {
+    background: rgba(255,255,255,0.12); border: 1px solid rgba(255,255,255,0.25);
+    border-radius: 4px; padding: 2px 7px; font-size: 11.5px; font-family: monospace;
+  }
+  #settingsCloseBtn {
+    margin-top: 18px; width: 100%; padding: 10px; border-radius: 8px; border: none;
+    background: rgba(255,255,255,0.12); color: #fff; font-weight: 700; font-size: 13px; cursor: pointer;
+  }
+  #settingsCloseBtn:hover { background: rgba(255,255,255,0.2); }
   #pauseOverlay {
-    position: fixed; inset:0; z-index: 50; display:none;
+    position: fixed; inset:0; z-index: 50; display:none; cursor: pointer;
     background: rgba(0,0,0,0.45); color:white; align-items:center; justify-content:center;
     flex-direction: column; text-align:center;
   }
@@ -240,6 +288,22 @@
   #furnaceMainGrid { display: grid; grid-template-columns: repeat(9, 52px); gap: 5px; margin-bottom: 12px; }
   #furnaceHotbarGrid { display: grid; grid-template-columns: repeat(9, 52px); gap: 5px; margin-top: 6px; padding-top: 10px; border-top: 2px solid rgba(255,255,255,0.25); }
   #furnaceHint { font-size: 12px; opacity: 0.8; margin-top: 6px; max-width: 480px; }
+
+  /* ===== Chest panel ===== */
+  #chestPanel {
+    position: fixed; inset: 0; z-index: 60; display: none;
+    background: rgba(0,0,0,0.6); color: white; align-items: center; justify-content: center;
+    flex-direction: column; text-align: center;
+  }
+  #chestPanel h2 { text-shadow: 2px 2px 0 rgba(0,0,0,0.5); margin: 4px 0; font-size: 16px; }
+  #chestPanelBox {
+    background: rgba(40,32,24,0.92); border: 3px solid rgba(255,255,255,0.4); border-radius: 10px;
+    padding: 16px 20px; display: flex; flex-direction: column; align-items: center; gap: 4px;
+  }
+  #chestGrid { display: grid; grid-template-columns: repeat(9, 52px); gap: 5px; margin-bottom: 14px; }
+  #chestMainGrid { display: grid; grid-template-columns: repeat(9, 52px); gap: 5px; margin-bottom: 12px; }
+  #chestHotbarGrid { display: grid; grid-template-columns: repeat(9, 52px); gap: 5px; margin-top: 6px; padding-top: 10px; border-top: 2px solid rgba(255,255,255,0.25); }
+  #chestHint { font-size: 12px; opacity: 0.8; margin-top: 6px; max-width: 480px; }
 </style>
 </head>
 <body>
@@ -304,7 +368,18 @@
     </div>
     <div id="furnaceMainGrid"></div>
     <div id="furnaceHotbarGrid"></div>
-    <p id="furnaceHint">Put fuel (coal, wood, planks, sticks) below, ore/food above · smelts sand → glass, raw meat → cooked meat · Press E to close</p>
+    <p id="furnaceHint">Put fuel (coal, wood, planks, sticks) below, ore/food above · smelts sand → glass, raw meat → cooked meat, iron ore → iron ingot · Press E to close</p>
+  </div>
+</div>
+
+<div id="chestPanel">
+  <div id="chestPanelBox">
+    <h2>Chest</h2>
+    <div id="chestGrid"></div>
+    <h2>Inventory</h2>
+    <div id="chestMainGrid"></div>
+    <div id="chestHotbarGrid"></div>
+    <p id="chestHint">Left-click: pick up / place stack · Right-click: pick up half / place one · Press E to close</p>
   </div>
 </div>
 
@@ -315,9 +390,46 @@
 <div id="chatLog"></div>
 <div id="chatInputWrap"><input id="chatInput" type="text" maxlength="200" placeholder="Say something... (Enter to send, Esc to cancel)"></div>
 <div id="damageFlash"></div>
-<div id="hud">Mine blocks to collect materials · place them from your inventory.<br>Press <b>E</b> for inventory · <b>F5</b> for third-person · <b>F</b> to eat food · <b>Q</b> to throw item · <b>T</b> to chat. Right-click a crafting table or furnace to use it. World auto-saves as you play.</div>
+<div id="hud">Mine blocks to collect materials · place them from your inventory.<br>Press <b>E</b> for inventory · <b>F5</b> for third-person · <b>F</b> to eat food · <b>Q</b> to throw item · <b>T</b> to chat. Right-click a crafting table/furnace/chest to use it, or a bed to set your respawn point. World auto-saves as you play.</div>
 <div id="fps">FPS: --<br><span id="playerCount">Players online: 1</span></div>
+<div id="coordsDisplay">XYZ: 0, 0, 0</div>
+<button id="settingsBtn" title="Settings">⚙️</button>
 <div id="hotbar"></div>
+
+<div id="settingsOverlay">
+  <div id="settingsBox">
+    <h3>⚙️ Settings</h3>
+    <h4>Gameplay</h4>
+    <label class="settingRow" for="coordsToggle">
+      Show coordinates
+      <input type="checkbox" id="coordsToggle">
+    </label>
+    <h4>Graphics</h4>
+    <div class="settingRow">
+      <label for="renderDistanceSlider">Render distance</label>
+      <span><input type="range" id="renderDistanceSlider" min="3" max="12" step="1"> <span id="renderDistanceValue">6</span></span>
+    </div>
+    <label class="settingRow" for="qualitySelect">
+      Quality
+      <select id="qualitySelect">
+        <option value="low">Low</option>
+        <option value="medium">Medium</option>
+        <option value="high">High</option>
+      </select>
+    </label>
+    <label class="settingRow" for="shadowsToggle">
+      Shadows
+      <input type="checkbox" id="shadowsToggle">
+    </label>
+    <label class="settingRow" for="torchShadowsToggle">
+      Torch shadows
+      <input type="checkbox" id="torchShadowsToggle">
+    </label>
+    <h4>Keybinds</h4>
+    <div id="keybindList"></div>
+    <button id="settingsCloseBtn">Close</button>
+  </div>
+</div>
 
 <script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script>
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2/dist/umd/supabase.js"></script>
@@ -348,7 +460,17 @@ camera.add(viewModelGroup);
 scene.add(camera);
 const viewModelState = { heldType: undefined, heldMesh: null };
 const renderer = new THREE.WebGLRenderer({ antialias: true, powerPreference: 'high-performance' });
+// Cap devicePixelRatio: on a 2x/3x retina/high-DPI screen an uncapped ratio
+// means the GPU shades 4x-9x the fragments for a barely-visible sharpness
+// gain — this is one of the biggest single levers on frame time.
+renderer.setPixelRatio(Math.min(window.devicePixelRatio || 1, 1.5));
 renderer.setSize(window.innerWidth, window.innerHeight);
+// Real shadow mapping so overhangs, cave roofs, and anything blocking the
+// sun actually goes dark — like Minecraft's "only lit if it can see sky
+// or a light block" rule — instead of every surface getting the same flat
+// ambient/sun light regardless of what's above it.
+renderer.shadowMap.enabled = true;
+renderer.shadowMap.type = THREE.PCFSoftShadowMap;
 document.body.appendChild(renderer.domElement);
 
 window.addEventListener('resize', () => {
@@ -367,7 +489,21 @@ const ambient = new THREE.AmbientLight(0xffffff, 0.55);
 scene.add(ambient);
 const sun = new THREE.DirectionalLight(0xffffff, 0.9);
 sun.position.set(50, 80, 30);
+sun.castShadow = true;
+sun.shadow.mapSize.set(2048, 2048);
+sun.shadow.camera.near = 1;
+sun.shadow.camera.far = 220;
+sun.shadow.camera.left = -70;
+sun.shadow.camera.right = 70;
+sun.shadow.camera.top = 70;
+sun.shadow.camera.bottom = -70;
+sun.shadow.bias = -0.0015;
+sun.shadow.normalBias = 0.4;
 scene.add(sun);
+// The shadow camera aims at this target, which we re-center on the player
+// every frame (see animate()) so shadow resolution stays sharp near the
+// player instead of spreading over the whole world from a fixed origin.
+scene.add(sun.target);
 const hemi = new THREE.HemisphereLight(0xbfe3ff, 0x554433, 0.35);
 scene.add(hemi);
 
@@ -401,6 +537,11 @@ const TEX = {
   }),
   dirt:  makeTexture(ctx => speckle(ctx, '#8b5a2b', ['#7a4d24','#96622f','#6f4420'], 40)),
   stone: makeTexture(ctx => speckle(ctx, '#8a8a8a', ['#7d7d7d','#959595','#6f6f6f'], 40)),
+  iron_ore: makeTexture(ctx => {
+    speckle(ctx, '#8a8a8a', ['#7d7d7d','#959595','#6f6f6f'], 40);
+    const spots = [[3,3],[9,4],[5,8],[11,10],[7,12]];
+    spots.forEach(([x,y]) => { ctx.fillStyle = '#d8ac7c'; ctx.fillRect(x,y,2,2); });
+  }),
   wood:  makeTexture(ctx => {
     ctx.fillStyle = '#8a5a2b'; ctx.fillRect(0,0,16,16);
     ctx.strokeStyle = '#6f4420';
@@ -468,6 +609,29 @@ const TEX = {
     ctx.fillStyle = '#2b2b2b'; ctx.fillRect(4,5,8,7);
     ctx.fillStyle = '#ff9a3c'; ctx.fillRect(5,10,6,1);
   }),
+  chest: makeTexture(ctx => {
+    ctx.fillStyle = '#8a5a2b'; ctx.fillRect(0,0,16,16);
+    ctx.strokeStyle = '#5a3417'; ctx.lineWidth = 1; ctx.strokeRect(0,0,16,16);
+    ctx.fillStyle = '#6f4420'; ctx.fillRect(0,6,16,3); // hinge/seam band
+    ctx.fillStyle = '#d8ac7c'; ctx.fillRect(7,7,2,4); // latch
+  }),
+  chestTop: makeTexture(ctx => {
+    ctx.fillStyle = '#96622f'; ctx.fillRect(0,0,16,16);
+    ctx.strokeStyle = '#5a3417'; ctx.lineWidth = 1;
+    ctx.strokeRect(0,0,16,16); ctx.strokeRect(2,2,12,12);
+    ctx.fillStyle = '#d8ac7c'; ctx.fillRect(7,1,2,2); // latch peeking over the top edge
+  }),
+  bedTop: makeTexture(ctx => {
+    ctx.fillStyle = '#d84f4f'; ctx.fillRect(0,0,16,16); // blanket
+    ctx.fillStyle = '#f2f2f2'; ctx.fillRect(0,0,16,4);  // pillow
+    ctx.strokeStyle = '#b83a3a'; ctx.lineWidth = 1; ctx.strokeRect(0,4,16,12);
+    ctx.strokeStyle = '#d9d9d9'; ctx.strokeRect(0,0,16,4);
+  }),
+  bedSide: makeTexture(ctx => {
+    ctx.fillStyle = '#d84f4f'; ctx.fillRect(0,0,16,16);
+    ctx.fillStyle = '#f2f2f2'; ctx.fillRect(0,0,16,3);
+    ctx.strokeStyle = '#b83a3a'; ctx.lineWidth = 1; ctx.strokeRect(0,0,16,16);
+  }),
 };
 
 // ================= Block types =================
@@ -483,10 +647,13 @@ const BLOCK_TYPES = {
   glass:  { icon: '⬛', transparent: true, hardness: 0.3, tool: null },
   water:  { icon: '💧', transparent: true, hardness: 0 },
   crafting_table: { icon: '🛠️', transparent: false, hardness: 1.0, tool: 'axe' },
-  sapling: { icon: '🌱', transparent: true, hardness: 0.1, tool: null },
+  sapling: { icon: '🌱', transparent: true, hardness: 0.1, tool: null, cross: true },
   coal_ore: { icon: '⚫', transparent: false, hardness: 1.5, tool: 'pickaxe' },
-  torch: { icon: '🕯️', transparent: true, hardness: 0.1, tool: null },
+  iron_ore: { icon: '🟤', transparent: false, hardness: 2.5, tool: 'pickaxe' },
+  torch: { icon: '🕯️', transparent: true, hardness: 0.1, tool: null, cross: true },
   furnace: { icon: '🔥', transparent: false, hardness: 1.75, tool: 'pickaxe' },
+  chest: { icon: '📦', transparent: false, hardness: 1.0, tool: 'axe' },
+  bed:   { icon: '🛏️', transparent: false, hardness: 0.3, tool: null },
 };
 // Non-block items: sticks, tools, and food. Tools don't stack (max 1 per slot).
 const ITEM_INFO = {
@@ -499,13 +666,34 @@ const ITEM_INFO = {
   stone_shovel:   { icon: '🥄', maxStack: 1 },
   wood_sword:     { icon: '🗡️', maxStack: 1, attack: 4 },
   stone_sword:    { icon: '🗡️', maxStack: 1, attack: 6 },
+  iron_pickaxe:   { icon: '⛏️', maxStack: 1 },
+  iron_axe:       { icon: '🪓', maxStack: 1 },
+  iron_shovel:    { icon: '🥄', maxStack: 1 },
+  iron_sword:     { icon: '🗡️', maxStack: 1, attack: 8 },
+  iron_ingot:     { icon: '⬜' },
+  iron_helmet:     { icon: '🪖', maxStack: 1, armor: 2 },
+  iron_chestplate: { icon: '🎽', maxStack: 1, armor: 4 },
+  iron_leggings:   { icon: '👖', maxStack: 1, armor: 3 },
+  iron_boots:      { icon: '🥾', maxStack: 1, armor: 1 },
   raw_meat:       { icon: '🥩', food: 3 },
   apple:          { icon: '🍎', food: 2 },
   sapling:        { icon: '🌱' },
   coal:           { icon: '⚫' },
   cooked_meat:    { icon: '🍗', food: 6 },
 };
-function isSword(type) { return type === 'wood_sword' || type === 'stone_sword'; }
+const ARMOR_TYPES = ['iron_helmet', 'iron_chestplate', 'iron_leggings', 'iron_boots'];
+function isArmor(type) { return !!(ITEM_INFO[type] && ITEM_INFO[type].armor); }
+// Total damage reduction from equipped armor: any iron armor pieces the
+// player is carrying in their inventory count as "worn" (simplified —
+// no separate armor slots), each reducing incoming damage by its value.
+function totalArmorReduction() {
+  let total = 0;
+  for (const s of inventory) {
+    if (s && isArmor(s.type)) total += ITEM_INFO[s.type].armor;
+  }
+  return Math.min(0.8, total * 0.04); // each armor point ~4% reduction, capped at 80%
+}
+function isSword(type) { return type === 'wood_sword' || type === 'stone_sword' || type === 'iron_sword'; }
 function isFood(type) { return !!(ITEM_INFO[type] && ITEM_INFO[type].food); }
 function iconFor(type) { return (BLOCK_TYPES[type] || ITEM_INFO[type]).icon; }
 function maxStackFor(type) {
@@ -533,11 +721,17 @@ function miningTimeFor(blockType) {
 
   let speedMult = 1; // bare hands
   if (toolKind && toolMatches(toolKind, def.tool)) {
-    // stone tools are a bit faster than wood tools
-    const tier = heldType.startsWith('stone_') ? 4 : 2.5;
+    // stone/iron tools are progressively faster than wood tools
+    let tier = 2.5;
+    if (heldType.startsWith('stone_')) tier = 4;
+    else if (heldType.startsWith('iron_')) tier = 6;
     speedMult = tier;
   } else if (toolKind) {
     speedMult = 1; // wrong tool, no bonus (same as hand)
+  } else if (def.tool === 'pickaxe') {
+    // bare hands are especially bad at breaking pickaxe-tier blocks
+    // (stone, ores, brick, furnace) — much slower than with any pickaxe.
+    speedMult = 0.35;
   }
   return def.hardness / speedMult;
 }
@@ -565,9 +759,22 @@ const RECIPES = [
 
   { shape: [['coal'],['stick']], out: 'torch', outCount: 4, needsTable: false },
   { shape: [['stone','stone','stone'],['stone',null,'stone'],['stone','stone','stone']], out: 'furnace', outCount: 1, needsTable: true },
+  { shape: [['planks','planks','planks'],['planks',null,'planks'],['planks','planks','planks']], out: 'chest', outCount: 1, needsTable: true },
+  // No wool block in Voltex, so leaves stand in for the blanket row.
+  { shape: [['leaves','leaves','leaves'],['planks','planks','planks']], out: 'bed', outCount: 1, needsTable: true },
 
   { shape: [['planks'],['planks'],['stick']], out: 'wood_sword', outCount: 1, needsTable: true },
   { shape: [['stone'],['stone'],['stick']], out: 'stone_sword', outCount: 1, needsTable: true },
+
+  { shape: [['iron_ingot','iron_ingot','iron_ingot'],[null,'stick',null],[null,'stick',null]], out: 'iron_pickaxe', outCount: 1, needsTable: true },
+  { shape: [['iron_ingot','iron_ingot'],['iron_ingot','stick'],[null,'stick']], out: 'iron_axe', outCount: 1, needsTable: true },
+  { shape: [['iron_ingot'],['stick'],['stick']], out: 'iron_shovel', outCount: 1, needsTable: true },
+  { shape: [['iron_ingot'],['iron_ingot'],['stick']], out: 'iron_sword', outCount: 1, needsTable: true },
+
+  { shape: [['iron_ingot','iron_ingot','iron_ingot'],['iron_ingot',null,'iron_ingot']], out: 'iron_helmet', outCount: 1, needsTable: true },
+  { shape: [['iron_ingot',null,'iron_ingot'],['iron_ingot','iron_ingot','iron_ingot'],['iron_ingot','iron_ingot','iron_ingot']], out: 'iron_chestplate', outCount: 1, needsTable: true },
+  { shape: [['iron_ingot','iron_ingot','iron_ingot'],['iron_ingot',null,'iron_ingot'],['iron_ingot',null,'iron_ingot']], out: 'iron_leggings', outCount: 1, needsTable: true },
+  { shape: [['iron_ingot',null,'iron_ingot'],['iron_ingot',null,'iron_ingot']], out: 'iron_boots', outCount: 1, needsTable: true },
 ];
 // Trim a sparse w x h grid (row-major array of type|null) down to the
 // bounding box of its non-null cells. Returns {rows, w, h} or null if empty.
@@ -614,7 +821,8 @@ function matchRecipe(gridSlots, w, h, atTable) {
 const MAT_LIST = [];
 function regMat(tex, transparent) {
   const m = new THREE.MeshLambertMaterial({
-    map: tex, transparent: !!transparent, opacity: transparent ? 0.75 : 1, side: THREE.FrontSide
+    map: tex, transparent: !!transparent, opacity: transparent ? 0.75 : 1, side: THREE.FrontSide,
+    vertexColors: true
   });
   MAT_LIST.push(m);
   return MAT_LIST.length - 1;
@@ -624,6 +832,7 @@ const MI = {
   grassTop:  regMat(TEX.grassTop),
   dirt:      regMat(TEX.dirt),
   stone:     regMat(TEX.stone),
+  iron_ore:  regMat(TEX.iron_ore),
   wood:      regMat(TEX.wood),
   woodTop:   regMat(TEX.woodTop),
   leaves:    regMat(TEX.leaves),
@@ -637,17 +846,38 @@ const MI = {
   coal_ore:  regMat(TEX.coalOre),
   torch:     regMat(TEX.torch, true),
   furnace:   regMat(TEX.furnace),
+  chest:     regMat(TEX.chest),
+  chestTop:  regMat(TEX.chestTop),
+  bedTop:    regMat(TEX.bedTop),
+  bedSide:   regMat(TEX.bedSide),
 };
 // Torches glow on their own regardless of ambient/sun lighting, like a
 // Minecraft light-emitting block.
 MAT_LIST[MI.torch].emissive = new THREE.Color(0xff9a3c);
 MAT_LIST[MI.torch].emissiveIntensity = 0.9;
+// Torch and sapling are cross-shaped sprites (two crossed 2D quads, like a
+// Minecraft flower/sapling), not solid cubes — see addCrossQuads. That
+// needs the material double-sided (so both faces of each thin quad are
+// visible) and an alpha cutout instead of a flat opacity blend (a uniform
+// opacity would make the whole quad look translucent and, worse, blend
+// unpredictably where the two crossed quads overlap; alphaTest just
+// discards the transparent pixels around the icon and draws the rest
+// normally, so overlapping quads sort and shade correctly).
+[MI.torch, MI.sapling].forEach(mi => {
+  const m = MAT_LIST[mi];
+  m.side = THREE.DoubleSide;
+  m.transparent = false;
+  m.opacity = 1;
+  m.alphaTest = 0.5;
+});
 function faceMatIndex(type, faceIdx) {
   // faceIdx: 0=+x,1=-x,2=+y,3=-y,4=+z,5=-z
   switch (type) {
     case 'grass': return faceIdx===2 ? MI.grassTop : (faceIdx===3 ? MI.dirt : MI.grassSide);
     case 'wood':  return (faceIdx===2 || faceIdx===3) ? MI.woodTop : MI.wood;
     case 'crafting_table': return (faceIdx===2 || faceIdx===3) ? MI.craftTop : MI.planks;
+    case 'chest': return (faceIdx===2 || faceIdx===3) ? MI.chestTop : MI.chest;
+    case 'bed':   return (faceIdx===2 || faceIdx===3) ? MI.bedTop : MI.bedSide;
     default: return MI[type];
   }
 }
@@ -701,19 +931,132 @@ function markChunkDirty(x,z){
   if (lz===0) markOne(cx,cz-1);
   if (lz===CHUNK_SIZE-1) markOne(cx,cz+1);
 }
-function addFace(buffers, mi, x,y,z, faceIdx) {
+// ---------- Lighting (Minecraft-style 0-15 light levels) ----------
+// Each block gets a light LEVEL (0-15, like Minecraft), not just a binary
+// lit/dark flag: skylight fades gradually the deeper a block sits under
+// cover, block light fades gradually with distance from a torch, and the
+// two are combined by taking whichever is brighter — so light tapers off
+// step by step ("darker and darker") instead of snapping straight to full
+// dark the instant something is overhead.
+const LIGHT_FLOOR = 0.045;          // absolute safety floor on the final 0-1 shade value
+const MIN_LIGHT_LEVEL = 3;          // a block's light LEVEL (0-15) is never allowed below this —
+                                     // so "no sky, no torch" reads as dim, not pure black (fixes
+                                     // ground under thick tree canopy going full black)
+const SKY_FALLOFF_PER_BLOCK = 3;    // levels lost per block of depth under cover
+const SKY_BLEED_PENALTY = 2;        // levels lost bleeding in sideways from an open neighbor column
+const TORCH_LIGHT_LEVEL = 11;       // how bright a light-emitting block's light level is (0-15)
+const TORCH_LIGHT_RADIUS = TORCH_LIGHT_LEVEL - 1;
+function addFace(buffers, mi, x,y,z, faceIdx, shade) {
   const f = FACES[faceIdx];
   let buf = buffers[mi];
-  if (!buf) buf = buffers[mi] = { pos:[], norm:[], uv:[], idx:[], count:0 };
+  if (!buf) buf = buffers[mi] = { pos:[], norm:[], uv:[], col:[], idx:[], count:0 };
   const start = buf.count;
   for (let i=0;i<4;i++){
     const c = f.corners[i];
     buf.pos.push(x+c[0], y+c[1], z+c[2]);
     buf.norm.push(f.normal[0], f.normal[1], f.normal[2]);
+    buf.col.push(shade, shade, shade);
   }
   for (let i=0;i<4;i++) buf.uv.push(f.uvs[i][0], f.uvs[i][1]);
   buf.idx.push(start,start+1,start+2, start,start+2,start+3);
   buf.count += 4;
+}
+// Two quads crossed through the block's center — one facing 0°, one facing
+// 90° — for cross-model blocks (torch, sapling), matching how Minecraft
+// renders flowers/saplings/torches as flat 2D sprites instead of solid
+// cubes. Both are double-sided (see the material setup above) so they're
+// visible from every angle, and there's no per-neighbor face culling here
+// since a sprite always draws in full regardless of what's next to it.
+const CROSS_QUADS = [
+  // Facing 0° — a plane spanning the X axis, normal along +Z.
+  { corners:[[-0.5,-0.5,0],[0.5,-0.5,0],[0.5,0.5,0],[-0.5,0.5,0]], normal:[0,0,1] },
+  // Facing 90° — a plane spanning the Z axis, normal along +X.
+  { corners:[[0,-0.5,-0.5],[0,-0.5,0.5],[0,0.5,0.5],[0,0.5,-0.5]], normal:[1,0,0] },
+];
+const CROSS_UVS = [[0,0],[1,0],[1,1],[0,1]];
+function addCrossQuads(buffers, mi, x, y, z, shade) {
+  let buf = buffers[mi];
+  if (!buf) buf = buffers[mi] = { pos:[], norm:[], uv:[], col:[], idx:[], count:0 };
+  for (const quad of CROSS_QUADS) {
+    const start = buf.count;
+    for (let i=0;i<4;i++){
+      const c = quad.corners[i];
+      buf.pos.push(x+c[0], y+c[1], z+c[2]);
+      buf.norm.push(quad.normal[0], quad.normal[1], quad.normal[2]);
+      buf.col.push(shade, shade, shade);
+    }
+    for (let i=0;i<4;i++) buf.uv.push(CROSS_UVS[i][0], CROSS_UVS[i][1]);
+    buf.idx.push(start,start+1,start+2, start,start+2,start+3);
+    buf.count += 4;
+  }
+}
+// Torch-specific cross geometry: when `wallDir` is set (a horizontal unit
+// vector pointing away from the wall it's mounted on, into the open cell),
+// the sprite is pulled in against the wall and tilted so the top leans
+// outward — like a wall-mounted torch instead of one just standing upright.
+// wallDir === null means "standing on the floor" — same centered upright
+// sprite as before.
+const TORCH_WALL_OFFSET = 0.3;
+const TORCH_WALL_TILT = 0.4; // radians, ~23°
+function addTorchQuads(buffers, mi, x, y, z, shade, wallDir) {
+  let buf = buffers[mi];
+  if (!buf) buf = buffers[mi] = { pos:[], norm:[], uv:[], col:[], idx:[], count:0 };
+  for (const quad of CROSS_QUADS) {
+    const start = buf.count;
+    for (let i=0;i<4;i++){
+      let [cx, cy, cz] = quad.corners[i];
+      if (wallDir) {
+        // Decompose the local corner into "depth" along wallDir (outward
+        // from the wall) and "perp" (along the wall, horizontally).
+        const depth = cx*wallDir.x + cz*wallDir.z;
+        const perp = cx*(-wallDir.z) + cz*(wallDir.x);
+        // Tilt in the depth/height plane, pivoting at the sprite's base
+        // (cy = -0.5) so the bottom stays anchored to the wall and the top
+        // swings outward into the room.
+        const pivotY = -0.5;
+        const relY = cy - pivotY;
+        const cos = Math.cos(TORCH_WALL_TILT), sin = Math.sin(TORCH_WALL_TILT);
+        const newDepth = depth*cos + relY*sin;
+        const newRelY = relY*cos - depth*sin;
+        cx = perp*(-wallDir.z) + newDepth*wallDir.x;
+        cz = perp*(wallDir.x) + newDepth*wallDir.z;
+        cy = pivotY + newRelY;
+        // Pull the whole sprite in against the wall.
+        cx -= wallDir.x * TORCH_WALL_OFFSET;
+        cz -= wallDir.z * TORCH_WALL_OFFSET;
+      }
+      buf.pos.push(x+cx, y+cy, z+cz);
+      buf.norm.push(quad.normal[0], quad.normal[1], quad.normal[2]);
+      buf.col.push(shade, shade, shade);
+    }
+    for (let i=0;i<4;i++) buf.uv.push(CROSS_UVS[i][0], CROSS_UVS[i][1]);
+    buf.idx.push(start,start+1,start+2, start,start+2,start+3);
+    buf.count += 4;
+  }
+}
+// Figures out how a torch at (x,y,z) is mounted: standing on a solid floor
+// block below it, or stuck to the side of a solid wall block. Returns null
+// (floor / no support found — render it upright as a fallback) or a
+// horizontal unit vector pointing away from the wall it's attached to.
+const WALL_DIRS = [{x:1,z:0},{x:-1,z:0},{x:0,z:1},{x:0,z:-1}];
+function torchWallDir(x, y, z) {
+  const below = world.get(key(x, y-1, z));
+  if (below && !BLOCK_TYPES[below.type].transparent) return null; // floor-mounted
+  for (const d of WALL_DIRS) {
+    const nb = world.get(key(x-d.x, y, z-d.z));
+    if (nb && !BLOCK_TYPES[nb.type].transparent) return d;
+  }
+  return null; // unsupported — falls back to the old upright look
+}
+function columnSkyTop(x, z) {
+  for (let y = Y_MAX; y >= Y_MIN; y--) {
+    const b = world.get(key(x, y, z));
+    if (b && !BLOCK_TYPES[b.type].transparent) return y;
+  }
+  return Y_MIN - 1; // nothing solid in this column at all
+}
+function skyLevelAt(y, topY) {
+  return y >= topY ? 15 : Math.max(0, 15 - (topY - y) * SKY_FALLOFF_PER_BLOCK);
 }
 function rebuildChunk(cx, cz) {
   const ck = cx+','+cz;
@@ -722,17 +1065,83 @@ function rebuildChunk(cx, cz) {
   const buffers = {};
   const x0 = cx*CHUNK_SIZE, x1 = x0+CHUNK_SIZE-1;
   const z0 = cz*CHUNK_SIZE, z1 = z0+CHUNK_SIZE-1;
+
+  // Precompute open-sky height for this chunk's columns plus a 1-block
+  // border (needed for the sideways light-bleed check below) once, instead
+  // of re-scanning the same column for every one of its ~80 vertical blocks.
+  const gridSize = CHUNK_SIZE + 2;
+  const topGrid = [];
+  for (let gx = 0; gx < gridSize; gx++) {
+    const row = new Int16Array(gridSize);
+    for (let gz = 0; gz < gridSize; gz++) row[gz] = columnSkyTop(x0-1+gx, z0-1+gz);
+    topGrid.push(row);
+  }
+  const topAt = (x, z) => topGrid[x - x0 + 1][z - z0 + 1];
+
+  // Only torches close enough to this chunk to possibly matter — cheap
+  // bounding-box filter so the per-block distance loop below stays small.
+  const nearbyTorches = [];
+  blockLights.forEach((light, k) => {
+    const [tx, ty, tz] = k.split(',').map(Number);
+    if (tx >= x0 - TORCH_LIGHT_RADIUS && tx <= x1 + TORCH_LIGHT_RADIUS &&
+        tz >= z0 - TORCH_LIGHT_RADIUS && tz <= z1 + TORCH_LIGHT_RADIUS) {
+      nearbyTorches.push({ x: tx, y: ty, z: tz });
+    }
+  });
+
+  function computeShade(x, y, z) {
+    let sky = skyLevelAt(y, topAt(x, z));
+    const nOff = [[1,0],[-1,0],[0,1],[0,-1]];
+    for (let i = 0; i < 4; i++) {
+      const lvl = skyLevelAt(y, topAt(x+nOff[i][0], z+nOff[i][1])) - SKY_BLEED_PENALTY;
+      if (lvl > sky) sky = lvl;
+    }
+    let torch = 0;
+    for (let i = 0; i < nearbyTorches.length; i++) {
+      const t = nearbyTorches[i];
+      const dist = Math.abs(x-t.x) + Math.abs(y-t.y) + Math.abs(z-t.z);
+      const lvl = TORCH_LIGHT_LEVEL - dist;
+      if (lvl > torch) torch = lvl;
+    }
+    // Whichever is brighter wins (sky vs. nearby torch), then clamp to the
+    // never-quite-dark floor — this is what makes blocks darken smoothly as
+    // light level drops but stop short of going full black at level 0.
+    const level = Math.max(sky, torch, MIN_LIGHT_LEVEL);
+    return Math.max(LIGHT_FLOOR, Math.min(1, level / 15));
+  }
+
   for (let x=x0; x<=x1; x++){
     for (let z=z0; z<=z1; z++){
       for (let y=Y_MIN; y<=Y_MAX; y++){
         const b = world.get(key(x,y,z));
         if (!b) continue;
+        // Cross-model blocks (torch, sapling) are flat crossed sprites, not
+        // cubes — always drawn in full, no per-neighbor face culling.
+        if (BLOCK_TYPES[b.type].cross) {
+          if (b.type === 'torch') {
+            addTorchQuads(buffers, MI[b.type], x, y, z, computeShade(x, y, z), torchWallDir(x, y, z));
+          } else {
+            addCrossQuads(buffers, MI[b.type], x, y, z, computeShade(x, y, z));
+          }
+          continue;
+        }
+        // Figure out which faces are visible in a single pass over the 6
+        // neighbors (each world.get is a Map lookup keyed off a freshly
+        // built string, so doing this scan twice — once just to ask "is
+        // there anything to draw" and again to actually draw it — doubled
+        // that cost for every single block in the chunk, buried or not).
+        // Fully-buried blocks (most of the underground) end up with zero
+        // visible faces and skip the light computation entirely.
+        let visibleMask = 0;
         for (let f=0; f<6; f++){
           const d = FACES[f].dir;
           const nb = world.get(key(x+d[0], y+d[1], z+d[2]));
-          if (shouldRenderFace(b.type, nb ? nb.type : null)) {
-            addFace(buffers, faceMatIndex(b.type, f), x, y, z, f);
-          }
+          if (shouldRenderFace(b.type, nb ? nb.type : null)) visibleMask |= (1 << f);
+        }
+        if (!visibleMask) continue;
+        const shade = computeShade(x, y, z);
+        for (let f=0; f<6; f++){
+          if (visibleMask & (1 << f)) addFace(buffers, faceMatIndex(b.type, f), x, y, z, f, shade);
         }
       }
     }
@@ -751,6 +1160,7 @@ function rebuildChunk(cx, cz) {
   const positions = new Float32Array(totalVerts*3);
   const normals = new Float32Array(totalVerts*3);
   const uvs = new Float32Array(totalVerts*2);
+  const colors = new Float32Array(totalVerts*3);
   const indices = new Uint32Array(totalIdx);
   const groups = [];
   let vOff = 0, iOff = 0;
@@ -759,6 +1169,7 @@ function rebuildChunk(cx, cz) {
     positions.set(b.pos, vOff*3);
     normals.set(b.norm, vOff*3);
     uvs.set(b.uv, vOff*2);
+    colors.set(b.col, vOff*3);
     for (let k=0;k<b.idx.length;k++) indices[iOff+k] = b.idx[k] + vOff;
     groups.push({ start: iOff, count: b.idx.length, materialIndex: Number(mi) });
     vOff += b.pos.length/3;
@@ -768,9 +1179,15 @@ function rebuildChunk(cx, cz) {
   geo.setAttribute('position', new THREE.BufferAttribute(positions,3));
   geo.setAttribute('normal', new THREE.BufferAttribute(normals,3));
   geo.setAttribute('uv', new THREE.BufferAttribute(uvs,2));
+  geo.setAttribute('color', new THREE.BufferAttribute(colors,3));
   geo.setIndex(new THREE.BufferAttribute(indices,1));
   groups.forEach(g => geo.addGroup(g.start, g.count, g.materialIndex));
   const mesh = new THREE.Mesh(geo, MAT_LIST);
+  // Terrain both casts (blocks the sun from what's behind/under it, e.g.
+  // cave ceilings and overhangs) and receives (shows the shadow on its own
+  // surface, e.g. the ground under a tree) shadows.
+  mesh.castShadow = true;
+  mesh.receiveShadow = true;
   scene.add(mesh);
   chunk.mesh = mesh;
 }
@@ -781,14 +1198,17 @@ function flushDirtyChunks() {
   });
   dirtyChunkKeys.clear();
 }
-function markAllChunksFromWorld() {
-  const seen = new Set();
-  world.forEach(b => { const [cx,cz] = chunkCoord(b.x,b.z); seen.add(cx+','+cz); });
-  seen.forEach(k => { const [cx,cz] = k.split(',').map(Number); markOne(cx,cz); });
+function markGeneratedChunksDirty() {
+  generatedChunks.forEach(ck => { const [cx,cz] = ck.split(',').map(Number); markOne(cx,cz); });
 }
 
 // ================= World data =================
 const world = new Map(); // key "x,y,z" -> {type,x,y,z}
+// Coordinates a diff explicitly removed (mined by a player). Terrain
+// generation for a not-yet-loaded chunk consults this so it never
+// resurrects a block someone already mined, however late that chunk
+// gets generated.
+const removedDiffs = new Set();
 function key(x,y,z){ return x+','+y+','+z; }
 
 // ---------- Block-emitted light (torch, Minecraft-style) ----------
@@ -797,28 +1217,130 @@ function key(x,y,z){ return x+','+y+','+z; }
 // placing/breaking (locally or synced from another player) can add/remove
 // the light without leaking THREE objects.
 const blockLights = new Map(); // "x,y,z" -> THREE.PointLight
-function syncBlockLight(x,y,z,type) {
+// Only the torches nearest the player actually cast real-time shadows
+// (see updateTorchShadows below) — a shadow-casting point light renders the
+// scene 6 extra times (once per cube face), so letting every placed torch
+// cast one would tank the framerate the moment someone builds a torch-lit
+// base. Capped this low still reads as "torches make shadows" without the
+// perf cliff.
+let MAX_SHADOW_TORCHES = 4; // live-adjustable — Settings > Graphics > Torch shadows can drop this to 0
+const MAX_SHADOW_TORCHES_DEFAULT = 4; // restored when the torch-shadows setting is switched back on
+// Every torch's glow is ALSO baked into the terrain's vertex colors
+// (computeShade in rebuildChunk), so a torch still looks lit even with no
+// real THREE light on it at all. That means the live PointLight only needs
+// to exist for torches close enough to matter for dynamic/specular
+// lighting — every other torch can stay dark as a real light. Without this
+// cap, every torch ever placed kept its light live forever: the renderer
+// has to loop over every active light for every on-screen fragment each
+// frame, AND adding/toggling a light forces a shader recompile for every
+// material in the scene, so the game got measurably (and permanently)
+// laggier with every torch placed, however far away it ended up.
+const MAX_ACTIVE_TORCH_LIGHTS = 12;
+const TORCH_BASE_INTENSITY = 2.2;
+function syncBlockLight(x,y,z,type,deferRerank) {
   const k = key(x,y,z);
   const existing = blockLights.get(k);
   if (type === 'torch') {
     if (!existing) {
-      const light = new THREE.PointLight(0xffaa55, 1.4, 8, 2);
+      const light = new THREE.PointLight(0xffaa55, 0, TORCH_LIGHT_RADIUS + 1, 2);
       light.position.set(x+0.5, y+0.6, z+0.5);
+      // Shadows are toggled on/off dynamically per-light in
+      // updateTorchShadows(), but the shadow camera/map still needs to be
+      // configured up front so it's ready the moment castShadow flips on.
+      // 256px (down from 512px) — half the shadow-map fill cost per torch,
+      // still reads fine at the short distance torches actually light.
+      light.shadow.mapSize.set(256, 256);
+      light.shadow.camera.near = 0.15;
+      light.shadow.camera.far = TORCH_LIGHT_RADIUS + 1;
+      light.shadow.bias = -0.003;
+      light.visible = false; // fades in via updateTorchLights() if it's close enough to matter
+      light.userData.targetIntensity = 0;
       scene.add(light);
       blockLights.set(k, light);
+      // Re-rank so a freshly-placed nearby torch starts fading up right
+      // away — but NOT during a bulk load/generation pass (deferRerank=
+      // true), where calling this once per torch would mean re-sorting the
+      // entire, ever-growing torch list once per torch — an O(n²) blowup
+      // that made joining a world with many torches in it freeze for a
+      // long time. Bulk callers rank once at the end instead.
+      //
+      // Pushed to the *next* animation frame (instead of running inline,
+      // right here) so it doesn't stack on top of the chunk mesh rebuild
+      // and network push that placing/mining a torch also triggers in this
+      // same synchronous call — bundling a light re-sort + possible
+      // shadow-casting toggle onto the very frame that's already rebuilding
+      // geometry is what caused the placement/mining hitch. Splitting it
+      // across two frames keeps each one cheap. scheduleTorchRerank() also
+      // collapses multiple pending requests into one, so rapid-fire torch
+      // placement doesn't queue up a rerank per torch either.
+      if (!deferRerank) scheduleTorchRerank();
     }
   } else if (existing) {
     scene.remove(existing);
     blockLights.delete(k);
+    // A shadow-casting torch might have just been removed — let a lower-
+    // ranked torch take its slot. Deferred for the same reason as above:
+    // avoid piling a re-rank onto this same synchronous mining frame.
+    scheduleTorchRerank();
   }
+}
+// Re-picks which nearby torches are allowed to light up (and, of those, which
+// cast real-time shadows), closest first. Throttled (called with an
+// accumulated timer) since it sorts every torch in the map — cheap for a
+// handful of them, but no need to do it every frame.
+function updateTorchShadows() {
+  if (blockLights.size === 0) return;
+  const lights = Array.from(blockLights.values());
+  lights.sort((a, b) => a.position.distanceToSquared(player.pos) - b.position.distanceToSquared(player.pos));
+  lights.forEach((light, i) => {
+    // Distant torches stay dark as real lights (their glow is already baked
+    // into the terrain mesh's vertex colors), so the number of lights the
+    // renderer actually has to loop over each frame stays capped no matter
+    // how many torches exist in the world. Rather than snapping visible/
+    // dark instantly (which popped noticeably as you walked around a
+    // torch-lit base), this just sets a target intensity that
+    // updateTorchLightFades() eases toward every frame.
+    const wantVisible = i < MAX_ACTIVE_TORCH_LIGHTS;
+    light.userData.targetIntensity = wantVisible ? TORCH_BASE_INTENSITY : 0;
+    if (wantVisible) light.visible = true; // start rendering immediately so the fade-in is visible
+    const wantShadow = wantVisible && i < MAX_SHADOW_TORCHES;
+    if (light.castShadow !== wantShadow) light.castShadow = wantShadow;
+  });
+}
+// Coalesces however many torches get placed/mined within one frame into a
+// single re-rank next frame, instead of running updateTorchShadows() (a
+// sort + possible shadow-casting toggle) inline on every individual
+// placement — which used to stack on top of that same placement's chunk
+// mesh rebuild and cause a visible hitch.
+let torchRerankPending = false;
+function scheduleTorchRerank() {
+  if (torchRerankPending) return;
+  torchRerankPending = true;
+  requestAnimationFrame(() => { torchRerankPending = false; updateTorchShadows(); });
+}
+// Eases every torch light's intensity toward its target each frame (instead
+// of an instant on/off), and only fully hides a light once it's finished
+// fading out — keeps the light count the renderer loops over bounded while
+// looking like a smooth crossfade rather than a pop.
+function updateTorchLightFades(dt) {
+  if (blockLights.size === 0) return;
+  const rate = 6; // per-second ease speed
+  blockLights.forEach(light => {
+    const target = light.userData.targetIntensity || 0;
+    if (Math.abs(light.intensity - target) < 0.005) { light.intensity = target; }
+    else light.intensity += (target - light.intensity) * Math.min(1, dt * rate);
+    if (light.intensity <= 0.01 && target === 0) { light.intensity = 0; light.visible = false; }
+  });
 }
 
 function addBlock(x,y,z,type,skipMark) {
   x=Math.round(x); y=Math.round(y); z=Math.round(z);
   const k = key(x,y,z);
   if (world.has(k)) return false;
+  if (removedDiffs.has(k)) return false; // a player explicitly mined this spot — don't regrow it
   world.set(k, { type, x, y, z });
-  syncBlockLight(x,y,z,type);
+  syncBlockLight(x,y,z,type,skipMark);
+  syncSaplingGrowth(x,y,z,type);
   if (!skipMark) markChunkDirty(x,z);
   return true;
 }
@@ -828,6 +1350,7 @@ function removeBlock(x,y,z,skipMark) {
   if (!world.has(k)) return false;
   world.delete(k);
   syncBlockLight(x,y,z,null);
+  syncSaplingGrowth(x,y,z,null);
   if (!skipMark) markChunkDirty(x,z);
   return true;
 }
@@ -845,12 +1368,17 @@ function noise2D(x, z) {
   );
 }
 const WATER_LEVEL = -1;
-const WORLD_SIZE = 96;
+// The world is now effectively open-ended — terrain streams in around the
+// player instead of being capped to a fixed size (see chunk streaming below).
+const WORLD_SIZE = 2000;
 
-// Every browser must produce the exact same base terrain (including tree
-// placement) since only *changes* to it are synced through Supabase. A
-// fixed-seed PRNG makes the "random" parts of generation deterministic
-// instead of different per client.
+// Every browser must produce the exact same base terrain (including ore and
+// tree placement), since only *changes* to it are synced through Supabase.
+// Chunks now generate lazily in whatever order each player happens to
+// explore them in, so we can't rely on a single sequential PRNG stream
+// (two players would see different terrain). Instead every "random" choice
+// is derived from a hash of its own world position, which gives the same
+// answer no matter when or in what order it's asked for.
 function mulberry32(seed) {
   return function() {
     seed |= 0; seed = (seed + 0x6D2B79F5) | 0;
@@ -859,38 +1387,32 @@ function mulberry32(seed) {
     return ((t ^ (t >>> 14)) >>> 0) / 4294967296;
   };
 }
-const worldRandom = mulberry32(1337);
-
-function generateWorld() {
-  for (let x = -WORLD_SIZE; x <= WORLD_SIZE; x++) {
-    for (let z = -WORLD_SIZE; z <= WORLD_SIZE; z++) {
-      const h = noise2D(x,z);
-      for (let y = -6; y <= h; y++) {
-        let type = 'stone';
-        if (y === h) type = (h <= WATER_LEVEL) ? 'sand' : 'grass';
-        else if (y > h - 3) type = 'dirt';
-        else if (worldRandom() < 0.05) type = 'coal_ore'; // ~5% of deep stone
-        addBlock(x,y,z,type,true);
-      }
-      for (let y = h+1; y <= WATER_LEVEL; y++) {
-        addBlock(x,y,z,'water',true);
-      }
-    }
-  }
-  const treeSpots = [];
-  for (let i=0;i<14;i++){
-    const x = Math.floor((worldRandom()-0.5)*WORLD_SIZE*1.6);
-    const z = Math.floor((worldRandom()-0.5)*WORLD_SIZE*1.6);
-    const h = noise2D(x,z);
-    if (h > WATER_LEVEL) treeSpots.push([x,z]);
-  }
-  treeSpots.forEach(([x,z]) => addTree(x,z));
+const worldRandom = mulberry32(1337); // still used for non-terrain, non-networked randomness
+function hashRandom(a, b, c, salt) {
+  let h = (Math.imul(a, 374761393) ^ Math.imul(b, 668265263) ^ Math.imul(c, 2147483647) ^ Math.imul(salt, 1013904223)) | 0;
+  h = Math.imul(h ^ (h >>> 15), 2246822519);
+  h = Math.imul(h ^ (h >>> 13), 3266489917);
+  h ^= h >>> 16;
+  return (h >>> 0) / 4294967296;
 }
 
+// ---------- Trees ----------
+// Deterministic candidate grid: each TREE_GRID-sized cell either has one
+// tree or doesn't, decided purely from the cell's own coordinates so any
+// chunk can check for trees near it regardless of generation order.
+const TREE_GRID = 10;
+function treeSpotAt(gx, gz) {
+  if (hashRandom(gx, gz, 0, 103) > 0.35) return null;
+  const ox = Math.floor(hashRandom(gx, gz, 1, 104) * TREE_GRID);
+  const oz = Math.floor(hashRandom(gx, gz, 2, 105) * TREE_GRID);
+  const x = gx*TREE_GRID + ox, z = gz*TREE_GRID + oz;
+  if (noise2D(x,z) <= WATER_LEVEL) return null;
+  return { x, z };
+}
 function addTree(x,z) {
   const h = noise2D(x,z);
   const baseY = h+1;
-  const trunkHeight = 4 + Math.floor(worldRandom()*2);
+  const trunkHeight = 4 + Math.floor(hashRandom(x,z,0,110)*2);
   for (let i=0;i<trunkHeight;i++) addBlock(x, baseY+i, z, 'wood', true);
   const topY = baseY + trunkHeight;
   for (let dx=-2; dx<=2; dx++)
@@ -898,9 +1420,154 @@ function addTree(x,z) {
       for (let dy=-1; dy<=2; dy++) {
         const dist = Math.abs(dx)+Math.abs(dz)+Math.abs(dy);
         if (dist <= 3 && !(dx===0&&dz===0&&dy<1)) {
-          if (worldRandom() < 0.85) addBlock(x+dx, topY+dy, z+dz, 'leaves', true);
+          if (hashRandom(x+dx, topY+dy, z+dz, 111) < 0.85) addBlock(x+dx, topY+dy, z+dz, 'leaves', true);
         }
       }
+}
+
+// ---------- Chunked terrain streaming ----------
+// Terrain is generated one chunk-column at a time, on demand, instead of
+// eagerly for the whole map. This is what lets the world be effectively
+// unbounded while startup and frame time stay cheap — only chunks near a
+// player actually get generated (and meshed).
+const CHUNKS_PER_TICK = 3;      // cap on newly-generated chunks per streaming pass (avoids hitches)
+let RENDER_CHUNKS = 6;          // chunk radius kept generated + meshed around the player — live-adjustable via Settings > Graphics > Render distance
+let UNLOAD_CHUNKS = 9;          // chunk radius beyond which a chunk's mesh (not its data) is freed — kept a few chunks past RENDER_CHUNKS so meshes aren't churned right at the edge
+const generatedChunks = new Set(); // "cx,cz" chunks whose terrain has been generated at least once
+
+function generateChunkColumns(cx, cz) {
+  const x0 = cx*CHUNK_SIZE, x1 = x0+CHUNK_SIZE-1;
+  const z0 = cz*CHUNK_SIZE, z1 = z0+CHUNK_SIZE-1;
+  for (let x=x0; x<=x1; x++) {
+    for (let z=z0; z<=z1; z++) {
+      const h = noise2D(x,z);
+      for (let y = -6; y <= h; y++) {
+        let type = 'stone';
+        if (y === h) type = (h <= WATER_LEVEL) ? 'sand' : 'grass';
+        else if (y > h - 3) type = 'dirt';
+        else if (hashRandom(x,y,z,101) < 0.05) type = 'coal_ore'; // ~5% of deep stone
+        else if (y < h - 4 && hashRandom(x,y,z,102) < 0.03) type = 'iron_ore'; // ~3%, lower down
+        addBlock(x,y,z,type,true);
+      }
+      for (let y = h+1; y <= WATER_LEVEL; y++) {
+        addBlock(x,y,z,'water',true);
+      }
+    }
+  }
+  // Trees whose base sits just outside this chunk can still canopy into it,
+  // so scan a small padded border too — idempotent (addBlock no-ops on an
+  // already-placed block), so overlap with neighboring chunks is harmless.
+  const pad = 3;
+  const gx0 = Math.floor((x0-pad)/TREE_GRID), gx1 = Math.floor((x1+pad)/TREE_GRID);
+  const gz0 = Math.floor((z0-pad)/TREE_GRID), gz1 = Math.floor((z1+pad)/TREE_GRID);
+  for (let gx=gx0; gx<=gx1; gx++) {
+    for (let gz=gz0; gz<=gz1; gz++) {
+      const spot = treeSpotAt(gx,gz);
+      if (spot) addTree(spot.x, spot.z);
+    }
+  }
+}
+
+// Generates any not-yet-generated chunks within `radius` chunks of
+// (px,pz), closest first, generating at most `maxNew` of them (Infinity
+// for an initial synchronous load-in). Also re-marks any previously
+// mesh-unloaded chunk in range so it gets rebuilt.
+function ensureChunksNear(px, pz, radius, maxNew) {
+  const pcx = Math.floor(px/CHUNK_SIZE), pcz = Math.floor(pz/CHUNK_SIZE);
+  const candidates = [];
+  for (let dx=-radius; dx<=radius; dx++) {
+    for (let dz=-radius; dz<=radius; dz++) {
+      if (dx*dx+dz*dz > radius*radius) continue;
+      candidates.push([dx*dx+dz*dz, pcx+dx, pcz+dz]);
+    }
+  }
+  candidates.sort((a,b) => a[0]-b[0]);
+  let generated = 0;
+  for (const [, cx, cz] of candidates) {
+    const ck = cx+','+cz;
+    if (!generatedChunks.has(ck)) {
+      if (generated >= maxNew) continue;
+      generatedChunks.add(ck);
+      generateChunkColumns(cx,cz);
+      markOne(cx,cz);
+      generated++;
+    } else {
+      const c = chunks.get(ck);
+      if (c && !c.mesh) markOne(cx,cz); // was unloaded for distance — bring it back
+    }
+  }
+}
+
+let streamTimer = 0;
+function updateChunkStreaming(dt) {
+  streamTimer -= dt;
+  if (streamTimer > 0) return;
+  streamTimer = 0.25; // throttle: a few times a second is plenty
+  ensureChunksNear(player.pos.x, player.pos.z, RENDER_CHUNKS, CHUNKS_PER_TICK);
+  const pcx = Math.floor(player.pos.x/CHUNK_SIZE), pcz = Math.floor(player.pos.z/CHUNK_SIZE);
+  chunks.forEach((c, ck) => {
+    if (!c.mesh) return;
+    const [cx,cz] = ck.split(',').map(Number);
+    const ddx = cx-pcx, ddz = cz-pcz;
+    if (ddx*ddx + ddz*ddz > UNLOAD_CHUNKS*UNLOAD_CHUNKS) {
+      scene.remove(c.mesh);
+      c.mesh.geometry.dispose();
+      c.mesh = null;
+    }
+  });
+  flushDirtyChunks();
+}
+
+// ---------- Sapling growth ----------
+// Any placed sapling (yours or synced from another player) gets a random
+// timer. When it expires and the spot still looks plantable — sapling
+// still there, on grass/dirt, with clear air above it — it's replaced with
+// a full tree, block by block, each pushed as a real diff so everyone else
+// sees the same tree grow in.
+const saplingGrowth = new Map(); // "x,y,z" -> { x, y, z, timer }
+function syncSaplingGrowth(x,y,z,type) {
+  const k = key(x,y,z);
+  if (type === 'sapling') {
+    if (!saplingGrowth.has(k)) saplingGrowth.set(k, { x, y, z, timer: 45 + Math.random()*45 });
+  } else {
+    saplingGrowth.delete(k);
+  }
+}
+function growTreeAt(x, y, z) {
+  if (!removeBlock(x, y, z)) return; // sapling already gone (mined, or beat us to it)
+  pushBlockDiff(x, y, z, 'air');
+  const trunkHeight = 4 + Math.floor(Math.random()*2);
+  for (let i = 0; i < trunkHeight; i++) {
+    if (addBlock(x, y+i, z, 'wood')) pushBlockDiff(x, y+i, z, 'wood');
+  }
+  const topY = y + trunkHeight;
+  for (let dx=-2; dx<=2; dx++)
+    for (let dz=-2; dz<=2; dz++)
+      for (let dy=-1; dy<=2; dy++) {
+        const dist = Math.abs(dx)+Math.abs(dz)+Math.abs(dy);
+        if (dist <= 3 && !(dx===0&&dz===0&&dy<1) && Math.random() < 0.85) {
+          if (addBlock(x+dx, topY+dy, z+dz, 'leaves')) pushBlockDiff(x+dx, topY+dy, z+dz, 'leaves');
+        }
+      }
+  flushDirtyChunks();
+}
+function updateSaplingGrowth(dt) {
+  saplingGrowth.forEach((info, k) => {
+    const b = getBlock(info.x, info.y, info.z);
+    if (!b || b.type !== 'sapling') { saplingGrowth.delete(k); return; }
+    info.timer -= dt;
+    if (info.timer <= 0) {
+      const below = getBlock(info.x, info.y-1, info.z);
+      const validGround = below && (below.type === 'grass' || below.type === 'dirt');
+      const spaceAbove = !getBlock(info.x, info.y+1, info.z) && !getBlock(info.x, info.y+2, info.z);
+      if (validGround && spaceAbove) {
+        saplingGrowth.delete(k);
+        growTreeAt(info.x, info.y, info.z);
+      } else {
+        info.timer = 5; // conditions not right yet (built over, etc.) — recheck soon
+      }
+    }
+  });
 }
 
 // ---------- Save / Load ----------
@@ -909,13 +1576,16 @@ function addTree(x,z) {
 // personal stuff (position, inventory, chosen block) is kept locally so a
 // refresh drops you back where you were.
 const SAVE_KEY = 'voltex_save_v2';
+const CHEST_SAVE_KEY = 'voltex_chests_v1'; // chest contents, keyed by block position — local to this device/browser, same as the rest of the local save (world_blocks itself has no per-block inventory column)
 function saveLocalPlayer() {
   try {
     localStorage.setItem(SAVE_KEY, JSON.stringify({
       playerPos: [player.pos.x, player.pos.y, player.pos.z],
       inventory,
       currentSlot,
-      hp: player.hp
+      hp: player.hp,
+      name: MY_NAME,
+      respawnPoint
     }));
   } catch(e) { /* storage may be unavailable; fail silently */ }
 }
@@ -928,8 +1598,20 @@ function loadLocalPlayer() {
     if (Array.isArray(data.inventory)) inventory = data.inventory;
     if (Number.isInteger(data.currentSlot)) currentSlot = data.currentSlot;
     if (typeof data.hp === 'number') player.hp = Math.max(1, Math.min(player.maxHp, data.hp));
+    if (data.respawnPoint && typeof data.respawnPoint.x === 'number') respawnPoint = data.respawnPoint;
     return true;
   } catch(e) { return false; }
+}
+// Just the saved name, read early (before the rest of loadLocalPlayer's
+// dependencies — player object, inventory, etc. — are ready) so the name
+// input can be pre-filled with whatever the player used last time.
+function loadSavedName() {
+  try {
+    const raw = localStorage.getItem(SAVE_KEY);
+    if (!raw) return null;
+    const data = JSON.parse(raw);
+    return (typeof data.name === 'string' && data.name.trim()) ? data.name.trim().slice(0, 16) : null;
+  } catch(e) { return null; }
 }
 
 // Apply one row from `world_blocks` to the local world: type 'air' means
@@ -939,11 +1621,14 @@ function applyBlockDiff(row, skipMark) {
   const { x, y, z, type } = row;
   const k = key(x,y,z);
   if (type === 'air') {
+    removedDiffs.add(k);
     if (world.has(k)) world.delete(k);
   } else {
+    removedDiffs.delete(k);
     world.set(k, { type, x, y, z });
   }
-  syncBlockLight(x, y, z, type === 'air' ? null : type);
+  syncBlockLight(x, y, z, type === 'air' ? null : type, skipMark);
+  syncSaplingGrowth(x, y, z, type === 'air' ? null : type);
   if (!skipMark) markChunkDirty(x,z);
 }
 
@@ -960,6 +1645,7 @@ async function loadWorldDiffs() {
     if (data.length < pageSize) break;
     from += pageSize;
   }
+  updateTorchShadows(); // rank once, now that every torch from the saved world is in — see syncBlockLight's deferRerank
 }
 
 // Push this player's block change to Supabase so every other connected
@@ -1233,6 +1919,7 @@ function openWorkbench() {
 const SMELT_RECIPES = {
   sand:      { out: 'glass',       time: 4 },
   raw_meat:  { out: 'cooked_meat', time: 5 },
+  iron_ore:  { out: 'iron_ingot',  time: 7 },
 };
 const FUEL_VALUES = { coal: 8, wood: 3, planks: 2.5, stick: 1, sapling: 0.5 };
 
@@ -1351,10 +2038,106 @@ function closeFurnace() {
   saveLocalPlayer();
 }
 
+// ---------- Chest (item storage) ----------
+// Unlike the furnace/crafting-table sessions above, a chest's contents are
+// genuinely per-block: two chests in different places must hold different
+// items. Kept in a plain object keyed by the same "x,y,z" string as the
+// world map, persisted to its own localStorage slot (the shared
+// world_blocks table has no per-block inventory column, so — like the rest
+// of this player's own save data — chest contents are local to this
+// device/browser rather than synced to other players).
+const CHEST_SIZE = 27; // 3 rows of 9, same footprint as the main inventory
+let chestData = {}; // "x,y,z" -> array(27) of {type,count}|null
+function loadChestData() {
+  try {
+    const raw = localStorage.getItem(CHEST_SAVE_KEY);
+    if (raw) chestData = JSON.parse(raw) || {};
+  } catch(e) { chestData = {}; }
+}
+function saveChestData() {
+  try { localStorage.setItem(CHEST_SAVE_KEY, JSON.stringify(chestData)); } catch(e) {}
+}
+function getChestSlots(k) {
+  if (!chestData[k]) chestData[k] = new Array(CHEST_SIZE).fill(null);
+  return chestData[k];
+}
+// True if a chest at this position has anything stored in it — used when
+// mining a chest to decide whether its contents need to be handed back.
+function chestHasItems(k) {
+  const slots = chestData[k];
+  return !!slots && slots.some(s => s);
+}
+
+const chestPanel = document.getElementById('chestPanel');
+const chestGridEl = document.getElementById('chestGrid');
+const chestMainGridEl = document.getElementById('chestMainGrid');
+const chestHotbarGridEl = document.getElementById('chestHotbarGrid');
+let chestOpen = false;
+let chestKey = null;     // "x,y,z" of the currently-open chest
+let chestSlots = null;   // direct reference into chestData[chestKey]
+
+function renderChestPanel() {
+  if (!chestSlots) return;
+  chestGridEl.innerHTML = '';
+  for (let i = 0; i < CHEST_SIZE; i++) {
+    const idx = i;
+    chestGridEl.appendChild(makeSlotEl(
+      () => chestSlots[idx],
+      () => clickSlot(() => chestSlots[idx], v => chestSlots[idx] = v, false),
+      () => clickSlot(() => chestSlots[idx], v => chestSlots[idx] = v, true)
+    ));
+  }
+  chestMainGridEl.innerHTML = '';
+  for (let i = HOTBAR_SIZE; i < INV_SIZE; i++) {
+    const idx = i;
+    chestMainGridEl.appendChild(makeSlotEl(
+      () => inventory[idx],
+      () => clickSlot(() => inventory[idx], v => inventory[idx] = v, false),
+      () => clickSlot(() => inventory[idx], v => inventory[idx] = v, true)
+    ));
+  }
+  chestHotbarGridEl.innerHTML = '';
+  for (let i = 0; i < HOTBAR_SIZE; i++) {
+    const idx = i;
+    const el = makeSlotEl(
+      () => inventory[idx],
+      () => clickSlot(() => inventory[idx], v => inventory[idx] = v, false),
+      () => clickSlot(() => inventory[idx], v => inventory[idx] = v, true)
+    );
+    if (idx === currentSlot) el.style.borderColor = '#fff';
+    chestHotbarGridEl.appendChild(el);
+  }
+  cursorItemEl.style.display = cursorItem ? 'block' : 'none';
+  if (cursorItem) cursorItemEl.innerHTML = iconHtml(cursorItem);
+}
+function openChest(x, y, z) {
+  chestOpen = true;
+  chestKey = key(x, y, z);
+  chestSlots = getChestSlots(chestKey);
+  chestPanel.style.display = 'flex';
+  renderChestPanel();
+  document.exitPointerLock();
+}
+function closeChest() {
+  chestOpen = false;
+  chestPanel.style.display = 'none';
+  returnCursorItemToInventory();
+  renderHotbar();
+  saveLocalPlayer();
+  saveChestData();
+  chestKey = null;
+  chestSlots = null;
+}
+
 // ================= Physics / collision =================
 function solidAt(x,y,z) {
   const b = getBlock(x,y,z);
-  return !!b && b.type !== 'water';
+  if (!b || b.type === 'water') return false;
+  // Cross-model blocks (torch, sapling) are thin decorative sprites with no
+  // volume to collide with — like Minecraft, you can walk straight through
+  // a torch or a sapling instead of it acting like a solid cube.
+  if (BLOCK_TYPES[b.type].cross) return false;
+  return true;
 }
 
 function checkCollision(x,y,z,r,h) {
@@ -1433,13 +2216,22 @@ function updateDayNight(dt) {
   if (worldTime > 1) worldTime -= 1;
   const angle = worldTime * Math.PI * 2;
   const sunHeight = Math.sin(angle - Math.PI/2);
-  sun.position.set(Math.cos(angle)*100, Math.max(sunHeight,0.05)*100 + 10, 40);
-  const brightness = Math.max(0.08, sunHeight * 0.5 + 0.5);
-  sun.intensity = 0.15 + brightness * 0.85;
-  ambient.intensity = 0.15 + brightness * 0.45;
+  // Keep the sun (and its shadow frustum) offset from the player rather
+  // than the world origin, so shadows stay correct and sharp no matter how
+  // far the player has wandered.
+  const px = player.pos.x, py = player.pos.y, pz = player.pos.z;
+  sun.position.set(px + Math.cos(angle)*100, py + Math.max(sunHeight,0.05)*100 + 10, pz + 40);
+  sun.target.position.set(px, py, pz);
+  // Nights (and, thanks to shadow mapping, anywhere the sun can't reach —
+  // caves, overhangs, the underside of a roof) now drop close to black
+  // instead of the old 0.15-0.2 floor, so a torch actually matters.
+  const brightness = Math.max(0.12, sunHeight * 0.5 + 0.5); // sky-lit areas now stay noticeably brighter at night too, not near-black
+  sun.intensity = 0.08 + brightness * 0.9;
+  ambient.intensity = 0.08 + brightness * 0.4;
+  hemi.intensity = 0.12 + brightness * 0.35;
 
   const dayCol = new THREE.Color(0x7ec0ee);
-  const nightCol = new THREE.Color(0x0a0e2a);
+  const nightCol = new THREE.Color(0x02030a);
   const mixed = dayCol.clone().lerp(nightCol, 1 - brightness);
   scene.background = mixed;
   scene.fog.color = mixed;
@@ -1457,6 +2249,9 @@ const player = {
   hp: 20,
   maxHp: 20,
 };
+// Set by right-clicking a bed; null means "no bed spawn set yet", so
+// respawnPlayer() falls back to the default world spawn near the origin.
+let respawnPoint = null; // { x, y, z } in world space, or null
 
 // ================= Health system =================
 const hpBarFill = document.getElementById('hpBarFill');
@@ -1473,7 +2268,8 @@ function flashDamage() {
 }
 function damagePlayer(amount) {
   if (amount <= 0 || player.hp <= 0) return;
-  const applied = isBlocking ? amount * 0.5 : amount; // sword block halves incoming damage
+  let applied = isBlocking ? amount * 0.5 : amount; // sword block halves incoming damage
+  applied *= (1 - totalArmorReduction()); // iron armor in inventory reduces damage taken
   player.hp = Math.max(0, player.hp - applied);
   updateHpUI();
   flashDamage();
@@ -1486,11 +2282,20 @@ function healPlayer(amount) {
   updateHpUI();
 }
 function respawnPlayer() {
-  const h = noise2D(0.5, 0.5);
-  player.pos.set(0.5, Math.max(h, WATER_LEVEL) + 5, 0.5);
+  if (respawnPoint) {
+    player.pos.set(respawnPoint.x, respawnPoint.y, respawnPoint.z);
+  } else {
+    const h = noise2D(0.5, 0.5);
+    player.pos.set(0.5, Math.max(h, WATER_LEVEL) + 5, 0.5);
+  }
   player.vel.set(0, 0, 0);
   player.hp = player.maxHp;
   updateHpUI();
+}
+function setRespawnPoint(x, y, z) {
+  respawnPoint = { x: x + 0.5, y: y + 1, z: z + 0.5 }; // stand on top of the bed
+  saveLocalPlayer();
+  addChatLine('System', 'Respawn point set!', true);
 }
 function eatCurrentFood() {
   const it = currentItem();
@@ -1737,8 +2542,29 @@ function getIconMaterial(type) {
 }
 function makeHeldItemMesh(type) {
   if (!type) return null;
+  if (BLOCK_TYPES[type] && BLOCK_TYPES[type].cross) {
+    // Torch/sapling are flat sprite blocks in the world (see addCrossQuads),
+    // with their icon drawn into just a small region of the 16x16 texture
+    // and everything else alpha-cut-out. Wrapping that texture around a
+    // BoxGeometry's 6 full-face UVs used to alpha-test away most of each
+    // face, leaving a broken, hole-riddled little cube in the player's
+    // hand instead of a torch. A single small plane — the same shape the
+    // block itself uses in the world — shows the icon cleanly.
+    const geo = new THREE.PlaneGeometry(0.28, 0.28);
+    const tex = TEX[type];
+    const mat = new THREE.MeshBasicMaterial({ map: tex, transparent: true, alphaTest: 0.5, side: THREE.DoubleSide });
+    if (type === 'torch') mat.color = new THREE.Color(0xffcf99); // subtle warm tint so it still reads as "lit" in hand
+    return new THREE.Mesh(geo, mat);
+  }
   if (BLOCK_TYPES[type]) {
     const geo = new THREE.BoxGeometry(0.26, 0.26, 0.26);
+    // Chunk materials now use vertexColors for baked skylight shading, so
+    // any geometry sharing them needs a color attribute too (missing one
+    // would leave the shader's color input unbound) — held items should
+    // always render at full, undarkened brightness regardless of the
+    // surroundings, so fill it with white.
+    const vCount = geo.attributes.position.count;
+    geo.setAttribute('color', new THREE.BufferAttribute(new Float32Array(vCount*3).fill(1), 3));
     const mats = [0,1,2,3,4,5].map(i => MAT_LIST[faceMatIndex(type, i)]);
     return new THREE.Mesh(geo, mats);
   }
@@ -1802,10 +2628,10 @@ function spawnAnimal(x, z) {
     wanderTimer: Math.random()*2, facing: 0,
   });
 }
-function spawnAnimals(count) {
+function spawnAnimals(count, centerX, centerZ, radius) {
   for (let i = 0; i < count; i++) {
-    const x = Math.floor((worldRandom()-0.5) * WORLD_SIZE * 1.4);
-    const z = Math.floor((worldRandom()-0.5) * WORLD_SIZE * 1.4);
+    const x = Math.floor(centerX + (worldRandom()-0.5) * radius * 2);
+    const z = Math.floor(centerZ + (worldRandom()-0.5) * radius * 2);
     spawnAnimal(x, z);
   }
 }
@@ -2164,8 +2990,8 @@ let lastWTapTime = 0;
 let isSprinting = false;
 document.addEventListener('keydown', e => {
   if (!gameStarted || chatOpen) return;
-  if (e.code === 'Escape') { document.exitPointerLock(); return; }
-  if (e.code === 'KeyE') { if (furnaceOpen) closeFurnace(); else toggleInventory(); return; }
+  if (e.code === 'Escape') { if (settingsOpen) closeSettings(); else document.exitPointerLock(); return; }
+  if (e.code === 'KeyE') { if (furnaceOpen) closeFurnace(); else if (chestOpen) closeChest(); else if (!settingsOpen) toggleInventory(); return; }
   if (e.code === 'F5') { thirdPerson = !thirdPerson; myModel.group.visible = thirdPerson; e.preventDefault(); return; }
   if (e.code === 'KeyF') { startEating(); return; }
   if (e.code === 'KeyQ') { throwCurrentItem(); return; }
@@ -2193,6 +3019,8 @@ const startScreen = document.getElementById('startScreen');
 let gameStarted = false;
 
 const nameInput = document.getElementById('nameInput');
+const savedName = loadSavedName();
+if (savedName) MY_NAME = savedName;
 nameInput.value = MY_NAME;
 function startGame() {
   MY_NAME = (nameInput.value || MY_NAME).trim().slice(0, 16) || MY_NAME;
@@ -2200,6 +3028,7 @@ function startGame() {
   gameStarted = true;
   canvas.requestPointerLock();
   playersChannel.track({ name: MY_NAME });
+  saveLocalPlayer(); // remember the name (and everything else) for next time
 }
 document.getElementById('startBtn').addEventListener('click', startGame);
 
@@ -2218,12 +3047,165 @@ confirmOverlay.addEventListener('click', e => {
   if (e.target === confirmOverlay) confirmOverlay.style.display = 'none';
 });
 canvas.addEventListener('click', () => {
-  if (!pointerLocked && gameStarted && !inventoryOpen && !furnaceOpen && !chatOpen) canvas.requestPointerLock();
+  if (!pointerLocked && gameStarted && !inventoryOpen && !furnaceOpen && !chestOpen && !chatOpen && !settingsOpen) canvas.requestPointerLock();
+});
+// The pause overlay sits on top of (and fully covers) the canvas while
+// showing, so clicks on it never reached the canvas's own click listener
+// above — "Click to resume" did nothing. Handle it directly here instead.
+pauseOverlay.addEventListener('click', () => {
+  if (gameStarted && !inventoryOpen && !furnaceOpen && !chestOpen && !chatOpen && !settingsOpen) canvas.requestPointerLock();
 });
 document.addEventListener('pointerlockchange', () => {
   pointerLocked = document.pointerLockElement === canvas;
-  pauseOverlay.style.display = (!pointerLocked && gameStarted && !inventoryOpen && !furnaceOpen && !chatOpen) ? 'flex' : 'none';
+  pauseOverlay.style.display = (!pointerLocked && gameStarted && !inventoryOpen && !furnaceOpen && !chestOpen && !chatOpen && !settingsOpen) ? 'flex' : 'none';
 });
+
+// ================= Settings (persisted locally) =================
+const SETTINGS_KEY = 'voltex_settings_v1';
+let settingsOpen = false;
+let settings = {
+  showCoords: true,
+  renderDistance: RENDER_CHUNKS, // chunk radius
+  shadows: true,
+  torchShadows: true,
+  quality: 'medium', // 'low' | 'medium' | 'high' — caps devicePixelRatio
+};
+try {
+  const raw = localStorage.getItem(SETTINGS_KEY);
+  if (raw) Object.assign(settings, JSON.parse(raw));
+} catch(e) {}
+function saveSettings() {
+  try { localStorage.setItem(SETTINGS_KEY, JSON.stringify(settings)); } catch(e) {}
+}
+const coordsDisplay = document.getElementById('coordsDisplay');
+const settingsOverlay = document.getElementById('settingsOverlay');
+const settingsBtn = document.getElementById('settingsBtn');
+const coordsToggle = document.getElementById('coordsToggle');
+coordsToggle.checked = settings.showCoords;
+coordsDisplay.style.display = settings.showCoords ? 'block' : 'none';
+coordsToggle.addEventListener('change', () => {
+  settings.showCoords = coordsToggle.checked;
+  coordsDisplay.style.display = settings.showCoords ? 'block' : 'none';
+  saveSettings();
+});
+
+// ---------- Graphics settings ----------
+// A quality tier caps devicePixelRatio (see the animate-loop comment on
+// renderer.setPixelRatio from the earlier perf pass — this is the same
+// lever, just now player-adjustable instead of a single hardcoded cap).
+const QUALITY_PIXEL_CAP = { low: 1, medium: 1.5, high: 2 };
+function applyRenderQuality(quality) {
+  const cap = QUALITY_PIXEL_CAP[quality] || QUALITY_PIXEL_CAP.medium;
+  renderer.setPixelRatio(Math.min(window.devicePixelRatio || 1, cap));
+}
+// Keeps the fog roughly matched to render distance, so terrain doesn't
+// visibly stop generating well before the fog would've hidden the edge (or
+// the fog kicking in awkwardly close when render distance is turned down).
+function applyFogForRenderDistance(chunkRadius) {
+  const far = chunkRadius * CHUNK_SIZE * 0.9;
+  scene.fog.far = far;
+  scene.fog.near = far * 0.45;
+}
+function applyRenderDistance(chunkRadius) {
+  RENDER_CHUNKS = chunkRadius;
+  UNLOAD_CHUNKS = chunkRadius + 3;
+  applyFogForRenderDistance(chunkRadius);
+  // Don't force-generate everything synchronously (that's what the
+  // Infinity-budget startup call is for) — the normal streaming loop in
+  // updateChunkStreaming() picks up the wider radius within its usual
+  // 0.25s cadence, a few chunks at a time, same as walking into new
+  // territory. Shrinking the radius unloads the newly-out-of-range meshes
+  // on that same cadence.
+}
+function applyShadowSettings(shadowsOn, torchShadowsOn) {
+  renderer.shadowMap.enabled = shadowsOn;
+  sun.castShadow = shadowsOn;
+  MAX_SHADOW_TORCHES = (shadowsOn && torchShadowsOn) ? MAX_SHADOW_TORCHES_DEFAULT : 0;
+  scheduleTorchRerank(); // re-apply the new torch-shadow cap to already-placed torches
+  // Toggling shadowMap.enabled needs every material re-compiled to actually
+  // pick up the change — cheap one-off cost right when the setting changes,
+  // not something that happens continuously.
+  MAT_LIST.forEach(m => m.needsUpdate = true);
+}
+function applyAllGraphicsSettings() {
+  applyRenderQuality(settings.quality);
+  applyRenderDistance(settings.renderDistance);
+  applyShadowSettings(settings.shadows, settings.torchShadows);
+}
+applyAllGraphicsSettings();
+
+const renderDistanceSlider = document.getElementById('renderDistanceSlider');
+const renderDistanceValue = document.getElementById('renderDistanceValue');
+renderDistanceSlider.value = settings.renderDistance;
+renderDistanceValue.textContent = settings.renderDistance;
+renderDistanceSlider.addEventListener('input', () => {
+  const v = parseInt(renderDistanceSlider.value, 10);
+  renderDistanceValue.textContent = v;
+  settings.renderDistance = v;
+  applyRenderDistance(v);
+  saveSettings();
+});
+
+const shadowsToggle = document.getElementById('shadowsToggle');
+const torchShadowsToggle = document.getElementById('torchShadowsToggle');
+shadowsToggle.checked = settings.shadows;
+torchShadowsToggle.checked = settings.torchShadows;
+torchShadowsToggle.disabled = !settings.shadows; // torch shadows are moot with shadows off entirely
+shadowsToggle.addEventListener('change', () => {
+  settings.shadows = shadowsToggle.checked;
+  torchShadowsToggle.disabled = !settings.shadows;
+  applyShadowSettings(settings.shadows, settings.torchShadows);
+  saveSettings();
+});
+torchShadowsToggle.addEventListener('change', () => {
+  settings.torchShadows = torchShadowsToggle.checked;
+  applyShadowSettings(settings.shadows, settings.torchShadows);
+  saveSettings();
+});
+
+const qualitySelect = document.getElementById('qualitySelect');
+qualitySelect.value = settings.quality;
+qualitySelect.addEventListener('change', () => {
+  settings.quality = qualitySelect.value;
+  applyRenderQuality(settings.quality);
+  saveSettings();
+});
+
+// Read-only reference of the game's current controls, shown in Settings.
+const KEYBINDS = [
+  ['Move', 'W A S D'],
+  ['Sprint', 'Double-tap W / Shift'],
+  ['Jump / swim up', 'Space'],
+  ['Look around', 'Mouse'],
+  ['Mine / attack', 'Left click (hold)'],
+  ['Place block / eat / block with sword', 'Right click (hold)'],
+  ['Hotbar slot', '1 – 9'],
+  ['Inventory', 'E'],
+  ['Eat held food', 'F'],
+  ['Throw held item', 'Q'],
+  ['Third-person view', 'F5'],
+  ['Chat', 'T'],
+  ['Pause / release mouse', 'Esc'],
+];
+const keybindList = document.getElementById('keybindList');
+keybindList.innerHTML = KEYBINDS.map(([action, key]) =>
+  `<div class="keybindRow"><span>${action}</span><span class="keyLabel">${key}</span></div>`
+).join('');
+
+function openSettings() {
+  settingsOpen = true;
+  settingsOverlay.style.display = 'flex';
+  if (pointerLocked) document.exitPointerLock();
+  pauseOverlay.style.display = 'none';
+}
+function closeSettings() {
+  settingsOpen = false;
+  settingsOverlay.style.display = 'none';
+  pauseOverlay.style.display = (!pointerLocked && gameStarted && !inventoryOpen && !furnaceOpen && !chestOpen && !chatOpen) ? 'flex' : 'none';
+}
+settingsBtn.addEventListener('click', () => { if (settingsOpen) closeSettings(); else openSettings(); });
+document.getElementById('settingsCloseBtn').addEventListener('click', closeSettings);
+settingsOverlay.addEventListener('click', e => { if (e.target === settingsOverlay) closeSettings(); });
 
 document.addEventListener('mousemove', e => {
   if (!pointerLocked) return;
@@ -2285,6 +3267,22 @@ function updateMining(dt) {
 
   if (mining.progress >= needed) {
     if (removeBlock(hit.x, hit.y, hit.z)) {
+      // A mined chest hands its contents straight to the player (dropping
+      // any overflow nearby) instead of just vanishing with items inside —
+      // same idea as Minecraft popping a chest's inventory out when broken.
+      if (b.type === 'chest') {
+        const k = key(hit.x, hit.y, hit.z);
+        const slots = chestData[k];
+        if (slots) {
+          slots.forEach(s => {
+            if (!s) return;
+            const leftover = addItemToInventory(s.type, s.count);
+            if (leftover > 0) spawnDroppedItem(s.type, leftover, new THREE.Vector3(hit.x, hit.y, hit.z));
+          });
+          delete chestData[k];
+          saveChestData();
+        }
+      }
       const def = BLOCK_TYPES[b.type];
       const held = currentItem();
       const heldType = held ? held.type : null;
@@ -2297,8 +3295,21 @@ function updateMining(dt) {
       // punching stone by hand (or with the wrong tool) breaks it but drops
       // nothing.
       const requiresPickaxe = def && def.tool === 'pickaxe';
-      const canDrop = !requiresPickaxe || toolKind === 'pickaxe';
-      const popPos = new THREE.Vector3(hit.x + 0.5, hit.y + 0.5, hit.z + 0.5);
+      let canDrop = !requiresPickaxe || toolKind === 'pickaxe';
+      // Iron ore needs at least a stone pickaxe (wood/bare hands just break it).
+      if (canDrop && b.type === 'iron_ore') {
+        canDrop = toolKind === 'pickaxe' && (heldType.startsWith('stone_') || heldType.startsWith('iron_'));
+      }
+      // Blocks are centered ON their integer coordinate (they span ±0.5 in
+      // every axis around it — see FACES/solidAt), so the block's center is
+      // just (hit.x, hit.y, hit.z). The old "+0.5" here instead placed the
+      // item at the corner where the mined block touches its diagonal
+      // neighbor — if that neighbor was solid (extremely common
+      // underground), the item spawned already embedded in it, and the
+      // "unstick" safety-net below shoved it straight up through the
+      // terrain until it popped out at the top of the stack, landing far
+      // out of pickup range and making the drop impossible to collect.
+      const popPos = new THREE.Vector3(hit.x, hit.y, hit.z);
       if (canDrop) {
         if (b.type === 'leaves') {
           // Leaves don't drop themselves — small chance of a sapling, stick, or apple.
@@ -2388,6 +3399,14 @@ canvas.addEventListener('mousedown', e => {
       openFurnace();
       return;
     }
+    if (targeted && targeted.type === 'chest') {
+      openChest(hit.x, hit.y, hit.z);
+      return;
+    }
+    if (targeted && targeted.type === 'bed') {
+      setRespawnPoint(hit.x, hit.y, hit.z);
+      return;
+    }
     const type = currentBlockType();
     if (!type) return;
     const nx = hit.px, ny = hit.py, nz = hit.pz;
@@ -2405,7 +3424,14 @@ canvas.addEventListener('mousedown', e => {
                       blockMaxY > pMinY && blockMinY < pMaxY &&
                       blockMaxZ > pMinZ && blockMinZ < pMaxZ;
     if (!overlaps) {
-      if (addBlock(nx, ny, nz, type)) {
+      // Torches need something to attach to — a floor below or a solid
+      // wall on one of the four sides — same requirement as Minecraft.
+      // (Ceiling-only support, i.e. a solid block straight above with
+      // nothing else around, isn't a wall or floor mount either, so it's
+      // rejected too — matches the "wall and floor" ask, not "ceiling".)
+      const canPlace = type !== 'torch' || torchWallDir(nx, ny, nz) !== null ||
+        (world.get(key(nx, ny-1, nz)) && !BLOCK_TYPES[world.get(key(nx, ny-1, nz)).type].transparent);
+      if (canPlace && addBlock(nx, ny, nz, type)) {
         removeFromCurrentSlot(1);
         flushDirtyChunks();
         renderHotbar();
@@ -2418,13 +3444,17 @@ canvas.addEventListener('mousedown', e => {
 canvas.addEventListener('contextmenu', e => e.preventDefault());
 
 // ================= Init world =================
-generateWorld(); // same base terrain in every browser (seeded)
-spawnAnimals(10);
-const hadLocalPos = loadLocalPlayer(); // this player's own position/inventory, if any
+const hadLocalPos = loadLocalPlayer(); // this player's own saved position/inventory, if any
+loadChestData();
 if (!hadLocalPos) {
   const startH = noise2D(0,0);
   player.pos.set(0.5, Math.max(startH, WATER_LEVEL) + 3, 0.5);
 }
+// Generate the chunks around wherever the player is starting, synchronously,
+// so there's solid ground the moment the game becomes visible.
+ensureChunksNear(player.pos.x, player.pos.z, RENDER_CHUNKS, Infinity);
+flushDirtyChunks();
+spawnAnimals(10, player.pos.x, player.pos.z, 40);
 renderHotbar();
 updateHpUI();
 
@@ -2445,7 +3475,7 @@ setLoadProgress(10, 'Connecting to server…');
     await loadWorldDiffs();       // pull every change anyone has ever made
     setLoadProgress(60, 'Syncing live changes…');
     subscribeWorldChanges();      // then start listening live for new ones
-    markAllChunksFromWorld();
+    markGeneratedChunksDirty();
     flushDirtyChunks();
     setLoadProgress(85, 'Placing you in the world…');
     unstickPlayerIfFloating();    // fix stale saved Y that no longer matches real terrain
@@ -2466,6 +3496,7 @@ setLoadProgress(10, 'Connecting to server…');
 })();
 
 let saveTimer = 0;
+let torchShadowTimer = 0;
 
 // ================= Main loop =================
 let lastTime = performance.now();
@@ -2484,11 +3515,19 @@ function animate() {
     document.getElementById('fps').textContent = 'FPS: ' + Math.round(frameCount/fpsTimer);
     frameCount = 0; fpsTimer = 0;
   }
+  if (settings.showCoords) {
+    coordsDisplay.textContent = `XYZ: ${player.pos.x.toFixed(1)}, ${player.pos.y.toFixed(1)}, ${player.pos.z.toFixed(1)}`;
+  }
 
   updateDayNight(dt);
+  updateChunkStreaming(dt);
   updateMining(dt);
   updateFurnace(dt);
+  updateSaplingGrowth(dt);
   updateEating(dt);
+  torchShadowTimer += dt;
+  if (torchShadowTimer > 0.3) { updateTorchShadows(); torchShadowTimer = 0; }
+  updateTorchLightFades(dt);
   if (isBlocking) {
     const held = currentItem();
     if (!held || !isSword(held.type)) isBlocking = false; // item switched away mid-block
