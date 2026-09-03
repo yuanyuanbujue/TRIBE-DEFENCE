@@ -217,6 +217,29 @@
   }
   #cursorItem .count { position:absolute; bottom:-8px; right:-10px; font-size:12px; color:#fff; font-weight:bold; text-shadow:1px 1px 1px black; }
   #invHint { font-size: 12px; opacity: 0.8; margin-top: 6px; max-width: 480px; }
+
+  /* ===== Furnace panel ===== */
+  #furnacePanel {
+    position: fixed; inset: 0; z-index: 60; display: none;
+    background: rgba(0,0,0,0.6); color: white; align-items: center; justify-content: center;
+    flex-direction: column; text-align: center;
+  }
+  #furnacePanel h2 { text-shadow: 2px 2px 0 rgba(0,0,0,0.5); margin: 4px 0; font-size: 16px; }
+  #furnacePanelBox {
+    background: rgba(40,32,24,0.92); border: 3px solid rgba(255,255,255,0.4); border-radius: 10px;
+    padding: 16px 20px; display: flex; flex-direction: column; align-items: center; gap: 4px;
+  }
+  #furnaceSection { display: flex; align-items: center; gap: 14px; margin: 6px 0 14px; }
+  #furnaceStack { display: flex; flex-direction: column; gap: 6px; align-items: center; }
+  #furnaceMiddle { display: flex; flex-direction: column; align-items: center; gap: 2px; width: 60px; }
+  #furnaceFlame { font-size: 22px; }
+  #furnaceFlameTrack { width: 8px; height: 40px; background: rgba(0,0,0,0.4); border-radius: 4px; overflow: hidden; display: flex; align-items: flex-end; }
+  #furnaceFlameFill { width: 100%; height: 0%; background: linear-gradient(#ffd23f,#ff6a1e); }
+  #furnaceArrowTrack { width: 40px; height: 8px; background: rgba(0,0,0,0.4); border-radius: 4px; overflow: hidden; margin-top: 6px; }
+  #furnaceArrowFill { height: 100%; width: 0%; background: #8bd15a; }
+  #furnaceMainGrid { display: grid; grid-template-columns: repeat(9, 52px); gap: 5px; margin-bottom: 12px; }
+  #furnaceHotbarGrid { display: grid; grid-template-columns: repeat(9, 52px); gap: 5px; margin-top: 6px; padding-top: 10px; border-top: 2px solid rgba(255,255,255,0.25); }
+  #furnaceHint { font-size: 12px; opacity: 0.8; margin-top: 6px; max-width: 480px; }
 </style>
 </head>
 <body>
@@ -265,6 +288,26 @@
 </div>
 <div id="cursorItem"></div>
 
+<div id="furnacePanel">
+  <div id="furnacePanelBox">
+    <h2>Furnace</h2>
+    <div id="furnaceSection">
+      <div id="furnaceStack">
+        <div id="furnaceInputWrap"></div>
+        <div id="furnaceFuelWrap"></div>
+      </div>
+      <div id="furnaceMiddle">
+        <div id="furnaceFlameTrack"><div id="furnaceFlameFill"></div></div>
+        <div id="furnaceArrowTrack"><div id="furnaceArrowFill"></div></div>
+      </div>
+      <div id="furnaceOutputWrap"></div>
+    </div>
+    <div id="furnaceMainGrid"></div>
+    <div id="furnaceHotbarGrid"></div>
+    <p id="furnaceHint">Put fuel (coal, wood, planks, sticks) below, ore/food above · smelts sand → glass, raw meat → cooked meat · Press E to close</p>
+  </div>
+</div>
+
 <div id="crosshair"></div>
 <div id="mineProgressWrap"><div id="mineProgressBar"></div></div>
 <div id="hpBarWrap"><div id="hpBarFill"></div></div>
@@ -272,7 +315,7 @@
 <div id="chatLog"></div>
 <div id="chatInputWrap"><input id="chatInput" type="text" maxlength="200" placeholder="Say something... (Enter to send, Esc to cancel)"></div>
 <div id="damageFlash"></div>
-<div id="hud">Mine blocks to collect materials · place them from your inventory.<br>Press <b>E</b> for inventory · <b>F5</b> for third-person · <b>F</b> to eat food · <b>Q</b> to throw item · <b>T</b> to chat. World auto-saves as you play.</div>
+<div id="hud">Mine blocks to collect materials · place them from your inventory.<br>Press <b>E</b> for inventory · <b>F5</b> for third-person · <b>F</b> to eat food · <b>Q</b> to throw item · <b>T</b> to chat. Right-click a crafting table or furnace to use it. World auto-saves as you play.</div>
 <div id="fps">FPS: --<br><span id="playerCount">Players online: 1</span></div>
 <div id="hotbar"></div>
 
@@ -297,6 +340,13 @@ let MY_NAME = 'Player' + Math.floor(Math.random() * 1000);
 // ================= Renderer / Scene =================
 const scene = new THREE.Scene();
 const camera = new THREE.PerspectiveCamera(75, window.innerWidth/window.innerHeight, 0.1, 1000);
+// First-person held-item view model: a small group parented to the camera
+// so it always sits in the bottom-right of the screen. Needs the camera
+// itself in the scene graph for the renderer to draw its children.
+const viewModelGroup = new THREE.Group();
+camera.add(viewModelGroup);
+scene.add(camera);
+const viewModelState = { heldType: undefined, heldMesh: null };
 const renderer = new THREE.WebGLRenderer({ antialias: true, powerPreference: 'high-performance' });
 renderer.setSize(window.innerWidth, window.innerHeight);
 document.body.appendChild(renderer.domElement);
@@ -399,6 +449,25 @@ const TEX = {
     ctx.fillStyle = '#357c28';
     ctx.beginPath(); ctx.ellipse(8,4,2.5,2,0,0,7); ctx.fill();
   }),
+  coalOre: makeTexture(ctx => {
+    speckle(ctx, '#8a8a8a', ['#7d7d7d','#959595','#6f6f6f'], 30);
+    ctx.fillStyle = '#222';
+    const spots = [[3,3],[9,2],[5,7],[11,9],[7,12],[2,10]];
+    spots.forEach(([x,y]) => ctx.fillRect(x,y,3,3));
+  }),
+  torch: makeTexture(ctx => {
+    ctx.clearRect(0,0,16,16);
+    ctx.fillStyle = '#6f4420'; ctx.fillRect(7,7,2,8);
+    ctx.fillStyle = '#ff8a1e'; ctx.fillRect(6,4,4,4);
+    ctx.fillStyle = '#ffe066'; ctx.fillRect(7,5,2,2);
+  }),
+  furnace: makeTexture(ctx => {
+    speckle(ctx, '#8a8a8a', ['#7d7d7d','#959595','#6f6f6f'], 25);
+    ctx.strokeStyle = '#3a3a3a'; ctx.lineWidth = 1;
+    ctx.strokeRect(0,0,16,16);
+    ctx.fillStyle = '#2b2b2b'; ctx.fillRect(4,5,8,7);
+    ctx.fillStyle = '#ff9a3c'; ctx.fillRect(5,10,6,1);
+  }),
 };
 
 // ================= Block types =================
@@ -415,6 +484,9 @@ const BLOCK_TYPES = {
   water:  { icon: '💧', transparent: true, hardness: 0 },
   crafting_table: { icon: '🛠️', transparent: false, hardness: 1.0, tool: 'axe' },
   sapling: { icon: '🌱', transparent: true, hardness: 0.1, tool: null },
+  coal_ore: { icon: '⚫', transparent: false, hardness: 1.5, tool: 'pickaxe' },
+  torch: { icon: '🕯️', transparent: true, hardness: 0.1, tool: null },
+  furnace: { icon: '🔥', transparent: false, hardness: 1.75, tool: 'pickaxe' },
 };
 // Non-block items: sticks, tools, and food. Tools don't stack (max 1 per slot).
 const ITEM_INFO = {
@@ -430,6 +502,8 @@ const ITEM_INFO = {
   raw_meat:       { icon: '🥩', food: 3 },
   apple:          { icon: '🍎', food: 2 },
   sapling:        { icon: '🌱' },
+  coal:           { icon: '⚫' },
+  cooked_meat:    { icon: '🍗', food: 6 },
 };
 function isSword(type) { return type === 'wood_sword' || type === 'stone_sword'; }
 function isFood(type) { return !!(ITEM_INFO[type] && ITEM_INFO[type].food); }
@@ -488,6 +562,9 @@ const RECIPES = [
   { shape: [['stone','stone','stone'],[null,'stick',null],[null,'stick',null]], out: 'stone_pickaxe', outCount: 1, needsTable: true },
   { shape: [['stone','stone'],['stone','stick'],[null,'stick']], out: 'stone_axe', outCount: 1, needsTable: true },
   { shape: [['stone'],['stick'],['stick']], out: 'stone_shovel', outCount: 1, needsTable: true },
+
+  { shape: [['coal'],['stick']], out: 'torch', outCount: 4, needsTable: false },
+  { shape: [['stone','stone','stone'],['stone',null,'stone'],['stone','stone','stone']], out: 'furnace', outCount: 1, needsTable: true },
 
   { shape: [['planks'],['planks'],['stick']], out: 'wood_sword', outCount: 1, needsTable: true },
   { shape: [['stone'],['stone'],['stick']], out: 'stone_sword', outCount: 1, needsTable: true },
@@ -557,7 +634,14 @@ const MI = {
   water:     regMat(TEX.water, true),
   craftTop:  regMat(TEX.craftTop),
   sapling:   regMat(TEX.sapling, true),
+  coal_ore:  regMat(TEX.coalOre),
+  torch:     regMat(TEX.torch, true),
+  furnace:   regMat(TEX.furnace),
 };
+// Torches glow on their own regardless of ambient/sun lighting, like a
+// Minecraft light-emitting block.
+MAT_LIST[MI.torch].emissive = new THREE.Color(0xff9a3c);
+MAT_LIST[MI.torch].emissiveIntensity = 0.9;
 function faceMatIndex(type, faceIdx) {
   // faceIdx: 0=+x,1=-x,2=+y,3=-y,4=+z,5=-z
   switch (type) {
@@ -707,11 +791,34 @@ function markAllChunksFromWorld() {
 const world = new Map(); // key "x,y,z" -> {type,x,y,z}
 function key(x,y,z){ return x+','+y+','+z; }
 
+// ---------- Block-emitted light (torch, Minecraft-style) ----------
+// Each torch block gets a real THREE.PointLight so it lights up nearby
+// terrain and players, independent of the day/night sun. Kept in a map so
+// placing/breaking (locally or synced from another player) can add/remove
+// the light without leaking THREE objects.
+const blockLights = new Map(); // "x,y,z" -> THREE.PointLight
+function syncBlockLight(x,y,z,type) {
+  const k = key(x,y,z);
+  const existing = blockLights.get(k);
+  if (type === 'torch') {
+    if (!existing) {
+      const light = new THREE.PointLight(0xffaa55, 1.4, 8, 2);
+      light.position.set(x+0.5, y+0.6, z+0.5);
+      scene.add(light);
+      blockLights.set(k, light);
+    }
+  } else if (existing) {
+    scene.remove(existing);
+    blockLights.delete(k);
+  }
+}
+
 function addBlock(x,y,z,type,skipMark) {
   x=Math.round(x); y=Math.round(y); z=Math.round(z);
   const k = key(x,y,z);
   if (world.has(k)) return false;
   world.set(k, { type, x, y, z });
+  syncBlockLight(x,y,z,type);
   if (!skipMark) markChunkDirty(x,z);
   return true;
 }
@@ -720,6 +827,7 @@ function removeBlock(x,y,z,skipMark) {
   const k = key(x,y,z);
   if (!world.has(k)) return false;
   world.delete(k);
+  syncBlockLight(x,y,z,null);
   if (!skipMark) markChunkDirty(x,z);
   return true;
 }
@@ -761,6 +869,7 @@ function generateWorld() {
         let type = 'stone';
         if (y === h) type = (h <= WATER_LEVEL) ? 'sand' : 'grass';
         else if (y > h - 3) type = 'dirt';
+        else if (worldRandom() < 0.05) type = 'coal_ore'; // ~5% of deep stone
         addBlock(x,y,z,type,true);
       }
       for (let y = h+1; y <= WATER_LEVEL; y++) {
@@ -834,6 +943,7 @@ function applyBlockDiff(row, skipMark) {
   } else {
     world.set(k, { type, x, y, z });
   }
+  syncBlockLight(x, y, z, type === 'air' ? null : type);
   if (!skipMark) markChunkDirty(x,z);
 }
 
@@ -1115,6 +1225,132 @@ function openWorkbench() {
   openInventory(true);
 }
 
+// ---------- Furnace (smelting) ----------
+// Simplified like the crafting table above: one shared session furnace UI
+// rather than per-block-instance state tied to world coordinates. Contents
+// persist while the game session runs, and only cook while the panel is
+// open (closing the furnace pauses the fire, like stepping away).
+const SMELT_RECIPES = {
+  sand:      { out: 'glass',       time: 4 },
+  raw_meat:  { out: 'cooked_meat', time: 5 },
+};
+const FUEL_VALUES = { coal: 8, wood: 3, planks: 2.5, stick: 1, sapling: 0.5 };
+
+const furnacePanel = document.getElementById('furnacePanel');
+const furnaceInputWrap = document.getElementById('furnaceInputWrap');
+const furnaceFuelWrap = document.getElementById('furnaceFuelWrap');
+const furnaceOutputWrap = document.getElementById('furnaceOutputWrap');
+const furnaceMainGridEl = document.getElementById('furnaceMainGrid');
+const furnaceHotbarGridEl = document.getElementById('furnaceHotbarGrid');
+const furnaceFlameFill = document.getElementById('furnaceFlameFill');
+const furnaceArrowFill = document.getElementById('furnaceArrowFill');
+
+let furnaceOpen = false;
+let furnaceSlots = { input: null, fuel: null, output: null };
+let furnaceBurnLeft = 0;   // seconds of current fuel charge remaining
+let furnaceBurnTotal = 0;  // that charge's starting size, for the flame gauge
+let furnaceCookTime = 0;   // seconds accumulated smelting the current input
+
+function currentSmeltRecipe() {
+  const inp = furnaceSlots.input;
+  return inp ? (SMELT_RECIPES[inp.type] || null) : null;
+}
+
+function updateFurnace(dt) {
+  if (!furnaceOpen) return;
+  const recipe = currentSmeltRecipe();
+  if (furnaceBurnLeft <= 0 && recipe && furnaceSlots.fuel) {
+    const fuelVal = FUEL_VALUES[furnaceSlots.fuel.type];
+    if (fuelVal) {
+      furnaceBurnLeft = fuelVal;
+      furnaceBurnTotal = fuelVal;
+      furnaceSlots.fuel.count--;
+      if (furnaceSlots.fuel.count <= 0) furnaceSlots.fuel = null;
+    }
+  }
+  if (recipe && furnaceBurnLeft > 0) {
+    furnaceBurnLeft -= dt;
+    furnaceCookTime += dt;
+    if (furnaceCookTime >= recipe.time) {
+      const canOutput = !furnaceSlots.output ||
+        (furnaceSlots.output.type === recipe.out && furnaceSlots.output.count < maxStackFor(recipe.out));
+      if (canOutput) {
+        furnaceSlots.input.count--;
+        if (furnaceSlots.input.count <= 0) furnaceSlots.input = null;
+        if (furnaceSlots.output) furnaceSlots.output.count++;
+        else furnaceSlots.output = { type: recipe.out, count: 1 };
+      }
+      furnaceCookTime = 0;
+    }
+  } else {
+    furnaceCookTime = Math.max(0, furnaceCookTime - dt * 2);
+  }
+  if (furnaceBurnLeft < 0) furnaceBurnLeft = 0;
+  renderFurnacePanel();
+}
+
+function renderFurnacePanel() {
+  const recipe = currentSmeltRecipe();
+  furnaceInputWrap.innerHTML = '';
+  furnaceInputWrap.appendChild(makeSlotEl(
+    () => furnaceSlots.input,
+    () => clickSlot(() => furnaceSlots.input, v => furnaceSlots.input = v, false),
+    () => clickSlot(() => furnaceSlots.input, v => furnaceSlots.input = v, true)
+  ));
+  furnaceFuelWrap.innerHTML = '';
+  furnaceFuelWrap.appendChild(makeSlotEl(
+    () => furnaceSlots.fuel,
+    () => clickSlot(() => furnaceSlots.fuel, v => furnaceSlots.fuel = v, false),
+    () => clickSlot(() => furnaceSlots.fuel, v => furnaceSlots.fuel = v, true)
+  ));
+  furnaceOutputWrap.innerHTML = '';
+  furnaceOutputWrap.appendChild(makeSlotEl(
+    () => furnaceSlots.output,
+    () => clickSlot(() => furnaceSlots.output, v => furnaceSlots.output = v, false),
+    () => clickSlot(() => furnaceSlots.output, v => furnaceSlots.output = v, true),
+    'output'
+  ));
+  furnaceFlameFill.style.height = (furnaceBurnTotal > 0 ? Math.max(0, furnaceBurnLeft / furnaceBurnTotal) * 100 : 0) + '%';
+  furnaceArrowFill.style.width = (recipe ? Math.min(100, (furnaceCookTime / recipe.time) * 100) : 0) + '%';
+
+  furnaceMainGridEl.innerHTML = '';
+  for (let i = HOTBAR_SIZE; i < INV_SIZE; i++) {
+    const idx = i;
+    furnaceMainGridEl.appendChild(makeSlotEl(
+      () => inventory[idx],
+      () => clickSlot(() => inventory[idx], v => inventory[idx] = v, false),
+      () => clickSlot(() => inventory[idx], v => inventory[idx] = v, true)
+    ));
+  }
+  furnaceHotbarGridEl.innerHTML = '';
+  for (let i = 0; i < HOTBAR_SIZE; i++) {
+    const idx = i;
+    const el = makeSlotEl(
+      () => inventory[idx],
+      () => clickSlot(() => inventory[idx], v => inventory[idx] = v, false),
+      () => clickSlot(() => inventory[idx], v => inventory[idx] = v, true)
+    );
+    if (idx === currentSlot) el.style.borderColor = '#fff';
+    furnaceHotbarGridEl.appendChild(el);
+  }
+  cursorItemEl.style.display = cursorItem ? 'block' : 'none';
+  if (cursorItem) cursorItemEl.innerHTML = iconHtml(cursorItem);
+}
+
+function openFurnace() {
+  furnaceOpen = true;
+  furnacePanel.style.display = 'flex';
+  renderFurnacePanel();
+  document.exitPointerLock();
+}
+function closeFurnace() {
+  furnaceOpen = false;
+  furnacePanel.style.display = 'none';
+  returnCursorItemToInventory();
+  renderHotbar();
+  saveLocalPlayer();
+}
+
 // ================= Physics / collision =================
 function solidAt(x,y,z) {
   const b = getBlock(x,y,z);
@@ -1309,6 +1545,7 @@ function updateEating(dt) {
 let thirdPerson = false;
 const myModel = buildHumanoid(colorForId(MY_ID));
 myModel.group.visible = false;
+myModel.heldState = { heldType: undefined, heldMesh: null };
 scene.add(myModel.group);
 let myWalkCycle = 0;
 let mineSwingCycle = 0;
@@ -1316,6 +1553,8 @@ let mineSwingCycle = 0;
 function updateMyModel(dt, isMoving) {
   myModel.group.position.set(player.pos.x, player.pos.y, player.pos.z);
   myModel.group.rotation.y = player.yaw;
+  const held = currentItem();
+  setHeldVisual(myModel.heldState, myModel.handAnchor, held ? held.type : null);
   if (isMoving && player.onGround) myWalkCycle += dt * 8;
   const walkSwing = (isMoving && player.onGround) ? Math.sin(myWalkCycle) * 0.6 : 0;
   myModel.legL.rotation.x = walkSwing;
@@ -1465,8 +1704,59 @@ function buildHumanoid(color) {
   const armR = new THREE.Mesh(armGeo, armMat);
   armR.position.set(0.4, 1.5, 0);
 
+  // Anchor near the bottom of the right forearm — whatever the player is
+  // holding gets parented here, so it swings and rotates with the arm for
+  // free (mining punches, eating, blocking, walking).
+  const handAnchor = new THREE.Group();
+  handAnchor.position.set(0, -0.62, 0.14);
+  armR.add(handAnchor);
+
   group.add(torso, head, legL, legR, armL, armR);
-  return { group, head, legL, legR, armL, armR };
+  return { group, head, legL, legR, armL, armR, handAnchor };
+}
+
+// ---------- Held item visuals ----------
+// Blocks get a small textured cube built from the same materials used for
+// world geometry; anything else (tools, food, raw materials) gets a small
+// flat icon sprite, similar to how Minecraft renders 2D items in-hand.
+const iconMaterialCache = new Map();
+function getIconMaterial(type) {
+  if (iconMaterialCache.has(type)) return iconMaterialCache.get(type);
+  const canvas = document.createElement('canvas');
+  canvas.width = canvas.height = 64;
+  const ctx = canvas.getContext('2d');
+  ctx.font = '46px "Segoe UI Emoji", sans-serif';
+  ctx.textAlign = 'center';
+  ctx.textBaseline = 'middle';
+  ctx.fillText(iconFor(type), 32, 34);
+  const tex = new THREE.CanvasTexture(canvas);
+  tex.magFilter = THREE.NearestFilter;
+  const mat = new THREE.MeshBasicMaterial({ map: tex, transparent: true, side: THREE.DoubleSide });
+  iconMaterialCache.set(type, mat);
+  return mat;
+}
+function makeHeldItemMesh(type) {
+  if (!type) return null;
+  if (BLOCK_TYPES[type]) {
+    const geo = new THREE.BoxGeometry(0.26, 0.26, 0.26);
+    const mats = [0,1,2,3,4,5].map(i => MAT_LIST[faceMatIndex(type, i)]);
+    return new THREE.Mesh(geo, mats);
+  }
+  const geo = new THREE.PlaneGeometry(0.32, 0.32);
+  return new THREE.Mesh(geo, getIconMaterial(type));
+}
+// Swaps the mesh parented to `anchor` only when the held type actually
+// changes, so this is cheap to call every frame.
+function setHeldVisual(state, anchor, type) {
+  if (state.heldType === type) return;
+  state.heldType = type;
+  if (state.heldMesh) {
+    anchor.remove(state.heldMesh);
+    if (state.heldMesh.geometry) state.heldMesh.geometry.dispose();
+  }
+  const mesh = makeHeldItemMesh(type);
+  if (mesh) anchor.add(mesh);
+  state.heldMesh = mesh;
 }
 
 // ================= Animals =================
@@ -1713,6 +2003,7 @@ function createOtherPlayer(id, name) {
   scene.add(model.group);
   const entry = {
     group: model.group, head: model.head, legL: model.legL, legR: model.legR, armL: model.armL, armR: model.armR,
+    handAnchor: model.handAnchor, heldState: { heldType: undefined, heldMesh: null },
     target: { x: model.group.position.x, y: model.group.position.y, z: model.group.position.z, yaw: 0 },
     name, walkCycle: 0, lastPos: { x: 0, y: 0, z: 0 }
   };
@@ -1751,6 +2042,7 @@ playersChannel
     let entry = otherPlayers.get(payload.id);
     if (!entry) entry = createOtherPlayer(payload.id, payload.name || 'Player');
     entry.target.x = payload.x; entry.target.y = payload.y; entry.target.z = payload.z; entry.target.yaw = payload.yaw;
+    setHeldVisual(entry.heldState, entry.handAnchor, payload.heldType || null);
   })
   .on('broadcast', { event: 'chat' }, ({ payload }) => {
     if (!payload || payload.id === MY_ID) return;
@@ -1780,7 +2072,10 @@ function broadcastMyPosition(dt) {
   posBroadcastTimer = 0;
   playersChannel.send({
     type: 'broadcast', event: 'pos',
-    payload: { id: MY_ID, name: MY_NAME, x: player.pos.x, y: player.pos.y, z: player.pos.z, yaw: player.yaw }
+    payload: {
+      id: MY_ID, name: MY_NAME, x: player.pos.x, y: player.pos.y, z: player.pos.z, yaw: player.yaw,
+      heldType: currentItem() ? currentItem().type : null
+    }
   });
 }
 function updateOtherPlayerVisuals(dt) {
@@ -1870,7 +2165,7 @@ let isSprinting = false;
 document.addEventListener('keydown', e => {
   if (!gameStarted || chatOpen) return;
   if (e.code === 'Escape') { document.exitPointerLock(); return; }
-  if (e.code === 'KeyE') { toggleInventory(); return; }
+  if (e.code === 'KeyE') { if (furnaceOpen) closeFurnace(); else toggleInventory(); return; }
   if (e.code === 'F5') { thirdPerson = !thirdPerson; myModel.group.visible = thirdPerson; e.preventDefault(); return; }
   if (e.code === 'KeyF') { startEating(); return; }
   if (e.code === 'KeyQ') { throwCurrentItem(); return; }
@@ -1923,11 +2218,11 @@ confirmOverlay.addEventListener('click', e => {
   if (e.target === confirmOverlay) confirmOverlay.style.display = 'none';
 });
 canvas.addEventListener('click', () => {
-  if (!pointerLocked && gameStarted && !inventoryOpen && !chatOpen) canvas.requestPointerLock();
+  if (!pointerLocked && gameStarted && !inventoryOpen && !furnaceOpen && !chatOpen) canvas.requestPointerLock();
 });
 document.addEventListener('pointerlockchange', () => {
   pointerLocked = document.pointerLockElement === canvas;
-  pauseOverlay.style.display = (!pointerLocked && gameStarted && !inventoryOpen && !chatOpen) ? 'flex' : 'none';
+  pauseOverlay.style.display = (!pointerLocked && gameStarted && !inventoryOpen && !furnaceOpen && !chatOpen) ? 'flex' : 'none';
 });
 
 document.addEventListener('mousemove', e => {
@@ -2013,7 +2308,7 @@ function updateMining(dt) {
           else if (roll < 0.20) spawnDroppedItem('stick', 1, popPos);
           // otherwise: nothing drops
         } else {
-          const drop = b.type === 'grass' ? 'dirt' : b.type;
+          const drop = b.type === 'grass' ? 'dirt' : (b.type === 'coal_ore' ? 'coal' : b.type);
           spawnDroppedItem(drop, 1, popPos);
         }
       }
@@ -2087,6 +2382,10 @@ canvas.addEventListener('mousedown', e => {
     const targeted = getBlock(hit.x, hit.y, hit.z);
     if (targeted && targeted.type === 'crafting_table') {
       openWorkbench(); // interacting with a functional block takes priority over placing
+      return;
+    }
+    if (targeted && targeted.type === 'furnace') {
+      openFurnace();
       return;
     }
     const type = currentBlockType();
@@ -2188,6 +2487,7 @@ function animate() {
 
   updateDayNight(dt);
   updateMining(dt);
+  updateFurnace(dt);
   updateEating(dt);
   if (isBlocking) {
     const held = currentItem();
@@ -2279,7 +2579,7 @@ function animate() {
   if (thirdPerson) {
     // Orbit camera behind and slightly above the player's head, pulled in
     // if a wall/block is in the way so it doesn't clip through terrain.
-    const dir = new THREE.Vector3(-Math.sin(player.yaw)*Math.cos(player.pitch), -Math.sin(player.pitch), -Math.cos(player.yaw)*Math.cos(player.pitch));
+    const dir = new THREE.Vector3(-Math.sin(player.yaw)*Math.cos(player.pitch), Math.sin(player.pitch), -Math.cos(player.yaw)*Math.cos(player.pitch));
     const desiredDist = 4.5;
     const eye = new THREE.Vector3(player.pos.x, player.pos.y + player.height*0.9, player.pos.z);
     let dist = desiredDist;
@@ -2304,6 +2604,20 @@ function animate() {
     if (mining.active) camera.rotation.z = Math.sin(mineSwingCycle) * 0.02;
     else if (eating.active) camera.rotation.z = Math.sin(eating.progress * 16) * 0.008;
     else camera.rotation.z = 0;
+  }
+
+  // Held-item view model: only shown in first person (third person already
+  // shows it in myModel's hand). Parented to the camera, so a little extra
+  // sway on top of the camera's own swing/eating roll sells the motion.
+  const heldNow = currentItem();
+  viewModelGroup.visible = !thirdPerson && !!heldNow;
+  if (!thirdPerson) {
+    setHeldVisual(viewModelState, viewModelGroup, heldNow ? heldNow.type : null);
+    let vx = 0.32, vy = -0.28, vz = -0.55;
+    if (mining.active) { vz += Math.sin(mineSwingCycle) * 0.08; vy -= Math.abs(Math.sin(mineSwingCycle)) * 0.03; }
+    else if (eating.active) { vy += 0.06; vz += 0.1; }
+    viewModelGroup.position.set(vx, vy, vz);
+    viewModelGroup.rotation.set(0.2, -0.6, -0.15);
   }
 
   renderer.render(scene, camera);
