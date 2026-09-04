@@ -1,7 +1,910 @@
 <!DOCTYPE html>
-<html lang="en">
+<html>
 <head>
-  ERROR 404 
+<meta charset="UTF-8">
+<title>Gem Hunter</title>
+<style>
+  html,body{margin:0;padding:0;background:#1a1a2e;overflow:hidden;font-family:sans-serif;}
+  #ui{position:fixed;top:10px;left:10px;color:#fff;font-size:18px;text-shadow:0 2px 4px #000;z-index:10;}
+  #minimap{position:fixed;top:10px;right:10px;border:2px solid #fff;background:rgba(0,0,0,0.5);z-index:10;}
+  #msg{position:fixed;top:50%;left:50%;transform:translate(-50%,-50%);color:#fff;font-size:36px;text-align:center;text-shadow:0 2px 8px #000;display:none;z-index:20;}
+  #moneyEarned{position:fixed;top:58%;left:50%;transform:translate(-50%,-50%);color:#ffd60a;font-size:20px;text-align:center;text-shadow:0 2px 8px #000;display:none;z-index:20;}
+  #restart{display:none;position:fixed;top:66%;left:50%;transform:translate(-50%,-50%);padding:10px 20px;font-size:18px;z-index:20;cursor:pointer;border-radius:8px;border:none;background:#4ade80;}
+  canvas{display:block;}
+  #hint{position:fixed;bottom:10px;left:10px;color:#ccc;font-size:14px;text-shadow:0 2px 4px #000;z-index:10;}
 
-  Sorry for the inconvenience; however, our Warden might have gotten lost in the forest. Come back and check again later!
+  .screen{position:fixed;inset:0;display:flex;flex-direction:column;align-items:center;justify-content:center;
+    background:radial-gradient(circle at 50% 30%,#1e2a4a,#0d0f1e);color:#fff;z-index:30;text-align:center;overflow-y:auto;}
+  .screen h1{font-size:48px;margin:0 0 8px;letter-spacing:2px;}
+  .screen h1 span{color:#00e5ff;}
+  .screen p.subtitle{color:#9aa4c0;margin:0 0 36px;font-size:16px;}
+  .screen h2{font-size:26px;margin:0 0 10px;color:#ffd60a;}
+  .menu-btn{background:#16213e;border:2px solid #533483;color:#fff;font-size:18px;padding:14px 40px;
+    margin:8px;border-radius:10px;cursor:pointer;min-width:260px;transition:all .15s;}
+  .menu-btn:hover{background:#22335c;border-color:#00e5ff;transform:scale(1.03);}
+  .menu-btn.selected{border-color:#ffd60a;background:#2a2447;box-shadow:0 0 12px rgba(255,214,10,0.4);}
+  .option-row{display:flex;gap:14px;flex-wrap:wrap;justify-content:center;max-width:640px;margin-bottom:26px;}
+  .option-card{position:relative;background:#16213e;border:2px solid #533483;color:#fff;padding:16px 22px;border-radius:12px;
+    cursor:pointer;width:150px;transition:all .15s;}
+  .option-card:hover{border-color:#00e5ff;transform:translateY(-2px);}
+  .option-card.selected{border-color:#ffd60a;background:#2a2447;box-shadow:0 0 12px rgba(255,214,10,0.4);}
+  .option-card.locked{opacity:0.55;filter:grayscale(0.6);}
+  .option-card.locked:hover{border-color:#533483;transform:none;}
+  .option-card .icon{font-size:36px;margin-bottom:8px;}
+  .option-card .name{font-size:15px;font-weight:bold;}
+  .option-card .desc{font-size:12px;color:#9aa4c0;margin-top:4px;}
+  .option-card .price{margin-top:8px;font-size:13px;font-weight:bold;color:#ffd60a;}
+  .option-card .owned-tag{margin-top:8px;font-size:12px;font-weight:bold;color:#4ade80;}
+  .option-card .lock-tag{margin-top:8px;font-size:12px;font-weight:bold;color:#ff6b6b;}
+  .lock-badge{position:absolute;top:8px;right:10px;font-size:16px;}
+  .nav-row{display:flex;gap:16px;margin-top:8px;}
+  .back-btn{background:transparent;border:2px solid #444;color:#ccc;padding:10px 26px;border-radius:10px;cursor:pointer;font-size:15px;}
+  .back-btn:hover{border-color:#888;color:#fff;}
+  .next-btn{background:#00e5ff;border:2px solid #00e5ff;color:#0d0f1e;font-weight:bold;padding:10px 32px;
+    border-radius:10px;cursor:pointer;font-size:15px;}
+  .next-btn:hover{background:#4df0ff;}
+  .next-btn:disabled{opacity:0.4;cursor:not-allowed;}
+  .step-track{color:#666;font-size:13px;margin-bottom:20px;letter-spacing:1px;}
+  .hidden{display:none !important;}
+  .money-badge{position:fixed;top:14px;left:50%;transform:translateX(-50%);background:#16213e;border:2px solid #ffd60a;
+    color:#ffd60a;font-weight:bold;padding:8px 20px;border-radius:20px;font-size:16px;z-index:40;}
+
+  /* Difficulty slider */
+  .diff-wrap{width:520px;max-width:90vw;margin-bottom:10px;}
+  .diff-name{font-size:32px;font-weight:bold;margin-bottom:4px;}
+  .diff-desc{color:#9aa4c0;font-size:14px;margin-bottom:22px;min-height:18px;}
+  #diffSlider{width:100%;height:8px;-webkit-appearance:none;appearance:none;border-radius:4px;
+    background:linear-gradient(90deg,#4ade80,#ffd60a,#e63946,#8b1e3f);outline:none;cursor:pointer;}
+  #diffSlider::-webkit-slider-thumb{-webkit-appearance:none;appearance:none;width:26px;height:26px;border-radius:50%;
+    background:#fff;border:3px solid #00e5ff;cursor:pointer;box-shadow:0 0 8px rgba(0,229,255,0.7);}
+  #diffSlider::-moz-range-thumb{width:26px;height:26px;border-radius:50%;background:#fff;border:3px solid #00e5ff;cursor:pointer;}
+  .diff-ticks{display:flex;justify-content:space-between;color:#666;font-size:11px;margin-top:6px;padding:0 2px;}
+  .diff-stats{display:flex;gap:22px;justify-content:center;margin-top:22px;color:#cfd6ee;font-size:14px;}
+  .diff-stats div span{display:block;color:#00e5ff;font-weight:bold;font-size:18px;}
+
+  /* Dealer */
+  .dealer-btn{margin:18px 0 6px;background:#5b3a29;border:2px solid #d4a24c;color:#ffd60a;font-size:16px;
+    padding:12px 28px;border-radius:10px;cursor:pointer;font-weight:bold;}
+  .dealer-btn:hover{background:#6e4732;}
+  .dealer-btn:disabled{opacity:0.45;cursor:not-allowed;}
+  .dealer-note{color:#9aa4c0;font-size:12px;max-width:420px;margin-bottom:6px;}
+  .toast{position:fixed;bottom:24px;left:50%;transform:translateX(-50%);background:#16213e;border:2px solid #00e5ff;
+    color:#fff;padding:10px 22px;border-radius:10px;font-size:14px;z-index:50;opacity:0;transition:opacity .25s;pointer-events:none;}
+  .toast.show{opacity:1;}
+</style>
 </head>
+<body>
+
+<div id="screen-main" class="screen">
+  <h1>💎 GEM <span>HUNTER</span></h1>
+  <p class="subtitle">Explore. Collect. Survive the guards.</p>
+  <button class="menu-btn" onclick="goTo('difficulty')">Start Game</button>
+  <button class="menu-btn" onclick="goTo('howto')">How to Play</button>
+  <div style="margin-top:20px;color:#9aa4c0;font-size:14px;">💰 Your Money: <span id="mainMoney" style="color:#ffd60a;font-weight:bold;">0</span> <span style="color:#ffd60a;font-weight:bold;">GIT</span></div>
+  <div style="margin-top:14px;color:#9aa4c0;font-size:13px;">15 Gem &rarr; $GIT 1</div>
+  <div style="margin-top:4px;color:#666;font-size:12px;">Last Updated: <span id="gitClock">--:--:--</span> UTC+8</div>
+
+  <div style="margin-top:22px;background:#16213e;border:1px solid #533483;border-radius:10px;padding:12px 18px;max-width:360px;">
+    <div style="color:#9aa4c0;font-size:12px;margin-bottom:6px;">☁️ Cloud Save Code (keep this to restore progress on another device)</div>
+    <div style="display:flex;gap:8px;align-items:center;justify-content:center;">
+      <code id="saveCodeDisplay" style="color:#00e5ff;font-size:12px;word-break:break-all;">loading...</code>
+      <button onclick="copySaveCode()" style="background:#22335c;border:1px solid #00e5ff;color:#fff;border-radius:6px;padding:4px 10px;cursor:pointer;font-size:12px;">Copy</button>
+    </div>
+    <div style="margin-top:10px;display:flex;gap:8px;justify-content:center;">
+      <input id="restoreCodeInput" placeholder="Paste code to restore" style="flex:1;max-width:200px;padding:6px 8px;border-radius:6px;border:1px solid #533483;background:#0d0f1e;color:#fff;font-size:12px;">
+      <button onclick="restoreFromCode()" style="background:#5b3a29;border:1px solid #d4a24c;color:#ffd60a;border-radius:6px;padding:6px 12px;cursor:pointer;font-size:12px;">Restore</button>
+    </div>
+    <div id="restoreStatus" style="margin-top:6px;font-size:11px;color:#9aa4c0;"></div>
+  </div>
+
+  <div style="margin-top:26px;color:#666;font-size:12px;">Last Updated: <span id="footerDate">--/--/----</span> <span id="footerClock">--:--:--</span> UTC+8</div>
+</div>
+
+<div id="screen-howto" class="screen hidden">
+  <h2>How to Play</h2>
+  <div style="max-width:480px;text-align:left;color:#cfd6ee;font-size:16px;line-height:1.7;margin-bottom:30px;">
+    <p><strong style="color:#00e5ff;">Move:</strong> Arrow keys or WASD to walk around the map.</p>
+    <p><strong style="color:#00e5ff;">Goal:</strong> Collect every gem 💎 scattered across the map.</p>
+    <p><strong style="color:#e63946;">Danger:</strong> Red guards patrol the map. Getting touched costs a life and gives you a short burst of invincibility.</p>
+    <p><strong style="color:#ffd60a;">Minimap:</strong> Check the top-right corner to see gems, guards, and your position.</p>
+    <p><strong style="color:#9aa4c0;">Tip:</strong> Use walls to break line of sight from Alert and Hunt guards.</p>
+    <p><strong style="color:#d4a24c;">Money:</strong> Gems collected earn you money. Spend it on skins, and buy weapons from the Weapon Dealer on Step 3.</p>
+  </div>
+  <button class="next-btn" onclick="goTo('main')">Close</button>
+</div>
+
+<div id="screen-difficulty" class="screen hidden">
+  <div class="step-track">STEP 1 OF 4 — DIFFICULTY</div>
+  <h2>Choose Difficulty</h2>
+  <div class="diff-wrap">
+    <div class="diff-name" id="diffName">Normal</div>
+    <div class="diff-desc" id="diffDesc">Balanced challenge</div>
+    <input type="range" id="diffSlider" min="1" max="10" step="1" value="5">
+    <div class="diff-ticks"><span>1</span><span>2</span><span>3</span><span>4</span><span>5</span><span>6</span><span>7</span><span>8</span><span>9</span><span>10</span></div>
+    <div class="diff-stats">
+      <div>Lives<span id="statLives">3</span></div>
+      <div>Guards<span id="statGuards">8</span></div>
+      <div>Guard Speed<span id="statSpeed">1.0x</span></div>
+    </div>
+  </div>
+  <div class="nav-row" style="margin-top:26px;">
+    <button class="back-btn" onclick="goTo('main')">Back</button>
+    <button class="next-btn" onclick="goTo('skin')">Next</button>
+  </div>
+</div>
+
+<div id="screen-skin" class="screen hidden">
+  <div class="money-badge">💰 <span id="skinMoney">0</span> GIT</div>
+  <div class="step-track">STEP 2 OF 4 — CHARACTER SKIN</div>
+  <h2>Choose Your Character</h2>
+  <div class="option-row" id="skin-options"></div>
+  <div class="nav-row">
+    <button class="back-btn" onclick="goTo('difficulty')">Back</button>
+    <button class="next-btn" onclick="goTo('weapon')">Next</button>
+  </div>
+</div>
+
+<div id="screen-weapon" class="screen hidden">
+  <div class="money-badge">💰 <span id="weaponMoney">0</span> GIT</div>
+  <div class="step-track">STEP 3 OF 4 — WEAPON</div>
+  <h2>Choose Your Weapon</h2>
+  <div class="dealer-note" id="weaponDealerNote">Pay 10,000💰 to unlock the Weapon Dealer's shop — then buy weapons below with money.</div>
+  <button class="dealer-btn" id="weaponDealerBtn" onclick="unlockWeaponDealer()">🔫 Pay Weapon Dealer — Unlock Shop (10,000💰)</button>
+  <div class="option-row" id="weapon-options"></div>
+  <div class="nav-row">
+    <button class="back-btn" onclick="goTo('skin')">Back</button>
+    <button class="next-btn" onclick="goTo('guard')">Next</button>
+  </div>
+</div>
+
+<div id="screen-guard" class="screen hidden">
+  <div class="money-badge">💰 <span id="guardMoney">0</span> GIT</div>
+  <div class="step-track">STEP 4 OF 4 — GUARD BEHAVIOR</div>
+  <h2>🕴️ Guard Dealer</h2>
+  <div class="option-row" id="guard-options"></div>
+  <div class="dealer-note">Guards default to <strong style="color:#ffd60a;">Alert</strong>. Pay the Guard Dealer 10,000💰 to unlock one random guard behavior permanently.</div>
+  <button class="dealer-btn" id="dealerBtn" onclick="visitDealer()">🕴️ Pay Guard Dealer — Unlock Random (10,000💰)</button>
+
+  <div class="nav-row">
+    <button class="back-btn" onclick="goTo('weapon')">Back</button>
+    <button class="next-btn" onclick="startGame()">Play!</button>
+  </div>
+</div>
+
+<div id="game-ui">
+<div id="ui">💎 Gems: <span id="score">0</span>/<span id="total">0</span> &nbsp; ❤️ <span id="lives">3</span> &nbsp; 💰 <span id="liveMoney">0</span> GIT</div>
+<div id="hint">Move: Arrow keys / WASD — Avoid the red guards!</div>
+<canvas id="minimap" width="150" height="150"></canvas>
+<canvas id="game"></canvas>
+<div id="msg"></div>
+<div id="moneyEarned"></div>
+<div id="cloudStatus" style="position:fixed;top:74%;left:50%;transform:translate(-50%,-50%);color:#00e5ff;font-size:14px;text-align:center;text-shadow:0 2px 8px #000;z-index:20;"></div>
+<button id="restart" onclick="location.reload()">Play Again</button>
+</div>
+
+<div class="toast" id="toast"></div>
+
+<script>
+// ---- Supabase cloud save ----
+const SUPABASE_URL = 'https://ootujxngqczxdoiijrve.supabase.co';
+const SUPABASE_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Im9vdHVqeG5ncWN6eGRvaWlqcnZlIiwicm9sZSI6ImFub24iLCJpYXQiOjE3ODU2NTY5NzgsImV4cCI6MjEwMTIzMjk3OH0.JNuQ6F2M2eJDbBtP1E4Q6NVKgN2g0vrHtB1-o1VyEvQ';
+const SAVE_CODE_KEY = 'gemHunterSaveCode_v1';
+
+function getSaveCode(){
+  let code = localStorage.getItem(SAVE_CODE_KEY);
+  if(!code){
+    code = (crypto.randomUUID ? crypto.randomUUID() : 'xxxxxxxx-xxxx-4xxx-yxxx-xxxxxxxxxxxx'.replace(/[xy]/g, c=>{
+      const r = Math.random()*16|0, v = c==='x'?r:(r&0x3|0x8); return v.toString(16);
+    }));
+    localStorage.setItem(SAVE_CODE_KEY, code);
+  }
+  return code;
+}
+
+async function cloudSaveProfile(){
+  try{
+    const code = getSaveCode();
+    const res = await fetch(`${SUPABASE_URL}/rest/v1/gem_hunter_saves`, {
+      method: 'POST',
+      headers: {
+        'apikey': SUPABASE_KEY,
+        'Authorization': `Bearer ${SUPABASE_KEY}`,
+        'Content-Type': 'application/json',
+        'Prefer': 'resolution=merge-duplicates'
+      },
+      body: JSON.stringify({ player_id: code, profile, updated_at: new Date().toISOString() })
+    });
+    if(!res.ok) throw new Error('save failed: ' + res.status);
+    return true;
+  } catch(e){
+    console.error('Cloud save error', e);
+    return false;
+  }
+}
+
+async function cloudLoadProfile(code){
+  try{
+    const res = await fetch(`${SUPABASE_URL}/rest/v1/gem_hunter_saves?player_id=eq.${encodeURIComponent(code)}&select=profile`, {
+      headers: { 'apikey': SUPABASE_KEY, 'Authorization': `Bearer ${SUPABASE_KEY}` }
+    });
+    if(!res.ok) throw new Error('load failed: ' + res.status);
+    const rows = await res.json();
+    if(rows.length === 0) return null;
+    return rows[0].profile;
+  } catch(e){
+    console.error('Cloud load error', e);
+    return null;
+  }
+}
+
+// ---- Persistent profile (money + unlocks) ----
+const PROFILE_KEY = 'gemHunterProfile_v1';
+function loadProfile(){
+  let p;
+  try { p = JSON.parse(localStorage.getItem(PROFILE_KEY)); } catch(e) { p = null; }
+  if(!p || typeof p !== 'object'){
+    p = { money: 0, skins: ['gold'], weapons: ['none'], guards: ['alert'], weaponDealerUnlocked: false };
+  }
+  p.money = p.money || 0;
+  p.skins = p.skins && p.skins.length ? p.skins : ['gold'];
+  p.weapons = p.weapons && p.weapons.length ? p.weapons : ['none'];
+  p.guards = p.guards && p.guards.length ? p.guards : ['alert'];
+  p.weaponDealerUnlocked = !!p.weaponDealerUnlocked;
+  return p;
+}
+function saveProfile(){
+  localStorage.setItem(PROFILE_KEY, JSON.stringify(profile));
+  cloudSaveProfile();
+}
+let profile = loadProfile();
+
+function copySaveCode(){
+  const code = getSaveCode();
+  const fallbackCopy = () => {
+    try{
+      const ta = document.createElement('textarea');
+      ta.value = code;
+      ta.style.position = 'fixed';
+      ta.style.top = '-1000px';
+      ta.style.left = '-1000px';
+      document.body.appendChild(ta);
+      ta.focus();
+      ta.select();
+      ta.setSelectionRange(0, ta.value.length);
+      const ok = document.execCommand('copy');
+      document.body.removeChild(ta);
+      if(ok) showToast('Save code copied!');
+      else showToast('Copy failed — select the code manually.');
+    } catch(e){
+      showToast('Copy failed — select the code manually.');
+    }
+  };
+  if(navigator.clipboard && navigator.clipboard.writeText && window.isSecureContext){
+    navigator.clipboard.writeText(code).then(()=>{
+      showToast('Save code copied!');
+    }).catch(fallbackCopy);
+  } else {
+    fallbackCopy();
+  }
+}
+
+async function restoreFromCode(){
+  const input = document.getElementById('restoreCodeInput');
+  const statusEl = document.getElementById('restoreStatus');
+  const code = (input.value || '').trim();
+  if(!code){ statusEl.textContent = 'Enter a save code first.'; return; }
+  statusEl.textContent = 'Loading from cloud…';
+  const loaded = await cloudLoadProfile(code);
+  if(!loaded){
+    statusEl.textContent = 'No save found for that code.';
+    return;
+  }
+  profile = loaded;
+  localStorage.setItem(SAVE_CODE_KEY, code);
+  localStorage.setItem(PROFILE_KEY, JSON.stringify(profile));
+  statusEl.textContent = 'Progress restored!';
+  refreshMoneyDisplays();
+  document.getElementById('saveCodeDisplay').textContent = code;
+  showToast('Cloud save restored!');
+}
+
+document.addEventListener('DOMContentLoaded', () => {
+  const el = document.getElementById('saveCodeDisplay');
+  if(el) el.textContent = getSaveCode();
+});
+
+function showToast(text){
+  const t = document.getElementById('toast');
+  t.textContent = text;
+  t.classList.add('show');
+  clearTimeout(showToast._tm);
+  showToast._tm = setTimeout(()=> t.classList.remove('show'), 2200);
+}
+
+function refreshMoneyDisplays(){
+  ['mainMoney','skinMoney','weaponMoney','guardMoney','liveMoney'].forEach(id=>{
+    const el = document.getElementById(id);
+    if(el) el.textContent = profile.money.toLocaleString();
+  });
+}
+
+// ---- GIT currency clock (UTC+8) ----
+function updateGitClock(){
+  const el = document.getElementById('gitClock');
+  if(!el) return;
+  const now = new Date(Date.now() + 8*60*60*1000); // shift to UTC+8
+  const hh = String(now.getUTCHours()).padStart(2,'0');
+  const mm = String(now.getUTCMinutes()).padStart(2,'0');
+  const ss = String(now.getUTCSeconds()).padStart(2,'0');
+  el.textContent = `${hh}:${mm}:${ss}`;
+}
+updateGitClock();
+setInterval(updateGitClock, 1000);
+
+// ---- Footer date/clock (real-time, 24hr, UTC+8) ----
+function updateFooterClock(){
+  const clockEl = document.getElementById('footerClock');
+  const dateEl = document.getElementById('footerDate');
+  if(!clockEl && !dateEl) return;
+  const now = new Date(Date.now() + 8*60*60*1000); // shift to UTC+8
+  const hh = String(now.getUTCHours()).padStart(2,'0');
+  const mm = String(now.getUTCMinutes()).padStart(2,'0');
+  const ss = String(now.getUTCSeconds()).padStart(2,'0');
+  if(clockEl) clockEl.textContent = `${hh}:${mm}:${ss}`;
+  if(dateEl){
+    const dd = String(now.getUTCDate()).padStart(2,'0');
+    const mo = String(now.getUTCMonth()+1).padStart(2,'0');
+    const yyyy = now.getUTCFullYear();
+    dateEl.textContent = `${mo}/${dd}/${yyyy}`;
+  }
+}
+updateFooterClock();
+setInterval(updateFooterClock, 1000);
+
+// ---- Menu system ----
+const DIFF_NAMES = ['Noob','Easy','Medium','Normal','Hard','Demon','Hacker'];
+// map slider 1-10 -> difficulty name index
+function diffNameForVal(val){
+  if(val <= 1) return {name:'Noob', idx:0};
+  if(val === 2) return {name:'Easy', idx:1};
+  if(val <= 4) return {name:'Medium', idx:2};
+  if(val === 5) return {name:'Normal', idx:3};
+  if(val <= 7) return {name:'Hard', idx:4};
+  if(val <= 9) return {name:'Demon', idx:5};
+  return {name:'Hacker', idx:6};
+}
+const DIFF_DESCS = {
+  Noob:'Barely any guards, tons of lives',
+  Easy:'Fewer guards, more lives',
+  Medium:'A gentle step up in challenge',
+  Normal:'Balanced challenge',
+  Hard:'Fast guards, fewer lives',
+  Demon:'Swarms of fast guards',
+  Hacker:'Nightmare mode — good luck'
+};
+function diffStatsForVal(val){
+  const guardCount = Math.round(3 + (val-1)*(22-3)/9);
+  const guardSpeedMult = +(0.6 + (val-1)*(2.2-0.6)/9).toFixed(2);
+  const lives = Math.max(1, Math.round(5 - (val-1)*(5-1)/9));
+  return {guardCount, guardSpeedMult, lives};
+}
+
+const settings = { difficulty: 5, skin: 'gold', weapon: 'none', guard: 'alert' };
+document.getElementById('game-ui').style.display = 'none';
+
+function goTo(name){
+  document.querySelectorAll('.screen').forEach(s => s.classList.add('hidden'));
+  document.getElementById('screen-'+name).classList.remove('hidden');
+  if(name === 'skin') renderSkinOptions();
+  if(name === 'weapon') renderWeaponOptions();
+  if(name === 'guard') renderGuardOptions();
+  refreshMoneyDisplays();
+}
+
+// --- Difficulty slider wiring ---
+const diffSlider = document.getElementById('diffSlider');
+function updateDiffUI(){
+  const val = parseInt(diffSlider.value, 10);
+  settings.difficulty = val;
+  const info = diffNameForVal(val);
+  document.getElementById('diffName').textContent = info.name;
+  document.getElementById('diffDesc').textContent = DIFF_DESCS[info.name];
+  const stats = diffStatsForVal(val);
+  document.getElementById('statLives').textContent = stats.lives;
+  document.getElementById('statGuards').textContent = stats.guardCount;
+  document.getElementById('statSpeed').textContent = stats.guardSpeedMult + 'x';
+}
+diffSlider.addEventListener('input', updateDiffUI);
+updateDiffUI();
+
+// --- Skins shop ---
+const SKINS = [
+  { val:'gold',  icon:'🟡', name:'Gold',      color:'#ffd60a', price:0 },
+  { val:'blue',  icon:'🔵', name:'Sapphire',  color:'#378ade', price:750 },
+  { val:'green', icon:'🟢', name:'Emerald',   color:'#63c22f', price:2000 },
+  { val:'pink',  icon:'🟣', name:'Amethyst',  color:'#c159d4', price:4500 },
+  { val:'red',   icon:'🔴', name:'Ruby',      color:'#e63946', price:8000 },
+  { val:'black', icon:'⚫', name:'Obsidian',  color:'#2b2b3a', price:15000 }
+];
+const SKIN_COLORS = {};
+SKINS.forEach(s => SKIN_COLORS[s.val] = s.color);
+
+function renderSkinOptions(){
+  const container = document.getElementById('skin-options');
+  container.innerHTML = '';
+  SKINS.forEach(s => {
+    const owned = profile.skins.includes(s.val);
+    const card = document.createElement('div');
+    card.className = 'option-card' + (settings.skin === s.val ? ' selected' : '') + (!owned ? ' locked' : '');
+    card.dataset.val = s.val;
+    card.innerHTML = `<div class="icon">${s.icon}</div><div class="name">${s.name}</div>` +
+      (owned ? '<div class="owned-tag">✔ Owned</div>' : `<div class="price">💰 ${s.price.toLocaleString()}</div>`);
+    card.addEventListener('click', () => {
+      if(owned){
+        container.querySelectorAll('.option-card').forEach(c => c.classList.remove('selected'));
+        card.classList.add('selected');
+        settings.skin = s.val;
+      } else {
+        buyItem('skins', s, () => renderSkinOptions());
+      }
+    });
+    container.appendChild(card);
+  });
+}
+
+// --- Weapons shop ---
+const WEAPONS = [
+  { val:'none',   icon:'🚫', name:'None',        desc:'Pure evasion run', price:0 },
+  { val:'speed',  icon:'👟', name:'Speed Boots', desc:'Move faster', price:1200 },
+  { val:'shield', icon:'🛡️', name:'Shield',      desc:'Extra hit protection', price:3000 },
+  { val:'phase',  icon:'⚡', name:'Phase Blink', desc:'Faster + longer invincibility', price:7000 },
+  { val:'aegis',  icon:'👑', name:'Aegis Crown', desc:'Fast, +2 lives, longer invincibility', price:14000 }
+];
+
+function renderWeaponOptions(){
+  const container = document.getElementById('weapon-options');
+  container.innerHTML = '';
+  updateWeaponDealerBtn();
+  WEAPONS.forEach((w, idx) => {
+    const owned = profile.weapons.includes(w.val);
+
+    // Priced weapons stay completely hidden until the Weapon Dealer is unlocked.
+    if(w.price > 0 && !profile.weaponDealerUnlocked) return;
+
+    // Once unlocked, weapons must be bought in order — each one requires the previous to be owned.
+    const prevWeapon = WEAPONS[idx - 1];
+    const prevOwned = !prevWeapon || profile.weapons.includes(prevWeapon.val);
+    const buyable = w.price > 0 && profile.weaponDealerUnlocked && prevOwned;
+
+    const card = document.createElement('div');
+    card.className = 'option-card' + (settings.weapon === w.val ? ' selected' : '') + (!owned ? ' locked' : '');
+    card.dataset.val = w.val;
+    let tagHtml;
+    if(owned){
+      tagHtml = '<div class="owned-tag">✔ Owned</div>';
+    } else if(!buyable){
+      tagHtml = `<div class="lock-tag">🔒 Buy ${prevWeapon.name} first</div>`;
+    } else {
+      tagHtml = `<div class="price">💰 ${w.price.toLocaleString()} GIT</div>`;
+    }
+    card.innerHTML = `<div class="icon">${w.icon}</div><div class="name">${w.name}</div><div class="desc">${w.desc}</div>` + tagHtml;
+    card.addEventListener('click', () => {
+      if(owned){
+        container.querySelectorAll('.option-card').forEach(c => c.classList.remove('selected'));
+        card.classList.add('selected');
+        settings.weapon = w.val;
+      } else if(!profile.weaponDealerUnlocked){
+        showToast('The Weapon Dealer is locked — pay 10,000💰 above to unlock the shop.');
+      } else if(!buyable){
+        showToast(`You must buy ${prevWeapon.name} before you can buy ${w.name}.`);
+      } else {
+        buyItem('weapons', w, () => renderWeaponOptions());
+      }
+    });
+    container.appendChild(card);
+  });
+}
+
+// --- Generic purchase handler (skins & weapons) ---
+function buyItem(profileKey, item, onDone){
+  if(item.price === 0){
+    if(!profile[profileKey].includes(item.val)) profile[profileKey].push(item.val);
+    saveProfile();
+    onDone();
+    return;
+  }
+  if(profile.money < item.price){
+    showToast(`Not enough money for ${item.name} — need 💰${item.price.toLocaleString()}`);
+    return;
+  }
+  profile.money -= item.price;
+  profile[profileKey].push(item.val);
+  saveProfile();
+  refreshMoneyDisplays();
+  showToast(`Bought ${item.name}!`);
+  onDone();
+}
+
+// --- Guard difficulty (locked behind Dealer) ---
+const GUARDS = [
+  { val:'wander', icon:'😴', name:'Wander', desc:'Random patrols only' },
+  { val:'alert',  icon:'👀', name:'Alert',  desc:'Notice you nearby' },
+  { val:'hunt',   icon:'😈', name:'Hunt',   desc:'Chase you on sight' }
+];
+const DEALER_COST = 10000;
+
+function renderGuardOptions(){
+  const container = document.getElementById('guard-options');
+  container.innerHTML = '';
+  GUARDS.forEach(g => {
+    const unlocked = profile.guards.includes(g.val);
+    const card = document.createElement('div');
+    card.className = 'option-card' + (settings.guard === g.val ? ' selected' : '') + (!unlocked ? ' locked' : '');
+    card.dataset.val = g.val;
+    if(!unlocked){
+      const badge = document.createElement('div');
+      badge.className = 'lock-badge';
+      badge.textContent = '🔒';
+      card.appendChild(badge);
+    }
+    card.innerHTML += `<div class="icon">${g.icon}</div><div class="name">${g.name}</div><div class="desc">${g.desc}</div>` +
+      (unlocked ? '' : '<div class="lock-tag">Ask the Dealer</div>');
+    card.addEventListener('click', () => {
+      if(unlocked){
+        container.querySelectorAll('.option-card').forEach(c => c.classList.remove('selected'));
+        card.classList.add('selected');
+        settings.guard = g.val;
+      } else {
+        showToast('Locked — pay the Dealer to unlock a random guard behavior.');
+      }
+    });
+    container.appendChild(card);
+  });
+  updateDealerBtn();
+}
+
+function updateDealerBtn(){
+  const btn = document.getElementById('dealerBtn');
+  const lockedCount = GUARDS.filter(g => !profile.guards.includes(g.val)).length;
+  if(lockedCount === 0){
+    btn.disabled = true;
+    btn.textContent = '🕴️ All Guard Behaviors Unlocked';
+  } else {
+    btn.disabled = profile.money < DEALER_COST;
+    btn.textContent = `🕴️ Pay Guard Dealer — Unlock Random (${DEALER_COST.toLocaleString()}💰)`;
+  }
+}
+
+function visitDealer(){
+  const locked = GUARDS.filter(g => !profile.guards.includes(g.val));
+  if(locked.length === 0){ showToast('The Guard Dealer has nothing left to offer you.'); return; }
+  if(profile.money < DEALER_COST){ showToast(`Not enough money — the Guard Dealer wants 💰${DEALER_COST.toLocaleString()}`); return; }
+  profile.money -= DEALER_COST;
+  const pick = locked[Math.floor(Math.random()*locked.length)];
+  profile.guards.push(pick.val);
+  saveProfile();
+  refreshMoneyDisplays();
+  showToast(`The Guard Dealer unlocked "${pick.name}" guard behavior!`);
+  renderGuardOptions();
+}
+
+// --- Weapon Dealer (separate dealer: flat 10k unlock, then buy weapons with money) ---
+const WEAPON_DEALER_COST = 10000;
+
+function updateWeaponDealerBtn(){
+  const btn = document.getElementById('weaponDealerBtn');
+  const note = document.getElementById('weaponDealerNote');
+  if(!btn) return;
+  if(profile.weaponDealerUnlocked){
+    // Dealer is no longer needed once unlocked — hide it and its note entirely.
+    btn.style.display = 'none';
+    if(note) note.style.display = 'none';
+  } else {
+    btn.style.display = '';
+    if(note) note.style.display = '';
+    btn.disabled = profile.money < WEAPON_DEALER_COST;
+    btn.textContent = `🔫 Pay Weapon Dealer — Unlock Shop (${WEAPON_DEALER_COST.toLocaleString()}💰)`;
+    if(note) note.textContent = 'Pay 10,000💰 to unlock the Weapon Dealer\'s shop — then buy weapons below with money.';
+  }
+}
+
+function unlockWeaponDealer(){
+  if(profile.weaponDealerUnlocked){ showToast('The Weapon Dealer is already unlocked.'); return; }
+  if(profile.money < WEAPON_DEALER_COST){ showToast(`Not enough money — the Weapon Dealer wants 💰${WEAPON_DEALER_COST.toLocaleString()}`); return; }
+  profile.money -= WEAPON_DEALER_COST;
+  profile.weaponDealerUnlocked = true;
+  saveProfile();
+  refreshMoneyDisplays();
+  showToast('The Weapon Dealer is open for business!');
+  renderWeaponOptions();
+}
+
+function startGame(){
+  document.querySelectorAll('.screen').forEach(s => s.classList.add('hidden'));
+  document.getElementById('game-ui').style.display = 'block';
+  initGame();
+}
+
+refreshMoneyDisplays();
+
+// ---- Game (initialized only after Play is pressed) ----
+const canvas = document.getElementById('game');
+const ctx = canvas.getContext('2d');
+function resize(){canvas.width=innerWidth;canvas.height=innerHeight;}
+resize(); window.addEventListener('resize', resize);
+
+const MAP_W = 3000, MAP_H = 3000;
+
+let player, invuln, walls, gems, TOTAL_GEMS, score, guards, guardMode;
+
+function initGame(){
+  const stats = diffStatsForVal(settings.difficulty);
+  const startLives = stats.lives;
+  const guardCount = stats.guardCount;
+  const guardSpeedMult = stats.guardSpeedMult;
+
+  let baseSpeed = 4;
+  let extraLives = 0;
+  let invulnBonus = 0;
+  if(settings.weapon === 'speed'){ baseSpeed = 5.2; }
+  else if(settings.weapon === 'shield'){ extraLives = 1; }
+  else if(settings.weapon === 'phase'){ baseSpeed = 5.4; invulnBonus = 40; }
+  else if(settings.weapon === 'aegis'){ baseSpeed = 5.3; extraLives = 2; invulnBonus = 40; }
+
+  player = {x: MAP_W/2, y: MAP_H/2, r: 14, speed: baseSpeed, lives: startLives + extraLives, color: SKIN_COLORS[settings.skin] || '#ffd60a'};
+  invuln = 0;
+  guardMode = settings.guard; // 'wander' | 'alert' | 'hunt'
+  window.__invulnBonus = invulnBonus;
+
+  document.getElementById('lives').textContent = player.lives;
+  refreshMoneyDisplays();
+
+  walls = [];
+  for(let i=0;i<40;i++){
+    walls.push({x: Math.random()*MAP_W, y: Math.random()*MAP_H, w: 60+Math.random()*100, h: 60+Math.random()*100});
+  }
+
+  // place player after walls exist, so it doesn't spawn inside one
+  const startSpot = findSafeSpot(player.r);
+  player.x = startSpot.x;
+  player.y = startSpot.y;
+
+  gems = [];
+  TOTAL_GEMS = 30;
+  for(let i=0;i<TOTAL_GEMS;i++){
+    const spot = findSafeSpot(8);
+    gems.push({x: spot.x, y: spot.y, r: 8, collected:false, angle: Math.random()*Math.PI*2});
+  }
+  document.getElementById('total').textContent = TOTAL_GEMS;
+  score = 0;
+  document.getElementById('score').textContent = score;
+
+  guards = [];
+  for(let i=0;i<guardCount;i++){
+    const spot = findSafeSpot(16);
+    guards.push({
+      x: spot.x, y: spot.y, r: 16,
+      speed: (1.5 + Math.random()) * guardSpeedMult,
+      dir: Math.random()*Math.PI*2,
+      changeTimer: 0
+    });
+  }
+
+  gameOver = false;
+  won = false;
+  document.getElementById('msg').style.display = 'none';
+  document.getElementById('moneyEarned').style.display = 'none';
+  document.getElementById('restart').style.display = 'none';
+
+  requestAnimationFrame(loop);
+}
+
+function rectsOverlapCircle(rect, cx, cy, cr){
+  const closestX = Math.max(rect.x, Math.min(cx, rect.x+rect.w));
+  const closestY = Math.max(rect.y, Math.min(cy, rect.y+rect.h));
+  const dx = cx-closestX, dy = cy-closestY;
+  return dx*dx+dy*dy < cr*cr;
+}
+
+function findSafeSpot(r, margin){
+  margin = margin || 0;
+  let x, y, tries = 0;
+  do {
+    x = margin + Math.random()*(MAP_W-margin*2);
+    y = margin + Math.random()*(MAP_H-margin*2);
+    tries++;
+  } while (walls.some(w => rectsOverlapCircle(w, x, y, r+4)) && tries < 200);
+  return {x, y};
+}
+
+const keys = {};
+window.addEventListener('keydown', e => keys[e.key.toLowerCase()] = true);
+window.addEventListener('keyup', e => keys[e.key.toLowerCase()] = false);
+
+let gameOver = false;
+let won = false;
+
+function tryMove(nx, ny){
+  for(const w of walls){
+    if(rectsOverlapCircle(w, nx, ny, player.r)) return false;
+  }
+  return true;
+}
+
+function endGame(text, coins){
+  gameOver = true;
+  profile.money += coins;
+  saveProfile();
+  showEnd(text, coins);
+  const cloudEl = document.getElementById('cloudStatus');
+  if(cloudEl){
+    cloudEl.textContent = '☁️ Saving to cloud…';
+    cloudSaveProfile().then(ok=>{
+      cloudEl.textContent = ok ? '☁️ Progress saved to cloud' : '⚠️ Cloud save failed — kept locally';
+    });
+  }
+}
+
+function update(){
+  if(gameOver) return;
+  let dx=0, dy=0;
+  if(keys['arrowup']||keys['w']) dy -= 1;
+  if(keys['arrowdown']||keys['s']) dy += 1;
+  if(keys['arrowleft']||keys['a']) dx -= 1;
+  if(keys['arrowright']||keys['d']) dx += 1;
+  if(dx||dy){
+    const len = Math.hypot(dx,dy);
+    dx = dx/len*player.speed; dy = dy/len*player.speed;
+    const nx = Math.max(player.r, Math.min(MAP_W-player.r, player.x+dx));
+    const ny = Math.max(player.r, Math.min(MAP_H-player.r, player.y+dy));
+    if(tryMove(nx, player.y)) player.x = nx;
+    if(tryMove(player.x, ny)) player.y = ny;
+  }
+
+  // gems
+  for(const g of gems){
+    if(!g.collected && Math.hypot(g.x-player.x, g.y-player.y) < g.r+player.r){
+      g.collected = true;
+      score++;
+      document.getElementById('score').textContent = score;
+      if(score >= TOTAL_GEMS){
+        won = true;
+        endGame("🎉 You collected all the gems!", score*50 + 1000);
+      }
+    }
+  }
+
+  // guards
+  for(const gd of guards){
+    const distToPlayer = Math.hypot(gd.x-player.x, gd.y-player.y);
+    const seesPlayer = (guardMode === 'alert' && distToPlayer < 260) || (guardMode === 'hunt' && distToPlayer < 420);
+
+    if(seesPlayer){
+      gd.dir = Math.atan2(player.y-gd.y, player.x-gd.x);
+      gd.changeTimer = 10;
+    } else {
+      gd.changeTimer -= 1;
+      if(gd.changeTimer <= 0){
+        gd.dir += (Math.random()-0.5)*1.5;
+        gd.changeTimer = 40 + Math.random()*60;
+      }
+    }
+    const nx = gd.x + Math.cos(gd.dir)*gd.speed;
+    const ny = gd.y + Math.sin(gd.dir)*gd.speed;
+    let blocked = false;
+    for(const w of walls) if(rectsOverlapCircle(w, nx, ny, gd.r)) blocked = true;
+    if(nx < gd.r || nx > MAP_W-gd.r || ny < gd.r || ny > MAP_H-gd.r) blocked = true;
+    if(blocked){ gd.dir += Math.PI/2 + Math.random(); }
+    else { gd.x = nx; gd.y = ny; }
+
+    if(invuln <= 0 && Math.hypot(gd.x-player.x, gd.y-player.y) < gd.r+player.r){
+      player.lives--;
+      document.getElementById('lives').textContent = player.lives;
+      invuln = 90 + (window.__invulnBonus||0);
+      if(player.lives <= 0){
+        endGame("💀 Game Over — you ran out of lives!", score*50);
+      }
+    }
+  }
+  if(invuln > 0) invuln--;
+}
+
+function showEnd(text, coins){
+  document.getElementById('msg').textContent = text;
+  document.getElementById('msg').style.display = 'block';
+  const me = document.getElementById('moneyEarned');
+  me.textContent = `💰 +${coins.toLocaleString()} earned — Total: ${profile.money.toLocaleString()}`;
+  me.style.display = 'block';
+  document.getElementById('restart').style.display = 'block';
+}
+
+function draw(){
+  const camX = Math.max(0, Math.min(MAP_W-canvas.width, player.x - canvas.width/2));
+  const camY = Math.max(0, Math.min(MAP_H-canvas.height, player.y - canvas.height/2));
+
+  ctx.fillStyle = '#16213e';
+  ctx.fillRect(0,0,canvas.width,canvas.height);
+
+  // grid
+  ctx.strokeStyle = 'rgba(255,255,255,0.05)';
+  ctx.lineWidth = 1;
+  const gridSize = 100;
+  for(let x = -((camX)%gridSize); x < canvas.width; x += gridSize){
+    ctx.beginPath(); ctx.moveTo(x,0); ctx.lineTo(x,canvas.height); ctx.stroke();
+  }
+  for(let y = -((camY)%gridSize); y < canvas.height; y += gridSize){
+    ctx.beginPath(); ctx.moveTo(0,y); ctx.lineTo(canvas.width,y); ctx.stroke();
+  }
+
+  // walls
+  ctx.fillStyle = '#0f3460';
+  ctx.strokeStyle = '#533483';
+  ctx.lineWidth = 2;
+  for(const w of walls){
+    ctx.fillRect(w.x-camX, w.y-camY, w.w, w.h);
+    ctx.strokeRect(w.x-camX, w.y-camY, w.w, w.h);
+  }
+
+  // gems
+  const t = Date.now()/300;
+  for(const g of gems){
+    if(g.collected) continue;
+    const bob = Math.sin(t+g.angle)*4;
+    const sx = g.x-camX, sy = g.y-camY+bob;
+    ctx.save();
+    ctx.translate(sx, sy);
+    ctx.rotate(t*0.5);
+    ctx.fillStyle = '#00e5ff';
+    ctx.beginPath();
+    ctx.moveTo(0,-g.r); ctx.lineTo(g.r,0); ctx.lineTo(0,g.r); ctx.lineTo(-g.r,0);
+    ctx.closePath(); ctx.fill();
+    ctx.restore();
+  }
+
+  // guards
+  for(const gd of guards){
+    ctx.fillStyle = '#e63946';
+    ctx.beginPath();
+    ctx.arc(gd.x-camX, gd.y-camY, gd.r, 0, Math.PI*2);
+    ctx.fill();
+    // eyes
+    ctx.fillStyle = '#fff';
+    ctx.beginPath();
+    ctx.arc(gd.x-camX+Math.cos(gd.dir)*6, gd.y-camY+Math.sin(gd.dir)*6, 3, 0, Math.PI*2);
+    ctx.fill();
+  }
+
+  // player
+  ctx.fillStyle = invuln > 0 && Math.floor(invuln/6)%2===0 ? 'rgba(255,255,255,0.4)' : player.color;
+  ctx.beginPath();
+  ctx.arc(player.x-camX, player.y-camY, player.r, 0, Math.PI*2);
+  ctx.fill();
+  ctx.strokeStyle = '#fff'; ctx.lineWidth = 2; ctx.stroke();
+
+  drawMinimap();
+}
+
+function drawMinimap(){
+  const mctx = document.getElementById('minimap').getContext('2d');
+  const scale = 150/MAP_W;
+  mctx.clearRect(0,0,150,150);
+  mctx.fillStyle = 'rgba(15,15,30,0.8)';
+  mctx.fillRect(0,0,150,150);
+  mctx.fillStyle = '#0f3460';
+  for(const w of walls) mctx.fillRect(w.x*scale, w.y*scale, w.w*scale, w.h*scale);
+  mctx.fillStyle = '#00e5ff';
+  for(const g of gems) if(!g.collected) mctx.fillRect(g.x*scale-1, g.y*scale-1, 2, 2);
+  mctx.fillStyle = '#e63946';
+  for(const gd of guards){ mctx.beginPath(); mctx.arc(gd.x*scale, gd.y*scale, 3, 0, Math.PI*2); mctx.fill(); }
+  mctx.fillStyle = player.color;
+  mctx.beginPath(); mctx.arc(player.x*scale, player.y*scale, 4, 0, Math.PI*2); mctx.fill();
+}
+
+function loop(){
+  update();
+  draw();
+  if(!gameOver) requestAnimationFrame(loop);
+}
+</script>
+</body>
+</html>
