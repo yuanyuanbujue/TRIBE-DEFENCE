@@ -83,7 +83,7 @@
   <button onclick="goTo('settings')" style="background:#22335c;border:1px solid #00e5ff;color:#fff;border-radius:6px;padding:5px 12px;cursor:pointer;font-size:13px;font-weight:bold;">⚙️ Settings</button>
   <div style="display:flex;align-items:center;gap:10px;">
     <button onclick="goTo('updates')" style="background:#22335c;border:1px solid #00e5ff;color:#fff;border-radius:6px;padding:5px 12px;cursor:pointer;font-size:13px;font-weight:bold;">Updates</button>
-    <div id="versionTag" style="color:#fff;font-weight:bold;font-size:18px;">V 2.1</div>
+    <div id="versionTag" style="color:#fff;font-weight:bold;font-size:18px;">V 2.4</div>
   </div>
 </div>
 
@@ -128,6 +128,8 @@
     <p><strong style="color:#ffd60a;">🏆 Achievements:</strong> Check the Achievements button (above ⚙️ Settings) to see which achievements you've earned and which are still locked. Every achievement you unlock grants an instant +50 gem bonus.</p>
     <p><strong style="color:#ff8fa3;">🔫 Weapon Dealer (Step 3):</strong> Pay 10,000💰 once to unlock the Weapon Dealer's shop. Weapons stay hidden until you do. Once unlocked, weapons must be bought <strong>in order</strong> — Speed Boots → Shield → Phase Blink → Aegis Crown — you can't buy or equip one until you own the weapon before it.</p>
     <p><strong style="color:#9d4edd;">😈 Stage 2 — Purple Guards:</strong> Gems are now unlimited — keep collecting as long as you survive! Once you collect 30 gems in a run, faster purple guards join the hunt and relentlessly chase you no matter what. Only an 🧪 Invisibility Potion can save you from them.</p>
+    <p><strong style="color:#1e6fd9;">🔨 Stage 3 — Blue Mace Guards:</strong> Clear out every purple guard and a fresh wave spawns — the original number of red guards, more purple guards, and blue guards armed with maces. Blue guards have more HP than purple guards, chase you more cleverly (they lead your movement instead of just following), and are only a little faster. Before slamming down, a blue guard fires a fireball beneath its own feet to rocket-boost itself into the air — that's launch propulsion, not an attack on its own, so watch where the guard actually lands instead. While airborne a guard moves 89% slower, so use that window to get clear before the mace-smash comes down.</p>
+    <p><strong style="color:#7b2cbf;">👑 Stage 4 — Elite Guards:</strong> Clear every blue guard and the elite guards arrive — tougher, faster mace guards whose maces are enchanted (shown by their glowing purple aura), hitting harder than a regular mace-smash. Waves keep reinforcing endlessly from here.</p>
     <p><strong style="color:#9d4edd;">🧪 Invisibility Potions:</strong> Buy them from the Weapon Dealer's shop (Step 3) for 💰250 each, once unlocked. Use your Drink Potion key (default <strong>P</strong>, rebindable in ⚙️ Settings) during a run to turn invisible to all guards for a few seconds.</p>
     <p><strong style="color:#ff8fa3;">🕴️ Guard Dealer (Step 4):</strong> Guards default to <strong style="color:#ffd60a;">Alert</strong>. Pay the Guard Dealer 10,000💰 to permanently unlock one random guard behavior. This is a separate dealer from the Weapon Dealer, with its own 10,000💰 fee each time you use it, and it can be paid repeatedly until every behavior is unlocked.</p>
   </div>
@@ -168,7 +170,31 @@
   <h2>📜 Update Log</h2>
   <div style="max-width:480px;text-align:left;color:#cfd6ee;font-size:15px;line-height:1.7;margin-bottom:24px;max-height:60vh;overflow-y:auto;">
 
-    <p style="margin-top:0;"><strong style="color:#ffd60a;font-size:17px;">V 2.1 — Achievements &amp; Gem Converter</strong></p>
+    <p style="margin-top:0;"><strong style="color:#ffd60a;font-size:17px;">V 2.4 — Fireball Is Launch Propulsion, Not an Attack</strong></p>
+    <p style="margin:4px 0 14px 12px;color:#9aa4c0;">
+      . The mace guards' fireball no longer flies at or damages you — it now erupts beneath the guard's own feet as a rocket-boost effect that launches them into the air<br>
+      . The flare tracks the guard's ground position while they're airborne and burns out once they land<br>
+      . The only damage from a jump attack now comes from the mace-smash landing itself
+    </p>
+
+    <p><strong style="color:#ffd60a;font-size:17px;">V 2.3 — Endless Reinforcements &amp; Gem Fix</strong></p>
+    <p style="margin:4px 0 14px 12px;color:#9aa4c0;">
+      . Every ~1 minute, one extra guard of each phase you've unlocked so far now spawns — the horde truly never stops growing<br>
+      . Reaching Stage 2 now also reinforces red guards (the previous phase) alongside the new purple guards, matching Stage 3/4 behavior<br>
+      . Fixed a bug where gems dropped by defeated guards could spawn inside walls
+    </p>
+
+    <p><strong style="color:#ffd60a;font-size:17px;">V 2.2 — Blue &amp; Elite Mace Guards</strong></p>
+    <p style="margin:4px 0 14px 12px;color:#9aa4c0;">
+      . Clearing every purple guard now triggers Stage 3: a fresh wave of the original red guard count, more purple guards, and new blue mace guards<br>
+      . Blue guards have more HP than purple guards, chase more cleverly (leading your movement), and are only slightly faster<br>
+      . Mace guards leap into the air and throw a telegraphing fireball at you before slamming down with their mace<br>
+      . Guards move 89% slower while airborne, giving you a window to dodge before they land<br>
+      . Mace landings and fireball hits now kick up smash particles around the impact point<br>
+      . Clearing every blue guard triggers Stage 4: tougher, faster elite guards with enchanted (glowing) maces that hit harder, with waves reinforcing endlessly afterward
+    </p>
+
+    <p><strong style="color:#ffd60a;font-size:17px;">V 2.1 — Achievements &amp; Gem Converter</strong></p>
     <p style="margin:4px 0 14px 12px;color:#9aa4c0;">
       . Added a 🏆 Achievements screen (button above ⚙️ Settings) showing which achievements you've earned and which are still locked<br>
       . Added the "WOW U R NOW RICH" achievement for collecting 100 gems in one sitting (a single run)<br>
@@ -1006,12 +1032,26 @@ resize(); window.addEventListener('resize', resize);
 const MAP_W = 3000, MAP_H = 3000;
 
 let player, invuln, walls, gems, TOTAL_GEMS, score, guards, purpleGuards, guardMode, stage, invisTimer, GEM_SPAWN_TARGET, attackTimer;
+let blueGuards, eliteGuards, fireballs, particles, ORIGINAL_GUARD_COUNT, phaseSpawnTimer;
 
 const STAGE2_GEM_THRESHOLD = 30;
 const PURPLE_GUARD_COUNT = 5;
+const BLUE_GUARD_COUNT = 4;
+const ELITE_GUARD_COUNT = 4;
+const PHASE_SPAWN_INTERVAL_FRAMES = 3600; // ~1 minute at 60fps — trickle in reinforcements for every unlocked phase
 const INVIS_DURATION = 300; // frames (~5s at 60fps)
 const RED_GUARD_HP = 100;
 const PURPLE_GUARD_HP = 150;
+const BLUE_GUARD_HP = 220;
+const ELITE_GUARD_HP = 320;
+// Mace-guard (blue/elite) jump-attack tuning
+const MACE_TRIGGER_RANGE = 320;   // guard starts a jump attack once this close
+const MACE_WINDUP_TIME = 24;      // frames of telegraph before leaping
+const MACE_JUMP_IMPULSE = 13;     // initial upward velocity
+const MACE_GRAVITY = 0.45;        // per-frame fall acceleration
+const AIRBORNE_SPEED_MULT = 0.11; // 89% slower horizontal movement while airborne
+const MACE_SMASH_RADIUS = 65;     // player must be this close to landing spot to take smash damage
+const MACE_COOLDOWN_MIN = 120, MACE_COOLDOWN_RANGE = 90;
 const ATTACK_DAMAGE = 25; // fallback/default
 // Per-weapon attack damage — only "none" is finalized for now, rest TBD later.
 const WEAPON_ATTACK_DAMAGE = { none: 5 };
@@ -1082,11 +1122,17 @@ function initGame(){
       hpBarTimer: 0
     });
   }
+  ORIGINAL_GUARD_COUNT = guardCount;
 
   // Stage 2 (Purple Guards) kicks in once the player hits STAGE2_GEM_THRESHOLD gems this run.
   stage = 1;
   purpleGuards = [];
+  blueGuards = [];
+  eliteGuards = [];
+  fireballs = [];
+  particles = [];
   invisTimer = 0;
+  phaseSpawnTimer = PHASE_SPAWN_INTERVAL_FRAMES;
   attackTimer = 0;
   document.getElementById('stageTag').textContent = '';
 
@@ -1115,6 +1161,20 @@ function findSafeSpot(r, margin){
     tries++;
   } while (walls.some(w => rectsOverlapCircle(w, x, y, r+4)) && tries < 200);
   return {x, y};
+}
+
+// Like findSafeSpot, but biased near (cx,cy) — used for things that should drop close to where
+// they were triggered (e.g. gems dropped by a defeated guard) while still never landing in a wall.
+function safeDropSpot(cx, cy, r, maxDist){
+  for(let tries=0; tries<12; tries++){
+    const ang = Math.random()*Math.PI*2, dist = Math.random()*maxDist;
+    const x = cx + Math.cos(ang)*dist, y = cy + Math.sin(ang)*dist;
+    if(!walls.some(w => rectsOverlapCircle(w, x, y, r+4)) &&
+       x > r && x < MAP_W-r && y > r && y < MAP_H-r){
+      return {x, y};
+    }
+  }
+  return {x: cx, y: cy}; // fallback: the trigger point itself is guaranteed wall-free
 }
 
 const keys = {};
@@ -1182,6 +1242,195 @@ function endGame(bonusGems){
   }
 }
 
+function spawnRedGuards(count){
+  const guardSpeedMult = window.__guardSpeedMult || 1;
+  for(let i=0;i<count;i++){
+    const spot = findSafeSpot(16);
+    guards.push({
+      x: spot.x, y: spot.y, r: 16,
+      speed: (1.5 + Math.random()) * guardSpeedMult,
+      dir: Math.random()*Math.PI*2,
+      changeTimer: 0,
+      hp: RED_GUARD_HP, maxHp: RED_GUARD_HP, hpBarTimer: 0
+    });
+  }
+}
+
+function spawnPurpleGuards(count){
+  const guardSpeedMult = window.__guardSpeedMult || 1;
+  const isInsane = settings.difficulty >= 10; // Hacker difficulty = "insane" purple guard speed
+  const purpleMult = isInsane ? 2 : 1.2;
+  for(let i=0;i<count;i++){
+    const spot = findSafeSpot(16);
+    purpleGuards.push({
+      x: spot.x, y: spot.y, r: 16,
+      speed: (1.5 + Math.random()) * guardSpeedMult * purpleMult,
+      dir: Math.random()*Math.PI*2,
+      changeTimer: 0,
+      hp: PURPLE_GUARD_HP, maxHp: PURPLE_GUARD_HP, hpBarTimer: 0
+    });
+  }
+}
+
+// Blue/elite "mace guards": smarter (predictive chase), a bit faster than purple guards, and armed
+// with a jump-slam mace attack. Elite guards (the tier above blue) carry an enchanted mace.
+function makeMaceGuard(x, y, type){
+  const isElite = type === 'elite';
+  const guardSpeedMult = window.__guardSpeedMult || 1;
+  const isInsane = settings.difficulty >= 10;
+  const purpleMult = isInsane ? 2 : 1.2;
+  const speedBump = isElite ? 1.18 : 1.08; // "only a little faster" than purple guards
+  return {
+    x, y, r: 18,
+    speed: (1.5 + Math.random()) * guardSpeedMult * purpleMult * speedBump,
+    dir: Math.random()*Math.PI*2,
+    changeTimer: 0,
+    hp: isElite ? ELITE_GUARD_HP : BLUE_GUARD_HP,
+    maxHp: isElite ? ELITE_GUARD_HP : BLUE_GUARD_HP,
+    hpBarTimer: 0,
+    type,               // 'blue' | 'elite'
+    z: 0, zVel: 0,      // height above ground for the jump-slam
+    attackState: 'chase', // 'chase' | 'windup' | 'jumping'
+    windupTimer: 0,
+    jumpDirX: 0, jumpDirY: 0,
+    cooldown: 60 + Math.random()*60
+  };
+}
+
+function spawnBlueGuards(count){
+  for(let i=0;i<count;i++){
+    const spot = findSafeSpot(18);
+    blueGuards.push(makeMaceGuard(spot.x, spot.y, 'blue'));
+  }
+}
+
+function spawnEliteGuards(count){
+  for(let i=0;i<count;i++){
+    const spot = findSafeSpot(18);
+    eliteGuards.push(makeMaceGuard(spot.x, spot.y, 'elite'));
+  }
+}
+
+// AI + jump-slam attack for a single blue/elite mace guard.
+function updateMaceGuard(gd, isInvisible){
+  const isElite = gd.type === 'elite';
+  const distToPlayer = Math.hypot(gd.x-player.x, gd.y-player.y);
+  if(gd.cooldown > 0) gd.cooldown--;
+
+  if(gd.attackState === 'chase'){
+    if(!isInvisible){
+      // Smarter than purple guards: lead the player's current movement a bit instead of
+      // just beelining for their exact position.
+      const leadX = player.x + (player.vx||0)*14;
+      const leadY = player.y + (player.vy||0)*14;
+      gd.dir = Math.atan2(leadY-gd.y, leadX-gd.x);
+      gd.changeTimer = 10;
+    } else {
+      gd.changeTimer -= 1;
+      if(gd.changeTimer <= 0){ gd.dir += (Math.random()-0.5)*1.2; gd.changeTimer = 30+Math.random()*40; }
+    }
+    const nx = gd.x + Math.cos(gd.dir)*gd.speed;
+    const ny = gd.y + Math.sin(gd.dir)*gd.speed;
+    let blocked = false;
+    for(const w of walls) if(rectsOverlapCircle(w, nx, ny, gd.r)) blocked = true;
+    if(nx < gd.r || nx > MAP_W-gd.r || ny < gd.r || ny > MAP_H-gd.r) blocked = true;
+    if(blocked){ gd.dir += Math.PI/2 + Math.random(); }
+    else { gd.x = nx; gd.y = ny; }
+
+    if(!isInvisible && gd.cooldown <= 0 && distToPlayer < MACE_TRIGGER_RANGE){
+      gd.attackState = 'windup';
+      gd.windupTimer = MACE_WINDUP_TIME;
+    }
+
+    if(!isInvisible && invuln <= 0 && distToPlayer < gd.r+player.r){
+      player.lives--;
+      document.getElementById('lives').textContent = Math.max(0, player.lives);
+      invuln = 90 + (window.__invulnBonus||0);
+      if(player.lives <= 0) endGame(0);
+    }
+  }
+  else if(gd.attackState === 'windup'){
+    // Stands still, mace raised, telegraphing the coming attack.
+    gd.windupTimer--;
+    if(gd.windupTimer <= 0){
+      const tx = player.x, ty = player.y;
+      const ang = Math.atan2(ty-gd.y, tx-gd.x);
+      gd.attackState = 'jumping';
+      gd.jumpDirX = Math.cos(ang);
+      gd.jumpDirY = Math.sin(ang);
+      gd.zVel = MACE_JUMP_IMPULSE;
+      gd.z = 0.01;
+      // A fireball erupts beneath the guard's own feet to rocket-boost them into the air —
+      // it's launch propulsion, not an attack, so it never targets or damages the player.
+      fireballs.push({ guard: gd, x: gd.x, y: gd.y, life: 40, maxLife: 40, elite: isElite });
+    }
+  }
+  else if(gd.attackState === 'jumping'){
+    gd.zVel -= MACE_GRAVITY;
+    gd.z += gd.zVel;
+    // 89% slower horizontal movement while airborne.
+    const airSpeed = gd.speed * AIRBORNE_SPEED_MULT;
+    const nx = gd.x + gd.jumpDirX*airSpeed;
+    const ny = gd.y + gd.jumpDirY*airSpeed;
+    let blocked = false;
+    for(const w of walls) if(rectsOverlapCircle(w, nx, ny, gd.r)) blocked = true;
+    if(!blocked && nx > gd.r && nx < MAP_W-gd.r && ny > gd.r && ny < MAP_H-gd.r){ gd.x = nx; gd.y = ny; }
+    if(gd.z <= 0){
+      gd.z = 0; gd.zVel = 0;
+      gd.attackState = 'chase';
+      gd.cooldown = MACE_COOLDOWN_MIN + Math.random()*MACE_COOLDOWN_RANGE;
+      spawnSmashParticles(gd.x, gd.y, isElite, false);
+      const landDist = Math.hypot(gd.x-player.x, gd.y-player.y);
+      if(!isInvisible && invuln <= 0 && landDist < MACE_SMASH_RADIUS){
+        player.lives -= isElite ? 2 : 1;
+        document.getElementById('lives').textContent = Math.max(0, player.lives);
+        invuln = 100 + (window.__invulnBonus||0);
+        spawnSmashParticles(player.x, player.y, isElite, false);
+        if(player.lives <= 0) endGame(0);
+      }
+    }
+  }
+}
+
+// Boost flares that erupt beneath a mace guard's feet at launch — purely a visual/propulsion
+// effect. They track the guard's ground position while airborne and burn out on their own;
+// they never move toward or damage the player.
+function updateFireballs(){
+  for(let i=fireballs.length-1;i>=0;i--){
+    const f = fireballs[i];
+    if(f.guard){
+      f.x = f.guard.x; f.y = f.guard.y;
+    }
+    f.life--;
+    if(f.life <= 0 || (f.guard && f.guard.attackState !== 'jumping')) fireballs.splice(i,1);
+  }
+}
+
+// Smash particles fly outward from the impact point. `fire` gives them a fireball-scorch palette
+// instead of the mace's dust/debris palette.
+function spawnSmashParticles(x, y, elite, fire){
+  const count = elite ? 26 : 18;
+  for(let i=0;i<count;i++){
+    const ang = Math.random()*Math.PI*2;
+    const spd = 2 + Math.random()*4;
+    particles.push({
+      x, y,
+      vx: Math.cos(ang)*spd, vy: Math.sin(ang)*spd - 1.5,
+      life: 30+Math.random()*20, maxLife: 50,
+      size: 3+Math.random()*4,
+      color: fire ? (elite ? '#ffea00' : '#ff8c1a') : (elite ? '#e0aaff' : '#c9a267')
+    });
+  }
+}
+
+function updateParticles(){
+  for(let i=particles.length-1;i>=0;i--){
+    const p = particles[i];
+    p.x += p.vx; p.y += p.vy; p.vy += 0.15; p.life--;
+    if(p.life <= 0) particles.splice(i,1);
+  }
+}
+
 function update(){
   if(gameOver) return;
   let dx=0, dy=0;
@@ -1197,6 +1446,7 @@ function update(){
     if(tryMove(nx, player.y)) player.x = nx;
     if(tryMove(player.x, ny)) player.y = ny;
   }
+  player.vx = dx; player.vy = dy;
 
   // gems — unlimited: each collected gem respawns elsewhere so the pool never runs out
   for(const g of gems){
@@ -1217,20 +1467,8 @@ function update(){
         stage = 2;
         document.getElementById('stageTag').textContent = '⚠️ STAGE 2 — Purple Guards Active!';
         showToast('⚠️ Stage 2! Purple guards are hunting you now!');
-        const isInsane = settings.difficulty >= 10; // Hacker difficulty = "insane" purple guard speed
-        const purpleMult = isInsane ? 2 : 1.2;
-        for(let i=0;i<PURPLE_GUARD_COUNT;i++){
-          const spot2 = findSafeSpot(16);
-          purpleGuards.push({
-            x: spot2.x, y: spot2.y, r: 16,
-            speed: (1.5 + Math.random()) * (window.__guardSpeedMult||1) * purpleMult,
-            dir: Math.random()*Math.PI*2,
-            changeTimer: 0,
-            hp: PURPLE_GUARD_HP,
-            maxHp: PURPLE_GUARD_HP,
-            hpBarTimer: 0
-          });
-        }
+        spawnRedGuards(ORIGINAL_GUARD_COUNT);
+        spawnPurpleGuards(PURPLE_GUARD_COUNT);
       }
     }
   }
@@ -1251,7 +1489,7 @@ function update(){
   if(attackTimer > 0) attackTimer--;
   if(keys[profile.keybinds.attack] && attackTimer <= 0){
     attackTimer = ATTACK_COOLDOWN;
-    const allGuards = [...guards, ...purpleGuards];
+    const allGuards = [...guards, ...purpleGuards, ...blueGuards, ...eliteGuards];
     let target = null;
 
     if(mouseInCanvas){
@@ -1279,15 +1517,23 @@ function update(){
       target.hpBarTimer = HP_BAR_DISPLAY_TIME; // reveal HP bar briefly after being hit
       if(target.hp <= 0){
         const isPurple = purpleGuards.includes(target);
-        const dropCount = isPurple ? (5 + Math.floor(Math.random()*26)) : Math.floor(Math.random()*21); // purple 5-30, red 0-20
+        const isBlue = blueGuards.includes(target);
+        const isElite = eliteGuards.includes(target);
+        // higher-tier guards drop more gems: red 0-20, purple 5-30, blue 10-40, elite 15-50
+        const dropCount = isElite ? (15 + Math.floor(Math.random()*36))
+          : isBlue ? (10 + Math.floor(Math.random()*31))
+          : isPurple ? (5 + Math.floor(Math.random()*26))
+          : Math.floor(Math.random()*21);
         for(let i=0;i<dropCount;i++){
-          const ang = Math.random()*Math.PI*2, dist = Math.random()*40;
+          const spot = safeDropSpot(target.x, target.y, 8, 40);
           gems.push({
-            x: target.x + Math.cos(ang)*dist, y: target.y + Math.sin(ang)*dist,
+            x: spot.x, y: spot.y,
             r: 8, collected:false, angle: Math.random()*Math.PI*2, bonus: true
           });
         }
-        if(isPurple) purpleGuards.splice(purpleGuards.indexOf(target), 1);
+        if(isElite) eliteGuards.splice(eliteGuards.indexOf(target), 1);
+        else if(isBlue) blueGuards.splice(blueGuards.indexOf(target), 1);
+        else if(isPurple) purpleGuards.splice(purpleGuards.indexOf(target), 1);
         else guards.splice(guards.indexOf(target), 1);
       }
     }
@@ -1295,6 +1541,8 @@ function update(){
   // Tick down HP bar visibility timers so bars auto-hide a bit after the last hit (keeps rendering light)
   for(const gd of guards) if(gd.hpBarTimer > 0) gd.hpBarTimer--;
   for(const gd of purpleGuards) if(gd.hpBarTimer > 0) gd.hpBarTimer--;
+  for(const gd of blueGuards) if(gd.hpBarTimer > 0) gd.hpBarTimer--;
+  for(const gd of eliteGuards) if(gd.hpBarTimer > 0) gd.hpBarTimer--;
 
   // guards
   const isInvisible = invisTimer > 0;
@@ -1358,6 +1606,49 @@ function update(){
       }
     }
   }
+
+  // Stage 3+ mace guards (blue, then elite) — smarter chase with a jump-slam mace attack
+  for(const gd of blueGuards) updateMaceGuard(gd, isInvisible);
+  for(const gd of eliteGuards) updateMaceGuard(gd, isInvisible);
+  updateFireballs();
+  updateParticles();
+
+  // Stage transitions: clearing a wave reinforces with the original guard count plus the next tier.
+  if(stage === 2 && purpleGuards.length === 0){
+    stage = 3;
+    spawnRedGuards(ORIGINAL_GUARD_COUNT);
+    spawnPurpleGuards(PURPLE_GUARD_COUNT);
+    spawnBlueGuards(BLUE_GUARD_COUNT);
+    document.getElementById('stageTag').textContent = '💀 STAGE 3 — Blue Mace Guards!';
+    showToast('💀 Stage 3! Blue mace guards have joined the hunt!');
+  } else if(stage === 3 && blueGuards.length === 0){
+    stage = 4;
+    spawnRedGuards(ORIGINAL_GUARD_COUNT);
+    spawnPurpleGuards(PURPLE_GUARD_COUNT);
+    spawnBlueGuards(BLUE_GUARD_COUNT);
+    spawnEliteGuards(ELITE_GUARD_COUNT);
+    document.getElementById('stageTag').textContent = '👑 STAGE 4 — Elite Enchanted Guards!';
+    showToast('👑 Stage 4! Elite guards with enchanted maces have arrived!');
+  } else if(stage === 4 && eliteGuards.length === 0){
+    spawnRedGuards(ORIGINAL_GUARD_COUNT);
+    spawnPurpleGuards(PURPLE_GUARD_COUNT);
+    spawnBlueGuards(BLUE_GUARD_COUNT);
+    spawnEliteGuards(ELITE_GUARD_COUNT);
+    showToast('👑 The elite guards return, enchanted maces raised!');
+  }
+
+  // Every ~1 minute, trickle in one more guard for every phase unlocked so far — the horde
+  // never stops growing, on top of the full reinforcement wave each time a phase is cleared.
+  if(phaseSpawnTimer > 0) phaseSpawnTimer--;
+  if(phaseSpawnTimer <= 0){
+    phaseSpawnTimer = PHASE_SPAWN_INTERVAL_FRAMES;
+    spawnRedGuards(1);
+    if(stage >= 2) spawnPurpleGuards(1);
+    if(stage >= 3) spawnBlueGuards(1);
+    if(stage >= 4) spawnEliteGuards(1);
+    showToast('⏱️ More guards have arrived!');
+  }
+
   if(invuln > 0) invuln--;
 }
 
@@ -1449,6 +1740,12 @@ function draw(){
     drawGuardHpBar(gd, camX, camY);
   }
 
+  // blue & elite mace guards (Stage 3+)
+  drawFireballs(camX, camY);
+  for(const gd of blueGuards) drawMaceGuard(gd, camX, camY);
+  for(const gd of eliteGuards) drawMaceGuard(gd, camX, camY);
+  drawParticles(camX, camY);
+
   // player
   const invisible = invisTimer > 0;
   ctx.fillStyle = invisible ? 'rgba(255,255,255,0.25)' : (invuln > 0 && Math.floor(invuln/6)%2===0 ? 'rgba(255,255,255,0.4)' : player.color);
@@ -1474,6 +1771,90 @@ function drawGuardHpBar(gd, camX, camY){
   ctx.fillRect(bx, by, w*pct, h);
   ctx.strokeStyle = 'rgba(255,255,255,0.6)'; ctx.lineWidth = 1;
   ctx.strokeRect(bx, by, w, h);
+}
+
+// Blue/elite mace guard — drawn lifted by `z` while airborne, with a ground shadow that
+// shrinks the higher they jump, plus a mace that raises during the windup/jump telegraph.
+// Elite guards get a pulsing enchant glow on their body and mace to mark the enchanted mace.
+function drawMaceGuard(gd, camX, camY){
+  const isElite = gd.type === 'elite';
+  const sx = gd.x - camX, sy = gd.y - camY;
+  const liftedSy = sy - gd.z;
+
+  const shadowScale = Math.max(0.35, 1 - gd.z/220);
+  ctx.fillStyle = 'rgba(0,0,0,0.35)';
+  ctx.beginPath();
+  ctx.ellipse(sx, sy, gd.r*shadowScale, gd.r*0.45*shadowScale, 0, 0, Math.PI*2);
+  ctx.fill();
+
+  if(isElite){
+    const pulse = 4 + Math.sin(Date.now()/150)*2;
+    ctx.strokeStyle = 'rgba(224,170,255,0.8)';
+    ctx.lineWidth = 2;
+    ctx.beginPath();
+    ctx.arc(sx, liftedSy, gd.r+pulse, 0, Math.PI*2);
+    ctx.stroke();
+  }
+
+  ctx.fillStyle = isElite ? '#7b2cbf' : '#1e6fd9';
+  ctx.beginPath();
+  ctx.arc(sx, liftedSy, gd.r, 0, Math.PI*2);
+  ctx.fill();
+  ctx.strokeStyle = isElite ? '#e0aaff' : '#8ecbff';
+  ctx.lineWidth = 2;
+  ctx.stroke();
+
+  // eyes
+  ctx.fillStyle = '#fff';
+  ctx.beginPath();
+  ctx.arc(sx+Math.cos(gd.dir)*7, liftedSy+Math.sin(gd.dir)*7, 3.2, 0, Math.PI*2);
+  ctx.fill();
+
+  // mace — raises up during windup/jump to telegraph the smash
+  const raised = gd.attackState !== 'chase';
+  const maceAng = gd.dir + Math.PI/2;
+  const handleLen = gd.r + (raised ? 14 : 8);
+  const hx = sx + Math.cos(maceAng)*handleLen;
+  const hy = liftedSy + Math.sin(maceAng)*handleLen - (raised ? 10 : 0);
+  ctx.strokeStyle = '#6b4423';
+  ctx.lineWidth = 4;
+  ctx.beginPath(); ctx.moveTo(sx, liftedSy); ctx.lineTo(hx, hy); ctx.stroke();
+  ctx.fillStyle = isElite ? '#c77dff' : '#5a5a6e';
+  ctx.beginPath(); ctx.arc(hx, hy, isElite ? 9 : 7, 0, Math.PI*2); ctx.fill();
+  if(isElite){
+    ctx.strokeStyle = 'rgba(255,255,255,0.85)'; ctx.lineWidth = 1.5;
+    ctx.beginPath(); ctx.arc(hx, hy, 12, 0, Math.PI*2); ctx.stroke();
+  }
+
+  drawGuardHpBar({x: gd.x, y: gd.y - gd.z, r: gd.r, hp: gd.hp, maxHp: gd.maxHp, hpBarTimer: gd.hpBarTimer}, camX, camY);
+}
+
+// Fireballs thrown by mace guards ahead of their jump-slam.
+function drawFireballs(camX, camY){
+  for(const f of fireballs){
+    const sx = f.x-camX, sy = f.y-camY;
+    const t = Math.max(0, f.life/(f.maxLife||40));
+    const radius = 8 + (1-t)*10; // flare grows as it burns down, then vanishes
+    const grad = ctx.createRadialGradient(sx, sy, 1, sx, sy, radius);
+    grad.addColorStop(0, f.elite ? '#fff2b3' : '#fff3c4');
+    grad.addColorStop(0.5, f.elite ? '#ffcc33' : '#ff8c1a');
+    grad.addColorStop(1, 'rgba(255,80,0,0)');
+    ctx.globalAlpha = Math.max(0.15, t);
+    ctx.fillStyle = grad;
+    ctx.beginPath(); ctx.arc(sx, sy, radius, 0, Math.PI*2); ctx.fill();
+    ctx.globalAlpha = 1;
+  }
+}
+
+// Smash/impact particles (mace landings and fireball hits).
+function drawParticles(camX, camY){
+  for(const p of particles){
+    const sx = p.x-camX, sy = p.y-camY;
+    ctx.globalAlpha = Math.max(0, p.life/p.maxLife);
+    ctx.fillStyle = p.color;
+    ctx.fillRect(sx-p.size/2, sy-p.size/2, p.size, p.size);
+    ctx.globalAlpha = 1;
+  }
 }
 
 function drawCrosshair(cx, cy){
@@ -1505,6 +1886,10 @@ function drawMinimap(){
   for(const gd of guards){ mctx.beginPath(); mctx.arc(gd.x*scale, gd.y*scale, 3, 0, Math.PI*2); mctx.fill(); }
   mctx.fillStyle = '#9d4edd';
   for(const gd of purpleGuards){ mctx.beginPath(); mctx.arc(gd.x*scale, gd.y*scale, 3, 0, Math.PI*2); mctx.fill(); }
+  mctx.fillStyle = '#1e6fd9';
+  for(const gd of blueGuards){ mctx.beginPath(); mctx.arc(gd.x*scale, gd.y*scale, 3, 0, Math.PI*2); mctx.fill(); }
+  mctx.fillStyle = '#7b2cbf';
+  for(const gd of eliteGuards){ mctx.beginPath(); mctx.arc(gd.x*scale, gd.y*scale, 3, 0, Math.PI*2); mctx.fill(); }
   mctx.fillStyle = player.color;
   mctx.beginPath(); mctx.arc(player.x*scale, player.y*scale, 4, 0, Math.PI*2); mctx.fill();
 }
