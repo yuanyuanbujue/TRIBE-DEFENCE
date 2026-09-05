@@ -11,6 +11,7 @@
   #moneyEarned{position:fixed;top:58%;left:50%;transform:translate(-50%,-50%);color:#ffd60a;font-size:20px;text-align:center;text-shadow:0 2px 8px #000;display:none;z-index:20;}
   #restart{display:none;position:fixed;top:66%;left:50%;transform:translate(-50%,-50%);padding:10px 20px;font-size:18px;z-index:20;cursor:pointer;border-radius:8px;border:none;background:#4ade80;}
   canvas{display:block;}
+  #game{cursor:none;}
   #hint{position:fixed;bottom:10px;left:10px;color:#ccc;font-size:14px;text-shadow:0 2px 4px #000;z-index:10;}
 
   .screen{position:fixed;inset:0;display:flex;flex-direction:column;align-items:center;justify-content:center;
@@ -75,12 +76,25 @@
 </head>
 <body>
 
+<!-- VERSION: bump by +0.1 on every update to this file (e.g. V 1.0 -> V 1.1 -> V 1.2 ...) -->
+<!-- Keep CHANGELOG (in #screen-updates below) in sync with this number on every bump. -->
+<div style="position:fixed;bottom:16px;right:24px;z-index:9999;display:flex;flex-direction:column;align-items:flex-end;gap:8px;">
+  <button onclick="goTo('achievements')" style="background:#22335c;border:1px solid #ffd60a;color:#ffd60a;border-radius:6px;padding:5px 12px;cursor:pointer;font-size:13px;font-weight:bold;">🏆 Achievements</button>
+  <button onclick="goTo('settings')" style="background:#22335c;border:1px solid #00e5ff;color:#fff;border-radius:6px;padding:5px 12px;cursor:pointer;font-size:13px;font-weight:bold;">⚙️ Settings</button>
+  <div style="display:flex;align-items:center;gap:10px;">
+    <button onclick="goTo('updates')" style="background:#22335c;border:1px solid #00e5ff;color:#fff;border-radius:6px;padding:5px 12px;cursor:pointer;font-size:13px;font-weight:bold;">Updates</button>
+    <div id="versionTag" style="color:#fff;font-weight:bold;font-size:18px;">V 2.1</div>
+  </div>
+</div>
+
 <div id="screen-main" class="screen">
   <h1>💎 GEM <span>HUNTER</span></h1>
   <p class="subtitle">Explore. Collect. Survive the guards.</p>
   <button class="menu-btn" onclick="goTo('difficulty')">Start Game</button>
   <button class="menu-btn" onclick="goTo('howto')">How to Play</button>
+  <button class="menu-btn" id="converterMenuBtn" onclick="goTo('converter')">💱 Converter</button>
   <div style="margin-top:20px;color:#9aa4c0;font-size:14px;">💰 Your Money: <span id="mainMoney" style="color:#ffd60a;font-weight:bold;">0</span> <span style="color:#ffd60a;font-weight:bold;">GIT</span></div>
+  <div style="margin-top:6px;color:#9aa4c0;font-size:14px;">💎 Gems: <span id="mainGems" style="color:#00e5ff;font-weight:bold;">0</span></div>
   <div style="margin-top:14px;color:#9aa4c0;font-size:13px;">15 Gem &rarr; $GIT 1</div>
   <div style="margin-top:4px;color:#666;font-size:12px;">Last Updated: <span id="gitClock">--:--:--</span> UTC+8</div>
 
@@ -108,9 +122,148 @@
     <p><strong style="color:#e63946;">Danger:</strong> Red guards patrol the map. Getting touched costs a life and gives you a short burst of invincibility.</p>
     <p><strong style="color:#ffd60a;">Minimap:</strong> Check the top-right corner to see gems, guards, and your position.</p>
     <p><strong style="color:#9aa4c0;">Tip:</strong> Use walls to break line of sight from Alert and Hunt guards.</p>
-    <p><strong style="color:#d4a24c;">Money:</strong> Gems collected earn you money. Spend it on skins, and buy weapons from the Weapon Dealer on Step 3.</p>
+    <p><strong style="color:#d4a24c;">Money:</strong> Gems collected earn you money 💰. Spend it on skins, and on the two Dealers below.</p>
+    <p><strong style="color:#d4a24c;">Difficulty Bonus Gems:</strong> The higher the difficulty, the more gems you earn. At max Game Difficulty (Hacker), each gem collected is worth up to 5 gems instead of 1. The higher your Guard Difficulty (the guard behavior unlocked/selected — Wander → Alert → Hunt), the bigger a one-time bonus of extra gems you get added to your account once the game ends, up to +5 gems at Hunt (the hardest).</p>
+    <p><strong style="color:#d4a24c;">Gems → $GIT:</strong> Gems earned this way go into your gem balance first. The 💱 Converter (on the main menu) lets you turn gems into $GIT — but it's locked until you earn the <strong style="color:#ffd60a;">"WOW U R NOW RICH"</strong> achievement by collecting 100 gems in a single run!</p>
+    <p><strong style="color:#ffd60a;">🏆 Achievements:</strong> Check the Achievements button (above ⚙️ Settings) to see which achievements you've earned and which are still locked. Every achievement you unlock grants an instant +50 gem bonus.</p>
+    <p><strong style="color:#ff8fa3;">🔫 Weapon Dealer (Step 3):</strong> Pay 10,000💰 once to unlock the Weapon Dealer's shop. Weapons stay hidden until you do. Once unlocked, weapons must be bought <strong>in order</strong> — Speed Boots → Shield → Phase Blink → Aegis Crown — you can't buy or equip one until you own the weapon before it.</p>
+    <p><strong style="color:#9d4edd;">😈 Stage 2 — Purple Guards:</strong> Gems are now unlimited — keep collecting as long as you survive! Once you collect 30 gems in a run, faster purple guards join the hunt and relentlessly chase you no matter what. Only an 🧪 Invisibility Potion can save you from them.</p>
+    <p><strong style="color:#9d4edd;">🧪 Invisibility Potions:</strong> Buy them from the Weapon Dealer's shop (Step 3) for 💰250 each, once unlocked. Use your Drink Potion key (default <strong>P</strong>, rebindable in ⚙️ Settings) during a run to turn invisible to all guards for a few seconds.</p>
+    <p><strong style="color:#ff8fa3;">🕴️ Guard Dealer (Step 4):</strong> Guards default to <strong style="color:#ffd60a;">Alert</strong>. Pay the Guard Dealer 10,000💰 to permanently unlock one random guard behavior. This is a separate dealer from the Weapon Dealer, with its own 10,000💰 fee each time you use it, and it can be paid repeatedly until every behavior is unlocked.</p>
   </div>
   <button class="next-btn" onclick="goTo('main')">Close</button>
+</div>
+
+<div id="screen-converter" class="screen hidden">
+  <h2>💱 Gem Converter</h2>
+  <div id="converter-locked">
+    <div style="font-size:48px;margin-bottom:14px;">🔒</div>
+    <div style="max-width:420px;text-align:left;color:#cfd6ee;font-size:16px;line-height:1.7;margin-bottom:20px;">
+      <p>The Converter is locked.</p>
+      <p style="margin-top:10px;color:#9aa4c0;font-size:14px;">Collect <strong style="color:#00e5ff;">100 gems in one sitting</strong> (a single run) to earn the <strong style="color:#ffd60a;">"WOW U R NOW RICH"</strong> achievement and unlock it.</p>
+    </div>
+  </div>
+  <div id="converter-unlocked" class="hidden">
+    <div style="color:#cfd6ee;font-size:16px;margin-bottom:14px;">Your Gems: <span id="converterGemBalance" style="color:#00e5ff;font-weight:bold;">0</span></div>
+    <div style="max-width:420px;text-align:left;color:#cfd6ee;font-size:16px;line-height:1.7;margin-bottom:20px;">
+      <p>Convert your gems into <strong style="color:#ffd60a;">$GIT</strong> at a rate of <strong style="color:#ffd60a;">15 Gem → $GIT 1</strong>.</p>
+    </div>
+    <button class="dealer-btn" onclick="convertGems()">💱 Convert All Gems → $GIT</button>
+  </div>
+  <div class="nav-row">
+    <button class="back-btn" onclick="goTo('main')">Back</button>
+  </div>
+</div>
+
+<div id="screen-achievements" class="screen hidden">
+  <h2>🏆 Achievements</h2>
+  <p style="color:#9aa4c0;font-size:13px;margin-bottom:16px;max-width:420px;">Every achievement you unlock grants an instant +50 gem bonus.</p>
+  <div class="option-row" id="achievements-list" style="max-width:640px;"></div>
+  <div class="nav-row">
+    <button class="back-btn" onclick="goTo('main')">Back</button>
+  </div>
+</div>
+
+<div id="screen-updates" class="screen hidden">
+  <h2>📜 Update Log</h2>
+  <div style="max-width:480px;text-align:left;color:#cfd6ee;font-size:15px;line-height:1.7;margin-bottom:24px;max-height:60vh;overflow-y:auto;">
+
+    <p style="margin-top:0;"><strong style="color:#ffd60a;font-size:17px;">V 2.1 — Achievements &amp; Gem Converter</strong></p>
+    <p style="margin:4px 0 14px 12px;color:#9aa4c0;">
+      . Added a 🏆 Achievements screen (button above ⚙️ Settings) showing which achievements you've earned and which are still locked<br>
+      . Added the "WOW U R NOW RICH" achievement for collecting 100 gems in one sitting (a single run)<br>
+      . Earning any achievement now grants an instant +50 gem bonus<br>
+      . The 💱 Gem Converter is now unlocked by earning the "WOW U R NOW RICH" achievement, and is now live — convert gems into $GIT at 15:1<br>
+      . Main menu Converter button now shows a 🔒 until it's unlocked
+    </p>
+
+    <p><strong style="color:#ffd60a;font-size:17px;">V 2.0 — Misc Improvements</strong></p>
+    <p style="margin:4px 0 14px 12px;color:#9aa4c0;">
+      . Various internal gameplay tweaks and improvements
+    </p>
+
+    <p><strong style="color:#ffd60a;font-size:17px;">V 1.9 — Misc Improvements</strong></p>
+    <p style="margin:4px 0 14px 12px;color:#9aa4c0;">
+      . Various internal gameplay tweaks and improvements
+    </p>
+
+    <p><strong style="color:#ffd60a;font-size:17px;">V 1.8 — Mouse Keybinds</strong></p>
+    <p style="margin:4px 0 14px 12px;color:#9aa4c0;">
+      . Rebindable controls in ⚙️ Settings now also accept Left Click as a binding
+    </p>
+
+    <p><strong style="color:#ffd60a;font-size:17px;">V 1.7 — Misc Improvements</strong></p>
+    <p style="margin:4px 0 14px 12px;color:#9aa4c0;">
+      . Various internal gameplay tweaks and improvements
+    </p>
+
+    <p><strong style="color:#ffd60a;font-size:17px;">V 1.6 — Misc Improvements</strong></p>
+    <p style="margin:4px 0 14px 12px;color:#9aa4c0;">
+      . Various internal gameplay tweaks and improvements
+    </p>
+
+    <p><strong style="color:#ffd60a;font-size:17px;">V 1.5 — Rebindable Drink Key</strong></p>
+    <p style="margin:4px 0 14px 12px;color:#9aa4c0;">
+      . Added "Drink Potion" as a 5th rebindable control in ⚙️ Settings (default: P)<br>
+      . In-game hint text now shows your actual current key bindings
+    </p>
+
+    <p><strong style="color:#ffd60a;font-size:17px;">V 1.4 — Custom Controls</strong></p>
+    <p style="margin:4px 0 14px 12px;color:#9aa4c0;">
+      . Added a Settings button above Updates<br>
+      . Players can now rebind Forward, Backward, Strafe Left, and Strafe Right to any key<br>
+      . Key bindings are saved to your profile
+    </p>
+
+    <p><strong style="color:#ffd60a;font-size:17px;">V 1.3 — Endless Mode &amp; Stage 2</strong></p>
+    <p style="margin:4px 0 14px 12px;color:#9aa4c0;">
+      . Gems are now unlimited — keep collecting for as long as you survive<br>
+      . Death now ends the run (gems collected are always kept), with a random encouraging message each time<br>
+      . Added Stage 2: hitting 30 gems in a run spawns faster Purple Guards that always hunt you<br>
+      . Purple Guards move 20% faster than red guards normally, and 2x faster on Hacker (insane) difficulty<br>
+      . Added Invisibility Potions (💰250 each) to the Weapon Dealer's shop — press P in-game to use one<br>
+      . Updated How to Play with Stage 2 and Invisibility Potion details
+    </p>
+
+    <p><strong style="color:#ffd60a;font-size:17px;">V 1.2 — Update Log</strong></p>
+    <p style="margin:4px 0 14px 12px;color:#9aa4c0;">
+      . Added an Updates button beside the version tag<br>
+      . Added this changelog screen listing every version's changes
+    </p>
+
+    <p><strong style="color:#ffd60a;font-size:17px;">V 1.1 — Version Tag Styling</strong></p>
+    <p style="margin:4px 0 14px 12px;color:#9aa4c0;">
+      . Made the version tag bold, white, and larger<br>
+      . Repositioned it slightly inward from the corner
+    </p>
+
+    <p><strong style="color:#ffd60a;font-size:17px;">V 1.0 — Initial Release</strong></p>
+    <p style="margin:4px 0 14px 12px;color:#9aa4c0;">
+      . Moved the Weapon Dealer onto the Weapons page — it disappears once unlocked<br>
+      . Weapons stay hidden until the Weapon Dealer is unlocked, and must be bought in order<br>
+      . Added a live Date + 24-hour clock (UTC+8) to the main page footer<br>
+      . Expanded How to Play with Weapon Dealer, Guard Dealer, and Gems explanations<br>
+      . Added a separate Gems balance — playing the game now earns Gems, not $GIT<br>
+      . Added a live Gems counter to the main menu<br>
+      . Added the Gem Converter page (currently locked — Coming Soon)<br>
+      . Deleting a player's save in Supabase now wipes their local $GIT/progress too
+    </p>
+
+  </div>
+  <div class="nav-row">
+    <button class="back-btn" onclick="goTo('main')">Back</button>
+  </div>
+</div>
+
+<div id="screen-settings" class="screen hidden">
+  <h2>⚙️ Controls</h2>
+  <div style="max-width:420px;text-align:left;color:#cfd6ee;font-size:15px;margin-bottom:20px;">
+    <p style="color:#9aa4c0;font-size:13px;margin-bottom:16px;">Click "Rebind" then press any key to set a new binding for that action.</p>
+    <div id="keybind-list"></div>
+  </div>
+  <div class="nav-row">
+    <button class="back-btn" onclick="goTo('main')">Back</button>
+  </div>
 </div>
 
 <div id="screen-difficulty" class="screen hidden">
@@ -151,6 +304,7 @@
   <div class="dealer-note" id="weaponDealerNote">Pay 10,000💰 to unlock the Weapon Dealer's shop — then buy weapons below with money.</div>
   <button class="dealer-btn" id="weaponDealerBtn" onclick="unlockWeaponDealer()">🔫 Pay Weapon Dealer — Unlock Shop (10,000💰)</button>
   <div class="option-row" id="weapon-options"></div>
+  <div id="potion-shop-wrap" style="margin-top:26px;"></div>
   <div class="nav-row">
     <button class="back-btn" onclick="goTo('skin')">Back</button>
     <button class="next-btn" onclick="goTo('guard')">Next</button>
@@ -172,8 +326,8 @@
 </div>
 
 <div id="game-ui">
-<div id="ui">💎 Gems: <span id="score">0</span>/<span id="total">0</span> &nbsp; ❤️ <span id="lives">3</span> &nbsp; 💰 <span id="liveMoney">0</span> GIT</div>
-<div id="hint">Move: Arrow keys / WASD — Avoid the red guards!</div>
+<div id="ui">💎 Gems: <span id="score">0</span> &nbsp; ❤️ <span id="lives">3</span> &nbsp; 💰 <span id="liveMoney">0</span> GIT &nbsp; 🧪 <span id="livePotions">0</span> &nbsp; <span id="stageTag" style="color:#c159d4;font-weight:bold;"></span></div>
+<div id="hint">Move: Arrow keys / WASD — Avoid the red guards! Drink a potion to turn invisible 🧪</div>
 <canvas id="minimap" width="150" height="150"></canvas>
 <canvas id="game"></canvas>
 <div id="msg"></div>
@@ -229,34 +383,67 @@ async function cloudLoadProfile(code){
     });
     if(!res.ok) throw new Error('load failed: ' + res.status);
     const rows = await res.json();
-    if(rows.length === 0) return null;
-    return rows[0].profile;
+    // ok:true + profile:null means the request succeeded but no row exists for this code —
+    // i.e. the save was deleted (or never existed). ok:false means a network/server error,
+    // which should NOT be treated the same as a confirmed deletion.
+    return { ok: true, profile: rows.length ? rows[0].profile : null };
   } catch(e){
     console.error('Cloud load error', e);
-    return null;
+    return { ok: false, profile: null };
   }
 }
 
 // ---- Persistent profile (money + unlocks) ----
 const PROFILE_KEY = 'gemHunterProfile_v1';
-function loadProfile(){
-  let p;
-  try { p = JSON.parse(localStorage.getItem(PROFILE_KEY)); } catch(e) { p = null; }
+function normalizeProfile(p){
   if(!p || typeof p !== 'object'){
-    p = { money: 0, skins: ['gold'], weapons: ['none'], guards: ['alert'], weaponDealerUnlocked: false };
+    p = { money: 0, gems: 0, skins: ['gold'], weapons: ['none'], guards: ['alert'], weaponDealerUnlocked: false };
   }
   p.money = p.money || 0;
+  p.gems = p.gems || 0;
+  p.potions = p.potions || 0;
+  p.achievements = Array.isArray(p.achievements) ? p.achievements : [];
+  p.keybinds = p.keybinds && typeof p.keybinds === 'object' ? p.keybinds : {};
+  p.keybinds.up = p.keybinds.up || 'w';
+  p.keybinds.down = p.keybinds.down || 's';
+  p.keybinds.left = p.keybinds.left || 'a';
+  p.keybinds.right = p.keybinds.right || 'd';
+  p.keybinds.drink = p.keybinds.drink || 'p';
+  p.keybinds.attack = p.keybinds.attack || 'f';
   p.skins = p.skins && p.skins.length ? p.skins : ['gold'];
   p.weapons = p.weapons && p.weapons.length ? p.weapons : ['none'];
   p.guards = p.guards && p.guards.length ? p.guards : ['alert'];
   p.weaponDealerUnlocked = !!p.weaponDealerUnlocked;
   return p;
 }
+function loadProfile(){
+  let p;
+  try { p = JSON.parse(localStorage.getItem(PROFILE_KEY)); } catch(e) { p = null; }
+  return normalizeProfile(p);
+}
 function saveProfile(){
   localStorage.setItem(PROFILE_KEY, JSON.stringify(profile));
   cloudSaveProfile();
 }
 let profile = loadProfile();
+
+// If the save row for this code was deleted in Supabase, wipe local $GIT/progress too —
+// the cloud is the source of truth. A network error is NOT treated as a deletion, so
+// players don't lose progress just because they're briefly offline.
+async function syncProfileOnLoad(){
+  const code = getSaveCode();
+  const result = await cloudLoadProfile(code);
+  if(!result.ok) return; // network/server error — leave local progress untouched
+  if(result.profile){
+    profile = normalizeProfile(result.profile);
+  } else {
+    // Confirmed: no row exists for this save code (deleted, or never saved) — reset locally.
+    profile = normalizeProfile(null);
+  }
+  localStorage.setItem(PROFILE_KEY, JSON.stringify(profile));
+  refreshMoneyDisplays();
+}
+syncProfileOnLoad();
 
 function copySaveCode(){
   const code = getSaveCode();
@@ -294,12 +481,16 @@ async function restoreFromCode(){
   const code = (input.value || '').trim();
   if(!code){ statusEl.textContent = 'Enter a save code first.'; return; }
   statusEl.textContent = 'Loading from cloud…';
-  const loaded = await cloudLoadProfile(code);
-  if(!loaded){
+  const result = await cloudLoadProfile(code);
+  if(!result.ok){
+    statusEl.textContent = 'Could not reach the cloud — try again.';
+    return;
+  }
+  if(!result.profile){
     statusEl.textContent = 'No save found for that code.';
     return;
   }
-  profile = loaded;
+  profile = normalizeProfile(result.profile);
   localStorage.setItem(SAVE_CODE_KEY, code);
   localStorage.setItem(PROFILE_KEY, JSON.stringify(profile));
   statusEl.textContent = 'Progress restored!';
@@ -325,6 +516,48 @@ function refreshMoneyDisplays(){
   ['mainMoney','skinMoney','weaponMoney','guardMoney','liveMoney'].forEach(id=>{
     const el = document.getElementById(id);
     if(el) el.textContent = profile.money.toLocaleString();
+  });
+  const gemsEl = document.getElementById('mainGems');
+  if(gemsEl) gemsEl.textContent = (profile.gems || 0).toLocaleString();
+  const convBtn = document.getElementById('converterMenuBtn');
+  if(convBtn) convBtn.textContent = hasAchievement('rich100') ? '💱 Converter' : '💱 Converter 🔒';
+}
+
+// ---- Achievements ----
+const ACHIEVEMENTS = [
+  { id:'rich100', icon:'💰', name:'WOW U R NOW RICH', desc:'Collect 100 gems in one sitting (a single run).' }
+];
+const ACHIEVEMENT_GEM_BONUS = 50;
+
+function hasAchievement(id){
+  return !!(profile.achievements && profile.achievements.includes(id));
+}
+
+function unlockAchievement(id){
+  if(hasAchievement(id)) return false;
+  profile.achievements = profile.achievements || [];
+  profile.achievements.push(id);
+  profile.gems = (profile.gems || 0) + ACHIEVEMENT_GEM_BONUS;
+  saveProfile();
+  refreshMoneyDisplays();
+  const ach = ACHIEVEMENTS.find(a => a.id === id);
+  showToast(`🏆 Achievement unlocked: ${ach ? ach.name : id}! +${ACHIEVEMENT_GEM_BONUS} gems`);
+  return true;
+}
+
+function renderAchievements(){
+  const wrap = document.getElementById('achievements-list');
+  if(!wrap) return;
+  wrap.innerHTML = '';
+  ACHIEVEMENTS.forEach(a => {
+    const owned = hasAchievement(a.id);
+    const card = document.createElement('div');
+    card.className = 'option-card' + (!owned ? ' locked' : '');
+    card.innerHTML = `<div class="icon">${owned ? a.icon : '🔒'}</div>` +
+      `<div class="name">${a.name}</div>` +
+      `<div class="desc">${a.desc}</div>` +
+      (owned ? `<div class="owned-tag">✔ Unlocked (+${ACHIEVEMENT_GEM_BONUS} gems)</div>` : '<div class="lock-tag">Not yet earned</div>');
+    wrap.appendChild(card);
   });
 }
 
@@ -398,7 +631,110 @@ function goTo(name){
   if(name === 'skin') renderSkinOptions();
   if(name === 'weapon') renderWeaponOptions();
   if(name === 'guard') renderGuardOptions();
+  if(name === 'converter') updateConverterDisplay();
+  if(name === 'settings') renderKeybindList();
+  if(name === 'achievements') renderAchievements();
   refreshMoneyDisplays();
+}
+
+const GEMS_PER_GIT = 15; // planned rate for when the Converter is released
+
+function updateConverterDisplay(){
+  const unlocked = hasAchievement('rich100');
+  const lockedEl = document.getElementById('converter-locked');
+  const unlockedEl = document.getElementById('converter-unlocked');
+  if(lockedEl) lockedEl.classList.toggle('hidden', unlocked);
+  if(unlockedEl) unlockedEl.classList.toggle('hidden', !unlocked);
+  const el = document.getElementById('converterGemBalance');
+  if(el) el.textContent = (profile.gems || 0).toLocaleString();
+}
+
+function convertGems(){
+  if(!hasAchievement('rich100')){
+    showToast('The Converter is locked — collect 100 gems in one sitting first!');
+    return;
+  }
+  const gemBalance = profile.gems || 0;
+  const gitGained = Math.floor(gemBalance / GEMS_PER_GIT);
+  if(gitGained <= 0){
+    showToast(`Not enough gems yet — need at least ${GEMS_PER_GIT}.`);
+    return;
+  }
+  profile.gems = gemBalance - gitGained * GEMS_PER_GIT;
+  profile.money = (profile.money || 0) + gitGained;
+  saveProfile();
+  refreshMoneyDisplays();
+  updateConverterDisplay();
+  showToast(`💱 Converted for +${gitGained.toLocaleString()} $GIT!`);
+}
+
+// --- Controls / keybind settings ---
+const KEYBIND_ACTIONS = [
+  { key: 'up',    label: 'Move Forward' },
+  { key: 'down',  label: 'Move Backward' },
+  { key: 'left',  label: 'Strafe Left' },
+  { key: 'right', label: 'Strafe Right' },
+  { key: 'drink', label: 'Drink Potion' },
+  { key: 'attack', label: 'Attack' }
+];
+let listeningForAction = null;
+
+function keyDisplayName(k){
+  if(!k) return '—';
+  if(k === 'mouseleft') return 'Left Click';
+  if(k === ' ') return 'Space';
+  if(k.length === 1) return k.toUpperCase();
+  return k.charAt(0).toUpperCase() + k.slice(1);
+}
+
+function renderKeybindList(){
+  const wrap = document.getElementById('keybind-list');
+  if(!wrap) return;
+  wrap.innerHTML = '';
+  KEYBIND_ACTIONS.forEach(a => {
+    const row = document.createElement('div');
+    row.style.cssText = 'display:flex;align-items:center;justify-content:space-between;background:#16213e;border:1px solid #533483;border-radius:8px;padding:10px 14px;margin-bottom:10px;';
+    const isListening = listeningForAction === a.key;
+    row.innerHTML = `
+      <span>${a.label}</span>
+      <span style="display:flex;align-items:center;gap:10px;">
+        <span style="color:#00e5ff;font-weight:bold;min-width:60px;text-align:center;background:#0f3460;border-radius:5px;padding:4px 10px;">${isListening ? 'Press a key…' : keyDisplayName(profile.keybinds[a.key])}</span>
+        <button class="dealer-btn" style="padding:6px 14px;font-size:13px;" data-action="${a.key}">Rebind</button>
+      </span>
+    `;
+    row.querySelector('button').addEventListener('click', () => startListening(a.key));
+    wrap.appendChild(row);
+  });
+}
+
+function startListening(actionKey){
+  listeningForAction = actionKey;
+  renderKeybindList();
+}
+
+window.addEventListener('keydown', e => {
+  if(!listeningForAction) return;
+  e.preventDefault();
+  const newKey = e.key.toLowerCase();
+  if(newKey === 'escape'){ listeningForAction = null; renderKeybindList(); return; }
+  bindKeyTo(newKey);
+});
+
+// Also allow binding to the left mouse button (e.g. for Attack or Drink Potion).
+window.addEventListener('mousedown', e => {
+  if(!listeningForAction) return;
+  if(e.button !== 0) return; // only left click
+  e.preventDefault();
+  bindKeyTo('mouseleft');
+});
+
+function bindKeyTo(newKey){
+  const conflict = KEYBIND_ACTIONS.find(a => a.key !== listeningForAction && profile.keybinds[a.key] === newKey);
+  profile.keybinds[listeningForAction] = newKey;
+  listeningForAction = null;
+  saveProfile();
+  renderKeybindList();
+  showToast(conflict ? `Key set! Note: also used for "${conflict.label}".` : 'Key binding updated!');
 }
 
 // --- Difficulty slider wiring ---
@@ -503,6 +839,40 @@ function renderWeaponOptions(){
     });
     container.appendChild(card);
   });
+  renderPotionShop();
+}
+
+const INVIS_POTION_COST = 250;
+
+function renderPotionShop(){
+  const wrap = document.getElementById('potion-shop-wrap');
+  if(!wrap) return;
+  if(!profile.weaponDealerUnlocked){ wrap.innerHTML = ''; return; }
+  wrap.innerHTML = `
+    <h2 style="margin-bottom:10px;">🧪 Potions</h2>
+    <div class="option-row">
+      <div class="option-card" id="potionCard">
+        <div class="icon">🧪</div>
+        <div class="name">Invisibility Potion</div>
+        <div class="desc">Turn invisible to all guards for a few seconds. Press it in-game to use.</div>
+        <div class="price">💰 ${INVIS_POTION_COST.toLocaleString()} GIT — Owned: <span id="potionCount">${profile.potions || 0}</span></div>
+      </div>
+    </div>
+  `;
+  document.getElementById('potionCard').addEventListener('click', buyPotion);
+}
+
+function buyPotion(){
+  if(profile.money < INVIS_POTION_COST){
+    showToast(`Not enough money for an Invisibility Potion — need 💰${INVIS_POTION_COST.toLocaleString()}`);
+    return;
+  }
+  profile.money -= INVIS_POTION_COST;
+  profile.potions = (profile.potions || 0) + 1;
+  saveProfile();
+  refreshMoneyDisplays();
+  showToast('Bought an Invisibility Potion!');
+  renderPotionShop();
 }
 
 // --- Generic purchase handler (skins & weapons) ---
@@ -635,7 +1005,23 @@ resize(); window.addEventListener('resize', resize);
 
 const MAP_W = 3000, MAP_H = 3000;
 
-let player, invuln, walls, gems, TOTAL_GEMS, score, guards, guardMode;
+let player, invuln, walls, gems, TOTAL_GEMS, score, guards, purpleGuards, guardMode, stage, invisTimer, GEM_SPAWN_TARGET, attackTimer;
+
+const STAGE2_GEM_THRESHOLD = 30;
+const PURPLE_GUARD_COUNT = 5;
+const INVIS_DURATION = 300; // frames (~5s at 60fps)
+const RED_GUARD_HP = 100;
+const PURPLE_GUARD_HP = 150;
+const ATTACK_DAMAGE = 25; // fallback/default
+// Per-weapon attack damage — only "none" is finalized for now, rest TBD later.
+const WEAPON_ATTACK_DAMAGE = { none: 5 };
+function getAttackDamage(){
+  return WEAPON_ATTACK_DAMAGE[settings.weapon] ?? ATTACK_DAMAGE;
+}
+const GRID_SIZE = 100; // one "block" — used for map grid rendering and attack reach
+const ATTACK_RANGE = GRID_SIZE * 2.5; // 2.5-block melee reach — used for fists and melee (sword-type) weapons alike
+const ATTACK_COOLDOWN = 20; // frames
+const HP_BAR_DISPLAY_TIME = 150; // frames (~2.5s) an HP bar stays visible after being hit
 
 function initGame(){
   const stats = diffStatsForVal(settings.difficulty);
@@ -655,8 +1041,12 @@ function initGame(){
   invuln = 0;
   guardMode = settings.guard; // 'wander' | 'alert' | 'hunt'
   window.__invulnBonus = invulnBonus;
+  window.__guardSpeedMult = guardSpeedMult;
 
   document.getElementById('lives').textContent = player.lives;
+  document.getElementById('livePotions').textContent = profile.potions || 0;
+  const kb = profile.keybinds;
+  document.getElementById('hint').textContent = `Move: Arrow keys / ${keyDisplayName(kb.up)}${keyDisplayName(kb.left)}${keyDisplayName(kb.down)}${keyDisplayName(kb.right)} — Avoid the red guards! Press ${keyDisplayName(kb.drink)} to drink an Invisibility Potion 🧪`;
   refreshMoneyDisplays();
 
   walls = [];
@@ -669,13 +1059,13 @@ function initGame(){
   player.x = startSpot.x;
   player.y = startSpot.y;
 
+  // Gems are unlimited — keep a rolling pool on the map, refilled as they're collected.
+  GEM_SPAWN_TARGET = 30;
   gems = [];
-  TOTAL_GEMS = 30;
-  for(let i=0;i<TOTAL_GEMS;i++){
+  for(let i=0;i<GEM_SPAWN_TARGET;i++){
     const spot = findSafeSpot(8);
     gems.push({x: spot.x, y: spot.y, r: 8, collected:false, angle: Math.random()*Math.PI*2});
   }
-  document.getElementById('total').textContent = TOTAL_GEMS;
   score = 0;
   document.getElementById('score').textContent = score;
 
@@ -686,9 +1076,19 @@ function initGame(){
       x: spot.x, y: spot.y, r: 16,
       speed: (1.5 + Math.random()) * guardSpeedMult,
       dir: Math.random()*Math.PI*2,
-      changeTimer: 0
+      changeTimer: 0,
+      hp: RED_GUARD_HP,
+      maxHp: RED_GUARD_HP,
+      hpBarTimer: 0
     });
   }
+
+  // Stage 2 (Purple Guards) kicks in once the player hits STAGE2_GEM_THRESHOLD gems this run.
+  stage = 1;
+  purpleGuards = [];
+  invisTimer = 0;
+  attackTimer = 0;
+  document.getElementById('stageTag').textContent = '';
 
   gameOver = false;
   won = false;
@@ -720,6 +1120,21 @@ function findSafeSpot(r, margin){
 const keys = {};
 window.addEventListener('keydown', e => keys[e.key.toLowerCase()] = true);
 window.addEventListener('keyup', e => keys[e.key.toLowerCase()] = false);
+// Left mouse button acts as a virtual key ('mouseleft') so it can be bound to actions like Attack/Drink.
+document.getElementById('game').addEventListener('mousedown', e => { if(e.button === 0) keys['mouseleft'] = true; });
+window.addEventListener('mouseup', e => { if(e.button === 0) keys['mouseleft'] = false; });
+document.getElementById('game').addEventListener('contextmenu', e => e.preventDefault());
+
+// Crosshair / aim tracking — mouse position over the game canvas
+let mouseInCanvas = false, mouseCX = 0, mouseCY = 0;
+document.getElementById('game').addEventListener('mousemove', e => {
+  const rect = canvas.getBoundingClientRect();
+  mouseCX = e.clientX - rect.left;
+  mouseCY = e.clientY - rect.top;
+  mouseInCanvas = true;
+});
+document.getElementById('game').addEventListener('mouseenter', () => mouseInCanvas = true);
+document.getElementById('game').addEventListener('mouseleave', () => mouseInCanvas = false);
 
 let gameOver = false;
 let won = false;
@@ -731,11 +1146,33 @@ function tryMove(nx, ny){
   return true;
 }
 
-function endGame(text, coins){
+const DEATH_MESSAGES = [
+  "So close! Shake it off and dive back in!",
+  "That's how legends are made — one more run!",
+  "You're getting sharper every time. Go again!",
+  "Not bad at all! The next run's the big one.",
+  "Guards got lucky this time — show them who's boss!",
+  "Solid effort! Your best run is still ahead of you.",
+  "Every gem counts. Great hustle out there!",
+  "You'll crack it next time — get back in there!",
+  "That was a good run! Reset and go for a bigger one.",
+  "Almost had it! Champions keep pushing."
+];
+let lastDeathMsgIdx = -1;
+function randomDeathMessage(){
+  let idx;
+  do { idx = Math.floor(Math.random()*DEATH_MESSAGES.length); }
+  while(DEATH_MESSAGES.length > 1 && idx === lastDeathMsgIdx);
+  lastDeathMsgIdx = idx;
+  return DEATH_MESSAGES[idx];
+}
+
+function endGame(bonusGems){
   gameOver = true;
-  profile.money += coins;
+  const gemsEarned = score + (bonusGems||0); // accurate gems collected this run + any bonus
+  profile.gems += gemsEarned;
   saveProfile();
-  showEnd(text, coins);
+  showEnd(randomDeathMessage(), gemsEarned);
   const cloudEl = document.getElementById('cloudStatus');
   if(cloudEl){
     cloudEl.textContent = '☁️ Saving to cloud…';
@@ -748,10 +1185,10 @@ function endGame(text, coins){
 function update(){
   if(gameOver) return;
   let dx=0, dy=0;
-  if(keys['arrowup']||keys['w']) dy -= 1;
-  if(keys['arrowdown']||keys['s']) dy += 1;
-  if(keys['arrowleft']||keys['a']) dx -= 1;
-  if(keys['arrowright']||keys['d']) dx += 1;
+  if(keys['arrowup']||keys[profile.keybinds.up]) dy -= 1;
+  if(keys['arrowdown']||keys[profile.keybinds.down]) dy += 1;
+  if(keys['arrowleft']||keys[profile.keybinds.left]) dx -= 1;
+  if(keys['arrowright']||keys[profile.keybinds.right]) dx += 1;
   if(dx||dy){
     const len = Math.hypot(dx,dy);
     dx = dx/len*player.speed; dy = dy/len*player.speed;
@@ -761,23 +1198,109 @@ function update(){
     if(tryMove(player.x, ny)) player.y = ny;
   }
 
-  // gems
+  // gems — unlimited: each collected gem respawns elsewhere so the pool never runs out
   for(const g of gems){
     if(!g.collected && Math.hypot(g.x-player.x, g.y-player.y) < g.r+player.r){
       g.collected = true;
       score++;
       document.getElementById('score').textContent = score;
-      if(score >= TOTAL_GEMS){
-        won = true;
-        endGame("🎉 You collected all the gems!", score*50 + 1000);
+      if(score >= 100 && !hasAchievement('rich100')){
+        unlockAchievement('rich100');
+      }
+      if(g.bonus){
+        continue; // dropped guard-kill gems are one-off, don't respawn — removed just below
+      }
+      const spot = findSafeSpot(8);
+      g.x = spot.x; g.y = spot.y; g.collected = false; g.angle = Math.random()*Math.PI*2;
+
+      if(stage === 1 && score >= STAGE2_GEM_THRESHOLD){
+        stage = 2;
+        document.getElementById('stageTag').textContent = '⚠️ STAGE 2 — Purple Guards Active!';
+        showToast('⚠️ Stage 2! Purple guards are hunting you now!');
+        const isInsane = settings.difficulty >= 10; // Hacker difficulty = "insane" purple guard speed
+        const purpleMult = isInsane ? 2 : 1.2;
+        for(let i=0;i<PURPLE_GUARD_COUNT;i++){
+          const spot2 = findSafeSpot(16);
+          purpleGuards.push({
+            x: spot2.x, y: spot2.y, r: 16,
+            speed: (1.5 + Math.random()) * (window.__guardSpeedMult||1) * purpleMult,
+            dir: Math.random()*Math.PI*2,
+            changeTimer: 0,
+            hp: PURPLE_GUARD_HP,
+            maxHp: PURPLE_GUARD_HP,
+            hpBarTimer: 0
+          });
+        }
       }
     }
   }
+  if(gems.some(g => g.collected)) gems = gems.filter(g => !g.collected);
+
+  // Invisibility potion use
+  if(keys[profile.keybinds.drink] && invisTimer <= 0 && (profile.potions||0) > 0){
+    keys[profile.keybinds.drink] = false;
+    profile.potions--;
+    saveProfile();
+    document.getElementById('livePotions').textContent = profile.potions;
+    invisTimer = INVIS_DURATION;
+    showToast('🧪 You turned invisible!');
+  }
+  if(invisTimer > 0) invisTimer--;
+
+  // Attack — targets the guard under the mouse crosshair if aiming at one, else the nearest in range
+  if(attackTimer > 0) attackTimer--;
+  if(keys[profile.keybinds.attack] && attackTimer <= 0){
+    attackTimer = ATTACK_COOLDOWN;
+    const allGuards = [...guards, ...purpleGuards];
+    let target = null;
+
+    if(mouseInCanvas){
+      const cam = getCamera();
+      const worldX = cam.x + mouseCX, worldY = cam.y + mouseCY;
+      let bestAimDist = Infinity;
+      for(const gd of allGuards){
+        const distToPlayer = Math.hypot(gd.x-player.x, gd.y-player.y);
+        if(distToPlayer > ATTACK_RANGE + gd.r) continue; // must still be in melee range
+        const distToCursor = Math.hypot(gd.x-worldX, gd.y-worldY);
+        if(distToCursor < gd.r + 22 && distToCursor < bestAimDist){ target = gd; bestAimDist = distToCursor; }
+      }
+    }
+    if(!target){
+      // Fallback (e.g. keyboard-only players, or not aimed precisely): nearest guard in range
+      let nearestDist = Infinity;
+      for(const gd of allGuards){
+        const d = Math.hypot(gd.x-player.x, gd.y-player.y);
+        if(d < ATTACK_RANGE + gd.r && d < nearestDist){ target = gd; nearestDist = d; }
+      }
+    }
+
+    if(target){
+      target.hp -= getAttackDamage();
+      target.hpBarTimer = HP_BAR_DISPLAY_TIME; // reveal HP bar briefly after being hit
+      if(target.hp <= 0){
+        const isPurple = purpleGuards.includes(target);
+        const dropCount = isPurple ? (5 + Math.floor(Math.random()*26)) : Math.floor(Math.random()*21); // purple 5-30, red 0-20
+        for(let i=0;i<dropCount;i++){
+          const ang = Math.random()*Math.PI*2, dist = Math.random()*40;
+          gems.push({
+            x: target.x + Math.cos(ang)*dist, y: target.y + Math.sin(ang)*dist,
+            r: 8, collected:false, angle: Math.random()*Math.PI*2, bonus: true
+          });
+        }
+        if(isPurple) purpleGuards.splice(purpleGuards.indexOf(target), 1);
+        else guards.splice(guards.indexOf(target), 1);
+      }
+    }
+  }
+  // Tick down HP bar visibility timers so bars auto-hide a bit after the last hit (keeps rendering light)
+  for(const gd of guards) if(gd.hpBarTimer > 0) gd.hpBarTimer--;
+  for(const gd of purpleGuards) if(gd.hpBarTimer > 0) gd.hpBarTimer--;
 
   // guards
+  const isInvisible = invisTimer > 0;
   for(const gd of guards){
     const distToPlayer = Math.hypot(gd.x-player.x, gd.y-player.y);
-    const seesPlayer = (guardMode === 'alert' && distToPlayer < 260) || (guardMode === 'hunt' && distToPlayer < 420);
+    const seesPlayer = !isInvisible && ((guardMode === 'alert' && distToPlayer < 260) || (guardMode === 'hunt' && distToPlayer < 420));
 
     if(seesPlayer){
       gd.dir = Math.atan2(player.y-gd.y, player.x-gd.x);
@@ -797,30 +1320,66 @@ function update(){
     if(blocked){ gd.dir += Math.PI/2 + Math.random(); }
     else { gd.x = nx; gd.y = ny; }
 
-    if(invuln <= 0 && Math.hypot(gd.x-player.x, gd.y-player.y) < gd.r+player.r){
+    if(!isInvisible && invuln <= 0 && Math.hypot(gd.x-player.x, gd.y-player.y) < gd.r+player.r){
       player.lives--;
       document.getElementById('lives').textContent = player.lives;
       invuln = 90 + (window.__invulnBonus||0);
       if(player.lives <= 0){
-        endGame("💀 Game Over — you ran out of lives!", score*50);
+        endGame(0);
+      }
+    }
+  }
+
+  // purple guards (Stage 2) — always hunt the player relentlessly, unless the player is invisible
+  for(const gd of purpleGuards){
+    if(!isInvisible){
+      gd.dir = Math.atan2(player.y-gd.y, player.x-gd.x);
+    } else {
+      gd.changeTimer -= 1;
+      if(gd.changeTimer <= 0){
+        gd.dir += (Math.random()-0.5)*1.5;
+        gd.changeTimer = 40 + Math.random()*60;
+      }
+    }
+    const nx = gd.x + Math.cos(gd.dir)*gd.speed;
+    const ny = gd.y + Math.sin(gd.dir)*gd.speed;
+    let blocked = false;
+    for(const w of walls) if(rectsOverlapCircle(w, nx, ny, gd.r)) blocked = true;
+    if(nx < gd.r || nx > MAP_W-gd.r || ny < gd.r || ny > MAP_H-gd.r) blocked = true;
+    if(blocked){ gd.dir += Math.PI/2 + Math.random(); }
+    else { gd.x = nx; gd.y = ny; }
+
+    if(!isInvisible && invuln <= 0 && Math.hypot(gd.x-player.x, gd.y-player.y) < gd.r+player.r){
+      player.lives--;
+      document.getElementById('lives').textContent = player.lives;
+      invuln = 90 + (window.__invulnBonus||0);
+      if(player.lives <= 0){
+        endGame(0);
       }
     }
   }
   if(invuln > 0) invuln--;
 }
 
-function showEnd(text, coins){
+function showEnd(text, gemsEarned){
   document.getElementById('msg').textContent = text;
   document.getElementById('msg').style.display = 'block';
   const me = document.getElementById('moneyEarned');
-  me.textContent = `💰 +${coins.toLocaleString()} earned — Total: ${profile.money.toLocaleString()}`;
+  me.textContent = `💎 +${gemsEarned.toLocaleString()} Gems earned — Total: ${(profile.gems || 0).toLocaleString()} Gems`;
   me.style.display = 'block';
   document.getElementById('restart').style.display = 'block';
 }
 
+function getCamera(){
+  return {
+    x: Math.max(0, Math.min(MAP_W-canvas.width, player.x - canvas.width/2)),
+    y: Math.max(0, Math.min(MAP_H-canvas.height, player.y - canvas.height/2))
+  };
+}
+
 function draw(){
-  const camX = Math.max(0, Math.min(MAP_W-canvas.width, player.x - canvas.width/2));
-  const camY = Math.max(0, Math.min(MAP_H-canvas.height, player.y - canvas.height/2));
+  const cam = getCamera();
+  const camX = cam.x, camY = cam.y;
 
   ctx.fillStyle = '#16213e';
   ctx.fillRect(0,0,canvas.width,canvas.height);
@@ -828,7 +1387,7 @@ function draw(){
   // grid
   ctx.strokeStyle = 'rgba(255,255,255,0.05)';
   ctx.lineWidth = 1;
-  const gridSize = 100;
+  const gridSize = GRID_SIZE;
   for(let x = -((camX)%gridSize); x < canvas.width; x += gridSize){
     ctx.beginPath(); ctx.moveTo(x,0); ctx.lineTo(x,canvas.height); ctx.stroke();
   }
@@ -872,16 +1431,64 @@ function draw(){
     ctx.beginPath();
     ctx.arc(gd.x-camX+Math.cos(gd.dir)*6, gd.y-camY+Math.sin(gd.dir)*6, 3, 0, Math.PI*2);
     ctx.fill();
+    drawGuardHpBar(gd, camX, camY);
+  }
+
+  // purple guards (Stage 2)
+  for(const gd of purpleGuards){
+    ctx.fillStyle = '#9d4edd';
+    ctx.beginPath();
+    ctx.arc(gd.x-camX, gd.y-camY, gd.r, 0, Math.PI*2);
+    ctx.fill();
+    ctx.strokeStyle = '#e0aaff'; ctx.lineWidth = 2; ctx.stroke();
+    // eyes
+    ctx.fillStyle = '#fff';
+    ctx.beginPath();
+    ctx.arc(gd.x-camX+Math.cos(gd.dir)*6, gd.y-camY+Math.sin(gd.dir)*6, 3, 0, Math.PI*2);
+    ctx.fill();
+    drawGuardHpBar(gd, camX, camY);
   }
 
   // player
-  ctx.fillStyle = invuln > 0 && Math.floor(invuln/6)%2===0 ? 'rgba(255,255,255,0.4)' : player.color;
+  const invisible = invisTimer > 0;
+  ctx.fillStyle = invisible ? 'rgba(255,255,255,0.25)' : (invuln > 0 && Math.floor(invuln/6)%2===0 ? 'rgba(255,255,255,0.4)' : player.color);
   ctx.beginPath();
   ctx.arc(player.x-camX, player.y-camY, player.r, 0, Math.PI*2);
   ctx.fill();
-  ctx.strokeStyle = '#fff'; ctx.lineWidth = 2; ctx.stroke();
+  ctx.strokeStyle = invisible ? '#00e5ff' : '#fff'; ctx.lineWidth = 2; ctx.stroke();
+
+  if(mouseInCanvas) drawCrosshair(mouseCX, mouseCY);
 
   drawMinimap();
+}
+
+// Only rendered while hpBarTimer > 0 (i.e. recently hit) — keeps things light when nothing's been attacked.
+function drawGuardHpBar(gd, camX, camY){
+  if(!gd.hpBarTimer || gd.hpBarTimer <= 0) return;
+  const w = 36, h = 5;
+  const bx = gd.x - camX - w/2, by = gd.y - camY - gd.r - 14;
+  const pct = Math.max(0, gd.hp / gd.maxHp);
+  ctx.fillStyle = 'rgba(0,0,0,0.5)';
+  ctx.fillRect(bx, by, w, h);
+  ctx.fillStyle = pct > 0.5 ? '#4caf50' : (pct > 0.2 ? '#ffb703' : '#e63946');
+  ctx.fillRect(bx, by, w*pct, h);
+  ctx.strokeStyle = 'rgba(255,255,255,0.6)'; ctx.lineWidth = 1;
+  ctx.strokeRect(bx, by, w, h);
+}
+
+function drawCrosshair(cx, cy){
+  ctx.strokeStyle = '#00e5ff';
+  ctx.lineWidth = 2;
+  ctx.beginPath();
+  ctx.moveTo(cx-10, cy); ctx.lineTo(cx-3, cy);
+  ctx.moveTo(cx+3, cy); ctx.lineTo(cx+10, cy);
+  ctx.moveTo(cx, cy-10); ctx.lineTo(cx, cy-3);
+  ctx.moveTo(cx, cy+3); ctx.lineTo(cx, cy+10);
+  ctx.stroke();
+  ctx.beginPath();
+  ctx.arc(cx, cy, 2, 0, Math.PI*2);
+  ctx.fillStyle = '#00e5ff';
+  ctx.fill();
 }
 
 function drawMinimap(){
@@ -896,6 +1503,8 @@ function drawMinimap(){
   for(const g of gems) if(!g.collected) mctx.fillRect(g.x*scale-1, g.y*scale-1, 2, 2);
   mctx.fillStyle = '#e63946';
   for(const gd of guards){ mctx.beginPath(); mctx.arc(gd.x*scale, gd.y*scale, 3, 0, Math.PI*2); mctx.fill(); }
+  mctx.fillStyle = '#9d4edd';
+  for(const gd of purpleGuards){ mctx.beginPath(); mctx.arc(gd.x*scale, gd.y*scale, 3, 0, Math.PI*2); mctx.fill(); }
   mctx.fillStyle = player.color;
   mctx.beginPath(); mctx.arc(player.x*scale, player.y*scale, 4, 0, Math.PI*2); mctx.fill();
 }
