@@ -1,0 +1,1660 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<title>Chess Arena</title>
+<style>
+  :root{
+    --bg:#1b1f27; --panel:#232935; --light:#e9d8b6; --dark:#8a5a3b;
+    --p1:#e8c14c; --p2:#5cc2e8; --accent:#ff5f6d; --ok:#59d18a;
+  }
+  *{box-sizing:border-box;}
+  body{
+    margin:0; font-family:'Segoe UI',system-ui,sans-serif; background:radial-gradient(circle at 30% 20%,#2b3242,#14171d);
+    color:#eee; min-height:100vh; display:flex; align-items:center; justify-content:center; padding:20px;
+  }
+  #app{max-width:920px; width:100%;}
+  h1{text-align:center; font-size:1.8em; margin-bottom:4px; letter-spacing:1px;}
+  .subtitle{text-align:center; color:#aab; margin-bottom:20px; font-size:0.9em;}
+  .panel{background:var(--panel); border-radius:14px; padding:20px; box-shadow:0 8px 24px rgba(0,0,0,.4); margin-bottom:16px;}
+  .faction-grid{display:grid; grid-template-columns:repeat(3,1fr); gap:12px; margin:14px 0;}
+  .faction-btn{
+    background:#2d3444; border:2px solid #3d4457; border-radius:10px; padding:14px 8px; cursor:pointer;
+    color:#eee; text-align:center; transition:.15s; font-size:0.95em;
+  }
+  .faction-btn:hover{border-color:#666;}
+  .faction-btn.chosen{border-color:var(--ok); background:#2c4636;}
+  .faction-btn .emoji{font-size:1.8em; display:block; margin-bottom:6px;}
+  .setup-row{display:flex; gap:16px; flex-wrap:wrap;}
+  .setup-col{flex:1; min-width:260px;}
+  .setup-col h3{margin:0 0 6px; color:var(--p1);}
+  .setup-col.p2 h3{color:var(--p2);}
+  button.big{
+    width:100%; margin-top:10px; padding:12px; font-size:1.1em; border-radius:10px; border:none;
+    background:linear-gradient(135deg,#ff5f6d,#ffc371); color:#1b1f27; font-weight:700; cursor:pointer;
+  }
+  button.big:disabled{opacity:.4; cursor:not-allowed;}
+  #buffPreview{margin-top:14px; padding:12px; border-radius:10px; background:#1c2029; font-size:0.9em; min-height:20px; line-height:1.5;}
+  #game{display:none;}
+  #topbar{display:flex; justify-content:space-between; align-items:center; margin-bottom:10px; flex-wrap:wrap; gap:8px;}
+  #turn-indicator{font-weight:700; font-size:1.05em;}
+  #status{color:var(--accent); font-weight:700;}
+  #boardWrap{width:100%; max-width:520px; margin:0 auto;}
+  #board{
+    display:grid; width:100%;
+    border:5px solid #5a3d22; border-radius:8px; overflow:hidden;
+    box-shadow:0 10px 30px rgba(0,0,0,.5), inset 0 0 0 2px #2a1a0d;
+  }
+  /* Board colors are skin-driven via CSS custom properties, set by the Skin Shop. */
+  #board{border-color:var(--board-border,#5a3d22);}
+  #board .cell.light{background:var(--board-light,#e9d8b6);}
+  #board .cell.dark{background:var(--board-dark,#8a5a3b);}
+  .cell{position:relative; display:flex; align-items:center; justify-content:center; cursor:pointer;}
+  .cell.light{background:var(--light);}
+  .cell.dark{background:var(--dark);}
+  .cell.river{filter:brightness(1.08) saturate(1.3);}
+  .cell.river.light{background:#bcd4de;}
+  .cell.river.dark{background:#5f7f8c;}
+  .cell.palace{box-shadow:inset 0 0 0 999px rgba(255,215,120,.12);}
+  .cell.selected{outline:3px solid #fff; outline-offset:-3px; z-index:3;}
+  .cell.legal-move::after{content:''; position:absolute; width:26%; height:26%; border-radius:50%; background:rgba(80,200,120,.75);}
+  .cell.capture-move::after{content:''; position:absolute; width:80%; height:80%; border-radius:50%; border:4px solid rgba(255,70,70,.85); background:rgba(255,70,70,.15);}
+  /* Starfield overlay for space-themed skins (Galaxy / Deep Space / Nebula) */
+  #board.stars-skin{box-shadow:0 10px 30px rgba(0,0,0,.6), 0 0 24px -4px var(--board-border,#7c4dff), inset 0 0 0 2px rgba(0,0,0,.5);}
+  #board.stars-skin .cell{
+    background-image:
+      radial-gradient(1.2px 1.2px at 15% 25%, rgba(255,255,255,.95), transparent 60%),
+      radial-gradient(1px 1px at 75% 70%, rgba(255,255,255,.75), transparent 60%),
+      radial-gradient(1.6px 1.6px at 45% 85%, rgba(255,255,255,.9), transparent 60%),
+      radial-gradient(1px 1px at 88% 18%, rgba(255,255,255,.6), transparent 60%),
+      radial-gradient(0.9px 0.9px at 8% 92%, rgba(255,255,255,.55), transparent 60%),
+      radial-gradient(1.3px 1.3px at 60% 40%, rgba(255,255,255,.5), transparent 60%);
+    background-repeat:no-repeat;
+  }
+  #board.stars-skin .cell:nth-child(3n){
+    background-position: 10% 10%, 80% 80%, 30% 60%, 90% 30%, 15% 70%, 55% 15%;
+  }
+  #board.stars-skin .cell:nth-child(3n+1){
+    background-position: 25% 60%, 60% 20%, 10% 40%, 70% 90%, 40% 10%, 85% 55%;
+  }
+  /* Glossy sheen overlay on every cell, for a more polished/premium board look across all skins */
+  .cell::before{
+    content:''; position:absolute; inset:0; pointer-events:none; z-index:1;
+    background:linear-gradient(160deg, rgba(255,255,255,.14) 0%, rgba(255,255,255,0) 42%, rgba(0,0,0,.16) 100%);
+  }
+  .piece{ position:relative; z-index:2; }
+  .river-label{position:absolute; font-size:0.55em; color:rgba(20,50,60,.55); font-weight:700; letter-spacing:2px; pointer-events:none; white-space:nowrap;}
+  .piece{
+    font-size:min(4.3vw,28px); user-select:none; z-index:2; line-height:1;
+    transition:transform .12s ease;
+  }
+  .piece.p1{
+    color:var(--p1-color,#ffe9a8);
+    -webkit-text-stroke:1px var(--p1-stroke,#6b4b12);
+    text-shadow:0 1px 0 var(--p1-stroke,#6b4b12), 0 2px 3px rgba(0,0,0,.55), 0 0 6px var(--p1-glow, rgba(232,193,76,.5));
+  }
+  .piece.p2{
+    color:var(--p2-color,#d7f3ff);
+    -webkit-text-stroke:1px var(--p2-stroke,#1c5a73);
+    text-shadow:0 1px 0 var(--p2-stroke,#1c5a73), 0 2px 3px rgba(0,0,0,.55), 0 0 6px var(--p2-glow, rgba(92,194,232,.5));
+  }
+  .piece.leader{
+    animation:leaderGlow 1.6s ease-in-out infinite;
+  }
+  .piece.fchess, .piece.fcheckers{
+    display:inline-flex; align-items:center; justify-content:center;
+    width:1.55em; height:1.55em; border-radius:50%;
+    box-shadow:0 2px 4px rgba(0,0,0,.4);
+  }
+  .piece.fxiangqi{
+    display:inline-flex; align-items:center; justify-content:center;
+    width:1.62em; height:1.62em; border-radius:50%;
+    font-weight:700;
+    box-shadow:0 3px 6px rgba(0,0,0,.55), inset 0 2px 3px rgba(255,255,255,.5), inset 0 -3px 5px rgba(0,0,0,.3);
+  }
+  .piece.fxiangqi.p1{
+    background:radial-gradient(circle at 33% 28%, rgba(255,255,255,.85), rgba(255,255,255,.15) 40%, var(--p1-color,#ffe9a8) 70%);
+    border:2.5px solid var(--p1-stroke,#6b4b12);
+    color:var(--p1-stroke,#6b4b12);
+    -webkit-text-stroke:0;
+    text-shadow:none;
+  }
+  .piece.fxiangqi.p2{
+    background:radial-gradient(circle at 33% 28%, rgba(255,255,255,.85), rgba(255,255,255,.15) 40%, var(--p2-color,#d7f3ff) 70%);
+    border:2.5px solid var(--p2-stroke,#1c5a73);
+    color:var(--p2-stroke,#1c5a73);
+    -webkit-text-stroke:0;
+    text-shadow:none;
+  }
+  .piece.fxiangqi.leader{ box-shadow:0 0 0 3px gold, 0 3px 6px rgba(0,0,0,.55), inset 0 2px 3px rgba(255,255,255,.5); }
+  .piece.fchess.p1, .piece.fcheckers.p1{ border:2px solid var(--p1-stroke,#6b4b12); background:rgba(255,233,168,.12); }
+  .piece.fchess.p2, .piece.fcheckers.p2{ border:2px solid var(--p2-stroke,#1c5a73); background:rgba(215,243,255,.12); }
+  .piece.fcheckers.p1{ background:radial-gradient(circle at 33% 28%, rgba(255,255,255,.65), rgba(255,255,255,0) 45%), var(--p1-accent,#e8c14c); box-shadow:0 3px 5px rgba(0,0,0,.5), inset 0 -4px 5px rgba(0,0,0,.3), inset 0 2px 3px rgba(255,255,255,.5); }
+  .piece.fcheckers.p2{ background:radial-gradient(circle at 33% 28%, rgba(255,255,255,.65), rgba(255,255,255,0) 45%), var(--p2-accent,#5cc2e8); box-shadow:0 3px 5px rgba(0,0,0,.5), inset 0 -4px 5px rgba(0,0,0,.3), inset 0 2px 3px rgba(255,255,255,.5); }
+  .piece.fcheckers.man{ color:transparent !important; text-shadow:none !important; -webkit-text-stroke:0 !important; }
+  .piece.fcheckers.king{ color:#fff !important; text-shadow:0 1px 2px rgba(0,0,0,.7) !important; -webkit-text-stroke:0 !important; font-weight:bold; }
+  .piece.fcheckers.leader{ box-shadow:0 0 0 3px gold, 0 2px 4px rgba(0,0,0,.5); }
+  .control-select{
+    width:100%; margin-top:6px; padding:8px; border-radius:8px; border:1px solid #3d4457;
+    background:#2d3444; color:#eee; font-size:0.9em;
+  }
+  #shopToggle{
+    width:100%; margin-top:4px; padding:10px; border-radius:10px; border:2px solid #3d4457;
+    background:#2d3444; color:#eee; font-size:0.95em; cursor:pointer; font-weight:600;
+  }
+  #shopToggle:hover{border-color:#666;}
+  #shopBody{display:none; margin-top:14px;}
+  #shopBody.open{display:block;}
+  .shop-section{margin-bottom:16px;}
+  .shop-section h4{margin:0 0 8px; color:#ccc; font-size:0.9em; text-transform:uppercase; letter-spacing:.5px;}
+  .shop-swatches{display:grid; grid-template-columns:repeat(auto-fill,minmax(84px,1fr)); gap:8px;}
+  .swatch-btn{
+    background:#2d3444; border:2px solid #3d4457; border-radius:10px; padding:8px 6px; cursor:pointer;
+    color:#eee; text-align:center; font-size:0.75em; transition:.15s;
+  }
+  .swatch-btn:hover{border-color:#888;}
+  .swatch-btn.chosen{border-color:var(--ok); background:#2c4636;}
+  .swatch-preview{width:100%; height:26px; border-radius:6px; margin-bottom:5px; display:block; box-shadow:inset 0 0 0 1px rgba(0,0,0,.35), inset 0 8px 10px -6px rgba(255,255,255,.35), inset 0 -8px 10px -6px rgba(0,0,0,.35);}
+  .swatch-preview.split{background:linear-gradient(135deg, var(--sw-a) 50%, var(--sw-b) 50%);}
+  .swatch-preview.solid{background:radial-gradient(circle at 35% 30%, rgba(255,255,255,.55), rgba(255,255,255,0) 45%), var(--sw-a);}
+  .shop-players{display:flex; gap:16px; flex-wrap:wrap;}
+  .shop-players .shop-section{flex:1; min-width:220px;}
+  @keyframes leaderGlow{
+    0%,100%{ filter:drop-shadow(0 0 3px gold); }
+    50%{ filter:drop-shadow(0 0 10px gold) drop-shadow(0 0 16px orange); }
+  }
+  .cell:hover .piece{ transform:scale(1.12); }
+  .cell.selected .piece{ transform:scale(1.15); }
+  #legend{display:flex; gap:18px; flex-wrap:wrap; margin-top:14px; font-size:0.85em; color:#ccc; justify-content:center;}
+  #restartBtn{margin-top:14px;}
+  .buffed-tag{color:#59d18a; font-weight:700;}
+  .info{font-size:0.85em; color:#9aa; margin-top:10px; line-height:1.5;}
+</style>
+</head>
+<body>
+<div id="authGate" class="panel" style="max-width:420px; margin:60px auto;">
+  <h1 style="font-size:1.4em;">⚔️ Chess Arena</h1>
+  <div class="subtitle" style="margin-bottom:18px;">Sign in to play — account linked to Base Siege (same Supabase project &amp; login).</div>
+  <div id="authForm">
+    <label style="display:block; font-size:.85em; color:#aab; margin-bottom:4px;">Email</label>
+    <input id="authEmail" type="email" autocomplete="email" placeholder="you@example.com"
+      style="width:100%; padding:10px; border-radius:8px; border:1px solid #444; background:#1b1f27; color:#eee; margin-bottom:12px; box-sizing:border-box;">
+    <label style="display:block; font-size:.85em; color:#aab; margin-bottom:4px;">Password</label>
+    <input id="authPassword" type="password" autocomplete="current-password" placeholder="At least 6 characters"
+      style="width:100%; padding:10px; border-radius:8px; border:1px solid #444; background:#1b1f27; color:#eee; margin-bottom:14px; box-sizing:border-box;">
+    <div style="display:flex; gap:10px;">
+      <button class="big" id="loginBtn" type="button" style="flex:1;">Log In</button>
+      <button class="big" id="signupBtn" type="button" style="flex:1; background:#2c3e50;">Create Account</button>
+    </div>
+    <button class="big" id="guestBtn" type="button" style="width:100%; margin-top:10px; background:#3a3f4a;">👤 Continue as Guest</button>
+    <div id="authMsg" style="margin-top:12px; font-size:.9em; min-height:1.2em; color:#ff9d9d;"></div>
+  </div>
+</div>
+
+<div id="app" style="display:none;">
+  <div id="userBar" style="display:flex; justify-content:flex-end; align-items:center; gap:10px; max-width:900px; margin:0 auto 8px; font-size:.85em; color:#aab;">
+    <span id="accountLinkTag" style="opacity:.75;">🔗 Account linked to Base Siege</span>
+    <span id="userEmailTag"></span>
+    <button id="logoutBtn" type="button" style="padding:6px 12px; border-radius:8px; border:1px solid #444; background:#232935; color:#eee; cursor:pointer;">Log Out</button>
+  </div>
+  <h1>⚔️ Chess Arena</h1>
+  <div class="subtitle">Chess vs Xiangqi vs Checkers — Xiangqi keeps its real river, palace &amp; layout.</div>
+
+  <div class="panel" id="setup">
+    <h3 style="margin:0 0 6px;">Your Username</h3>
+    <input id="usernameInput" type="text" maxlength="20" placeholder="Enter a username" class="control-select" style="margin-top:0;">
+
+    <div class="faction-grid" style="grid-template-columns:1fr 1fr; margin:14px 0;">
+      <div class="faction-btn chosen" id="modeLocalBtn">👥<br>Local Pass-and-Play</div>
+      <div class="faction-btn" id="modeOnlineBtn">🌐<br>Online Multiplayer</div>
+    </div>
+
+    <div id="localSetup">
+      <div class="setup-row">
+        <div class="setup-col">
+          <h3><input id="p1nameInput" type="text" maxlength="20" placeholder="Player 1" style="width:100%; background:transparent; border:none; color:var(--p1); font:inherit; font-weight:700; padding:0;"></h3>
+          <div class="faction-grid" id="p1grid"></div>
+          <select class="control-select" id="p1control">
+            <option value="human">👤 Human</option>
+            <option value="easy">🤖 Bot — Easy</option>
+            <option value="medium">🤖 Bot — Medium</option>
+            <option value="hard">🤖 Bot — Hard</option>
+          </select>
+        </div>
+        <div class="setup-col p2">
+          <h3><input id="p2nameInput" type="text" maxlength="20" placeholder="Player 2" style="width:100%; background:transparent; border:none; color:var(--p2); font:inherit; font-weight:700; padding:0;"></h3>
+          <div class="faction-grid" id="p2grid"></div>
+          <select class="control-select" id="p2control">
+            <option value="human">👤 Human</option>
+            <option value="easy">🤖 Bot — Easy</option>
+            <option value="medium">🤖 Bot — Medium</option>
+            <option value="hard">🤖 Bot — Hard</option>
+          </select>
+        </div>
+      </div>
+      <div id="buffPreview">Pick a faction for each player to see who gets buffed.</div>
+      <button id="shopToggle" type="button">🛍️ Customize — board &amp; piece colors</button>
+      <div id="shopBody">
+        <div class="shop-section">
+          <h4>Board Skins</h4>
+          <div id="shopBoardSkins"></div>
+        </div>
+        <div class="shop-players">
+          <div class="shop-section">
+            <h4 style="color:var(--p1);">Player 1 Piece Skin</h4>
+            <div class="shop-swatches" id="shopP1Skins"></div>
+          </div>
+          <div class="shop-section">
+            <h4 style="color:var(--p2);">Player 2 Piece Skin</h4>
+            <div class="shop-swatches" id="shopP2Skins"></div>
+          </div>
+        </div>
+      </div>
+      <button class="big" id="startBtn" disabled>Start Battle</button>
+    </div>
+
+    <div id="onlineSetup" style="display:none;">
+      <h3>Choose Your Chess Type</h3>
+      <div class="faction-grid" id="onlineGrid"></div>
+      <div id="onlineArea">
+        <button class="big" id="findPlayerBtn" type="button" disabled style="width:100%;">🌍 Find Player</button>
+        <button class="big" id="cancelSearchBtn" type="button" style="width:100%; margin-top:8px; display:none; background:#3a2020;">✖ Cancel Search</button>
+        <div id="onlineStatus" style="margin-top:12px; padding:12px; border-radius:10px; background:#1c2029; font-size:0.9em; min-height:20px; line-height:1.5;"></div>
+      </div>
+    </div>
+
+    <div class="info">
+      Local mode is pass-and-play on one device. Online mode matches you against another player over the network —
+      create a room and share the code, or join a friend's code. Both battle on a full 9×10 Xiangqi-style board with a river and palace.
+      Capture the enemy <b>Leader</b> (glowing piece) or wipe out all their pieces to win.
+      Buff rules: Chess gets an extra Pawn + Queen vs Xiangqi. Checkers gets a third full row of pieces (every square filled, not just dark squares) whenever it faces Chess or Xiangqi — its baseline is 2 full rows. Mirror matchups get no buffs.
+      Casual mashup ruleset: no check/checkmate restriction, no castling/en passant, checkers allows chain jumps.
+      Use Customize above to give each board type its own color theme, and give each player their own piece colors.
+    </div>
+  </div>
+
+  <div class="panel" id="game">
+    <div id="matchupHeader" style="display:none; text-align:center; font-size:1.05em; font-weight:700; margin-bottom:4px;"></div>
+    <div id="connBadge" style="display:none; text-align:center; font-size:.8em; color:#9aa; margin-bottom:10px;"></div>
+    <div id="topbar">
+      <div id="turn-indicator"></div>
+      <div id="status"></div>
+    </div>
+    <div id="boardWrap"><div id="board"></div></div>
+    <button class="big" id="stopChainBtn" type="button" style="display:none; background:#3a2020; margin-top:8px;">✖ Stop Attacking — End Turn</button>
+    <div id="legend">
+      <span>♚♛♜♝♞♟ = Chess</span>
+      <span>帥將仕士相象馬俥車炮砲兵卒 = Xiangqi</span>
+      <span>● / ♛ = Checkers (♛ = King)</span>
+      <span>Glowing piece = Leader</span>
+    </div>
+    <button class="big" id="restartBtn">↺ New Game</button>
+  </div>
+</div>
+
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2/dist/umd/supabase.min.js"></script>
+<script>
+(function(){
+  const SUPABASE_URL = 'https://qzupfyqizurpkvifkmnn.supabase.co';
+  const SUPABASE_KEY = 'sb_publishable_gp-WE1KorWX85B8gsPqYrA_-7juvU8q';
+  const sb = window.supabase.createClient(SUPABASE_URL, SUPABASE_KEY);
+  window.sbClient = sb;
+
+  const authGate = document.getElementById('authGate');
+  const appEl = document.getElementById('app');
+  const authMsg = document.getElementById('authMsg');
+  const emailInput = document.getElementById('authEmail');
+  const passwordInput = document.getElementById('authPassword');
+  const loginBtn = document.getElementById('loginBtn');
+  const signupBtn = document.getElementById('signupBtn');
+  const guestBtn = document.getElementById('guestBtn');
+  const logoutBtn = document.getElementById('logoutBtn');
+  const userEmailTag = document.getElementById('userEmailTag');
+  const accountLinkTag = document.getElementById('accountLinkTag');
+
+  function setMsg(text, ok){
+    authMsg.textContent = text || '';
+    authMsg.style.color = ok ? '#8be89a' : '#ff9d9d';
+  }
+  function setBusy(busy){
+    loginBtn.disabled = busy;
+    signupBtn.disabled = busy;
+    guestBtn.disabled = busy;
+  }
+  function showApp(session){
+    authGate.style.display = 'none';
+    appEl.style.display = '';
+    const user = session && session.user;
+    window.myUserId = user ? user.id : null;
+    window.isGuest = !!(user && user.is_anonymous);
+    if(window.isGuest){
+      userEmailTag.textContent = 'Guest';
+      accountLinkTag.textContent = '👤 Playing as guest (progress saved to this device only)';
+    } else {
+      userEmailTag.textContent = user ? user.email : '';
+      accountLinkTag.textContent = '🔗 Account linked to Base Siege';
+    }
+    if(typeof refreshOnlineLevels==='function') refreshOnlineLevels();
+  }
+  function showAuthGate(){
+    appEl.style.display = 'none';
+    authGate.style.display = '';
+    passwordInput.value = '';
+  }
+
+  loginBtn.addEventListener('click', async ()=>{
+    const email = emailInput.value.trim();
+    const password = passwordInput.value;
+    if(!email || !password){ setMsg('Enter an email and password.'); return; }
+    setBusy(true); setMsg('Logging in…', true);
+    const { data, error } = await sb.auth.signInWithPassword({ email, password });
+    setBusy(false);
+    if(error){ setMsg(error.message); return; }
+    setMsg('');
+    showApp(data.session);
+  });
+
+  signupBtn.addEventListener('click', async ()=>{
+    const email = emailInput.value.trim();
+    const password = passwordInput.value;
+    if(!email || !password){ setMsg('Enter an email and password.'); return; }
+    if(password.length<6){ setMsg('Password must be at least 6 characters.'); return; }
+    setBusy(true); setMsg('Creating account…', true);
+    const { data, error } = await sb.auth.signUp({ email, password });
+    setBusy(false);
+    if(error){ setMsg(error.message); return; }
+    if(data.session){
+      setMsg('');
+      showApp(data.session);
+    } else {
+      setMsg('Account created! Check your email to confirm, then log in.', true);
+    }
+  });
+
+  guestBtn.addEventListener('click', async ()=>{
+    setBusy(true); setMsg('Setting up a guest session…', true);
+    const { data, error } = await sb.auth.signInAnonymously();
+    setBusy(false);
+    if(error){ setMsg('Guest play is unavailable right now: '+error.message); return; }
+    setMsg('');
+    showApp(data.session);
+  });
+
+  logoutBtn.addEventListener('click', async ()=>{
+    await sb.auth.signOut();
+    showAuthGate();
+  });
+
+  [emailInput, passwordInput].forEach(inp=>{
+    inp.addEventListener('keydown', e=>{ if(e.key==='Enter') loginBtn.click(); });
+  });
+
+  // Restore existing session on load
+  sb.auth.getSession().then(({data})=>{
+    if(data && data.session){ showApp(data.session); }
+  });
+  sb.auth.onAuthStateChange((_event, session)=>{
+    if(session){ showApp(session); } else { showAuthGate(); }
+  });
+})();
+</script>
+<script>
+let ROWS=10, COLS=9, mapType='xiangqi';
+const FACTIONS = {
+  chess:{label:'Chess', emoji:'♞'},
+  xiangqi:{label:'Xiangqi', emoji:'車'},
+  checkers:{label:'Checkers', emoji:'●'}
+};
+const BOARD_SKINS = {
+  xiangqi:{
+    classic:{label:'Classic Wood', light:'#f0dfc0', dark:'#9c6b45', border:'#6b4526'},
+    jade:{label:'Jade', light:'#e3f5ea', dark:'#2f6b4f', border:'#1c4a35'},
+    ink:{label:'Ink & Paper', light:'#f5f1e6', dark:'#262629', border:'#141414'},
+    sunset:{label:'Sunset', light:'#ffe0b8', dark:'#c65a35', border:'#7a2d12'},
+    galaxy:{label:'Galaxy', light:'#3a3172', dark:'#0d0b24', border:'#8a5cff', stars:true}
+  },
+  chess:{
+    classic:{label:'Classic', light:'#eef1f5', dark:'#3c5a78', border:'#25384a'},
+    walnut:{label:'Walnut', light:'#f3ddb0', dark:'#a9754a', border:'#5a3a1a'},
+    neon:{label:'Neon', light:'#3a3355', dark:'#14101f', border:'#ff2fb0'},
+    marble:{label:'Marble', light:'#faf8f5', dark:'#8f8f95', border:'#4a4a52'},
+    space:{label:'Deep Space', light:'#232a4d', dark:'#05060f', border:'#39e0ff', stars:true}
+  },
+  checkers:{
+    classic:{label:'Red & Black', light:'#f2d9b1', dark:'#8a2323', border:'#3a0d0d'},
+    ocean:{label:'Ocean', light:'#e0f4fb', dark:'#1f6d8f', border:'#0d2f3a'},
+    mono:{label:'Monochrome', light:'#eeeeee', dark:'#2f2f2f', border:'#111111'},
+    forest:{label:'Forest', light:'#eaf3da', dark:'#3f6b34', border:'#1f2f18'},
+    nebula:{label:'Nebula', light:'#4a2f7a', dark:'#150c2c', border:'#ff6ec7', stars:true}
+  }
+};
+const PIECE_SKINS = {
+  gold:{label:'Gold', color:'#ffe9a8', stroke:'#7a5714', accent:'#f0c94e'},
+  sapphire:{label:'Sapphire', color:'#cdeeff', stroke:'#134f66', accent:'#4db8e8'},
+  emerald:{label:'Emerald', color:'#c3f5d3', stroke:'#0f4d24', accent:'#3fa876'},
+  ruby:{label:'Ruby', color:'#ffc9c9', stroke:'#7a1414', accent:'#e14b4b'},
+  amethyst:{label:'Amethyst', color:'#e4cdff', stroke:'#4a1680', accent:'#9b5ce0'},
+  silver:{label:'Silver', color:'#f0f0f2', stroke:'#3a3a3a', accent:'#a9adb5'},
+  cosmic:{label:'Cosmic', color:'#241c52', stroke:'#8a5cff', accent:'#39e0ff'}
+};
+const SKIN_STORAGE_KEY = 'triChessArena.skins';
+function loadSavedSkins(){
+  try{
+    const raw = localStorage.getItem(SKIN_STORAGE_KEY);
+    if(!raw) return null;
+    return JSON.parse(raw);
+  }catch(e){ return null; }
+}
+function saveSkins(){
+  try{
+    localStorage.setItem(SKIN_STORAGE_KEY, JSON.stringify({
+      boardSkins: window.boardSkins,
+      pieceSkins: window.pieceSkins
+    }));
+  }catch(e){ /* storage unavailable, ignore */ }
+}
+const savedSkins = loadSavedSkins();
+window.boardSkins = (savedSkins && savedSkins.boardSkins) || {xiangqi:'classic', chess:'classic', checkers:'classic'};
+window.pieceSkins = (savedSkins && savedSkins.pieceSkins) || {1:'gold', 2:'sapphire'};
+function getMapType(f1,f2){
+  if(f1==='xiangqi'||f2==='xiangqi') return 'xiangqi';
+  if(f1==='checkers'&&f2==='checkers') return 'checkers';
+  return 'chess';
+}
+function rowFor(player, offsetFromBack){
+  return player===1 ? (ROWS-1-offsetFromBack) : offsetFromBack;
+}
+const BUFF_OWNER = {
+  'chess_xiangqi':'chess', 'xiangqi_chess':'chess',
+  'chess_checkers':'checkers', 'checkers_chess':'checkers',
+  'xiangqi_checkers':'checkers', 'checkers_xiangqi':'checkers'
+};
+
+let picks = {1:null, 2:null};
+let board, currentPlayer, selected, legalMoves, gameOver, buffs = {1:false,2:false};
+window.playerNames = {1:'Player 1', 2:'Player 2'};
+
+// ---------------- Username ----------------
+const usernameInput = document.getElementById('usernameInput');
+usernameInput.value = localStorage.getItem('tca_username') || '';
+usernameInput.addEventListener('input', ()=>{
+  localStorage.setItem('tca_username', usernameInput.value.trim());
+});
+function myUsername(){
+  return (usernameInput.value.trim()) || 'Player';
+}
+
+// ---------------- Mode toggle ----------------
+const modeLocalBtn = document.getElementById('modeLocalBtn');
+const modeOnlineBtn = document.getElementById('modeOnlineBtn');
+const localSetup = document.getElementById('localSetup');
+const onlineSetup = document.getElementById('onlineSetup');
+modeLocalBtn.onclick = ()=>{
+  modeLocalBtn.classList.add('chosen'); modeOnlineBtn.classList.remove('chosen');
+  localSetup.style.display=''; onlineSetup.style.display='none';
+  leaveRoom();
+};
+modeOnlineBtn.onclick = ()=>{
+  modeOnlineBtn.classList.add('chosen'); modeLocalBtn.classList.remove('chosen');
+  localSetup.style.display='none'; onlineSetup.style.display='';
+  refreshOnlineLevels();
+};
+
+function buildFactionGrids(){
+  ['p1grid','p2grid'].forEach((gridId, idx)=>{
+    const player = idx+1;
+    const grid = document.getElementById(gridId);
+    grid.innerHTML='';
+    Object.keys(FACTIONS).forEach(key=>{
+      const f = FACTIONS[key];
+      const btn = document.createElement('div');
+      btn.className='faction-btn';
+      btn.innerHTML = `<span class="emoji">${f.emoji}</span>${f.label}`;
+      btn.onclick = ()=>{ picks[player]=key; updateGrids(); updateBuffPreview(); };
+      grid.appendChild(btn);
+    });
+  });
+  const onlineGrid = document.getElementById('onlineGrid');
+  onlineGrid.innerHTML='';
+  Object.keys(FACTIONS).forEach(key=>{
+    const f = FACTIONS[key];
+    const btn = document.createElement('div');
+    btn.className='faction-btn';
+    btn.innerHTML = `<span class="emoji">${f.emoji}</span>${f.label}<div class="faction-level" data-online-level="${key}" style="margin-top:4px; font-size:.8em; color:var(--ok);">Lv ${getLevel(key)}</div>`;
+    btn.onclick = ()=>{
+      window.onlinePick = key;
+      [...onlineGrid.children].forEach(b=>b.classList.remove('chosen'));
+      btn.classList.add('chosen');
+      const ready = !!window.onlinePick;
+      document.getElementById('findPlayerBtn').disabled = !ready;
+    };
+    onlineGrid.appendChild(btn);
+  });
+}
+function refreshOnlineLevels(){
+  document.querySelectorAll('[data-online-level]').forEach(el=>{
+    el.textContent = 'Lv ' + getLevel(el.getAttribute('data-online-level'));
+  });
+}
+function updateGrids(){
+  [1,2].forEach(player=>{
+    const grid = document.getElementById('p'+player+'grid');
+    [...grid.children].forEach((btn,i)=>{
+      const key = Object.keys(FACTIONS)[i];
+      btn.classList.toggle('chosen', picks[player]===key);
+    });
+  });
+  document.getElementById('startBtn').disabled = !(picks[1] && picks[2]);
+}
+function determineBuffs(f1,f2){
+  buffs[1]=false; buffs[2]=false;
+  if(f1===f2) return;
+  const buffedFaction = BUFF_OWNER[f1+'_'+f2];
+  if(!buffedFaction) return;
+  if(f1===buffedFaction) buffs[1]=true; else buffs[2]=true;
+}
+function updateBuffPreview(){
+  const el = document.getElementById('buffPreview');
+  if(!picks[1]||!picks[2]){ el.textContent='Pick a faction for each player to see who gets buffed.'; return; }
+  determineBuffs(picks[1],picks[2]);
+  if(picks[1]===picks[2]){
+    el.innerHTML = `Mirror match: <b>${FACTIONS[picks[1]].label} vs ${FACTIONS[picks[2]].label}</b> — no buffs, pure skill.`;
+    return;
+  }
+  const buffedPlayer = buffs[1]?1:2;
+  const buffedFaction = picks[buffedPlayer];
+  let desc='';
+  if(buffedFaction==='chess') desc='gets an extra Pawn and an extra Queen.';
+  if(buffedFaction==='checkers') desc='gets a third row of checkers.';
+  el.innerHTML = `Matchup: <b>${FACTIONS[picks[1]].label}</b> vs <b>${FACTIONS[picks[2]].label}</b> → <span class="buffed-tag">Player ${buffedPlayer} (${FACTIONS[buffedFaction].label})</span> is the underdog and ${desc}`;
+}
+
+// ---------------- Online multiplayer (Supabase-backed shared key/value storage, polling) ----------------
+// Uses the `chess_kv` table in the Fortressed Supabase project (same project the login
+// account lives in). RLS on chess_kv already grants public select/insert/update/delete,
+// so the anon key below is all that's needed — no server code required.
+window.onlineActive = false;   // true while a synced online match is in progress
+window.myRole = null;          // 1 (host) or 2 (guest) in online mode
+window.roomCode = null;
+window.roomSeq = 0;
+let pollTimer = null;
+let lobbySearching = false;
+if(!localStorage.getItem('tca_pid')) localStorage.setItem('tca_pid', Math.random().toString(36).slice(2)+Date.now().toString(36));
+const myPid = localStorage.getItem('tca_pid');
+
+// ---------------- Faction XP / Levels ----------------
+// Each move made in an online multiplayer match earns 1 XP for whichever faction the
+// mover is currently playing, and capturing an enemy piece (of any faction, including
+// checkers) earns a bonus on top of that. All factions level up at the same rate
+// (10 XP/level). Progress is tied to the signed-in account (or guest device) and stored
+// locally so it persists across sessions.
+const XP_PER_LEVEL = {chess:10, xiangqi:10, checkers:10};
+const XP_PER_MOVE = 1;
+const XP_PER_CAPTURE = 3;
+function xpStorageKey(){ return 'tca_xp_' + (window.myUserId || myPid); }
+function loadXp(){
+  try{
+    const raw = JSON.parse(localStorage.getItem(xpStorageKey()));
+    return {chess:0, xiangqi:0, checkers:0, ...(raw||{})};
+  }catch(e){ return {chess:0, xiangqi:0, checkers:0}; }
+}
+function saveXp(xp){ try{ localStorage.setItem(xpStorageKey(), JSON.stringify(xp)); }catch(e){ /* storage unavailable, ignore */ } }
+function getLevel(faction){
+  const xp = loadXp()[faction] || 0;
+  return Math.floor(xp / (XP_PER_LEVEL[faction]||5)) + 1;
+}
+function addXp(faction, amount){
+  const xp = loadXp();
+  xp[faction] = (xp[faction]||0) + amount;
+  saveXp(xp);
+  return getLevel(faction);
+}
+function awardMoveXpIfOnline(wasCapture){
+  if(!window.onlineActive) return;
+  // The mover is always the local human player in online mode (see the guard at the top
+  // of onCellClick), so award XP for whichever faction the current player is using.
+  // Every move earns the base amount; capturing any enemy piece (any faction, including
+  // checkers) earns an additional bonus on top of that.
+  let amount = XP_PER_MOVE;
+  if(wasCapture) amount += XP_PER_CAPTURE;
+  addXp(window.factions[currentPlayer], amount);
+}
+
+const LOBBY_KEY = 'tca_global_lobby';
+const LOBBY_STALE_MS = 25000; // if a global-lobby host hasn't been refreshed in this long, treat it as abandoned
+
+function roomKey(code){ return 'tca_room_'+code; }
+
+function sbc(){
+  // The script block that creates the Supabase client only exposes it on window.sbClient —
+  // there is no bare `sb` in this script's scope, so we must always go through window.sbClient.
+  return window.sbClient;
+}
+async function kvGet(key){
+  try{
+    const client = sbc();
+    if(!client){ console.error('[kv] Supabase client not ready yet'); return null; }
+    const { data, error } = await client.from('chess_kv').select('value').eq('key', key).maybeSingle();
+    if(error){ console.error('[kv] get error', key, error); return null; }
+    if(!data || data.value===undefined || data.value===null) return null;
+    return JSON.parse(data.value);
+  }catch(e){ console.error('[kv] get threw', key, e); return null; }
+}
+async function kvSet(key, obj){
+  try{
+    const client = sbc();
+    if(!client){ console.error('[kv] Supabase client not ready yet'); return false; }
+    if(obj===null || obj===undefined){
+      await kvDelete(key);
+      return true;
+    }
+    const { error } = await client.from('chess_kv').upsert({ key, value: JSON.stringify(obj), updated_at: new Date().toISOString() });
+    if(error){ console.error('[kv] set error', key, error); return false; }
+    return true;
+  }catch(e){ console.error('[kv] set threw', key, e); return false; }
+}
+async function kvDelete(key){
+  try{
+    const client = sbc();
+    if(!client) return;
+    const { error } = await client.from('chess_kv').delete().eq('key', key);
+    if(error) console.error('[kv] delete error', key, error);
+  }catch(e){ console.error('[kv] delete threw', key, e); }
+}
+
+function genCode(){
+  const chars='ABCDEFGHJKLMNPQRSTUVWXYZ23456789';
+  let s=''; for(let i=0;i<6;i++) s+=chars[Math.floor(Math.random()*chars.length)];
+  return s;
+}
+function setOnlineStatus(html){ document.getElementById('onlineStatus').innerHTML = html; }
+
+// ---- Realtime sync: subscribe to live changes on our room row so moves apply instantly
+// instead of waiting for the next poll. Polling stays on underneath as a slower safety-net
+// in case the realtime socket drops. ----
+let roomChannel = null;
+window.realtimeConnected = false;
+function subscribeRoomRealtime(code){
+  unsubscribeRoomRealtime();
+  const client = sbc();
+  if(!client) return;
+  roomChannel = client
+    .channel('room-'+code)
+    .on('postgres_changes', {event:'*', schema:'public', table:'chess_kv', filter:`key=eq.${roomKey(code)}`}, payload=>{
+      const row = payload.new;
+      if(!row || row.value===undefined || row.value===null) return;
+      try{ handleRoomUpdate(JSON.parse(row.value)); }catch(e){ /* ignore malformed row */ }
+    })
+    .subscribe(status=>{
+      window.realtimeConnected = (status==='SUBSCRIBED');
+      updateConnBadge();
+    });
+}
+function unsubscribeRoomRealtime(){
+  const client = sbc();
+  if(roomChannel && client){ client.removeChannel(roomChannel); }
+  roomChannel = null;
+  window.realtimeConnected = false;
+  updateConnBadge();
+}
+function updateConnBadge(){
+  const el = document.getElementById('connBadge');
+  if(!el) return;
+  if(!window.onlineActive && !window.roomCode){ el.style.display='none'; return; }
+  el.style.display='';
+  el.textContent = window.realtimeConnected ? '🟢 Live' : '📡 Syncing…';
+}
+
+function setSearchingUI(isSearching){
+  lobbySearching = isSearching;
+  document.getElementById('findPlayerBtn').style.display = isSearching ? 'none' : '';
+  document.getElementById('cancelSearchBtn').style.display = isSearching ? '' : 'none';
+}
+
+// ---- Global Room: click "Find Player" to be matched into a random open room, no code needed ----
+document.getElementById('findPlayerBtn').onclick = async ()=>{
+  if(!window.onlinePick) return;
+  if(!sbc()){
+    setOnlineStatus('⚠️ Not connected to the server yet — please wait a moment and try again.');
+    return;
+  }
+  setSearchingUI(true);
+  setOnlineStatus('Searching the global room for an opponent…');
+
+  const lobby = await kvGet(LOBBY_KEY);
+  const now = Date.now();
+
+  if(lobby && lobby.hostPid!==myPid && (now-lobby.ts) < LOBBY_STALE_MS){
+    // Someone is already waiting in the global room — try to join them.
+    const room = await kvGet(roomKey(lobby.code));
+    if(room && room.status==='waiting'){
+      await kvSet(LOBBY_KEY, null); // clear the lobby slot now that it's taken
+      room.guestName = myUsername(); room.guestFaction = window.onlinePick; room.guestPid = myPid;
+      room.guestLevel = getLevel(window.onlinePick);
+      room.status = 'ready';
+      const joined = await kvSet(roomKey(room.code), room);
+      if(!joined){
+        setSearchingUI(false);
+        setOnlineStatus('⚠️ Could not join that room (connection issue). Please try again.');
+        return;
+      }
+      window.roomCode = room.code; window.myRole = 2;
+      setOnlineStatus(`Matched with <b>${room.hostName}</b>! Waiting for the battle to start…`);
+      subscribeRoomRealtime(room.code);
+      startPolling();
+      return;
+    }
+  }
+
+  // No one waiting (or the previous host vanished) — become the host of the global room.
+  const code = genCode();
+  const room = {
+    code, status:'waiting', isGlobal:true,
+    hostName: myUsername(), hostFaction: window.onlinePick, hostPid: myPid, hostLevel: getLevel(window.onlinePick),
+    guestName: null, guestFaction: null, guestPid: null, guestLevel: null,
+    seq:0
+  };
+  const roomSaved = await kvSet(roomKey(code), room);
+  const lobbySaved = roomSaved && await kvSet(LOBBY_KEY, {code, hostPid: myPid, hostName: myUsername(), ts: now});
+  if(!roomSaved || !lobbySaved){
+    setSearchingUI(false);
+    setOnlineStatus('⚠️ Could not reach the server to open a room. Check your connection and try again.');
+    return;
+  }
+  window.roomCode = code; window.myRole = 1;
+  setOnlineStatus('Waiting for a random opponent to join the global room…');
+  subscribeRoomRealtime(code);
+  startPolling();
+};
+
+document.getElementById('cancelSearchBtn').onclick = async ()=>{
+  if(window.myRole===1){
+    const lobby = await kvGet(LOBBY_KEY);
+    if(lobby && lobby.code===window.roomCode) await kvSet(LOBBY_KEY, null);
+    if(window.roomCode) await kvDelete(roomKey(window.roomCode));
+  }
+  leaveRoom();
+  setSearchingUI(false);
+  setOnlineStatus('Search cancelled.');
+};
+
+function startPolling(){
+  stopPolling();
+  pollTimer = setInterval(pollRoom, 2000);
+  pollRoom();
+  // While waiting as the global-room host, keep our lobby entry fresh so we're not
+  // treated as abandoned by another searching player.
+  if(window.myRole===1){
+    const refreshTimer = setInterval(async ()=>{
+      if(!lobbySearching || !window.roomCode){ clearInterval(refreshTimer); return; }
+      const lobby = await kvGet(LOBBY_KEY);
+      if(lobby && lobby.code===window.roomCode){ lobby.ts = Date.now(); await kvSet(LOBBY_KEY, lobby); }
+      else clearInterval(refreshTimer);
+    }, 10000);
+  }
+};
+function stopPolling(){
+  if(pollTimer){ clearInterval(pollTimer); pollTimer=null; }
+}
+function leaveRoom(){
+  stopPolling();
+  stopHeartbeat();
+  unsubscribeRoomRealtime();
+  window.onlineActive = false;
+  window.myRole = null;
+  window.roomCode = null;
+  window.roomSeq = 0;
+  setSearchingUI(false);
+  updateConnBadge();
+}
+
+// ---- Presence: heartbeats let each side detect if the opponent closed the tab (declares
+// a forfeit win after a period of silence) versus just switched tabs (shown as "idling"). ----
+const HEARTBEAT_MS = 3000;
+const FORFEIT_TIMEOUT_MS = 10000;
+let heartbeatTimer = null;
+window.myIdle = false;
+document.addEventListener('visibilitychange', ()=>{
+  window.myIdle = document.hidden;
+  if(window.onlineActive) sendHeartbeat();
+});
+// Best-effort: if the tab is actually being closed/navigated away from, try to push one
+// last update immediately so the opponent doesn't have to wait out the full timeout.
+window.addEventListener('pagehide', ()=>{
+  if(window.onlineActive && window.roomCode) sendHeartbeat();
+});
+function startHeartbeat(){
+  stopHeartbeat();
+  sendHeartbeat();
+  heartbeatTimer = setInterval(sendHeartbeat, HEARTBEAT_MS);
+}
+function stopHeartbeat(){
+  if(heartbeatTimer){ clearInterval(heartbeatTimer); heartbeatTimer=null; }
+}
+async function sendHeartbeat(){
+  if(!window.onlineActive || !window.roomCode || !window.myRole) return;
+  const room = await kvGet(roomKey(window.roomCode));
+  if(!room) return;
+  const now = Date.now();
+  if(window.myRole===1){ room.hostLastSeen = now; room.hostIdle = !!window.myIdle; }
+  else { room.guestLastSeen = now; room.guestIdle = !!window.myIdle; }
+  await kvSet(roomKey(window.roomCode), room);
+}
+function checkOpponentForfeit(room){
+  if(!window.onlineActive || room.status!=='active' || gameOver) return;
+  const now = Date.now();
+  const oppLastSeen = window.myRole===1 ? room.guestLastSeen : room.hostLastSeen;
+  const oppName = window.myRole===1 ? room.guestName : room.hostName;
+  if(!oppLastSeen || (now-oppLastSeen) < FORFEIT_TIMEOUT_MS) return;
+  const winMsg = `🏆 ${myUsername()} wins — ${oppName||'opponent'} left the match!`;
+  gameOver = true;
+  document.getElementById('status').textContent = winMsg;
+  room.gameOver = true; room.status = 'over'; room.winnerMsg = winMsg;
+  room.seq = (room.seq||0) + 1; window.roomSeq = room.seq;
+  kvSet(roomKey(window.roomCode), room);
+  stopHeartbeat();
+}
+
+async function pollRoom(){
+  if(!window.roomCode) return;
+  const room = await kvGet(roomKey(window.roomCode));
+  if(!room) return;
+  handleRoomUpdate(room);
+}
+
+function handleRoomUpdate(room){
+  // Host: guest has joined but battle not yet started -> auto-start and become authoritative
+  if(window.myRole===1 && room.status==='ready'){
+    beginOnlineBattle(room);
+    return;
+  }
+
+  // Not yet active: keep showing waiting text
+  if(room.status==='waiting' || (room.status==='ready' && window.myRole===2)){
+    if(window.myRole===2 && room.status==='ready'){
+      setOnlineStatus(`Joined room <b>${room.code}</b> as ${room.guestName} (${FACTIONS[room.guestFaction].label}). Waiting for host to start the battle…`);
+    }
+    return;
+  }
+
+  // Active or over: sync board state if it moved on
+  if((room.status==='active' || room.status==='over') && room.seq > window.roomSeq){
+    applyOnlineState(room);
+  } else if(room.status==='active'){
+    // Even when no new move has come in, keep watching for the opponent going quiet and
+    // refresh the idling badge in the header so it isn't stuck showing stale info.
+    checkOpponentForfeit(room);
+    if(window.onlineActive) updateMatchupHeader(room);
+  }
+}
+
+function beginOnlineBattle(room){
+  mapType = getMapType(room.hostFaction, room.guestFaction);
+  if(mapType==='xiangqi'){ ROWS=10; COLS=9; } else { ROWS=8; COLS=8; }
+  emptyBoard();
+  determineBuffs(room.hostFaction, room.guestFaction);
+  window.factions = {1:room.hostFaction, 2:room.guestFaction};
+  window.controls = {1:'human', 2:'human'};
+  SETUP_FN[room.hostFaction](1, buffs[1]);
+  SETUP_FN[room.guestFaction](2, buffs[2]);
+  currentPlayer=1; selected=null; legalMoves=[]; gameOver=false;
+  window.playerNames = {1:room.hostName, 2:room.guestName};
+  window.onlineActive = true;
+  window.roomSeq = 1;
+  room.status='active'; room.board=board; room.currentPlayer=currentPlayer;
+  room.buffs={...buffs}; room.mapType=mapType; room.ROWS=ROWS; room.COLS=COLS;
+  room.gameOver=false; room.winnerMsg=''; room.seq=1;
+  room.hostLastSeen=Date.now(); room.hostIdle=false;
+  room.guestLastSeen=Date.now(); room.guestIdle=false;
+  kvSet(roomKey(room.code), room);
+  enterOnlineGameUI(room);
+  startHeartbeat();
+}
+
+function enterOnlineGameUI(room){
+  setSearchingUI(false);
+  document.getElementById('setup').style.display='none';
+  document.getElementById('game').style.display='block';
+  document.getElementById('status').textContent='';
+  const restartBtn = document.getElementById('restartBtn');
+  restartBtn.textContent = '🏳️ Leave Match (Forfeit)';
+  updateMatchupHeader(room);
+  updateConnBadge();
+  render();
+}
+function updateMatchupHeader(room){
+  const mh = document.getElementById('matchupHeader');
+  mh.style.display='block';
+  const hLvl = room.hostLevel!=null ? ` · Lv ${room.hostLevel}` : '';
+  const gLvl = room.guestLevel!=null ? ` · Lv ${room.guestLevel}` : '';
+  const hIdle = room.hostIdle ? ' 💤 idling' : '';
+  const gIdle = room.guestIdle ? ' 💤 idling' : '';
+  mh.innerHTML = `⚔️ <span style="color:var(--p1);">${room.hostName} (${FACTIONS[room.hostFaction].label}${hLvl})${hIdle}</span> vs <span style="color:var(--p2);">${room.guestName} (${FACTIONS[room.guestFaction].label}${gLvl})${gIdle}</span>`;
+}
+
+function applyOnlineState(room){
+  mapType = room.mapType; ROWS = room.ROWS; COLS = room.COLS;
+  board = room.board; currentPlayer = room.currentPlayer; buffs = room.buffs;
+  window.factions = {1:room.hostFaction, 2:room.guestFaction};
+  window.playerNames = {1:room.hostName, 2:room.guestName};
+  window.roomSeq = room.seq;
+  gameOver = room.gameOver;
+  selected=null; legalMoves=[];
+  hideStopChainBtn();
+  const alreadyInGame = window.onlineActive;
+  window.onlineActive = true;
+  if(!alreadyInGame){ enterOnlineGameUI(room); startHeartbeat(); }
+  else { updateMatchupHeader(room); }
+  render();
+  if(gameOver && room.winnerMsg){ document.getElementById('status').textContent = room.winnerMsg; stopHeartbeat(); }
+}
+
+async function pushOnlineState(extra){
+  if(!window.onlineActive || !window.roomCode) return;
+  const room = await kvGet(roomKey(window.roomCode));
+  if(!room) return;
+  room.board = board; room.currentPlayer = currentPlayer; room.buffs = {...buffs};
+  room.mapType = mapType; room.ROWS = ROWS; room.COLS = COLS;
+  room.gameOver = gameOver;
+  room.winnerMsg = document.getElementById('status').textContent || '';
+  room.status = gameOver ? 'over' : 'active';
+  if(window.myRole===1) room.hostLevel = getLevel(window.factions[1]);
+  else if(window.myRole===2) room.guestLevel = getLevel(window.factions[2]);
+  room.seq = (room.seq||0) + 1;
+  window.roomSeq = room.seq;
+  await kvSet(roomKey(window.roomCode), room);
+}
+
+const p1nameInput = document.getElementById('p1nameInput');
+const p2nameInput = document.getElementById('p2nameInput');
+document.getElementById('startBtn').onclick = ()=>{
+  const c1 = document.getElementById('p1control').value;
+  const c2 = document.getElementById('p2control').value;
+  window.onlineActive = false;
+  window.playerNames = {
+    1: p1nameInput.value.trim() || 'Player 1',
+    2: p2nameInput.value.trim() || 'Player 2'
+  };
+  document.getElementById('matchupHeader').style.display='none';
+  document.getElementById('restartBtn').textContent = '↺ New Game';
+  startGame(picks[1], picks[2], {1:c1, 2:c2});
+};
+document.getElementById('restartBtn').onclick = async ()=>{
+  if(window.onlineActive && !gameOver){
+    const sure = confirm('Leave the match now? Your opponent will be awarded the win by forfeit.');
+    if(!sure) return;
+    const winner = window.myRole===1 ? 2 : 1;
+    const winnerName = window.playerNames && window.playerNames[winner];
+    const room = await kvGet(roomKey(window.roomCode));
+    if(room){
+      gameOver = true;
+      room.gameOver = true; room.status='over';
+      room.winnerMsg = `🏆 ${winnerName} wins — opponent forfeited the match!`;
+      room.seq = (room.seq||0)+1;
+      await kvSet(roomKey(window.roomCode), room);
+    }
+  }
+  hideStopChainBtn();
+  leaveRoom();
+  document.getElementById('game').style.display='none';
+  document.getElementById('setup').style.display='block';
+  refreshOnlineLevels();
+};
+document.getElementById('shopToggle').onclick = ()=>{
+  document.getElementById('shopBody').classList.toggle('open');
+};
+
+function buildShopGrids(){
+  const boardWrap = document.getElementById('shopBoardSkins');
+  boardWrap.innerHTML='';
+  Object.keys(BOARD_SKINS).forEach(mtype=>{
+    const section = document.createElement('div');
+    section.style.marginBottom='10px';
+    const title = document.createElement('div');
+    title.style.cssText='font-size:0.8em;color:#9aa;margin-bottom:6px;';
+    title.textContent = FACTIONS[mtype] ? FACTIONS[mtype].label+' board' : mtype;
+    section.appendChild(title);
+    const grid = document.createElement('div');
+    grid.className='shop-swatches';
+    Object.keys(BOARD_SKINS[mtype]).forEach(key=>{
+      const sk = BOARD_SKINS[mtype][key];
+      const btn = document.createElement('div');
+      btn.className='swatch-btn';
+      btn.innerHTML = `<span class="swatch-preview split" style="--sw-a:${sk.light};--sw-b:${sk.dark};"></span>${sk.label}`;
+      btn.onclick = ()=>{ window.boardSkins[mtype]=key; saveSkins(); buildShopGrids(); };
+      if(window.boardSkins[mtype]===key) btn.classList.add('chosen');
+      grid.appendChild(btn);
+    });
+    section.appendChild(grid);
+    boardWrap.appendChild(section);
+  });
+  [1,2].forEach(player=>{
+    const wrap = document.getElementById('shopP'+player+'Skins');
+    wrap.innerHTML='';
+    Object.keys(PIECE_SKINS).forEach(key=>{
+      const sk = PIECE_SKINS[key];
+      const btn = document.createElement('div');
+      btn.className='swatch-btn';
+      btn.innerHTML = `<span class="swatch-preview solid" style="--sw-a:${sk.accent};"></span>${sk.label}`;
+      btn.onclick = ()=>{ window.pieceSkins[player]=key; saveSkins(); buildShopGrids(); applyPieceSkins(); };
+      if(window.pieceSkins[player]===key) btn.classList.add('chosen');
+      wrap.appendChild(btn);
+    });
+  });
+}
+function hexToRgba(hex, a){
+  const h = hex.replace('#','');
+  const full = h.length===3 ? h.split('').map(c=>c+c).join('') : h;
+  const r = parseInt(full.substring(0,2),16);
+  const g = parseInt(full.substring(2,4),16);
+  const b = parseInt(full.substring(4,6),16);
+  return `rgba(${r},${g},${b},${a})`;
+}
+function applyPieceSkins(){
+  const s1 = PIECE_SKINS[window.pieceSkins[1]];
+  const s2 = PIECE_SKINS[window.pieceSkins[2]];
+  const root = document.documentElement.style;
+  root.setProperty('--p1-color', s1.color);
+  root.setProperty('--p1-stroke', s1.stroke);
+  root.setProperty('--p1-accent', s1.accent);
+  root.setProperty('--p1-glow', hexToRgba(s1.accent, 0.55));
+  root.setProperty('--p2-color', s2.color);
+  root.setProperty('--p2-stroke', s2.stroke);
+  root.setProperty('--p2-accent', s2.accent);
+  root.setProperty('--p2-glow', hexToRgba(s2.accent, 0.55));
+}
+function applyBoardSkin(){
+  const sk = BOARD_SKINS[mapType][window.boardSkins[mapType]];
+  const root = document.documentElement.style;
+  root.setProperty('--board-light', sk.light);
+  root.setProperty('--board-dark', sk.dark);
+  root.setProperty('--board-border', sk.border);
+  const boardEl = document.getElementById('board');
+  if(boardEl) boardEl.classList.toggle('stars-skin', !!sk.stars);
+}
+
+function isDark(r,c){ return (r+c)%2===1; }
+function inBounds(r,c){ return r>=0&&r<ROWS&&c>=0&&c<COLS; }
+function emptyBoard(){ board = Array.from({length:ROWS},()=>Array(COLS).fill(null)); }
+
+// ---- Setup: Chess uses columns 0-7 (col 8 left empty), rows 9/8 (P1) and 0/1 (P2) ----
+function setupChess(player, buffed){
+  const backRow=['R','N','B','Q','K','B','N','R'];
+  const row = rowFor(player,0), pawnRow = rowFor(player,1);
+  for(let c=0;c<8;c++){
+    board[row][c]={faction:'chess',type:backRow[c],player,isLeader:backRow[c]==='K',hasMoved:false};
+    board[pawnRow][c]={faction:'chess',type:'P',player,isLeader:false,hasMoved:false};
+  }
+  if(buffed && COLS>8){
+    // Extra Queen goes all the way to the right of the King, on the spare file (bishop stays put).
+    board[row][8]={faction:'chess',type:'Q',player,isLeader:false,hasMoved:false};
+    board[pawnRow][8]={faction:'chess',type:'P',player,isLeader:false,hasMoved:false};
+  }
+}
+
+// ---- Setup: authentic Xiangqi layout on the 9x10 board ----
+function setupXiangqi(player, buffed){
+  const backRow=['XR','XH','XE','XA','XG','XA','XE','XH','XR'];
+  const row = rowFor(player,0);
+  const cannonRow = rowFor(player,2);
+  const soldierRow = rowFor(player,3);
+  for(let c=0;c<9;c++){
+    board[row][c]={faction:'xiangqi',type:backRow[c],player,isLeader:backRow[c]==='XG',hasMoved:false};
+  }
+  [1,7].forEach(c=> board[cannonRow][c]={faction:'xiangqi',type:'XC',player,isLeader:false,hasMoved:false});
+  [0,2,4,6,8].forEach(c=> board[soldierRow][c]={faction:'xiangqi',type:'XS',player,isLeader:false,hasMoved:false});
+}
+
+// ---- Setup: Checkers — 2 full rows baseline, 3 full rows when buffed ----
+function setupCheckers(player, buffed){
+  const mirror = (mapType==='checkers');
+  // Classic checkers vs checkers: 3 rows per side, dark squares only. Vs Chess/Xiangqi: 2 full rows baseline.
+  const rows = mirror
+    ? [rowFor(player,0), rowFor(player,1), rowFor(player,2)]
+    : [rowFor(player,0), rowFor(player,1)];
+  rows.forEach(r=>{
+    for(let c=0;c<COLS;c++){
+      if(mirror && !isDark(r,c)) continue; // normal checkers vs checkers: dark squares only
+      board[r][c]={faction:'checkers',type:'C',player,isKing:false,isLeader:false,hasMoved:false};
+    }
+  });
+  if(buffed){
+    const thirdRow = rowFor(player,2);
+    for(let c=0;c<COLS;c++){
+      board[thirdRow][c]={faction:'checkers',type:'C',player,isKing:false,isLeader:false,hasMoved:false};
+    }
+  }
+}
+const SETUP_FN = {chess:setupChess, xiangqi:setupXiangqi, checkers:setupCheckers};
+
+function startGame(f1,f2,controls){
+  mapType = getMapType(f1,f2);
+  if(mapType==='xiangqi'){ ROWS=10; COLS=9; }
+  else { ROWS=8; COLS=8; }
+  emptyBoard();
+  determineBuffs(f1,f2);
+  window.factions = {1:f1, 2:f2};
+  window.controls = controls || {1:'human', 2:'human'};
+  SETUP_FN[f1](1, buffs[1]);
+  SETUP_FN[f2](2, buffs[2]);
+  currentPlayer=1; selected=null; legalMoves=[]; gameOver=false;
+  hideStopChainBtn();
+  document.getElementById('setup').style.display='none';
+  document.getElementById('game').style.display='block';
+  document.getElementById('status').textContent='';
+  render();
+  maybeBotMove();
+}
+
+function slide(r,c,dirs,piece,moves){
+  for(const [dr,dc] of dirs){
+    let nr=r+dr,nc=c+dc;
+    while(inBounds(nr,nc)){
+      const t=board[nr][nc];
+      if(!t) moves.push({r:nr,c:nc,capture:false});
+      else { if(t.player!==piece.player) moves.push({r:nr,c:nc,capture:true}); break; }
+      nr+=dr; nc+=dc;
+    }
+  }
+}
+
+function getMoves(r,c,inChain){
+  const piece=board[r][c];
+  if(!piece) return [];
+  const moves=[];
+  const dirO=[[-1,0],[1,0],[0,-1],[0,1]];
+  const dirD=[[-1,-1],[-1,1],[1,-1],[1,1]];
+  const fwd = piece.player===1?-1:1;
+  switch(piece.type){
+    case 'P':{
+      let nr=r+fwd;
+      if(inBounds(nr,c) && !board[nr][c]){
+        moves.push({r:nr,c,capture:false});
+        let nr2=r+2*fwd;
+        if(!piece.hasMoved && inBounds(nr2,c) && !board[nr2][c]) moves.push({r:nr2,c,capture:false});
+      }
+      for(const dc of [-1,1]){
+        const cc=c+dc;
+        if(inBounds(nr,cc) && board[nr][cc] && board[nr][cc].player!==piece.player) moves.push({r:nr,c:cc,capture:true});
+      }
+      break;
+    }
+    case 'N':{
+      const offs=[[-2,-1],[-2,1],[-1,-2],[-1,2],[1,-2],[1,2],[2,-1],[2,1]];
+      for(const [dr,dc] of offs){
+        const nr=r+dr,nc=c+dc;
+        if(inBounds(nr,nc) && (!board[nr][nc]||board[nr][nc].player!==piece.player)) moves.push({r:nr,c:nc,capture:!!board[nr][nc]});
+      }
+      break;
+    }
+    case 'B': slide(r,c,dirD,piece,moves); break;
+    case 'R': slide(r,c,dirO,piece,moves); break;
+    case 'Q': slide(r,c,dirO.concat(dirD),piece,moves); break;
+    case 'K':{
+      for(const [dr,dc] of dirO.concat(dirD)){
+        const nr=r+dr,nc=c+dc;
+        if(inBounds(nr,nc) && (!board[nr][nc]||board[nr][nc].player!==piece.player)) moves.push({r:nr,c:nc,capture:!!board[nr][nc]});
+      }
+      break;
+    }
+    case 'XG': case 'XA':{
+      const palaceCols=[3,4,5];
+      const palaceRows = piece.player===1?[7,8,9]:[0,1,2];
+      const dirs = piece.type==='XG'?dirO:dirD;
+      for(const [dr,dc] of dirs){
+        const nr=r+dr,nc=c+dc;
+        if(inBounds(nr,nc) && palaceCols.includes(nc) && palaceRows.includes(nr) && (!board[nr][nc]||board[nr][nc].player!==piece.player)) moves.push({r:nr,c:nc,capture:!!board[nr][nc]});
+      }
+      break;
+    }
+    case 'XE':{
+      const offs=[[-2,-2],[-2,2],[2,-2],[2,2]];
+      const ownHalf = piece.player===1 ? (rr)=>rr>=5 : (rr)=>rr<=4;
+      for(const [dr,dc] of offs){
+        const nr=r+dr, nc=c+dc, midR=r+dr/2, midC=c+dc/2;
+        if(!inBounds(nr,nc) || !ownHalf(nr)) continue;
+        if(board[midR][midC]) continue; // blocked "elephant eye"
+        if(!board[nr][nc] || board[nr][nc].player!==piece.player) moves.push({r:nr,c:nc,capture:!!board[nr][nc]});
+      }
+      break;
+    }
+    case 'XH':{
+      const legOffs=[
+        [[-2,-1],[-1,0]],[[-2,1],[-1,0]],[[2,-1],[1,0]],[[2,1],[1,0]],
+        [[-1,-2],[0,-1]],[[1,-2],[0,-1]],[[-1,2],[0,1]],[[1,2],[0,1]]
+      ];
+      for(const [[dr,dc],[ldr,ldc]] of legOffs){
+        const legR=r+ldr, legC=c+ldc;
+        if(inBounds(legR,legC) && board[legR][legC]) continue;
+        const nr=r+dr,nc=c+dc;
+        if(inBounds(nr,nc) && (!board[nr][nc]||board[nr][nc].player!==piece.player)) moves.push({r:nr,c:nc,capture:!!board[nr][nc]});
+      }
+      break;
+    }
+    case 'XR': slide(r,c,dirO,piece,moves); break;
+    case 'XC':{
+      for(const [dr,dc] of dirO){
+        let nr=r+dr,nc=c+dc, screen=false;
+        while(inBounds(nr,nc)){
+          const t=board[nr][nc];
+          if(!screen){
+            if(!t) moves.push({r:nr,c:nc,capture:false}); else screen=true;
+          } else {
+            if(t){ if(t.player!==piece.player) moves.push({r:nr,c:nc,capture:true}); break; }
+          }
+          nr+=dr; nc+=dc;
+        }
+      }
+      break;
+    }
+    case 'XS':{
+      let nr=r+fwd;
+      if(inBounds(nr,c) && (!board[nr][c]||board[nr][c].player!==piece.player)) moves.push({r:nr,c,capture:!!board[nr][c]});
+      const crossed = piece.player===1? r<=4 : r>=5;
+      if(crossed){
+        for(const dc of [-1,1]){
+          const nc=c+dc;
+          if(inBounds(r,nc) && (!board[r][nc]||board[r][nc].player!==piece.player)) moves.push({r,c:nc,capture:!!board[r][nc]});
+        }
+      }
+      break;
+    }
+    case 'C':{
+      const mirror = (mapType==='checkers');
+      if(piece.isKing){
+        // King: diagonal moves are a "flying king" like international draughts — slide freely
+        // through empty squares, and capture by jumping over the first enemy piece met along a
+        // diagonal, landing on the empty square immediately beyond it. Straight (orthogonal)
+        // moves are a single square; a straight attack normally requires jumping over the piece,
+        // unless the target sits on the edge/corner of the board, in which case the king can eat
+        // it directly by walking onto its square.
+        const isEdge = (rr,cc)=> rr===0||rr===ROWS-1||cc===0||cc===COLS-1;
+        for(const [dr,dc] of dirD){
+          let nr=r+dr,nc=c+dc;
+          while(inBounds(nr,nc) && !board[nr][nc]){
+            moves.push({r:nr,c:nc,capture:false});
+            nr+=dr; nc+=dc;
+          }
+          if(inBounds(nr,nc) && board[nr][nc] && board[nr][nc].player!==piece.player){
+            const lr=nr+dr, lc=nc+dc;
+            if(inBounds(lr,lc) && !board[lr][lc]) moves.push({r:lr,c:lc,capture:true,jumped:{r:nr,c:nc}});
+          }
+        }
+        for(const [dr,dc] of dirO){
+          const nr=r+dr,nc=c+dc;
+          if(!inBounds(nr,nc)) continue;
+          const t=board[nr][nc];
+          if(!t) moves.push({r:nr,c:nc,capture:false});
+          // A king can only eat straight-on without jumping if the target sits on the
+          // edge/corner of the board, and only as the FIRST move of a turn — not as a
+          // follow-up step in a multi-capture chain, to prevent chaining infinite edge kills.
+          else if(t.player!==piece.player && isEdge(nr,nc) && !inChain) moves.push({r:nr,c:nc,capture:true});
+        }
+        for(const [dr,dc] of dirO){
+          const nr=r+dr,nc=c+dc, jr=r+2*dr, jc=c+2*dc;
+          if(inBounds(nr,nc) && inBounds(jr,jc) && board[nr][nc] && board[nr][nc].player!==piece.player && !board[jr][jc]){
+            moves.push({r:jr,c:jc,capture:true,jumped:{r:nr,c:nc}});
+          }
+        }
+        break;
+      }
+      if(mirror){
+        // Classic checkers vs checkers: diagonal single-step moves, diagonal jump-captures only.
+        const stepDirs = dirD.filter(([dr])=>dr===fwd);
+        for(const [dr,dc] of stepDirs){
+          const nr=r+dr,nc=c+dc;
+          if(inBounds(nr,nc) && !board[nr][nc]) moves.push({r:nr,c:nc,capture:false});
+          const jr=r+2*dr, jc=c+2*dc;
+          if(inBounds(nr,nc) && inBounds(jr,jc) && board[nr][nc] && board[nr][nc].player!==piece.player && !board[jr][jc]){
+            moves.push({r:jr,c:jc,capture:true,jumped:{r:nr,c:nc}});
+          }
+        }
+      } else {
+        // Rebalance vs Chess/Xiangqi: men step one square diagonally forward as usual.
+        // Special perk: a checker can walk directly onto (capture) a Chess/Xiangqi piece sitting on
+        // the edge or corner of the board. On top of that, checkers still keep their usual diagonal
+        // jump-capture too.
+        const dirs = dirD.filter(([dr])=>dr===fwd);
+        const isEdge = (rr,cc)=> rr===0||rr===ROWS-1||cc===0||cc===COLS-1;
+        for(const [dr,dc] of dirs){
+          const nr=r+dr,nc=c+dc;
+          if(!inBounds(nr,nc)) continue;
+          const t=board[nr][nc];
+          if(!t) moves.push({r:nr,c:nc,capture:false});
+          // Walk-into (non-jump) edge/corner capture is only available as the FIRST move of a
+          // turn, not as a follow-up step in a multi-capture chain — a checker that already
+          // jumped this turn must wait until its next turn to take an edge piece this way.
+          else if(t.player!==piece.player && isEdge(nr,nc) && !inChain) moves.push({r:nr,c:nc,capture:true});
+        }
+        const jumpDirs = dirD.filter(([dr])=>dr===fwd);
+        for(const [dr,dc] of jumpDirs){
+          const nr=r+dr,nc=c+dc, jr=r+2*dr, jc=c+2*dc;
+          if(inBounds(nr,nc) && inBounds(jr,jc) && board[nr][nc] && board[nr][nc].player!==piece.player && !board[jr][jc]){
+            moves.push({r:jr,c:jc,capture:true,jumped:{r:nr,c:nc}});
+          }
+        }
+      }
+      break;
+    }
+  }
+  return moves;
+}
+
+function movePiece(r,c,dest){
+  const piece=board[r][c];
+  if(dest.jumped) board[dest.jumped.r][dest.jumped.c]=null;
+  const target=board[dest.r][dest.c];
+  const capturedLeader = !!(target && target.isLeader);
+  board[dest.r][dest.c]=piece;
+  board[r][c]=null;
+  piece.hasMoved=true;
+  if(piece.faction==='chess' && piece.type==='P'){
+    if((piece.player===1&&dest.r===0)||(piece.player===2&&dest.r===ROWS-1)) piece.type='Q';
+  }
+  if(piece.faction==='checkers'){
+    if((piece.player===1&&dest.r===0)||(piece.player===2&&dest.r===ROWS-1)) piece.isKing=true;
+  }
+  return {capturedLeader, wasCapture:dest.capture, wasJump:!!dest.jumped, piece, dest};
+}
+
+function countPieces(player){
+  let n=0;
+  for(let r=0;r<ROWS;r++)for(let c=0;c<COLS;c++) if(board[r][c]&&board[r][c].player===player) n++;
+  return n;
+}
+function hasAnyMoves(player){
+  for(let r=0;r<ROWS;r++)for(let c=0;c<COLS;c++){
+    const p=board[r][c];
+    if(p&&p.player===player && getMoves(r,c).length>0) return true;
+  }
+  return false;
+}
+function endGame(winner, reason){
+  gameOver=true;
+  const name = (window.playerNames && window.playerNames[winner]) || ('Player '+winner);
+  document.getElementById('status').textContent = `🏆 ${name} (${FACTIONS[window.factions[winner]].label}) wins — ${reason}!`;
+  if(window.onlineActive) stopHeartbeat();
+}
+function endTurn(nextPlayer){
+  currentPlayer=nextPlayer;
+  if(!hasAnyMoves(currentPlayer)){ endGame(currentPlayer===1?2:1,'opponent has no legal moves'); return; }
+  maybeBotMove();
+}
+function showStopChainBtn(opp){
+  const btn = document.getElementById('stopChainBtn');
+  btn.style.display = '';
+  btn.onclick = ()=>{
+    selected=null; legalMoves=[];
+    hideStopChainBtn();
+    render();
+    endTurn(opp);
+    if(window.onlineActive) pushOnlineState();
+  };
+}
+function hideStopChainBtn(){
+  const btn = document.getElementById('stopChainBtn');
+  btn.style.display = 'none';
+  btn.onclick = null;
+}
+
+// ---------------- Bot engine ----------------
+function cloneBoard(b){
+  return b.map(row=>row.map(cell=> cell? {...cell} : null));
+}
+function pieceValue(p){
+  if(!p) return 0;
+  if(p.isLeader) return 1000;
+  if(p.faction==='checkers') return p.isKing?3:1;
+  const VALS={P:1,N:3,B:3,R:5,Q:9,K:1000,XS:1,XH:3,XE:2,XA:2,XC:4.5,XR:5,XG:1000};
+  return VALS[p.type]||1;
+}
+function materialScore(b, player){
+  let score=0;
+  for(let r=0;r<ROWS;r++)for(let c=0;c<COLS;c++){
+    const p=b[r][c];
+    if(!p) continue;
+    score += (p.player===player ? pieceValue(p) : -pieceValue(p));
+  }
+  return score;
+}
+function allMovesOn(b, player){
+  const saved=board;
+  board=b;
+  const result=[];
+  for(let r=0;r<ROWS;r++)for(let c=0;c<COLS;c++){
+    const p=b[r][c];
+    if(p && p.player===player){
+      getMoves(r,c).forEach(m=> result.push({from:{r,c}, move:m}));
+    }
+  }
+  board=saved;
+  return result;
+}
+function simulateMoveOn(b, from, move){
+  const nb=cloneBoard(b);
+  const saved=board;
+  board=nb;
+  movePiece(from.r, from.c, move);
+  board=saved;
+  return nb;
+}
+function botChooseMove(player, difficulty){
+  const moves = allMovesOn(board, player);
+  if(moves.length===0) return null;
+  const opp = player===1?2:1;
+
+  if(difficulty==='easy'){
+    // Easy still prefers free captures over pure randomness, but stays shallow and noisy.
+    let best=[], bestScore=-Infinity;
+    moves.forEach(mv=>{
+      let s = mv.move.capture ? pieceValue(board[mv.move.r][mv.move.c]) : 0;
+      s += Math.random()*2.5; // lots of noise — easy bot is meant to blunder
+      if(s>bestScore){ bestScore=s; best=[mv]; }
+      else if(s===bestScore) best.push(mv);
+    });
+    return best[Math.floor(Math.random()*best.length)];
+  }
+
+  if(difficulty==='medium'){
+    // Capture value, but penalized if the destination square can be immediately recaptured.
+    let best=[], bestScore=-Infinity;
+    moves.forEach(mv=>{
+      let s = mv.move.capture ? pieceValue(board[mv.move.r][mv.move.c]) : 0;
+      const nb = simulateMoveOn(board, mv.from, mv.move);
+      const movedPiece = nb[mv.move.r][mv.move.c];
+      const oppMoves = allMovesOn(nb, opp);
+      let recaptureRisk = 0;
+      oppMoves.forEach(omv=>{
+        if(omv.move.capture && omv.move.r===mv.move.r && omv.move.c===mv.move.c){
+          recaptureRisk = Math.max(recaptureRisk, pieceValue(movedPiece));
+        }
+      });
+      s -= recaptureRisk*0.85;
+      s += Math.random()*0.4;
+      if(s>bestScore){ bestScore=s; best=[mv]; }
+      else if(s===bestScore) best.push(mv);
+    });
+    return best[Math.floor(Math.random()*best.length)];
+  }
+
+  // hard: real 2-ply search — for each of our candidate moves, assume the opponent
+  // then plays THEIR single best reply (by resulting material score), and we pick
+  // the move that leaves us best off after that reply. Much sturdier than only
+  // dodging the opponent's best immediate capture, since it accounts for whatever
+  // their strongest follow-up actually is.
+  let bestMoves=[], bestScore=-Infinity;
+  moves.forEach(mv=>{
+    const nb = simulateMoveOn(board, mv.from, mv.move);
+    const oppMoves = allMovesOn(nb, opp);
+    let oppBestScore = -Infinity;
+    if(oppMoves.length===0){
+      oppBestScore = materialScore(nb, opp); // opponent stuck — great for us
+    } else {
+      oppMoves.forEach(omv=>{
+        const nb2 = simulateMoveOn(nb, omv.from, omv.move);
+        const s = materialScore(nb2, opp);
+        if(s>oppBestScore) oppBestScore = s;
+      });
+    }
+    const ourScore = -oppBestScore + Math.random()*0.15;
+    if(ourScore>bestScore){ bestScore=ourScore; bestMoves=[mv]; }
+    else if(Math.abs(ourScore-bestScore)<1e-9) bestMoves.push(mv);
+  });
+  return bestMoves[Math.floor(Math.random()*bestMoves.length)];
+}
+function botContinueChain(player, difficulty, r, c){
+  const further = getMoves(r,c,true).filter(m=>m.capture);
+  if(further.length===0){ endTurn(player===1?2:1); return; }
+  setTimeout(()=>{
+    let mv;
+    if(difficulty==='easy'){
+      mv = further[Math.floor(Math.random()*further.length)];
+    } else {
+      mv = further[0]; let bestVal=-1;
+      further.forEach(m=>{ const v=pieceValue(board[m.r][m.c]); if(v>bestVal){ bestVal=v; mv=m; } });
+    }
+    const result = movePiece(r,c,mv);
+    if(result.capturedLeader){ render(); endGame(player,'leader captured'); return; }
+    const opp = player===1?2:1;
+    if(countPieces(opp)===0){ render(); endGame(player,'total elimination'); return; }
+    render();
+    botContinueChain(player, difficulty, mv.r, mv.c);
+  }, 400);
+}
+function maybeBotMove(){
+  if(gameOver) return;
+  const ctrl = window.controls && window.controls[currentPlayer];
+  if(!ctrl || ctrl==='human'){ render(); return; }
+  render();
+  document.getElementById('status').textContent = '🤖 Bot is thinking…';
+  setTimeout(()=>{
+    if(gameOver) return;
+    const mv = botChooseMove(currentPlayer, ctrl);
+    if(!mv){ return; }
+    const player = currentPlayer;
+    const result = movePiece(mv.from.r, mv.from.c, mv.move);
+    document.getElementById('status').textContent='';
+    if(result.capturedLeader){ render(); endGame(player,'leader captured'); return; }
+    const opp = player===1?2:1;
+    if(countPieces(opp)===0){ render(); endGame(player,'total elimination'); return; }
+    if(result.piece.faction==='checkers' && result.wasCapture){
+      const further = getMoves(mv.move.r, mv.move.c, true).filter(m=>m.capture);
+      if(further.length>0){ render(); botContinueChain(player, ctrl, mv.move.r, mv.move.c); return; }
+    }
+    render();
+    endTurn(opp);
+  }, 550);
+}
+
+function onCellClick(r,c){
+  if(gameOver) return;
+  if(window.onlineActive && window.myRole!==currentPlayer) return;
+  if(!window.onlineActive && window.controls && window.controls[currentPlayer] && window.controls[currentPlayer]!=='human') return;
+  const piece=board[r][c];
+  if(selected){
+    const move = legalMoves.find(m=>m.r===r&&m.c===c);
+    if(move){
+      const result = movePiece(selected.r, selected.c, move);
+      awardMoveXpIfOnline(result.wasCapture);
+      selected=null; legalMoves=[];
+      if(result.capturedLeader){ render(); hideStopChainBtn(); endGame(currentPlayer,'leader captured'); if(window.onlineActive) pushOnlineState(); return; }
+      const opp = currentPlayer===1?2:1;
+      if(countPieces(opp)===0){ render(); hideStopChainBtn(); endGame(currentPlayer,'total elimination'); if(window.onlineActive) pushOnlineState(); return; }
+      if(result.piece.faction==='checkers' && result.wasCapture){
+        // A checker that just captured (whether by jumping over a piece, or by walking directly
+        // onto an edge/corner piece) may still have another capture available from its new square —
+        // e.g. it can jump one way and then attack an edge piece the next step, or vice versa.
+        // The player gets to choose: keep attacking, or stop here and end the turn.
+        const further = getMoves(result.dest.r,result.dest.c,true).filter(m=>m.capture);
+        if(further.length>0){
+          selected={r:result.dest.r,c:result.dest.c};
+          legalMoves=further;
+          render();
+          showStopChainBtn(opp);
+          return;
+        }
+      }
+      hideStopChainBtn();
+      render();
+      endTurn(opp);
+      if(window.onlineActive) pushOnlineState();
+      return;
+    }
+    if(piece && piece.player===currentPlayer){ selected={r,c}; legalMoves=getMoves(r,c); }
+    else { selected=null; legalMoves=[]; }
+    hideStopChainBtn();
+    render();
+    return;
+  }
+  if(piece && piece.player===currentPlayer){
+    selected={r,c}; legalMoves=getMoves(r,c); render();
+  }
+}
+
+const CHESS_GLYPH={P:'♟',N:'♞',B:'♝',R:'♜',Q:'♛',K:'♚'};
+const XIANGQI_GLYPH={
+  XG:{1:'帥',2:'將'}, XA:{1:'仕',2:'士'}, XE:{1:'相',2:'象'}, XH:{1:'馬',2:'馬'},
+  XC:{1:'炮',2:'砲'}, XR:{1:'俥',2:'車'}, XS:{1:'兵',2:'卒'}
+};
+function glyphFor(p){
+  if(p.faction==='chess') return CHESS_GLYPH[p.type];
+  if(p.faction==='xiangqi') return XIANGQI_GLYPH[p.type][p.player];
+  if(p.faction==='checkers') return p.isKing?'♛':'●';
+}
+function isPalace(r,c){
+  return [3,4,5].includes(c) && ([0,1,2].includes(r) || [7,8,9].includes(r));
+}
+
+function render(){
+  const boardEl=document.getElementById('board');
+  boardEl.innerHTML='';
+  boardEl.className = 'map-'+mapType;
+  applyBoardSkin();
+  boardEl.style.gridTemplateColumns = `repeat(${COLS},1fr)`;
+  boardEl.style.gridTemplateRows = `repeat(${ROWS},1fr)`;
+  boardEl.style.aspectRatio = `${COLS}/${ROWS}`;
+  for(let r=0;r<ROWS;r++){
+    for(let c=0;c<COLS;c++){
+      const cell=document.createElement('div');
+      cell.className='cell '+((r+c)%2===0?'light':'dark');
+      if(mapType==='xiangqi'){
+        if(r===4||r===5) cell.classList.add('river');
+        if(isPalace(r,c)) cell.classList.add('palace');
+      }
+      if(selected && selected.r===r && selected.c===c) cell.classList.add('selected');
+      const mv = legalMoves.find(m=>m.r===r&&m.c===c);
+      if(mv) cell.classList.add(mv.capture?'capture-move':'legal-move');
+      const piece=board[r][c];
+      if(piece){
+        const span=document.createElement('span');
+        const checkerKingClass = (piece.faction==='checkers') ? (piece.isKing?' king':' man') : '';
+        span.className='piece p'+piece.player+' f'+piece.faction+checkerKingClass+(piece.isLeader?' leader':'');
+        span.textContent=glyphFor(piece);
+        cell.appendChild(span);
+      } else if(mapType==='xiangqi' && r===4 && c===1){
+        const lbl=document.createElement('div'); lbl.className='river-label'; lbl.textContent='楚 河'; cell.appendChild(lbl);
+      } else if(mapType==='xiangqi' && r===4 && c===6){
+        const lbl=document.createElement('div'); lbl.className='river-label'; lbl.textContent='漢 界'; cell.appendChild(lbl);
+      }
+      cell.onclick=()=>onCellClick(r,c);
+      boardEl.appendChild(cell);
+    }
+  }
+  const buffTxt1 = buffs[1]?' 💪':'';
+  const buffTxt2 = buffs[2]?' 💪':'';
+  const mapLabel = mapType==='xiangqi'?'Xiangqi board':mapType==='checkers'?'Checkers board':'Chess board';
+  const ctrl = window.controls && window.controls[currentPlayer];
+  const botTag = (!window.onlineActive && ctrl && ctrl!=='human') ? ` 🤖(${ctrl})` : '';
+  const name = (window.playerNames && window.playerNames[currentPlayer]) || ('Player '+currentPlayer);
+  const onlineTag = window.onlineActive ? (window.myRole===currentPlayer ? ' (your turn)' : ' (opponent\u2019s turn)') : '';
+  document.getElementById('turn-indicator').textContent =
+    `Turn: ${name} — ${FACTIONS[window.factions[currentPlayer]].label}${currentPlayer===1?buffTxt1:buffTxt2}${botTag}${onlineTag}  ·  ${mapLabel}`;
+}
+
+buildFactionGrids();
+updateGrids();
+buildShopGrids();
+applyPieceSkins();
+</script>
+</body>
+</html>
