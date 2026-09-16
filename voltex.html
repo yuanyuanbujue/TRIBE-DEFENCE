@@ -2926,6 +2926,87 @@ function updateOtherPlayerVisuals(dt) {
   });
 }
 
+// ================= AI Companion (one per human player) =================
+// Broadcasts itself as a fake "other player" on the same channel so it
+// renders automatically via the existing createOtherPlayer/pos/chat handlers.
+const AI_ID = MY_ID + '_ai';
+const AI_NAME = MY_NAME + "'s AI";
+
+const aiBot = {
+  pos: { x: player.pos.x + 1.5, y: player.pos.y, z: player.pos.z + 1.5 },
+  yaw: 0,
+  wanderTarget: null,
+  wanderTimer: 0,
+  chatTimer: 8 + Math.random() * 8, // first line comes a bit after spawn
+};
+
+function pickNewWanderTarget() {
+  // Wander in a loose radius around the owner, so it feels like it's
+  // exploring but never strays far.
+  const angle = Math.random() * Math.PI * 2;
+  const dist = 2 + Math.random() * 5;
+  aiBot.wanderTarget = {
+    x: player.pos.x + Math.cos(angle) * dist,
+    z: player.pos.z + Math.sin(angle) * dist,
+  };
+}
+
+let aiPosBroadcastTimer = 0;
+function updateAIBot(dt) {
+  aiBot.wanderTimer -= dt;
+  if (aiBot.wanderTimer <= 0 || !aiBot.wanderTarget) {
+    pickNewWanderTarget();
+    aiBot.wanderTimer = 3 + Math.random() * 4;
+  }
+
+  // Simple move-toward-target, keep it near ground height (matches owner's
+  // y so it doesn't need real physics/collision of its own).
+  const dx = aiBot.wanderTarget.x - aiBot.pos.x;
+  const dz = aiBot.wanderTarget.z - aiBot.pos.z;
+  const dist = Math.hypot(dx, dz);
+  if (dist > 0.1) {
+    const speed = 3;
+    aiBot.pos.x += (dx / dist) * speed * dt;
+    aiBot.pos.z += (dz / dist) * speed * dt;
+    aiBot.yaw = Math.atan2(-dx, -dz);
+  }
+  // Follow the owner's vertical position (skip real gravity/terrain for now).
+  aiBot.pos.y += (player.pos.y - aiBot.pos.y) * Math.min(1, dt * 2);
+
+  aiPosBroadcastTimer += dt;
+  if (aiPosBroadcastTimer >= 0.1) {
+    aiPosBroadcastTimer = 0;
+    playersChannel.send({
+      type: 'broadcast', event: 'pos',
+      payload: { id: AI_ID, name: AI_NAME, x: aiBot.pos.x, y: aiBot.pos.y, z: aiBot.pos.z, yaw: aiBot.yaw, heldType: null },
+    });
+  }
+
+  aiBot.chatTimer -= dt;
+  if (aiBot.chatTimer <= 0) {
+    aiBot.chatTimer = 25 + Math.random() * 20; // chat every ~25-45s, keeps API usage low
+    requestAICompanionChat();
+  }
+}
+
+async function requestAICompanionChat() {
+  try {
+    const timeOfDay = (typeof dayTime !== 'undefined') ? dayTime : 'unknown';
+    const { data, error } = await sb.functions.invoke('ai-companion', {
+      body: { ownerName: MY_NAME, hp: Math.round(player.hp), timeOfDay, nearby: [] },
+    });
+    if (error || !data || !data.message) return;
+    const text = String(data.message).slice(0, 120);
+    addChatLine(AI_NAME, text, false);
+    playersChannel.send({ type: 'broadcast', event: 'chat', payload: { id: AI_ID, name: AI_NAME, text } });
+    const entry = otherPlayers.get(AI_ID);
+    if (entry) showChatBubbleOn(entry, text);
+  } catch (e) {
+    // Silent fail is fine here — a missed companion line shouldn't affect gameplay.
+    console.warn('AI companion chat failed', e);
+  }
+}
+
 // ================= Chat =================
 let chatOpen = false;
 const chatLog = document.getElementById('chatLog');
@@ -3431,6 +3512,14 @@ canvas.addEventListener('mousedown', e => {
       // rejected too — matches the "wall and floor" ask, not "ceiling".)
       const canPlace = type !== 'torch' || torchWallDir(nx, ny, nz) !== null ||
         (world.get(key(nx, ny-1, nz)) && !BLOCK_TYPES[world.get(key(nx, ny-1, nz)).type].transparent);
+      // A player placing a block is always allowed to build here, even if
+      // this spot was previously mined (which marks it in removedDiffs so
+      // saplings don't auto-regrow into it). Without clearing that mark
+      // first, addBlock's removedDiffs check would silently reject the
+      // placement — the bug where a spot you mined becomes permanently
+      // unplaceable after the "air" diff round-trips through Supabase
+      // (immediately for you, or after a fresh page/world load for anyone).
+      removedDiffs.delete(key(nx, ny, nz));
       if (canPlace && addBlock(nx, ny, nz, type)) {
         removeFromCurrentSlot(1);
         flushDirtyChunks();
@@ -3613,6 +3702,7 @@ function animate() {
   broadcastMyPosition(dt);
 
   updateOtherPlayerVisuals(dt);
+  updateAIBot(dt);
   updateMyModel(dt, isMoving);
 
   if (thirdPerson) {
