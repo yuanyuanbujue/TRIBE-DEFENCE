@@ -13101,12 +13101,19 @@ function getPlayerDisplayName() {
 async function syncPlayerToDb() {
   try {
     const pid = getPlayerId();
+    // live_players' numeric columns are integer-typed. Several of these can go
+    // fractional in normal play (speed most notably — the 0.5x slow-mo option —
+    // but also anything derived from HP regen/multiplier math), and Postgres
+    // rejects the WHOLE row with a 400 if even one column gets a decimal. That
+    // silently dropped the player from live_players entirely (so the admin panel
+    // never saw them) even though every other field was fine. Round defensively.
     const { error } = await sb.from('live_players').upsert({
       player_id: pid,
       name: getPlayerDisplayName(),
       email: currentUser ? currentUser.email : '',
-      gold, hp: baseHP, max_hp: baseMaxHP, wave, score, kills,
-      mode: gameMode, game_over: gameOver, speed,
+      gold: Math.round(gold), hp: Math.round(baseHP), max_hp: Math.round(baseMaxHP),
+      wave: Math.round(wave), score: Math.round(score), kills: Math.round(kills),
+      mode: gameMode, game_over: gameOver, speed: Math.round(speed) || 1,
       towers_count: towers.length,
       enemies_count: enemies.length,
       towers_data: JSON.stringify({t:towers.map(t=>({r:t.row,c:t.col,k:t.key,l:t.level,p:t.path,h:Math.round(t.hp),m:Math.round(t.maxHp)})),b:{p:baseUpgPath||null,l:baseUpgLevel||0},e:enemies.slice(0,50).map(e=>({x:Math.round(e.x),y:Math.round(e.y),v:e.variant||'normal',h:Math.round(e.hp),m:Math.round(e.mhp),bo:e.isBoss?1:0,fl:e.flying?1:0,st:e.stun>0?1:0,md:e.mode||'move'}))}),
@@ -13115,7 +13122,21 @@ async function syncPlayerToDb() {
     }, { onConflict: 'player_id' });
     if (error) console.warn('[DB] Sync error:', error.message);
     else if (!dbConnected) { dbConnected = true; updateRtStatus(true, 0); }
-  } catch(err) { console.warn('[DB] Sync failed:', err); }
+    if (error) {
+      // Previously an error here only logged to the console — the status pill kept
+      // showing whatever it last showed (and initDbSystem below used to force it to
+      // "LIVE" unconditionally), so a player whose writes were silently failing
+      // (e.g. blocked by a live_players RLS policy, a missing column, bad data)
+      // looked exactly the same as one syncing fine — and the admin panel would
+      // never see them. Reflect real failures in the status pill instead.
+      dbConnected = false;
+      updateRtStatus(false, 0, error.message);
+    }
+  } catch(err) {
+    console.warn('[DB] Sync failed:', err);
+    dbConnected = false;
+    updateRtStatus(false, 0, err.message || String(err));
+  }
 }
 
 // Poll for admin commands every 2 seconds
@@ -13163,7 +13184,7 @@ async function pollCommands() {
   }
 }
 
-function updateRtStatus(connected, playerCount) {
+function updateRtStatus(connected, playerCount, errorMsg) {
   const el = document.getElementById('rt-status');
   const txt = document.getElementById('rt-text');
   const cnt = document.getElementById('rt-count');
@@ -13172,10 +13193,12 @@ function updateRtStatus(connected, playerCount) {
     el.classList.add('connected');
     txt.textContent = 'LIVE';
     cnt.textContent = playerCount > 0 ? '(' + playerCount + ' online)' : '';
+    cnt.title = '';
   } else {
     el.classList.remove('connected');
-    txt.textContent = 'CONNECTING...';
-    cnt.textContent = '';
+    txt.textContent = errorMsg ? 'SYNC ERROR' : 'CONNECTING...';
+    cnt.textContent = errorMsg ? '⚠' : '';
+    cnt.title = errorMsg || '';
   }
 }
 
@@ -13234,7 +13257,12 @@ async function initDbSystem() {
     pollCommands();
   });
 
-  updateRtStatus(true, 0);
+  // Real connection status is now reported by syncPlayerToDb() itself (LIVE on success,
+  // SYNC ERROR with the reason on failure) — this used to unconditionally force the
+  // pill to "LIVE" here regardless of whether the very first sync had actually
+  // succeeded, which hid real failures from both the player and, transitively,
+  // from the admin panel (a player whose writes were failing looked identical to
+  // one syncing fine, so no one had a reason to suspect the DB write was broken).
   console.log('[DB] Admin system initialized. Player ID:', getPlayerId());
   
 }
