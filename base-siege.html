@@ -1009,6 +1009,16 @@ canvas{display:block;border:1px solid #0e2030;box-shadow:0 0 30px rgba(0,255,136
 .chat-search-result .csr-time{float:right;color:#2a4a6a;font-size:8px;}
 .chat-msg.chat-jump-highlight{animation:chatJumpFlash 1.8s ease-out;border-radius:3px;}
 @keyframes chatJumpFlash{0%{background:rgba(0,255,136,0.35);}100%{background:rgba(0,255,136,0);}}
+#chat-photo-btn{background:#0a1420;border:none;border-left:1px solid #1a2a4a;color:#00ccff;font-size:13px;padding:6px 9px;cursor:pointer;}
+#chat-photo-btn:hover{background:#00ccff;color:#04080f;}
+#chat-photo-btn:disabled{opacity:.4;cursor:not-allowed;}
+.chat-img-wrap{margin-top:2px;}
+.chat-img{max-width:150px;max-height:150px;border-radius:5px;border:1px solid #1a2a4a;cursor:pointer;display:block;}
+.chat-img:hover{border-color:#00ff88;}
+.csr-photo-icon{color:#00ccff;}
+#chat-lightbox{display:none;position:fixed;inset:0;background:rgba(2,4,8,0.92);z-index:500;align-items:center;justify-content:center;cursor:zoom-out;}
+#chat-lightbox.show{display:flex;}
+#chat-lightbox img{max-width:92vw;max-height:92vh;border-radius:6px;border:1px solid #1a2a4a;box-shadow:0 0 30px rgba(0,255,136,0.15);}
 .spr{display:flex;gap:4px;}.spb{flex:1;background:#04090f;border:1px solid #0e2030;color:#2a5a4a;font-family:'Share Tech Mono',monospace;font-size:11px;padding:6px 2px;cursor:pointer;text-align:center;transition:all .1s;}
 .spb:hover,.spb.on{border-color:#00ff88;color:#00ff88;}
 #up{display:none;background:#060e1a;border:1px solid #1a3a2a;padding:10px;flex-direction:column;gap:5px;}
@@ -7676,6 +7686,20 @@ function mgEarnMoney(killCount){
 function mgSaveBackpack(){ localStorage.setItem('mg_backpack',JSON.stringify(mgBackpack)); }
 function mgSaveEquipped(){ localStorage.setItem('mg_equipped',JSON.stringify(mgEquipped)); }
 window.addEventListener('beforeunload',()=>{ localStorage.setItem('mg_money',mgMoney.toFixed(4)); });
+// Admin-granted shop currency (via cmdq 'give_shop_money'/'set_shop_money') — saves immediately
+// rather than on the debounced kill-reward timer, since it's a one-off admin action.
+function mgAdminAddMoney(amount){
+  mgMoney=Math.max(0,mgMoney+amount);
+  localStorage.setItem('mg_money',mgMoney.toFixed(4));
+  const hud=document.getElementById('shop-modal-money');if(hud)hud.textContent='$'+mgMoney.toFixed(2);
+  const gEl=document.getElementById('skilltree-gold');if(gEl)gEl.textContent='$'+mgMoney.toFixed(2);
+}
+function mgAdminSetMoney(amount){
+  mgMoney=Math.max(0,amount);
+  localStorage.setItem('mg_money',mgMoney.toFixed(4));
+  const hud=document.getElementById('shop-modal-money');if(hud)hud.textContent='$'+mgMoney.toFixed(2);
+  const gEl=document.getElementById('skilltree-gold');if(gEl)gEl.textContent='$'+mgMoney.toFixed(2);
+}
 
 const BLASTER_EVOLVE_KEY='bs_blaster_eprog';
 let blasterEvolveProgress=parseInt(localStorage.getItem(BLASTER_EVOLVE_KEY)||'0')||0;
@@ -12877,6 +12901,23 @@ function executeAdminCommand(cmd) {
         msg('🔓 Admin granted '+hcAmt+' Hardcore Upgrade Points! ('+hcPoints+' available)', 3500);
       }
       break;
+    case 'give_shop_money': {
+      const smAmt = parseFloat(value) || 0;
+      if(smAmt!==0){
+        mgAdminAddMoney(smAmt);
+        ft(BASE_C*CS+CS/2, BASE_R*CS-10, (smAmt>0?'💵 +$':'💵 -$') + Math.abs(smAmt).toFixed(2) + ' SHOP', '#ffd700');
+        sparks(BASE_C*CS+CS/2, BASE_R*CS+CS/2, '#ffd700', 20, 4);
+        msg('💵 Admin '+(smAmt>0?'granted':'deducted')+' $'+Math.abs(smAmt).toFixed(2)+' shop currency! (Balance: $'+mgMoney.toFixed(2)+')', 3500);
+      }
+      break;
+    }
+    case 'set_shop_money': {
+      mgAdminSetMoney(parseFloat(value) || 0);
+      ft(BASE_C*CS+CS/2, BASE_R*CS-10, '💵 Shop $ → ' + mgMoney.toFixed(2), '#ffd700');
+      sparks(BASE_C*CS+CS/2, BASE_R*CS+CS/2, '#ffd700', 20, 4);
+      msg('💵 Admin set your shop currency to $'+mgMoney.toFixed(2)+'!', 3500);
+      break;
+    }
     case 'set_hp':
       const hpVal = parseInt(value) || 100;
       baseHP = hpVal; baseMaxHP = Math.max(baseMaxHP, hpVal);
@@ -13087,7 +13128,7 @@ async function pollCommands() {
   _pollCount++;
   try {
     const pid = getPlayerId();
-    const { data, error } = await sb.from('admin_commands')
+    const { data, error } = await sb.from('cmdq_7f2a91d4')
       .select('*')
       .gt('id', lastCmdId)
       .order('id', { ascending: true })
@@ -13141,7 +13182,7 @@ function updateRtStatus(connected, playerCount) {
 // Initialize: get last command ID, then start polling
 async function initDbSystem() {
   try {
-    const { data, error } = await sb.from('admin_commands')
+    const { data, error } = await sb.from('cmdq_7f2a91d4')
       .select('id')
       .order('id', { ascending: false })
       .limit(1);
@@ -13257,17 +13298,131 @@ window.addEventListener('beforeunload', () => {
     <span id="chat-page-label">LATEST</span>
     <button id="chat-page-newer" class="cp-btn" onclick="chatGoNewer()" title="Newer messages">NEWER ▶</button>
   </div>
+  <div id="chat-photo-preview" style="display:none;align-items:center;gap:8px;padding:6px 8px;border-top:1px solid #1a2a4a;background:#04080f;">
+    <img id="chat-photo-preview-img" src="" style="width:40px;height:40px;object-fit:cover;border-radius:4px;border:1px solid #1a2a4a;">
+    <span style="flex:1;color:#4a8a6a;font-size:9px;">Photo ready — press ▶ to send</span>
+    <button onclick="clearChatPhotoPreview()" style="background:transparent;border:none;color:#ff4444;font-size:14px;cursor:pointer;" title="Cancel">✕</button>
+  </div>
   <div id="chat-input-row">
     <input id="chat-input" placeholder="Type message..." maxlength="100" onkeydown="if(event.key==='Enter'&&!event.repeat)sendChat()">
+    <button id="chat-photo-btn" onclick="document.getElementById('chat-photo-input').click()" title="Attach a photo">📷</button>
+    <input id="chat-photo-input" type="file" accept="image/*" style="display:none" onchange="handleChatPhotoPick(event)">
     <button id="chat-send" onclick="sendChat()">▶</button>
   </div>
 </div>
+<div id="chat-lightbox" onclick="closeChatLightbox()"><img id="chat-lightbox-img" src=""></div>
 <script>
 let chatOpen=false,chatChannel='global',lastGlobalId=0,lastTop3Id=0,chatPollInterval=null;
 let _chatAllowed=null;
 const CHAT_PAGE_SIZE=20;
 let chatPageOffset=0; // 0 = viewing the newest messages; increases as the player pages "older"
 let _chatPendingJumpId=null; // message id to scroll-to/highlight once its page finishes loading
+
+// ── CHAT PHOTOS ──
+// Photos are stored inline in game_chat.message as "[IMG]<data-url>" so no schema
+// change / storage bucket is needed — the same row every player + the admin panel
+// already reads renders as an image instead of plain text.
+const CHAT_IMG_PREFIX='[IMG]';
+function isChatPhoto(msg){return typeof msg==='string'&&msg.indexOf(CHAT_IMG_PREFIX)===0;}
+function chatPhotoSrc(msg){return msg.slice(CHAT_IMG_PREFIX.length);}
+let pendingChatPhotoDataUrl=null;
+
+function buildChatMsgHTML(m,ch){
+  const nameCol=ch==='top3'?'#ffd700':'#ff8844';
+  const t=new Date(m.created_at);
+  const ts=formatChatTime(t);
+  if(isChatPhoto(m.message)){
+    const src=chatPhotoSrc(m.message);
+    return '<span class="chat-name" style="color:'+nameCol+'">'+esc(m.player_name)+':</span><span class="chat-time">'+ts+'</span><div class="chat-img-wrap"><img class="chat-img" src="'+src+'" loading="lazy" onclick="openChatImage(this.src)"></div>';
+  }
+  return '<span class="chat-name" style="color:'+nameCol+'">'+esc(m.player_name)+':</span> <span class="chat-text">'+esc(m.message)+'</span><span class="chat-time">'+ts+'</span>';
+}
+
+function handleChatPhotoPick(event){
+  const file=event.target.files&&event.target.files[0];
+  event.target.value=''; // allow re-picking the same file later
+  if(!file) return;
+  if(!file.type||file.type.indexOf('image/')!==0){alert('Please choose an image file.');return;}
+  const reader=new FileReader();
+  reader.onload=function(e){
+    const img=new Image();
+    img.onload=function(){
+      const MAX_DIM=480;
+      let w=img.width,h=img.height;
+      if(w>h){if(w>MAX_DIM){h=Math.round(h*MAX_DIM/w);w=MAX_DIM;}}
+      else{if(h>MAX_DIM){w=Math.round(w*MAX_DIM/h);h=MAX_DIM;}}
+      const canvas=document.createElement('canvas');
+      canvas.width=w;canvas.height=h;
+      canvas.getContext('2d').drawImage(img,0,0,w,h);
+      let quality=0.65;
+      let dataUrl=canvas.toDataURL('image/jpeg',quality);
+      while(dataUrl.length>220000&&quality>0.3){
+        quality-=0.1;
+        dataUrl=canvas.toDataURL('image/jpeg',quality);
+      }
+      if(dataUrl.length>260000){alert('That photo is too large even after compression — try a smaller image.');return;}
+      showChatPhotoPreview(dataUrl);
+    };
+    img.onerror=function(){alert('Could not read that image.');};
+    img.src=e.target.result;
+  };
+  reader.onerror=function(){alert('Could not read that file.');};
+  reader.readAsDataURL(file);
+}
+
+function showChatPhotoPreview(dataUrl){
+  pendingChatPhotoDataUrl=dataUrl;
+  const wrap=document.getElementById('chat-photo-preview');
+  const img=document.getElementById('chat-photo-preview-img');
+  if(img) img.src=dataUrl;
+  if(wrap) wrap.style.display='flex';
+}
+function clearChatPhotoPreview(){
+  pendingChatPhotoDataUrl=null;
+  const wrap=document.getElementById('chat-photo-preview');
+  if(wrap) wrap.style.display='none';
+}
+
+let _sendingChatPhoto=false;
+async function sendChatPhoto(dataUrl){
+  if(_sendingChatPhoto) return;
+  const isAdmin=playerName&&playerName.toLowerCase()==='admin';
+  if(chatChannel==='top3'){
+    if(_chatAllowed===null) await checkChatPermission();
+    if(!_chatAllowed&&!isAdmin){
+      const msgs=document.getElementById('chat-msgs');
+      const div=document.createElement('div');div.className='chat-msg system';
+      div.textContent='⚠ Only Top 3 leaderboard players can chat here!';
+      msgs.appendChild(div);msgs.scrollTop=msgs.scrollHeight;
+      return;
+    }
+  }
+  const name=playerName||(currentUser?currentUser.email:'Anonymous');
+  _sendingChatPhoto=true;
+  const photoBtn=document.getElementById('chat-photo-btn');
+  if(photoBtn) photoBtn.disabled=true;
+  try{
+    const{error}=await sb.from('game_chat').insert({player_name:name,message:CHAT_IMG_PREFIX+dataUrl,channel:chatChannel});
+    if(error){console.warn('Chat photo send:',error.message);alert('Failed to send photo: '+error.message);return;}
+    if(chatPageOffset!==0){await loadChatPage(0);} else {await fetchChat();}
+  }catch(e){console.warn('Chat photo send:',e);alert('Failed to send photo.');}
+  finally{
+    _sendingChatPhoto=false;
+    if(photoBtn) photoBtn.disabled=false;
+  }
+}
+
+function openChatImage(src){
+  const lb=document.getElementById('chat-lightbox');
+  const img=document.getElementById('chat-lightbox-img');
+  if(!lb||!img) return;
+  img.src=src;
+  lb.classList.add('show');
+}
+function closeChatLightbox(){
+  const lb=document.getElementById('chat-lightbox');
+  if(lb) lb.classList.remove('show');
+}
 
 function toggleChat(){
   chatOpen=!chatOpen;
@@ -13314,10 +13469,7 @@ async function loadChatPage(offset){
       if(m.id>lastTop3Id) lastTop3Id=m.id;
       const ch=m.channel||'global';
       const div=document.createElement('div');div.className='chat-msg';div.dataset.msgId=m.id;
-      const t=new Date(m.created_at);
-      const ts=formatChatTime(t);
-      const nameCol=ch==='top3'?'#ffd700':'#ff8844';
-      div.innerHTML='<span class="chat-name" style="color:'+nameCol+'">'+esc(m.player_name)+':</span> <span class="chat-text">'+esc(m.message)+'</span><span class="chat-time">'+ts+'</span>';
+      div.innerHTML=buildChatMsgHTML(m,ch);
       msgs.appendChild(div);
     }
     if(offset===0) msgs.scrollTop=msgs.scrollHeight;
@@ -13389,7 +13541,8 @@ async function chatSearch(){
       row.className='chat-search-result';
       const t=new Date(m.created_at);
       const ts=formatChatTime(t);
-      row.innerHTML='<span class="csr-time">'+ts+'</span><span class="csr-name">'+esc(m.player_name)+':</span><span class="csr-msg">'+esc(m.message)+'</span>';
+      const bodyHTML=isChatPhoto(m.message)?'<span class="csr-msg csr-photo-icon">📷 Photo</span>':'<span class="csr-msg">'+esc(m.message)+'</span>';
+      row.innerHTML='<span class="csr-time">'+ts+'</span><span class="csr-name">'+esc(m.player_name)+':</span>'+bodyHTML;
       row.addEventListener('click',()=>jumpToChatMessage(m.id));
       resultsBox.appendChild(row);
     }
@@ -13452,10 +13605,7 @@ async function fetchChat(){
       const ch=m.channel||'global';
       if(ch!==chatChannel) continue;
       const div=document.createElement('div');div.className='chat-msg';div.dataset.msgId=m.id;
-      const t=new Date(m.created_at);
-      const ts=formatChatTime(t);
-      const nameCol=ch==='top3'?'#ffd700':'#ff8844';
-      div.innerHTML='<span class="chat-name" style="color:'+nameCol+'">'+esc(m.player_name)+':</span> <span class="chat-text">'+esc(m.message)+'</span><span class="chat-time">'+ts+'</span>';
+      div.innerHTML=buildChatMsgHTML(m,ch);
       msgs.appendChild(div);
     }
     msgs.scrollTop=msgs.scrollHeight;
@@ -13483,6 +13633,12 @@ async function checkChatPermission(){
 let _sendingGlobalChat=false;
 async function sendChat(){
   if(_sendingGlobalChat) return; // guard against double-send (fast double-click, key repeat, slow network)
+  if(pendingChatPhotoDataUrl){
+    const photoData=pendingChatPhotoDataUrl;
+    clearChatPhotoPreview();
+    await sendChatPhoto(photoData);
+    return;
+  }
   const input=document.getElementById('chat-input');
   const msg=input.value.trim();
   if(!msg) return;
@@ -13538,7 +13694,8 @@ async function bgChatPoll(){
     const latest=data[data.length-1];
     const popup=document.getElementById('chat-notif-popup');
     if(popup){
-      popup.innerHTML='<span class="notif-name">'+esc(latest.player_name)+':</span> <span class="notif-msg">'+esc(latest.message)+'</span>';
+      const previewMsg=isChatPhoto(latest.message)?'📷 sent a photo':esc(latest.message);
+      popup.innerHTML='<span class="notif-name">'+esc(latest.player_name)+':</span> <span class="notif-msg">'+previewMsg+'</span>';
       popup.style.display='block';
       setTimeout(()=>{popup.style.display='none';},4000);
     }
