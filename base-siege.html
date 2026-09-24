@@ -1017,6 +1017,45 @@ canvas{display:block;border:1px solid #0e2030;box-shadow:0 0 30px rgba(0,255,136
 .chat-img-wrap{margin-top:2px;}
 .chat-img{max-width:150px;max-height:150px;border-radius:5px;border:1px solid #1a2a4a;cursor:pointer;display:block;}
 .chat-img:hover{border-color:#00ff88;}
+#chat-poll-btn{background:#0a1420;border:none;border-left:1px solid #1a2a4a;color:#ffd700;font-size:13px;padding:6px 9px;cursor:pointer;}
+#chat-poll-btn:hover{background:#ffd700;color:#04080f;}
+#chat-poll-btn:disabled{opacity:.4;cursor:not-allowed;}
+#chat-poll-btn{}
+.chat-poll{margin-top:4px;padding:8px 10px;border:1px solid #1a3a4a;border-left:3px solid #ffd700;border-radius:4px;background:#050d16;}
+.chat-poll .poll-q{color:#ffd700;font-size:11px;font-weight:bold;margin-bottom:7px;word-wrap:break-word;}
+.chat-poll .poll-opts{display:flex;flex-direction:column;gap:4px;}
+.chat-poll .poll-opt{position:relative;overflow:hidden;display:flex;align-items:center;justify-content:space-between;gap:8px;background:#08121c;border:1px solid #1a2a4a;color:#a0c0d0;font-family:'Share Tech Mono',monospace;font-size:10px;padding:6px 8px;cursor:pointer;border-radius:3px;text-align:left;transition:border-color .12s,color .12s;}
+.chat-poll .poll-opt .po-fill{position:absolute;left:0;top:0;bottom:0;width:0;background:rgba(0,204,255,.16);transition:width .25s;pointer-events:none;}
+.chat-poll .poll-opt .po-name,.chat-poll .poll-opt .po-n{position:relative;z-index:1;}
+.chat-poll .poll-opt .po-name{flex:1;word-break:break-word;}
+.chat-poll .poll-opt .po-n{font-weight:bold;font-size:11px;white-space:nowrap;}
+.chat-poll .poll-opt:hover{border-color:#00ccff;color:#00ccff;}
+.chat-poll .poll-opt.mine{border-color:#00ff88;color:#00ff88;box-shadow:0 0 0 1px #00ff88 inset;}
+.chat-poll .poll-opt.mine .po-fill{background:rgba(0,255,136,.18);}
+.chat-poll .poll-hint{margin-top:5px;font-size:8px;color:#2a4a6a;letter-spacing:1px;}
+#poll-builder{display:none;position:fixed;inset:0;background:rgba(2,4,8,.8);z-index:400;align-items:center;justify-content:center;font-family:'Share Tech Mono',monospace;}
+#poll-builder.show{display:flex;}
+#poll-builder .pb-box{width:340px;max-width:92vw;max-height:88vh;overflow-y:auto;background:#060c18;border:1px solid #ffd700;padding:16px;display:flex;flex-direction:column;gap:8px;}
+#poll-builder .pb-title{font-family:'Orbitron',sans-serif;font-size:11px;letter-spacing:3px;color:#ffd700;}
+#poll-builder label{font-size:9px;letter-spacing:2px;color:#4a8a6a;}
+#poll-builder input{background:#04090f;border:1px solid #1a2a4a;color:#e0e0e0;font-family:'Share Tech Mono',monospace;font-size:11px;padding:7px 8px;outline:none;width:100%;box-sizing:border-box;}
+#poll-builder input:focus{border-color:#ffd700;}
+#poll-builder .pb-row{display:flex;gap:4px;align-items:center;}
+#poll-builder .pb-idx{color:#4a6a8a;font-size:10px;width:16px;text-align:right;}
+#poll-builder .pb-x{background:#1a0808;border:1px solid #4a1a1a;color:#ff4444;cursor:pointer;padding:6px 8px;font-size:10px;}
+#poll-builder .pb-x:disabled{opacity:.25;cursor:not-allowed;}
+#poll-builder .pb-add{background:#0a1420;border:1px dashed #1a3a4a;color:#00ccff;cursor:pointer;padding:6px;font-family:'Share Tech Mono',monospace;font-size:10px;}
+#poll-builder .pb-add:disabled{opacity:.3;cursor:not-allowed;}
+#poll-builder .pb-err{color:#ff4444;font-size:10px;min-height:12px;}
+#poll-builder .pb-actions{display:flex;gap:6px;}
+#poll-builder .pb-actions button{flex:1;padding:8px;cursor:pointer;font-family:'Share Tech Mono',monospace;font-size:11px;letter-spacing:1px;}
+#poll-builder .pb-post{background:#061a0e;border:1px solid #00ff88;color:#00ff88;}
+#poll-builder .pb-post:hover:not(:disabled){background:#00ff88;color:#04080f;}
+#poll-builder .pb-post:disabled{opacity:.4;cursor:wait;}
+#poll-builder .pb-cancel{background:#0a1420;border:1px solid #1a2a4a;color:#a0c0d0;}
+.chat-poll-off{color:#4a6a5a;font-style:italic;font-size:10px;}
+.lb-creator-email{font-size:9px;color:#ffd700;opacity:.85;margin-top:1px;user-select:text;}
+.stats-creator-email{font-family:'Share Tech Mono',monospace;font-size:10px;color:#ffd700;text-align:center;border:1px solid #4a3a00;background:#1a1400;padding:4px 8px;margin-bottom:8px;letter-spacing:1px;user-select:text;word-break:break-all;}
 .csr-photo-icon{color:#00ccff;}
 #chat-lightbox{display:none;position:fixed;inset:0;background:rgba(2,4,8,0.92);z-index:500;align-items:center;justify-content:center;cursor:zoom-out;}
 #chat-lightbox.show{display:flex;}
@@ -2535,6 +2574,7 @@ async function loadLeaderboard(){
       tr.style.cursor='pointer';tr.title='View player stats';
       tr.addEventListener('click',()=>openPlayerStatsById(row.id,pid));
       tbody.appendChild(tr);});
+      creatorAnnotateLeaderboard(tbody,data);
     }catch(e){loading.style.display='none';empty.style.display='block';}
     return;
   }
@@ -2557,7 +2597,7 @@ async function loadLeaderboard(){
   tr.innerHTML=`<td class="lb-rank">${i===0?'🥇':i===1?'🥈':i===2?'🥉':'#'+(i+1)}</td><td>${pid}</td><td class="lb-score-val">${Number(row.score).toLocaleString()}</td><td class="lb-wave-val">${row.wave}</td><td style="color:${['#00ff88','#ffcc00','#ff8800','#ff2244'][row.mode]??'#aaa'}">${MODE_LABEL[row.mode]??'?'}</td><td style="color:#00aaff;font-size:10px">${formatPlayTime(row.play_time)}</td>`;
   tr.style.cursor='pointer';tr.title='View player stats';
   tr.addEventListener('click',()=>openPlayerStatsById(row.id,pid));
-  tbody.appendChild(tr);});}catch(e){loading.style.display='none';empty.style.display='block';}
+  tbody.appendChild(tr);});creatorAnnotateLeaderboard(tbody,data);}catch(e){loading.style.display='none';empty.style.display='block';}
 }
 function showLbToast(msg){const t=document.getElementById('lb-toast');t.textContent=msg;t.classList.add('show');setTimeout(()=>t.classList.remove('show'),2800);}
 function tryPromptLeaderboard(){if(!currentUser||gameMode==='sandbox'||selectedMap==='custom') return;setTimeout(()=>{updateSubmitRow();showLbToast('🏆 SUBMIT SCORE TO LEADERBOARD?');},1200);}
@@ -4433,14 +4473,22 @@ function fmtLastPlayed(iso) {
     if (isNaN(d.getTime())) return '—';
     const now = Date.now();
     const diff = Math.max(0, now - d.getTime());
-    const mins = Math.floor(diff / 60000);
-    if (mins < 1) return 'JUST NOW';
-    if (mins < 60) return mins + 'M AGO';
+    const secs = Math.floor(diff / 1000);
+    if (secs < 30) return 'JUST NOW';
+    if (secs < 60) return secs + ' SECONDS AGO';
+    const mins = Math.floor(secs / 60);
+    if (mins === 1) return '1 MINUTE AGO';
+    if (mins < 60) return mins + ' MINUTES AGO';
     const hrs = Math.floor(mins / 60);
-    if (hrs < 24) return hrs + 'H AGO';
+    if (hrs === 1) return '1 HOUR AGO';
+    if (hrs < 24) return hrs + ' HOURS AGO';
     const days = Math.floor(hrs / 24);
-    if (days < 14) return days + 'D AGO';
-    // Absolute short date for older activity
+    if (days === 1) return '1 DAY AGO';
+    if (days < 30) return days + ' DAYS AGO';
+    const months = Math.floor(days / 30);
+    if (months === 1) return '1 MONTH AGO';
+    if (months < 12) return months + ' MONTHS AGO';
+    // Absolute short date for 1+ year old
     const y = d.getFullYear();
     const m = String(d.getMonth()+1).padStart(2,'0');
     const day = String(d.getDate()).padStart(2,'0');
@@ -4578,6 +4626,19 @@ function openStatsModal() {
 
 // ── View ANOTHER player's stats (called from leaderboard row clicks) ──
 async function openPlayerStatsById(uid, fallbackName) {
+  await _openPlayerStatsByIdCore(uid, fallbackName);
+  // Creator-only: show the player's real email at the top of their stats (even for private profiles)
+  if (!uid || !isCreatorAccount() || uid === currentUser.id) return;
+  const map = await creatorFetchEmails([uid]);
+  const em = map[uid];
+  const el = document.getElementById('stats-content');
+  if (!em || !el || el.querySelector('.stats-creator-email')) return;
+  const d = document.createElement('div');
+  d.className = 'stats-creator-email';
+  d.textContent = '✉ ' + em + '  (creator view)';
+  el.insertBefore(d, el.firstChild);
+}
+async function _openPlayerStatsByIdCore(uid, fallbackName) {
   if (!uid) return;
   // Signed-in viewer, looking at their own row — just show the live local view
   if (typeof currentUser !== 'undefined' && currentUser && uid === currentUser.id) { openStatsModal(); return; }
@@ -7872,6 +7933,37 @@ let mgMoneySaveTimer=null;
 const CREATOR_EMAIL='limziyuan87788790@gmail.com';
 const CREATOR_INF_MONEY=999999999;
 function isCreatorAccount(){return typeof currentUser!=='undefined'&&currentUser&&currentUser.email===CREATOR_EMAIL;}
+// Creator-only: look up players' real sign-up emails. The DB function returns rows only when
+// the caller's signed-in email is the creator's, so this is safe even if someone calls it by hand.
+const _creatorEmailCache={};
+async function creatorFetchEmails(ids){
+  if(!isCreatorAccount()) return {};
+  const need=[...new Set((ids||[]).filter(id=>typeof id==='string'&&id&&!(id in _creatorEmailCache)))];
+  if(need.length){
+    try{
+      const{data,error}=await sb.rpc('creator_get_player_emails',{p_ids:need});
+      if(error){console.warn('Creator email lookup:',error.message);}
+      else{
+        (data||[]).forEach(r=>{_creatorEmailCache[r.user_id]=r.email;});
+        need.forEach(id=>{if(!(id in _creatorEmailCache)) _creatorEmailCache[id]=null;});
+      }
+    }catch(e){console.warn('Creator email lookup:',e);}
+  }
+  return isCreatorAccount()?_creatorEmailCache:{};
+}
+function creatorAnnotateLeaderboard(tbody,rows){
+  if(!isCreatorAccount()||!tbody||!rows) return;
+  creatorFetchEmails(rows.map(r=>r.id)).then(map=>{
+    if(!isCreatorAccount()) return;
+    const trs=tbody.querySelectorAll('tr');
+    rows.forEach((r,i)=>{
+      const em=map[r.id];const td=trs[i]&&trs[i].children[1];
+      if(em&&td&&!td.querySelector('.lb-creator-email')){
+        const d=document.createElement('div');d.className='lb-creator-email';d.textContent='✉ '+em;td.appendChild(d);
+      }
+    });
+  });
+}
 function enforceCreatorMoney(){
   if(isCreatorAccount()&&mgMoney<CREATOR_INF_MONEY){
     mgMoney=CREATOR_INF_MONEY;
@@ -13548,6 +13640,7 @@ sb.auth.onAuthStateChange(async (_event, session) => {
   const oldPid = getPlayerId(); // Save old ID before auth change
   currentUser = session?.user ?? null;
   updateAuthBar();
+  if(typeof onChatAuthChange==='function') onChatAuthChange();
   const newPid = getPlayerId();
   // If ID changed (logged in/out), delete the old player entry
   if (oldPid !== newPid) {
@@ -13608,16 +13701,206 @@ window.addEventListener('beforeunload', () => {
     <input id="chat-input" placeholder="Type message..." maxlength="100" onkeydown="if(event.key==='Enter'&&!event.repeat)sendChat()">
     <button id="chat-photo-btn" onclick="document.getElementById('chat-photo-input').click()" title="Attach a photo">📷</button>
     <input id="chat-photo-input" type="file" accept="image/*" style="display:none" onchange="handleChatPhotoPick(event)">
+    <button id="chat-poll-btn" onclick="openPollBuilder()" title="Creator: make a vote (custom question + options)" style="display:none">📊</button>
     <button id="chat-send" onclick="sendChat()">▶</button>
   </div>
 </div>
 <div id="chat-lightbox" onclick="closeChatLightbox()"><img id="chat-lightbox-img" src=""></div>
+<div id="poll-builder"><div class="pb-box"><div class="pb-title">📊 NEW VOTE</div><label>QUESTION</label><input id="pb-question" maxlength="100" placeholder="Do you like the game?"><label>OPTIONS (2–10)</label><div id="pb-opts" style="display:flex;flex-direction:column;gap:4px;"></div><button class="pb-add" id="pb-add" type="button" onclick="pollBuilderAdd()">+ ADD OPTION</button><div class="pb-err" id="pb-err"></div><div class="pb-actions"><button class="pb-cancel" type="button" onclick="closePollBuilder()">CANCEL</button><button class="pb-post" id="pb-post" type="button" onclick="submitPollBuilder()">POST VOTE</button></div></div></div>
 <script>
 let chatOpen=false,chatChannel='global',lastGlobalId=0,lastTop3Id=0,chatPollInterval=null;
 let _chatAllowed=null;
 const CHAT_PAGE_SIZE=20;
 let chatPageOffset=0; // 0 = viewing the newest messages; increases as the player pages "older"
 let _chatPendingJumpId=null; // message id to scroll-to/highlight once its page finishes loading
+
+// ── CHAT VOTES (creator-only polls) ──
+// The creator posts a question with 2-10 custom options. It lives in game_polls (insert restricted to the
+// creator account by RLS) and the chat row is just a pointer "[POLL]<id>". A pointer whose
+// id isn't in game_polls is shown as plain text, so nobody else can fake an official vote.
+// Votes are one per signed-in account (game_poll_votes, choice = option index) and can be changed.
+const CHAT_POLL_PREFIX='[POLL]';
+function isChatPoll(msg){return typeof msg==='string'&&/^\[POLL\]\d+$/.test(msg);}
+function chatPollId(msg){return parseInt(msg.slice(CHAT_POLL_PREFIX.length),10);}
+const POLL_MAX_OPTIONS=10,POLL_MIN_OPTIONS=2;
+const _pollState={}; // id -> {q, opts[], counts[], mine(index|null)} ; q===null means "not an official poll"
+let _pollLastFetch=0,_pollFetching=false;
+
+function updateCreatorChatUI(){
+  const btn=document.getElementById('chat-poll-btn');
+  if(btn) btn.style.display=(typeof isCreatorAccount==='function'&&isCreatorAccount())?'':'none';
+}
+
+async function refreshPolls(force){
+  const q='#chat-msgs .chat-poll[data-poll-id]';
+  const els=[...document.querySelectorAll(q)];
+  if(!els.length) return;
+  const ids=[...new Set(els.map(e=>parseInt(e.dataset.pollId,10)).filter(Boolean))];
+  const missing=ids.filter(id=>!_pollState[id]);
+  const stale=Date.now()-_pollLastFetch>=4000;
+  if(!missing.length&&!force&&!stale){paintPolls(els);return;}
+  if(_pollFetching) return;
+  _pollFetching=true;
+  try{
+    if(missing.length){
+      const{data,error}=await sb.from('game_polls').select('id,question,options').in('id',missing);
+      if(!error){
+        const found=new Set();
+        (data||[]).forEach(p=>{
+          found.add(p.id);
+          const opts=(Array.isArray(p.options)&&p.options.length>=2)?p.options.map(String):['Yes','No'];
+          _pollState[p.id]={q:p.question,opts,counts:opts.map(()=>0),mine:null};
+        });
+        missing.forEach(id=>{if(!found.has(id)) _pollState[id]={q:null,opts:[],counts:[],mine:null};});
+      } else console.warn('Poll load:',error.message);
+    }
+    const valid=ids.filter(id=>_pollState[id]&&_pollState[id].q!==null);
+    if(valid.length){
+      const{data:tally,error:te}=await sb.rpc('get_poll_tally',{p_ids:valid});
+      if(!te){
+        valid.forEach(id=>{_pollState[id].counts=_pollState[id].opts.map(()=>0);});
+        (tally||[]).forEach(t=>{const st=_pollState[t.poll_id];const i=parseInt(t.choice,10);if(st&&i>=0&&i<st.counts.length) st.counts[i]=Number(t.n)||0;});
+      }
+      valid.forEach(id=>{_pollState[id].mine=null;});
+      if(currentUser){
+        const{data:mine,error:me}=await sb.from('game_poll_votes').select('poll_id,choice').in('poll_id',valid).eq('voter_id',currentUser.id);
+        if(!me) (mine||[]).forEach(v=>{const st=_pollState[v.poll_id];const i=parseInt(v.choice,10);if(st&&i>=0&&i<st.opts.length) st.mine=i;});
+      }
+    }
+    _pollLastFetch=Date.now();
+  }catch(e){console.warn('Poll refresh:',e);}
+  finally{_pollFetching=false;}
+  paintPolls([...document.querySelectorAll(q)]);
+}
+
+function paintPolls(els){
+  for(const el of els){
+    const id=parseInt(el.dataset.pollId,10);
+    const st=_pollState[id];
+    if(!st) continue;
+    if(st.q===null){el.innerHTML='<div class="chat-poll-off">📊 vote unavailable</div>';el.className='';continue;}
+    if(el.dataset.ready!=='1'){
+      el.innerHTML='<div class="poll-q"></div><div class="poll-opts"></div><div class="poll-hint"></div>';
+      el.querySelector('.poll-q').textContent='📊 '+st.q;
+      const box=el.querySelector('.poll-opts');
+      st.opts.forEach((name,i)=>{
+        const b=document.createElement('button');b.className='poll-opt';b.dataset.i=i;
+        const f=document.createElement('span');f.className='po-fill';
+        const n=document.createElement('span');n.className='po-name';n.textContent=name;
+        const c=document.createElement('span');c.className='po-n';c.textContent='0';
+        b.appendChild(f);b.appendChild(n);b.appendChild(c);box.appendChild(b);
+      });
+      el.dataset.ready='1';
+    }
+    const total=st.counts.reduce((a,b)=>a+b,0);
+    el.querySelectorAll('.poll-opt').forEach(b=>{
+      const i=parseInt(b.dataset.i,10);
+      b.querySelector('.po-n').textContent=st.counts[i]+(total?' · '+Math.round(st.counts[i]*100/total)+'%':'');
+      b.querySelector('.po-fill').style.width=(total?(st.counts[i]*100/total):0)+'%';
+      b.classList.toggle('mine',st.mine===i);
+    });
+    const hint=el.querySelector('.poll-hint');
+    if(hint) hint.textContent=currentUser?(st.mine!==null?'YOU VOTED "'+st.opts[st.mine].toUpperCase()+'" — TAP ANOTHER TO CHANGE':'TAP AN OPTION TO VOTE'):'SIGN IN TO VOTE';
+  }
+}
+
+async function castPollVote(pollId,idx){
+  const st=_pollState[pollId];
+  if(!st||st.q===null||idx<0||idx>=st.opts.length) return;
+  if(!currentUser){msg('Sign in to vote',2500);openAuthModal();return;}
+  if(st.mine===idx) return;
+  const prev={counts:st.counts.slice(),mine:st.mine};
+  if(st.mine!==null) st.counts[st.mine]=Math.max(0,st.counts[st.mine]-1);
+  st.counts[idx]++;st.mine=idx;
+  const sel='#chat-msgs .chat-poll[data-poll-id="'+pollId+'"]';
+  paintPolls([...document.querySelectorAll(sel)]);
+  try{
+    const{error}=await sb.from('game_poll_votes').upsert({poll_id:pollId,voter_id:currentUser.id,choice:String(idx),updated_at:new Date().toISOString()},{onConflict:'poll_id,voter_id'});
+    if(error) throw error;
+    _pollLastFetch=0; refreshPolls(true);
+  }catch(e){
+    console.warn('Vote failed:',e);
+    st.counts=prev.counts;st.mine=prev.mine;
+    paintPolls([...document.querySelectorAll(sel)]);
+    msg('⚠ Vote failed: '+(e.message||'network error'),3000);
+  }
+}
+document.getElementById('chat-msgs').addEventListener('click',function(ev){
+  const b=ev.target.closest&&ev.target.closest('.chat-poll .poll-opt');
+  if(!b) return;
+  castPollVote(parseInt(b.closest('.chat-poll').dataset.pollId,10),parseInt(b.dataset.i,10));
+});
+
+// Called from the auth listener whenever the signed-in account changes.
+function onChatAuthChange(){
+  updateCreatorChatUI();
+  _pollLastFetch=0;
+  refreshPolls(true); // re-read "my vote" for the new account
+}
+updateCreatorChatUI();
+
+// ── Creator vote builder: custom question, any number of options (2–10), custom option names ──
+function pollBuilderRow(value){
+  const box=document.getElementById('pb-opts');
+  const row=document.createElement('div');row.className='pb-row';
+  const idx=document.createElement('span');idx.className='pb-idx';
+  const inp=document.createElement('input');inp.maxLength=30;inp.placeholder='Option name';inp.value=value||'';
+  inp.addEventListener('keydown',e=>{if(e.key==='Enter'){e.preventDefault();
+    const rows=[...box.querySelectorAll('input')];const i=rows.indexOf(inp);
+    if(i===rows.length-1&&rows.length<POLL_MAX_OPTIONS){pollBuilderAdd();} else if(rows[i+1]) rows[i+1].focus();}});
+  const x=document.createElement('button');x.type='button';x.className='pb-x';x.textContent='✕';x.title='Remove option';
+  x.addEventListener('click',()=>{if(box.children.length>POLL_MIN_OPTIONS){row.remove();pollBuilderSync();}});
+  row.appendChild(idx);row.appendChild(inp);row.appendChild(x);box.appendChild(row);
+  pollBuilderSync();
+  return inp;
+}
+function pollBuilderSync(){
+  const box=document.getElementById('pb-opts');const n=box.children.length;
+  [...box.children].forEach((r,i)=>{r.querySelector('.pb-idx').textContent=(i+1)+'.';r.querySelector('.pb-x').disabled=(n<=POLL_MIN_OPTIONS);});
+  const add=document.getElementById('pb-add');if(add) add.disabled=(n>=POLL_MAX_OPTIONS);
+}
+function pollBuilderAdd(){
+  if(document.getElementById('pb-opts').children.length>=POLL_MAX_OPTIONS) return;
+  pollBuilderRow('').focus();
+}
+function openPollBuilder(){
+  if(!isCreatorAccount()) return;
+  const chatIn=document.getElementById('chat-input');
+  document.getElementById('pb-question').value=(chatIn&&chatIn.value.trim())||'Do you like the game?';
+  document.getElementById('pb-opts').innerHTML='';
+  pollBuilderRow('Yes');pollBuilderRow('No');
+  document.getElementById('pb-err').textContent='';
+  document.getElementById('pb-post').disabled=false;
+  document.getElementById('poll-builder').classList.add('show');
+  document.getElementById('pb-question').focus();
+}
+function closePollBuilder(){document.getElementById('poll-builder').classList.remove('show');}
+
+let _sendingPoll=false;
+async function submitPollBuilder(){
+  if(_sendingPoll||!isCreatorAccount()) return;
+  const err=document.getElementById('pb-err');
+  const question=document.getElementById('pb-question').value.trim().slice(0,100);
+  const opts=[...document.querySelectorAll('#pb-opts input')].map(i=>i.value.trim());
+  if(!question){err.textContent='Enter a question.';return;}
+  if(opts.length<POLL_MIN_OPTIONS){err.textContent='Need at least 2 options.';return;}
+  if(opts.some(o=>!o)){err.textContent='Every option needs a name (or remove it).';return;}
+  if(new Set(opts.map(o=>o.toLowerCase())).size!==opts.length){err.textContent='Option names must be different.';return;}
+  err.textContent='';
+  _sendingPoll=true;document.getElementById('pb-post').disabled=true;
+  try{
+    const{data:poll,error}=await sb.from('game_polls').insert({question,options:opts}).select('id').single();
+    if(error||!poll){err.textContent='Could not create vote: '+(error?error.message:'unknown error');return;}
+    const name=playerName||'CREATOR';
+    const{error:ce}=await sb.from('game_chat').insert({player_name:name,message:CHAT_POLL_PREFIX+poll.id,channel:chatChannel});
+    if(ce){err.textContent='Vote created but chat post failed: '+ce.message;return;}
+    const chatIn=document.getElementById('chat-input');if(chatIn&&chatIn.value.trim()===question) chatIn.value='';
+    closePollBuilder();
+    if(chatPageOffset!==0){await loadChatPage(0);} else {await fetchChat();}
+    refreshPolls(true);
+  }catch(e){console.warn('Poll send:',e);err.textContent='Failed to post vote.';}
+  finally{_sendingPoll=false;const pb=document.getElementById('pb-post');if(pb) pb.disabled=false;}
+}
 
 // ── CHAT PHOTOS ──
 // Photos are stored inline in game_chat.message as "[IMG]<data-url>" so no schema
@@ -13632,6 +13915,9 @@ function buildChatMsgHTML(m,ch){
   const nameCol=ch==='top3'?'#ffd700':'#ff8844';
   const t=new Date(m.created_at);
   const ts=formatChatTime(t);
+  if(isChatPoll(m.message)){
+    return '<span class="chat-name" style="color:'+nameCol+'">'+esc(m.player_name)+':</span><span class="chat-time">'+ts+'</span><div class="chat-poll" data-poll-id="'+chatPollId(m.message)+'"><div class="chat-poll-off">📊 loading vote…</div></div>';
+  }
   if(isChatPhoto(m.message)){
     const src=chatPhotoSrc(m.message);
     return '<span class="chat-name" style="color:'+nameCol+'">'+esc(m.player_name)+':</span><span class="chat-time">'+ts+'</span><div class="chat-img-wrap"><img class="chat-img" src="'+src+'" loading="lazy" onclick="openChatImage(this.src)"></div>';
@@ -13735,6 +14021,7 @@ function toggleChat(){
   document.getElementById('chat-box').style.display=chatOpen?'flex':'none';
   document.getElementById('chat-toggle').style.display=chatOpen?'none':'block';
   if(chatOpen){
+    updateCreatorChatUI();
     _chatAllowed=null;checkChatPermission();
     chatPageOffset=0;
     if(!chatPollInterval){loadChatPage(0);chatPollInterval=setInterval(fetchChat,2000);}
@@ -13775,6 +14062,7 @@ async function loadChatPage(offset){
     }
     if(offset===0) msgs.scrollTop=msgs.scrollHeight;
     renderChatPagerUI(offset,data.length);
+    refreshPolls();
     if(_chatPendingJumpId!=null){
       const targetId=_chatPendingJumpId;
       _chatPendingJumpId=null;
@@ -13842,7 +14130,7 @@ async function chatSearch(){
       row.className='chat-search-result';
       const t=new Date(m.created_at);
       const ts=formatChatTime(t);
-      const bodyHTML=isChatPhoto(m.message)?'<span class="csr-msg csr-photo-icon">📷 Photo</span>':'<span class="csr-msg">'+esc(m.message)+'</span>';
+      const bodyHTML=isChatPhoto(m.message)?'<span class="csr-msg csr-photo-icon">📷 Photo</span>':isChatPoll(m.message)?'<span class="csr-msg">📊 Vote</span>':'<span class="csr-msg">'+esc(m.message)+'</span>';
       row.innerHTML='<span class="csr-time">'+ts+'</span><span class="csr-name">'+esc(m.player_name)+':</span>'+bodyHTML;
       row.addEventListener('click',()=>jumpToChatMessage(m.id));
       resultsBox.appendChild(row);
@@ -13891,6 +14179,7 @@ function highlightChatMessage(id){
 
 async function fetchChat(){
   if(chatPageOffset!==0) return; // don't disturb the view while the player is browsing older pages
+  refreshPolls(); // keeps live vote counts fresh (throttled internally)
   try{
     const lastId=chatChannel==='global'?lastGlobalId:lastTop3Id;
     // Fetch all recent messages, filter by channel in JS
@@ -13910,6 +14199,7 @@ async function fetchChat(){
       msgs.appendChild(div);
     }
     msgs.scrollTop=msgs.scrollHeight;
+    refreshPolls(true);
   }catch(e){console.warn('Chat fetch:',e);}
 }
 
@@ -13995,7 +14285,7 @@ async function bgChatPoll(){
     const latest=data[data.length-1];
     const popup=document.getElementById('chat-notif-popup');
     if(popup){
-      const previewMsg=isChatPhoto(latest.message)?'📷 sent a photo':esc(latest.message);
+      const previewMsg=isChatPhoto(latest.message)?'📷 sent a photo':isChatPoll(latest.message)?'📊 started a vote — open chat to vote':esc(latest.message);
       popup.innerHTML='<span class="notif-name">'+esc(latest.player_name)+':</span> <span class="notif-msg">'+previewMsg+'</span>';
       popup.style.display='block';
       setTimeout(()=>{popup.style.display='none';},4000);
