@@ -2051,7 +2051,7 @@ body.old-tower-picker #qb{display:none!important;}
     <div class="lbs-card online">
       <div class="lbs-h">🟢 AVERAGE PLAYERS ONLINE</div>
       <div class="lbs-big" id="lbs-avg">—</div>
-      <div class="lbs-note" id="lbs-avg-note">ACTIVE TODAY + YESTERDAY</div>
+      <div class="lbs-note" id="lbs-avg-note">SIGNED-IN · TODAY + YESTERDAY</div>
     </div>
   </div>
 </div>
@@ -3560,6 +3560,21 @@ function toggleUpgradeStyle(){
   applyUpgradeStyleUI();
 }
 
+function applyMaxSpendUpgradeUI(){
+  const btn=document.getElementById('sett-maxupg-tog');
+  if(btn){
+    btn.classList.toggle('on',!!maxSpendUpgrade);
+    btn.innerHTML=maxSpendUpgrade
+      ?'&#128176; MAX SPEND UPGRADE: ON'
+      :'&#128176; MAX SPEND UPGRADE: OFF';
+  }
+}
+function toggleMaxSpendUpgrade(){
+  maxSpendUpgrade=!maxSpendUpgrade;
+  localStorage.setItem('bs_max_spend_upgrade',maxSpendUpgrade?'on':'off');
+  applyMaxSpendUpgradeUI();
+}
+
 function autoSaveReset(){
   autoSaveEnabled=false;
   updateAutoSaveUI();
@@ -3609,6 +3624,7 @@ function openSettings(){
   var pathBtn=document.getElementById('sett-path-tog');
   if(pathBtn){pathBtn.classList.toggle('on',showPathPreview);pathBtn.innerHTML='&#128204; SHOW ENEMY PATH: '+(showPathPreview?'ON':'OFF');}
   applyUpgradeStyleUI();
+  applyMaxSpendUpgradeUI();
 }
 
 function closeSettings(){
@@ -3860,6 +3876,7 @@ function loadLocalMusicFile(file){
 let hov=null,selTower=null,speed=1,frame=0,showPathPreview=false;
 let screenShakeEnabled=(localStorage.getItem('sug_screen_shake')!=='off');
 let oldUpgradeStyle=(localStorage.getItem('bs_upgrade_style')==='old');
+let maxSpendUpgrade=(localStorage.getItem('bs_max_spend_upgrade')==='on');
 // Old-style tower picker: show classic sidebar .bb buttons instead of the 10-slot quick bar
 let oldTowerPicker=(localStorage.getItem('bs_tower_picker')==='old');
 function applyTowerPickerStyle(){
@@ -6266,8 +6283,8 @@ let hcPoints=0;              // Upgrade points available to spend
 let hcPointsSpent=0;         // Points already spent
 let hcLastPointScore=0;      // Score at which last point was awarded
 let hcUnlocked=new Set();    // Tower keys unlocked this game
-const HC_TOWER_COSTS={electric:1,healer:3,spike:4,flame:6,ice:5,buff:15,bhole:8,heli:10,mine:20,laser:11,barracks:7,silo:7,hero_accel:25,hero_score:25,hero_sacrifice:25,mech_base:21,admindrone:9,barbwire:12,cowboy:7,necromancer:13,mace:8,alchemist:11,hunter:10};
-const HC_TOWER_NAMES={electric:'TESLA ⚡',healer:'MEDIC ✚',spike:'SPIKE 🔨',flame:'FLAME 🔥',ice:'ICE ❄',buff:'DJ TOWER 🎧',bhole:'B.HOLE 🕳️',heli:'HELI PAD 🚁',mine:'FARM 🌾',laser:'LASER 💎',barracks:'BARRACKS 🛡',silo:'MISSILE SILO 🚀',hero_accel:'HERO: ACCEL ⚡',hero_score:'HERO: SCORE 🏆',hero_sacrifice:'HERO: SACRIFICE 🩸',mech_base:'MECH BASE 🤖',admindrone:'DRONE PAD 🛸',barbwire:'BARBWIRE 🧷',cowboy:'COWBOY 🤠',necromancer:'NECROMANCER 💀',mace:'MACE TOWER 🔮',alchemist:'ALCHEMIST ⚗',hunter:'HUNTER 🎯'};
+const HC_TOWER_COSTS={electric:1,healer:3,spike:4,flame:6,ice:5,buff:15,bhole:8,heli:10,mine:20,laser:11,barracks:7,silo:7,hero_accel:25,hero_score:25,hero_sacrifice:25,mech_base:21,admindrone:9,barbwire:12,cowboy:7,necromancer:13,mace:8,alchemist:11,hunter:10,lumina:20,snowball:25,decoy_base:25};
+const HC_TOWER_NAMES={electric:'TESLA ⚡',healer:'MEDIC ✚',spike:'SPIKE 🔨',flame:'FLAME 🔥',ice:'ICE ❄',buff:'DJ TOWER 🎧',bhole:'B.HOLE 🕳️',heli:'HELI PAD 🚁',mine:'FARM 🌾',laser:'LASER 💎',barracks:'BARRACKS 🛡',silo:'MISSILE SILO 🚀',hero_accel:'HERO: ACCEL ⚡',hero_score:'HERO: SCORE 🏆',hero_sacrifice:'HERO: SACRIFICE 🩸',mech_base:'MECH BASE 🤖',admindrone:'DRONE PAD 🛸',barbwire:'BARBWIRE 🧷',cowboy:'COWBOY 🤠',necromancer:'NECROMANCER 💀',mace:'MACE TOWER 🔮',alchemist:'ALCHEMIST ⚗',hunter:'HUNTER 🎯',lumina:'LUMINA ✨',snowball:'SNOWBALLER ☃️',decoy_base:'DECOY BASE 🏛'};
 const HERO_HC_KEYS=['hero_accel','hero_score','hero_sacrifice']; // All heroes are unlocked together by ONE 25-point purchase
 
 function init(){
@@ -7210,15 +7227,68 @@ function applyBaseUpgrade(){
 function doUpgrade(path){
   if(!selTower||selTower.level>=getML(selTower.key)) return;
   if(MP.active&&!MP.canInteractTower(selTower)){msg(MP.getTowerOwnerMsg(selTower)||'Not your tower',2000);return;}
-  const uc=getDiscountedUpgCost(selTower,selTower.level+1,path||selTower.path);
-  if(gold<uc){msg('⚠ Not enough gold!');return;}
-  gold-=uc;selTower.totalGoldSpent=(selTower.totalGoldSpent||0)+uc;if(gameMode!=='sandbox'){achStats.totalGoldSpent=(achStats.totalGoldSpent||0)+uc;if(achStats.totalGoldSpent>=50000)unlockAchievement('gambler');if(achStats.totalGoldSpent%5000<uc)saveAchStats();}if(path) selTower.path=path;selTower.level++;selTower.cfg=getCfg(selTower.key,selTower.level,selTower.path,selTower.evolvedBlaster);
-  if(MP.active){const lk=selTower.path?selTower.level+''+selTower.path:selTower.level;MP.broadcast('tower:upgrade',{pid:MP.playerId,row:selTower.row,col:selTower.col,newKey:lk});MP.updatePlayerGold();}selTower.maxHp=selTower.cfg.hp;
-  if(selTower.key==='healer'&&selTower.path==='A'&&selTower.cfg.baseMaxBonus){baseMaxHP+=selTower.cfg.baseMaxBonus;baseHP=Math.min(baseHP+selTower.cfg.baseMaxBonus,baseMaxHP);ft(BASE_C*CS+CS/2,BASE_R*CS,`MAX HP +${selTower.cfg.baseMaxBonus}`,'#00ccff');}
-  if(selTower.key==='heli'){const h=helicopters.find(h=>h.towerId===selTower.id);if(h) syncHelicopterConfig(h,selTower);}
-  if(selTower.key==='admindrone'){syncAdminDroneConfig(selTower);}
-  if(selTower.cfg&&selTower.cfg.barracksTower){const ncfg=selTower.cfg;for(const a of allies){if(a.towerId===selTower.id){a.dmg=ncfg.allyDmg;a.maxHp=ncfg.allyHp;a.hp=Math.min(a.hp,ncfg.allyHp);a.spd=ncfg.allySpd;a.col=ncfg.col;a.explode=!!ncfg.allyExplode;a.explodeDmg=ncfg.allyExplodeDmg||0;a.explodeAoe=ncfg.allyExplodeAoe||0;a.hasGun=!!ncfg.allyGun;a.gunDmg=ncfg.allyGunDmg||0;a.gunRng=ncfg.allyGunRng||0;a.gunCd=ncfg.allyGunCd||0;a.isTank=!!ncfg.allyTank;a.tankExplodeDmg=ncfg.allyTankExplodeDmg||0;a.tankExplodeAoe=ncfg.allyTankExplodeAoe||0;}}}
-  ft(selTower.col*CS+CS/2,selTower.row*CS,`LVL ${selTower.level}!`,'#ffd700');sparks(selTower.col*CS+CS/2,selTower.row*CS+CS/2,selTower.cfg.col,12,2);syncUI();showPanel(selTower);
+  const maxLvl=getML(selTower.key);
+  let levelsGained=0, totalSpent=0;
+  const doLoop=!!maxSpendUpgrade;
+  while(selTower.level<maxLvl){
+    const usePath=path||selTower.path||null;
+    const needsPath=selTower.key!=='wall'&&selTower.level===1&&TS[selTower.key]&&(TS[selTower.key]['2A']||TS[selTower.key]['2B']);
+    if(needsPath&&!usePath){
+      if(levelsGained===0) msg('⚠ Choose a path first');
+      break;
+    }
+    const uc=getDiscountedUpgCost(selTower,selTower.level+1,usePath);
+    if(gold<uc){
+      if(levelsGained===0) msg('⚠ Not enough gold!');
+      break;
+    }
+    gold-=uc;totalSpent+=uc;
+    selTower.totalGoldSpent=(selTower.totalGoldSpent||0)+uc;
+    if(gameMode!=='sandbox'){
+      achStats.totalGoldSpent=(achStats.totalGoldSpent||0)+uc;
+      if(achStats.totalGoldSpent>=50000)unlockAchievement('gambler');
+      if(achStats.totalGoldSpent%5000<uc)saveAchStats();
+    }
+    if(usePath) selTower.path=usePath;
+    selTower.level++;
+    selTower.cfg=getCfg(selTower.key,selTower.level,selTower.path,selTower.evolvedBlaster);
+    selTower.maxHp=selTower.cfg.hp;
+    if(MP.active){
+      const lk=selTower.path?selTower.level+''+selTower.path:selTower.level;
+      MP.broadcast('tower:upgrade',{pid:MP.playerId,row:selTower.row,col:selTower.col,newKey:lk});
+    }
+    if(selTower.key==='healer'&&selTower.path==='A'&&selTower.cfg.baseMaxBonus){
+      baseMaxHP+=selTower.cfg.baseMaxBonus;
+      baseHP=Math.min(baseHP+selTower.cfg.baseMaxBonus,baseMaxHP);
+      ft(BASE_C*CS+CS/2,BASE_R*CS,`MAX HP +${selTower.cfg.baseMaxBonus}`,'#00ccff');
+    }
+    if(selTower.key==='heli'){const h=helicopters.find(h=>h.towerId===selTower.id);if(h) syncHelicopterConfig(h,selTower);}
+    if(selTower.key==='admindrone'){syncAdminDroneConfig(selTower);}
+    if(selTower.cfg&&selTower.cfg.barracksTower){
+      const ncfg=selTower.cfg;
+      for(const a of allies){
+        if(a.towerId===selTower.id){
+          a.dmg=ncfg.allyDmg;a.maxHp=ncfg.allyHp;a.hp=Math.min(a.hp,ncfg.allyHp);a.spd=ncfg.allySpd;a.col=ncfg.col;
+          a.explode=!!ncfg.allyExplode;a.explodeDmg=ncfg.allyExplodeDmg||0;a.explodeAoe=ncfg.allyExplodeAoe||0;
+          a.hasGun=!!ncfg.allyGun;a.gunDmg=ncfg.allyGunDmg||0;a.gunRng=ncfg.allyGunRng||0;a.gunCd=ncfg.allyGunCd||0;
+          a.isTank=!!ncfg.allyTank;a.tankExplodeDmg=ncfg.allyTankExplodeDmg||0;a.tankExplodeAoe=ncfg.allyTankExplodeAoe||0;
+        }
+      }
+    }
+    levelsGained++;
+    path=null;
+    if(!doLoop) break;
+  }
+  if(levelsGained>0){
+    if(MP.active) MP.updatePlayerGold();
+    const lbl=levelsGained>1
+      ?`LVL ${selTower.level}! (−${totalSpent}g ×${levelsGained})`
+      :`LVL ${selTower.level}!`;
+    ft(selTower.col*CS+CS/2,selTower.row*CS,lbl,'#ffd700');
+    sparks(selTower.col*CS+CS/2,selTower.row*CS+CS/2,selTower.cfg.col,12+(levelsGained>1?8:0),2);
+    if(levelsGained>1) msg(`⬆ Max-spent ${levelsGained} levels (−${totalSpent}g)`,2200);
+    syncUI();showPanel(selTower);
+  }
 }
 
 // ── EVENTS
@@ -7385,6 +7455,7 @@ document.getElementById('ubtn').addEventListener('click',()=>{
   if(upgMode){hidePanel();hideBasePanel();}
 });
 applyUpgradeStyleUI();
+applyMaxSpendUpgradeUI();
 document.getElementById('basebtn').addEventListener('click',()=>{
   baseUpgMode=!baseUpgMode;sellMode=false;upgMode=false;document.querySelectorAll('.bb').forEach(b=>b.classList.remove('on'));document.getElementById('sbtn').classList.remove('sell-on');document.getElementById('ubtn').classList.remove('upg-on');document.getElementById('basebtn').classList.toggle('base-on',baseUpgMode);hidePanel();if(baseUpgMode) showBasePanel();else hideBasePanel();});
 // === HARDCORE UPGRADE POINT UI ===
@@ -7526,6 +7597,9 @@ cv.addEventListener('click',e=>{
   if(selBuild==='barbwire'&&gameMode==='hardcore'&&!hcUnlocked.has('barbwire')){msg('⚠ Unlock Barbwire first! (12 pts)',2500);return;}
   if(selBuild==='mace'&&gameMode==='hardcore'&&!hcUnlocked.has('mace')){msg('⚠ Unlock Mace Tower first! (10 pts)',2500);return;}
   if(selBuild==='hunter'&&gameMode==='hardcore'&&!hcUnlocked.has('hunter')){msg('⚠ Unlock Hunter Tower first! (10 pts)',2500);return;}
+  if(selBuild==='lumina'&&gameMode==='hardcore'&&!hcUnlocked.has('lumina')){msg('⚠ Unlock Lumina first! (20 pts)',2500);return;}
+  if(selBuild==='snowball'&&gameMode==='hardcore'&&!hcUnlocked.has('snowball')){msg('⚠ Unlock Snowballer first! (25 pts)',2500);return;}
+  if(selBuild==='decoy_base'&&gameMode==='hardcore'&&!hcUnlocked.has('decoy_base')){msg('⚠ Unlock Decoy Base first! (25 pts)',2500);return;}
   if(selBuild==='silo'&&!earnedAchievements.has('boss_speed')){msg('⚠ Missile Silo requires the "I\'M THE BOSS" achievement!',3000);return;}
   if(selBuild==='snowball'&&!earnedAchievements.has('snowball_effect')){msg('⚠ Snowballer requires the "THE SNOWBALL EFFECT" achievement! (play multiplayer and watch another player place a tower)',3000);return;}
   if(selBuild==='snowball'&&towers.filter(t=>t.key==='snowball'&&(!MP.active||t.owner===MP.playerId||(!t.owner&&!MP.active))).length>=3){msg('⚠ Only 3 SNOWBALLER towers allowed per player!',2500);return;}
@@ -13711,10 +13785,13 @@ window.addEventListener('beforeunload', () => {
   async function flush(){
     if(flushing) return;
     if(document.hidden&&pending===0) return; // tab not visible -> not online
+    // Guests (not signed in) must NOT count toward AVERAGE PLAYERS ONLINE on the leaderboard.
+    // Only signed-in accounts report activity; drop any pending seconds so they don't pile up.
+    if(typeof currentUser==='undefined'||!currentUser){pending=0;return;}
     flushing=true;
     const secs=Math.min(pending,120);
     try{
-      const name=(typeof playerName!=='undefined'&&playerName)?playerName:((typeof currentUser!=='undefined'&&currentUser&&currentUser.email)?currentUser.email.split('@')[0]:'Guest');
+      const name=(typeof playerName!=='undefined'&&playerName)?playerName:((currentUser.email)?currentUser.email.split('@')[0]:'Player');
       const{error}=await sb.rpc('report_activity',{p_player_id:getPlayerId(),p_name:name,p_seconds:secs});
       if(error) console.warn('Activity report:',error.message); else pending-=secs;
     }catch(e){console.warn('Activity report:',e);}
@@ -13746,7 +13823,7 @@ async function loadActivityStats(force){
       set('lbs-top-days',(top.days||0)+' / 7');
     }else{set('lbs-top-name','NO DATA YET');set('lbs-top-hours','—');set('lbs-top-days','—');}
     set('lbs-avg',String(data.avg_online||0));
-    set('lbs-avg-note','TODAY '+(data.today||0)+' · YESTERDAY '+(data.yesterday||0));
+    set('lbs-avg-note','SIGNED-IN · TODAY '+(data.today||0)+' · YESTERDAY '+(data.yesterday||0));
   }catch(e){console.warn('Activity stats:',e);}
 }
 </script>
@@ -15316,6 +15393,11 @@ function applyHeroLockUI(){
       <div class="set-sec-lbl">TOWER UPGRADE STYLE</div>
       <button class="set-tog on" id="sett-upgstyle-tog" onclick="toggleUpgradeStyle()">&#11014; UPGRADE STYLE: NEW (CLICK TOWER)</button>
       <div class="as-info">NEW: click any tower directly to open its upgrade panel. OLD: press the UPGRADE button in the build menu first, then click a tower.</div>
+    </div>
+    <div class="set-sec">
+      <div class="set-sec-lbl">MAX SPEND UPGRADE</div>
+      <button class="set-tog" id="sett-maxupg-tog" onclick="toggleMaxSpendUpgrade()">&#128176; MAX SPEND UPGRADE: OFF</button>
+      <div class="as-info">When ON, clicking Upgrade (or choosing a path) spends as much gold as possible to raise that tower to the highest level you can afford in one go.</div>
     </div>
     <div class="set-sec">
       <div class="set-sec-lbl">TOWER PICKER STYLE</div>
