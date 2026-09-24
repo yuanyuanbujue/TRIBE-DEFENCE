@@ -4540,8 +4540,50 @@ function fmtLastPlayed(iso) {
 function touchLastPlayed() {
   try {
     achStats.lastPlayed = new Date().toISOString();
+    achStats.online = true;
     saveAchStats();
   } catch(e) {}
+}
+// ── PRESENCE: heartbeat while the tab is open & visible, stamp "left" time when it closes/hides ──
+let _presenceToken = null;
+async function _refreshPresenceToken() {
+  try { if (typeof sb !== 'undefined' && sb && sb.auth) { const r = await sb.auth.getSession(); _presenceToken = r && r.data && r.data.session ? r.data.session.access_token : null; } } catch(e) {}
+}
+function presenceBeat() {
+  if (document.hidden) return;
+  touchLastPlayed();
+  _refreshPresenceToken();
+}
+function presenceLeave() {
+  try {
+    achStats.lastPlayed = new Date().toISOString();
+    achStats.online = false;
+    try { localStorage.setItem(STAT_KEY, JSON.stringify(achStats)); } catch(e) {}
+    if (typeof currentUser === 'undefined' || !currentUser || !_presenceToken) return;
+    if (typeof gameMode !== 'undefined' && gameMode === 'sandbox') return;
+    // keepalive fetch survives tab close (sendBeacon can't carry auth headers)
+    fetch(SUPABASE_URL + '/rest/v1/player_progress?user_id=eq.' + encodeURIComponent(currentUser.id), {
+      method: 'PATCH',
+      headers: { 'Content-Type': 'application/json', 'apikey': SUPABASE_ANON, 'Authorization': 'Bearer ' + _presenceToken },
+      body: JSON.stringify({ ach_stats: achStats }),
+      keepalive: true
+    });
+  } catch(e) {}
+}
+setInterval(presenceBeat, 45000);
+document.addEventListener('visibilitychange', () => { if (document.hidden) presenceLeave(); else presenceBeat(); });
+window.addEventListener('pagehide', presenceLeave);
+window.addEventListener('beforeunload', presenceLeave);
+setTimeout(presenceBeat, 3000);
+// Text shown on stats cards: ONLINE NOW if heartbeat is fresh, otherwise how long ago they left
+function fmtPresence(stats) {
+  const iso = stats && stats.lastPlayed;
+  if (!iso) return '—';
+  const t = Date.parse(iso);
+  if (isNaN(t)) return '—';
+  if (stats.online !== false && Date.now() - t < 120000) return '🟢 ONLINE NOW';
+  const s = fmtLastPlayed(iso);
+  return s === 'JUST NOW' ? 'LEFT JUST NOW' : 'LEFT ' + s;
 }
 function fmtPlayTime(sec) {
   sec = sec || 0;
@@ -4580,7 +4622,7 @@ function renderStatsModal(viewData) {
         <div class="stats-cell"><div class="sc-v">${(stats.maxWave||0).toLocaleString()}</div><div class="sc-l">BEST WAVE</div></div>
         <div class="stats-cell"><div class="sc-v">${(stats.maxWaveHardcore||0).toLocaleString()}</div><div class="sc-l">BEST HARDCORE WAVE</div></div>
         <div class="stats-cell"><div class="sc-v">${(stats.totalGoldSpent||0).toLocaleString()}</div><div class="sc-l">GOLD SPENT (LIFETIME)</div></div>
-        <div class="stats-cell"><div class="sc-v">${fmtLastPlayed(stats.lastPlayed || viewData.updated_at)}</div><div class="sc-l">LAST PLAYED</div></div>
+        <div class="stats-cell"><div class="sc-v">${fmtPresence(stats)}</div><div class="sc-l">LAST PLAYED</div></div>
         <div class="stats-cell"><div class="sc-v">${(stats.voidReaverLevel||0)}/4</div><div class="sc-l">VOID REAVER STAGE</div></div>
       </div>
 
@@ -4622,7 +4664,7 @@ function renderStatsModal(viewData) {
       <div class="stats-cell"><div class="sc-v">${(achStats.maxWave||0).toLocaleString()}</div><div class="sc-l">BEST WAVE</div></div>
       <div class="stats-cell"><div class="sc-v">${(achStats.maxWaveHardcore||0).toLocaleString()}</div><div class="sc-l">BEST HARDCORE WAVE</div></div>
       <div class="stats-cell"><div class="sc-v">${(achStats.totalGoldSpent||0).toLocaleString()}</div><div class="sc-l">GOLD SPENT (LIFETIME)</div></div>
-      <div class="stats-cell"><div class="sc-v">${fmtLastPlayed(achStats.lastPlayed)}</div><div class="sc-l">LAST PLAYED</div></div>
+      <div class="stats-cell"><div class="sc-v">${(typeof currentUser!=='undefined'&&currentUser)?'🟢 ONLINE NOW':fmtLastPlayed(achStats.lastPlayed)}</div><div class="sc-l">LAST PLAYED</div></div>
       <div class="stats-cell"><div class="sc-v">${fmtPlayTime(tpt)}</div><div class="sc-l">TOTAL PLAY TIME</div></div>
       <div class="stats-cell"><div class="sc-v">${(achStats.voidReaverLevel||0)}/4</div><div class="sc-l">VOID REAVER STAGE</div></div>
     </div>
@@ -4808,7 +4850,7 @@ async function sugSubmit(){
 
 // Persistent stat counters for achievements
 const STAT_KEY = 'bs_ach_stats';
-let achStats = {totalBuilt:0, totalKills:0, wasLbFirst:false, maxWave:0, totalGoldSpent:0, maxSingleGameGold:0, maxWaveHardcore:0, voidReaverLevel:0, totalMerges:0, lastPlayed:null};
+let achStats = {totalBuilt:0, totalKills:0, wasLbFirst:false, maxWave:0, totalGoldSpent:0, maxSingleGameGold:0, maxWaveHardcore:0, voidReaverLevel:0, totalMerges:0, lastPlayed:null, online:false};
 
 function loadAchStats() {
   try { const r=localStorage.getItem(STAT_KEY); if(r) achStats={totalBuilt:0,totalKills:0,wasLbFirst:false,maxWave:0,totalGoldSpent:0,maxSingleGameGold:0,maxWaveHardcore:0,voidReaverLevel:0,totalMerges:0,lastPlayed:null,...JSON.parse(r)}; } catch(e) {}
@@ -5070,8 +5112,8 @@ async function pullProgressFromCloud() {
           // Keep the more recent play timestamp
           const ct = cv ? Date.parse(cv) : 0;
           const lt = lv ? Date.parse(lv) : 0;
-          if (ct && (!lt || ct > lt)) { achStats.lastPlayed = cv; changed = true; }
-        } else if (typeof cv === 'number') { if ((lv||0) < cv) { achStats[k] = cv; changed = true; } }
+          if (ct && (!lt || ct > lt)) { achStats.lastPlayed = cv; if (typeof data.ach_stats.online === 'boolean') achStats.online = data.ach_stats.online; changed = true; }
+        } else if (k === 'online') { /* handled with lastPlayed */ } else if (typeof cv === 'number') { if ((lv||0) < cv) { achStats[k] = cv; changed = true; } }
         else if (typeof cv === 'boolean') { if (cv && !lv) { achStats[k] = true; changed = true; } }
         else if (typeof cv === 'string' && !lv) { achStats[k] = cv; changed = true; }
       }
