@@ -280,10 +280,10 @@ const MP={
   onRemoteTowerPlace(d){
     const cfg=d.key==='basic'&&d.evolvedBlaster?getCfg(d.key,d.lvl||1,d.path||null,d.evolvedBlaster):(TS[d.key]?TS[d.key][d.lvl||1]:null);
     if(!cfg) return;
-    {const dsz=d.size||1;if(dsz>1){for(let ddr=0;ddr<dsz;ddr++)for(let ddc=0;ddc<dsz;ddc++)grid[d.row+ddr][d.col+ddc]=cfg.t;}else{grid[d.row][d.col]=cfg.t;}}bfs();
+    {const dsz=d.size||1;if(dsz>1){for(let ddr=0;ddr<dsz;ddr++)for(let ddc=0;ddc<dsz;ddc++)grid[d.row+ddr][d.col+ddc]=cfg.t;}else{grid[d.row][d.col]=cfg.t;}}
     const t={row:d.row,col:d.col,key:d.key,cfg,hp:cfg.hp,maxHp:cfg.hp,cd:0,level:d.lvl||1,path:null,size:d.size,id:++_towerIdCounter,owner:d.pid,ownerColor:PLAYER_COLORS[d.colorIdx]||'#888',ownerName:d.name||'?',totalDmgDealt:0,totalKills:0,totalGoldSpent:0,skins:d.skins||{},evolvedBlaster:d.evolvedBlaster};
     if(cfg.healAmt){t.healTick=0;}
-    towers.push(t);
+    towers.push(t);bfs();
     // Spawn helicopter for remote heli pads
     if(d.key==='heli') spawnHelicopter(t);
     // Init barracks spawn timer for remote barracks
@@ -494,7 +494,7 @@ const MP={
     // Set gold for this player
     gold=Math.round(200*MODES[gameMode].goldBonus);
     syncUI();
-    msg('CO-OP MODE — DEFEND TOGETHER!',3000);
+    msg('CO-OP MODE — DEFEND TOGETHER!',3000);if(typeof touchLastPlayed==='function')touchLastPlayed();
     document.getElementById('show-lb').style.display='block';
     // Hide auto-skip, wave button, and base upgrade for non-host
     if(!this.isHost){
@@ -732,6 +732,8 @@ const MP={
 // MULTIPLAYER UI WIRING
 // ══════════════════════════════════════════════
 document.addEventListener('DOMContentLoaded',function(){
+  try{if(typeof setAllySpawnAtDecoy==='function') setAllySpawnAtDecoy(allySpawnAtDecoy);}catch(e){}
+  try{if(typeof applyTowerPickerStyle==='function') applyTowerPickerStyle();}catch(e){}
   // Start screen: SOLO vs CO-OP buttons
   const soloBtn=document.getElementById('ss-solo');
   const coopBtn=document.getElementById('ss-coop');
@@ -1605,6 +1607,9 @@ canvas{display:block;border:1px solid #0e2030;box-shadow:0 0 30px rgba(0,255,136
 /* ── QUICK BUILD BAR (right sidebar) ── */
 #qb{display:flex;flex-direction:column;gap:5px;}
 #sb .bb{display:none!important;}
+/* Old-style tower picker: classic full button list, hide quick bar */
+body.old-tower-picker #sb .bb{display:flex!important;}
+body.old-tower-picker #qb{display:none!important;}
 .qs-hdr{font-family:'Orbitron',sans-serif;font-size:8px;letter-spacing:3px;color:#1a4a6a;border-bottom:1px solid #0e2030;padding-bottom:6px;margin-bottom:1px;}
 .qs-slot{background:#04090f;border:1px solid #0e2030;padding:7px 8px 7px 10px;cursor:pointer;display:flex;align-items:center;gap:6px;position:relative;transition:border-color .12s,background .12s;}
 .qs-slot:hover{border-color:#00ccff33;}
@@ -2119,31 +2124,32 @@ canvas{display:block;border:1px solid #0e2030;box-shadow:0 0 30px rgba(0,255,136
   <button class="bb"    data-t="basic"   style="--a:#33aaff"><span class="bl"><span class="bd"></span>BLASTER</span><span class="bc">75g</span></button>
   <button class="bb"    data-t="sniper"  style="--a:#bb44ff"><span class="bl"><span class="bd"></span>RAILGUN</span><span class="bc">160g</span></button>
   <button class="bb"    data-t="cannon"  style="--a:#ff8800"><span class="bl"><span class="bd"></span>CANNON</span><span class="bc">200g</span></button>
-  <button class="bb"    data-t="mace"    style="--a:#7766cc"><span class="bl"><span class="bd"></span>MACE 🔮</span><span class="bc">280g</span></button>
   <button class="bb"    data-t="electric"style="--a:#aaff00"><span class="bl"><span class="bd"></span>TESLA ⚡</span><span class="bc">175g</span></button>
   <button class="bb"    data-t="healer"  style="--a:#00ffcc"><span class="bl"><span class="bd"></span>MEDIC ✚</span><span class="bc">250g</span></button>
   <button class="bb"    data-t="spike"   style="--a:#ff4488"><span class="bl"><span class="bd"></span>SPIKE 🔨</span><span class="bc">175g</span></button>
   <button class="bb"    data-t="buff"    style="--a:#ffaa33"><span class="bl"><span class="bd"></span>DJ TOWER 🎧</span><span class="bc">200g</span></button>
   <button class="bb"    data-t="mine"    style="--a:#ffe066"><span class="bl"><span class="bd"></span>FARM 🌾</span><span class="bc">375g</span></button>
-  <button class="bb"    data-t="alchemist" style="--a:#88ff44"><span class="bl"><span class="bd"></span>ALCHEMIST ⚗</span><span class="bc">280g</span></button>
   <button class="bb"    data-t="flame"   style="--a:#ff6622"><span class="bl"><span class="bd"></span>FLAME 🔥</span><span class="bc">300g</span></button>
   <button class="bb"    data-t="laser"   style="--a:#00ccff"><span class="bl"><span class="bd"></span>LASER 💎</span><span class="bc">350g</span></button>
   <button class="bb"    data-t="bhole"   style="--a:#aa44ff"><span class="bl"><span class="bd"></span>B.HOLE 🕳️</span><span class="bc">450g</span></button>
   <button class="bb"    data-t="ice"     style="--a:#88ddff"><span class="bl"><span class="bd"></span>ICE ❄</span><span class="bc">175g</span></button>
-  <button class="bb"    data-t="lumina"  style="--a:#ffe680"><span class="bl"><span class="bd"></span>LUMINA ✨</span><span class="bc">650g</span></button>
-  <button class="bb"    data-t="snowball" style="--a:#eafcff" id="snowball-btn"><span class="bl"><span class="bd"></span>SNOWBALLER ☃️</span><span class="bc">400g</span></button>
-  <button class="bb"    data-t="barbwire" style="--a:#c8a874"><span class="bl"><span class="bd"></span>BARBWIRE 🧷</span><span class="bc">300g</span></button>
   <button class="bb"    data-t="heli"    style="--a:#44ffcc" id="heli-btn"><span class="bl"><span class="bd"></span>HELI PAD 🚁</span><span class="bc">400g</span></button>
   <button class="bb"    data-t="barracks" style="--a:#44aa44"><span class="bl"><span class="bd"></span>BARRACKS 🛡</span><span class="bc">350g</span></button>
+  <button class="bb"    data-t="silo"     style="--a:#ff6600" id="silo-btn"><span class="bl"><span class="bd"></span>MISSILE SILO 🚀</span><span class="bc">1000g</span></button>
+  <button class="bb"    data-t="admindrone" style="--a:#ff88ff" id="drone-btn"><span class="bl"><span class="bd"></span>DRONE PAD 🛸</span><span class="bc">600g</span></button>
   <button class="bb"    data-t="cowboy"   style="--a:#d2a679"><span class="bl"><span class="bd"></span>COWBOY 🤠</span><span class="bc">450g</span></button>
-  <button class="bb"    data-t="hunter"   style="--a:#33cc66"><span class="bl"><span class="bd"></span>HUNTER 🎯</span><span class="bc">325g</span></button>
   <button class="bb"    data-t="necromancer" style="--a:#7a4fae" id="necro-btn"><span class="bl"><span class="bd"></span>NECROMANCER 💀</span><span class="bc">900g</span></button>
   <button class="bb"    data-t="mech_base" style="--a:#8899aa" id="mech-base-btn"><span class="bl"><span class="bd"></span>MECH BASE 🤖</span><span class="bc">6000g</span></button>
-  <button class="bb"    data-t="silo"     style="--a:#ff6600" id="silo-btn"><span class="bl"><span class="bd"></span>MISSILE SILO 🚀</span><span class="bc">1000g</span></button>
+  <button class="bb"    data-t="alchemist" style="--a:#88ff44"><span class="bl"><span class="bd"></span>ALCHEMIST ⚗</span><span class="bc">280g</span></button>
+  <button class="bb"    data-t="hunter"   style="--a:#33cc66"><span class="bl"><span class="bd"></span>HUNTER 🎯</span><span class="bc">325g</span></button>
+  <button class="bb"    data-t="barbwire" style="--a:#c8a874"><span class="bl"><span class="bd"></span>BARBWIRE 🧷</span><span class="bc">300g</span></button>
+  <button class="bb"    data-t="mace"    style="--a:#7766cc"><span class="bl"><span class="bd"></span>MACE 🔮</span><span class="bc">280g</span></button>
+  <button class="bb"    data-t="lumina"  style="--a:#ffe680"><span class="bl"><span class="bd"></span>LUMINA ✨</span><span class="bc">650g</span></button>
+  <button class="bb"    data-t="snowball" style="--a:#eafcff" id="snowball-btn"><span class="bl"><span class="bd"></span>SNOWBALLER ☃️</span><span class="bc">400g</span></button>
+  <button class="bb" data-t="decoy_base" style="--a:#00ff88"><span class="bl"><span class="bd"></span>DECOY BASE 🏛</span><span class="bc">3500g</span></button>
   <button class="bb"    data-t="hero_accel" style="--a:#ffd23f" id="hero-accel-btn"><span class="bl"><span class="bd"></span>HERO: ACCELERATOR ⚡</span><span class="bc">8000g</span></button>
   <button class="bb ach-locked" data-lock="TOP3" data-t="hero_score" style="--a:#ff66cc" id="hero-score-btn"><span class="bl"><span class="bd"></span>HERO: SCORE MACHINE 🏆</span><span class="bc">6000g</span></button>
   <button class="bb"    data-t="hero_sacrifice" style="--a:#ff1f5e" id="hero-sacrifice-btn"><span class="bl"><span class="bd"></span>HERO: SACRIFICE TEMPLE 🩸</span><span class="bc">7000g</span></button>
-  <button class="bb"    data-t="admindrone" style="--a:#ff88ff" id="drone-btn"><span class="bl"><span class="bd"></span>DRONE PAD 🛸</span><span class="bc">600g</span></button>
   <button class="ab upg-on" id="ubtn" style="display:none">⬆ UPGRADE [click tower]</button>
   <button class="ab" id="sbtn">⤴ SELL [click tower]</button>
   <button class="ab" id="basebtn">🏛 UPGRADE BASE</button>
@@ -2197,7 +2203,14 @@ canvas{display:block;border:1px solid #0e2030;box-shadow:0 0 30px rgba(0,255,136
       <button id="sacrifice-btn" style="background:#1a0008;border:1px solid #ff1f5e;color:#ff1f5e;font-family:'Share Tech Mono',monospace;font-size:10px;padding:8px;cursor:pointer;letter-spacing:1px;transition:all .15s;">🩸 SELECT TOWER TO SACRIFICE</button>
       <div id="sacrifice-hint" style="font-size:8px;color:#aa4466;letter-spacing:1px;text-align:center;display:none;">Click any tower on the map to sacrifice it</div>
     </div>
-    <button id="up-sell-btn">SELL TOWER</button>
+    
+    <div id="decoy-panel" style="display:none;flex-direction:column;gap:6px;background:#001a0d;border:1px solid #00ff8844;padding:8px;margin:4px 0;">
+      <div style="font-family:Orbitron,sans-serif;font-size:8px;letter-spacing:2px;color:#00ff88;border-bottom:1px solid #0a3a20;padding-bottom:3px;">── DECOY BASE ──</div>
+      <div style="font-size:9px;color:#4aaa7a;line-height:1.5;">Enemies path to this decoy instead of the real base. Destroyed = path returns to base.</div>
+      <button class="set-tog" id="decoy-ally-spawn-btn" onclick="toggleAllySpawnAtDecoy();if(typeof selTower!=='undefined'&&selTower&&selTower.key==='decoy_base'&&typeof showPanel==='function')showPanel(selTower);" style="width:100%;">🏛 ALLIES SPAWN AT DECOY: OFF</button>
+      <div style="font-size:8px;color:#2a6a4a;line-height:1.4;">When ON, barracks / mech / cowboy allies spawn here instead of the real base.</div>
+    </div>
+<button id="up-sell-btn">SELL TOWER</button>
     <button id="up-close-btn">✕ CLOSE</button>
   </div>
   <div id="base-up">
@@ -2684,7 +2697,7 @@ function deserializeGameState(data){
   if(_map.locked&&_map.path){for(const[r,c] of _map.path){if(grid[r]&&grid[r][c]!==undefined) grid[r][c]=CT.PATH;}}
   grid[BASE_R][BASE_C]=CT.BASE;grid[SPAWN_R][SPAWN_C]=CT.SPAWN;
   for(const td of data.towers){const cfg=getCfg(td.key,td.level,td.path);{const tdsz=td.size||1;if(tdsz>1){for(let edr=0;edr<tdsz;edr++)for(let edc=0;edc<tdsz;edc++)grid[td.row+edr][td.col+edc]=cfg.t;}else{grid[td.row][td.col]=cfg.t;}}const t={row:td.row,col:td.col,key:td.key,cfg,hp:td.hp,maxHp:td.maxHp,level:td.level,path:td.path,cd:0,angle:0,healCd:0,hitFlash:0,stunned:0,id:++_towerIdCounter,laserTarget:null,laserStacks:0,laserFiring:0,crystals:[],size:td.size,railCharge:0};towers.push(t);if(td.key==='heli') spawnHelicopter(t);if(td.key==='admindrone') spawnAdminDrones(t);}
-  bfs();waveOn=false;spawnQ=[];spawnT=0;selTower=null;pathBlocked=false;_sessionTowerTypes=new Set();_sessionWallCount=0;_sessionAllTypes=new Set();_sessionNoDmgStreak=0;_sessionBaseHpAtWaveStart=0;baseTurretCd=0;baseTurretAngle=0;gameOver=false;gameStarted=true;startPlayTimeTracker();
+  bfs();waveOn=false;spawnQ=[];spawnT=0;selTower=null;pathBlocked=false;_sessionTowerTypes=new Set();_sessionWallCount=0;_sessionAllTypes=new Set();_sessionNoDmgStreak=0;_sessionBaseHpAtWaveStart=0;baseTurretCd=0;baseTurretAngle=0;gameOver=false;gameStarted=true;startPlayTimeTracker();if(typeof touchLastPlayed==='function')touchLastPlayed();
   updateModeUI();updateHcUI();document.querySelectorAll('.mb').forEach(b=>{b.classList.toggle('on',b.dataset.m===gameMode);b.style.opacity=b.dataset.m===gameMode?'1':'.25';b.style.pointerEvents='none';});
   if(typeof rsUpdateVisibility==='function') rsUpdateVisibility(true);
   syncUI();return true;}catch(e){console.error(e);return false;}
@@ -2735,10 +2748,10 @@ function applyMapDimensions(mapKey){
   if(typeof window.qbRefresh==='function') window.qbRefresh();
   updateMinimap();
 }
-const CT={EMPTY:0,WALL:1,BASIC:2,SNIPER:3,CANNON:4,BASE:5,SPAWN:6,ELECTRIC:7,HEALER:8,SPIKE:9,BUFF:10,MINE:11,HELI:12,FLAME:13,BHOLE:14,LASER:15,DRONE:16,ICE:17,BARRACKS:18,SILO:19,MECH_BASE:20,BARBWIRE:21,PATH:22,COWBOY:23,NECRO:24,MACE:25,ALCH:26,HUNTER:27};
+const CT={EMPTY:0,WALL:1,BASIC:2,SNIPER:3,CANNON:4,BASE:5,SPAWN:6,ELECTRIC:7,HEALER:8,SPIKE:9,BUFF:10,MINE:11,HELI:12,FLAME:13,BHOLE:14,LASER:15,DRONE:16,ICE:17,BARRACKS:18,SILO:19,MECH_BASE:20,BARBWIRE:21,PATH:22,COWBOY:23,NECRO:24,MACE:25,ALCH:26,HUNTER:27,DECOY:28};
 const ML=5;
 const HERO_ML=10; // Hero towers have 10 levels
-function getML(key){if(key&&key.indexOf('custom')===0)return 1;if(key==='snowball')return 4;if(key==='hero_score')return 6;if(key==='mega_blaster_cannon')return 5;if(key==='railgun_cannon'||key==='blaster_cannon'||key==='siege_cannon'||key==='barrier_cannon')return 5;if(key==='tesla_cannon'||key==='laser_cannon')return 5;return(key==='hero_accel'||key==='hero_sacrifice')?HERO_ML:ML;}
+function getML(key){if(key&&key.indexOf('custom')===0)return 1;if(key==='decoy_base')return 1;if(key==='snowball')return 4;if(key==='hero_score')return 6;if(key==='mega_blaster_cannon')return 5;if(key==='railgun_cannon'||key==='blaster_cannon'||key==='siege_cannon'||key==='barrier_cannon')return 5;if(key==='tesla_cannon'||key==='laser_cannon')return 5;return(key==='hero_accel'||key==='hero_sacrifice')?HERO_ML:ML;}
 function towerAt(r,c){for(const t of towers){const sz=t.size||1;if(sz>1){if(r>=t.row&&r<=t.row+sz-1&&c>=t.col&&c<=t.col+sz-1) return t;}else if(t.row===r&&t.col===c) return t;}return null;}
 function clearTowerGrid(t){const sz=t.size||1;if(sz>1){for(let dr=0;dr<sz;dr++)for(let dc=0;dc<sz;dc++)grid[t.row+dr][t.col+dc]=CT.EMPTY;}else{grid[t.row][t.col]=CT.EMPTY;}}
 function findRailgunGroup(t){
@@ -2882,7 +2895,7 @@ function applyBarrierAbsorb(targetTower,atkEnemy,dmgAmount){
   }
   return dmgAmount;
 }
-const BSET=new Set([CT.WALL,CT.BASIC,CT.SNIPER,CT.CANNON,CT.ELECTRIC,CT.HEALER,CT.SPIKE,CT.BUFF,CT.MINE,CT.HELI,CT.FLAME,CT.BHOLE,CT.LASER,CT.ICE,CT.BARRACKS,CT.SILO,CT.MECH_BASE,CT.BARBWIRE,CT.COWBOY,CT.NECRO,CT.MACE,CT.ALCH,CT.HUNTER]);
+const BSET=new Set([CT.WALL,CT.BASIC,CT.SNIPER,CT.CANNON,CT.ELECTRIC,CT.HEALER,CT.SPIKE,CT.BUFF,CT.MINE,CT.HELI,CT.FLAME,CT.BHOLE,CT.LASER,CT.ICE,CT.BARRACKS,CT.SILO,CT.MECH_BASE,CT.BARBWIRE,CT.COWBOY,CT.NECRO,CT.MACE,CT.ALCH,CT.HUNTER,CT.DECOY]);
 // ── MAP SYSTEM ──
 const LAST_LIGHT_PATH=[[1,0],[1,1],[1,2],[1,3],[1,4],[2,4],[3,4],[4,4],[5,4],[5,3],[5,2],[5,1],[6,1],[7,1],[8,1],[9,1],[9,2],[9,3],[9,4],[9,5],[9,6],[9,7],[9,8],[8,8],[7,8],[6,8],[5,8],[4,8],[3,8],[3,9],[3,10],[3,11],[3,12],[3,13],[4,13],[5,13],[6,13],[7,13],[8,13],[9,13],[10,13],[11,13],[11,14],[11,15],[11,16],[11,17],[11,18],[10,18],[9,18],[8,18],[7,18],[7,19],[7,20],[7,21]];
 const PATH_INDEX_MAP=new Map();LAST_LIGHT_PATH.forEach((p,i)=>PATH_INDEX_MAP.set(p[0]+','+p[1],i));
@@ -3112,6 +3125,10 @@ const TS={
     '3B':{t:CT.SILO,cost:2500,hp:290,rng:0,dmg:0,cd:0,aoe:0,chn:0,col:'#aa33ee',name:'LASER STRIKE II',siloTower:true,siloType:'laser',siloDmg:36,siloAoe:0,siloCdMax:3,siloLaserChargeDur:240,siloLaserFireDur:210,siloLaserRechargeDur:300},
     '4B':{t:CT.SILO,cost:4500,hp:370,rng:0,dmg:0,cd:0,aoe:0,chn:0,col:'#8822dd',name:'LASER STRIKE III',siloTower:true,siloType:'laser',siloDmg:70,siloAoe:0,siloCdMax:3,laserSlow:0.22,siloLaserChargeDur:180,siloLaserFireDur:240,siloLaserRechargeDur:240},
     '5B':{t:CT.SILO,cost:6000,hp:500,rng:0,dmg:0,cd:0,aoe:0,chn:0,col:'#6600cc',name:'DEATH BEAM',siloTower:true,siloType:'laser',siloDmg:130,siloAoe:0,siloCdMax:3,laserSlow:0.32,laserShred:0.22,siloLaserChargeDur:120,siloLaserFireDur:300,siloLaserRechargeDur:180}
+  },
+  // ── DECOY BASE ── Level 160, max ONE. Looks like the real base; pulls all enemy pathing toward itself.
+  decoy_base:{
+    1:{t:CT.DECOY,cost:3500,hp:4000,rng:0,dmg:0,cd:0,aoe:0,chn:0,col:'#00ff88',name:'DECOY BASE',decoyBase:true}
   },
   // ── HERO TOWERS ── unique, unlock at TOP 3 leaderboard rank, max ONE hero
   // (of either type) alive on the field at a time — enforced at build time.
@@ -3778,6 +3795,25 @@ function loadLocalMusicFile(file){
 let hov=null,selTower=null,speed=1,frame=0,showPathPreview=false;
 let screenShakeEnabled=(localStorage.getItem('sug_screen_shake')!=='off');
 let oldUpgradeStyle=(localStorage.getItem('bs_upgrade_style')==='old');
+// Old-style tower picker: show classic sidebar .bb buttons instead of the 10-slot quick bar
+let oldTowerPicker=(localStorage.getItem('bs_tower_picker')==='old');
+function applyTowerPickerStyle(){
+  document.body.classList.toggle('old-tower-picker', !!oldTowerPicker);
+  const b=document.getElementById('sett-picker-tog');
+  if(b){
+    b.classList.toggle('on', !!oldTowerPicker);
+    b.innerHTML=oldTowerPicker
+      ? '&#128203; TOWER PICKER: OLD (FULL LIST)'
+      : '&#128203; TOWER PICKER: NEW (QUICK BAR)';
+  }
+}
+function toggleTowerPickerStyle(){
+  oldTowerPicker=!oldTowerPicker;
+  try{localStorage.setItem('bs_tower_picker',oldTowerPicker?'old':'new');}catch(e){}
+  applyTowerPickerStyle();
+}
+try{if(document.body)applyTowerPickerStyle();else document.addEventListener('DOMContentLoaded',function(){applyTowerPickerStyle();});}catch(e){}
+
 // ── CAMERA PAN (ultra map) ──
 let camX=0,camY=0;
 const CAM_SPEED=12; // pixels per frame
@@ -3819,6 +3855,35 @@ function updateMinimap(){
   dot.style.top=Math.round(py)+'px';
 }
 let pathBlocked=false,gameStarted=false;
+// Decoy Base: when placed, enemy flow field targets the decoy instead of the real base.
+// allySpawnAtDecoy (settings) — if true, barracks allies spawn at the decoy instead of the real base.
+let allySpawnAtDecoy=false;
+try{allySpawnAtDecoy=localStorage.getItem('bs_ally_spawn_decoy')==='1';}catch(e){}
+function getDecoyTarget(){
+  const t=towers.find(tt=>tt.key==='decoy_base'&&tt.hp>0);
+  if(t) return t;
+  // Fallback: grid scan (bfs may run mid-placement before towers.push)
+  if(typeof grid!=='undefined'&&typeof CT!=='undefined'){
+    for(let r=0;r<ROWS;r++) for(let c=0;c<COLS;c++){
+      if(grid[r]&&grid[r][c]===CT.DECOY){
+        const tt=towers.find(x=>x.row===r&&x.col===c);
+        if(tt&&tt.hp>0) return tt;
+      }
+    }
+  }
+  return null;
+}
+function setAllySpawnAtDecoy(on){
+  allySpawnAtDecoy=!!on;
+  try{localStorage.setItem('bs_ally_spawn_decoy',allySpawnAtDecoy?'1':'0');}catch(e){}
+  const ids=['sett-decoy-ally-tog','decoy-ally-spawn-btn'];
+  for(const id of ids){
+    const b=document.getElementById(id);
+    if(b){b.classList.toggle('on',allySpawnAtDecoy);b.textContent=allySpawnAtDecoy?'🏛 ALLIES SPAWN AT DECOY: ON':'🏛 ALLIES SPAWN AT DECOY: OFF';}
+  }
+}
+function toggleAllySpawnAtDecoy(){setAllySpawnAtDecoy(!allySpawnAtDecoy);}
+
 let _towerIdCounter=0;
 let baseUpgPath=null,baseUpgLevel=0;
 let baseTurretAngle=0,baseTurretCd=0;
@@ -3907,7 +3972,8 @@ const UNLOCK_MAP = {
   120:[{type:'tower',key:'barbwire',label:'BARBWIRE'}],
   130:[{type:'tower',key:'mace',label:'MACE TOWER'}],
   140:[{type:'tower',key:'alchemist',label:'ALCHEMIST'}],
-  150:[{type:'tower',key:'hunter',label:'HUNTER'}]
+  150:[{type:'tower',key:'hunter',label:'HUNTER'}],
+  160:[{type:'tower',key:'decoy_base',label:'DECOY BASE'}]
 };
 
 // FREE items (always unlocked regardless of level)
@@ -4360,6 +4426,33 @@ setTimeout(()=>{ if(typeof checkLivingLegendAchievement==='function') checkLivin
 // ═══════════════════════════════════════════════
 // PLAYER STATS MENU
 // ═══════════════════════════════════════════════
+function fmtLastPlayed(iso) {
+  if (!iso) return '—';
+  try {
+    const d = new Date(iso);
+    if (isNaN(d.getTime())) return '—';
+    const now = Date.now();
+    const diff = Math.max(0, now - d.getTime());
+    const mins = Math.floor(diff / 60000);
+    if (mins < 1) return 'JUST NOW';
+    if (mins < 60) return mins + 'M AGO';
+    const hrs = Math.floor(mins / 60);
+    if (hrs < 24) return hrs + 'H AGO';
+    const days = Math.floor(hrs / 24);
+    if (days < 14) return days + 'D AGO';
+    // Absolute short date for older activity
+    const y = d.getFullYear();
+    const m = String(d.getMonth()+1).padStart(2,'0');
+    const day = String(d.getDate()).padStart(2,'0');
+    return y + '-' + m + '-' + day;
+  } catch(e) { return '—'; }
+}
+function touchLastPlayed() {
+  try {
+    achStats.lastPlayed = new Date().toISOString();
+    saveAchStats();
+  } catch(e) {}
+}
 function fmtPlayTime(sec) {
   sec = sec || 0;
   const d = Math.floor(sec / 86400), h = Math.floor((sec % 86400) / 3600), m = Math.floor((sec % 3600) / 60);
@@ -4397,7 +4490,7 @@ function renderStatsModal(viewData) {
         <div class="stats-cell"><div class="sc-v">${(stats.maxWave||0).toLocaleString()}</div><div class="sc-l">BEST WAVE</div></div>
         <div class="stats-cell"><div class="sc-v">${(stats.maxWaveHardcore||0).toLocaleString()}</div><div class="sc-l">BEST HARDCORE WAVE</div></div>
         <div class="stats-cell"><div class="sc-v">${(stats.totalGoldSpent||0).toLocaleString()}</div><div class="sc-l">GOLD SPENT (LIFETIME)</div></div>
-        <div class="stats-cell"><div class="sc-v">${(stats.maxSingleGameGold||0).toLocaleString()}</div><div class="sc-l">BEST SINGLE-GAME GOLD</div></div>
+        <div class="stats-cell"><div class="sc-v">${fmtLastPlayed(stats.lastPlayed || viewData.updated_at)}</div><div class="sc-l">LAST PLAYED</div></div>
         <div class="stats-cell"><div class="sc-v">${(stats.voidReaverLevel||0)}/4</div><div class="sc-l">VOID REAVER STAGE</div></div>
       </div>
 
@@ -4439,7 +4532,7 @@ function renderStatsModal(viewData) {
       <div class="stats-cell"><div class="sc-v">${(achStats.maxWave||0).toLocaleString()}</div><div class="sc-l">BEST WAVE</div></div>
       <div class="stats-cell"><div class="sc-v">${(achStats.maxWaveHardcore||0).toLocaleString()}</div><div class="sc-l">BEST HARDCORE WAVE</div></div>
       <div class="stats-cell"><div class="sc-v">${(achStats.totalGoldSpent||0).toLocaleString()}</div><div class="sc-l">GOLD SPENT (LIFETIME)</div></div>
-      <div class="stats-cell"><div class="sc-v">${(achStats.maxSingleGameGold||0).toLocaleString()}</div><div class="sc-l">BEST SINGLE-GAME GOLD</div></div>
+      <div class="stats-cell"><div class="sc-v">${fmtLastPlayed(achStats.lastPlayed)}</div><div class="sc-l">LAST PLAYED</div></div>
       <div class="stats-cell"><div class="sc-v">${fmtPlayTime(tpt)}</div><div class="sc-l">TOTAL PLAY TIME</div></div>
       <div class="stats-cell"><div class="sc-v">${(achStats.voidReaverLevel||0)}/4</div><div class="sc-l">VOID REAVER STAGE</div></div>
     </div>
@@ -4612,10 +4705,10 @@ async function sugSubmit(){
 
 // Persistent stat counters for achievements
 const STAT_KEY = 'bs_ach_stats';
-let achStats = {totalBuilt:0, totalKills:0, wasLbFirst:false, maxWave:0, totalGoldSpent:0, maxSingleGameGold:0, maxWaveHardcore:0, voidReaverLevel:0, totalMerges:0};
+let achStats = {totalBuilt:0, totalKills:0, wasLbFirst:false, maxWave:0, totalGoldSpent:0, maxSingleGameGold:0, maxWaveHardcore:0, voidReaverLevel:0, totalMerges:0, lastPlayed:null};
 
 function loadAchStats() {
-  try { const r=localStorage.getItem(STAT_KEY); if(r) achStats={totalBuilt:0,totalKills:0,wasLbFirst:false,maxWave:0,totalGoldSpent:0,maxSingleGameGold:0,maxWaveHardcore:0,voidReaverLevel:0,totalMerges:0,...JSON.parse(r)}; } catch(e) {}
+  try { const r=localStorage.getItem(STAT_KEY); if(r) achStats={totalBuilt:0,totalKills:0,wasLbFirst:false,maxWave:0,totalGoldSpent:0,maxSingleGameGold:0,maxWaveHardcore:0,voidReaverLevel:0,totalMerges:0,lastPlayed:null,...JSON.parse(r)}; } catch(e) {}
 }
 function saveAchStats() {
   try { localStorage.setItem(STAT_KEY, JSON.stringify(achStats)); } catch(e) {}
@@ -4870,8 +4963,14 @@ async function pullProgressFromCloud() {
     if (data.ach_stats && typeof data.ach_stats === 'object') {
       for (const k in data.ach_stats) {
         const cv = data.ach_stats[k], lv = achStats[k];
-        if (typeof cv === 'number') { if ((lv||0) < cv) { achStats[k] = cv; changed = true; } }
+        if (k === 'lastPlayed') {
+          // Keep the more recent play timestamp
+          const ct = cv ? Date.parse(cv) : 0;
+          const lt = lv ? Date.parse(lv) : 0;
+          if (ct && (!lt || ct > lt)) { achStats.lastPlayed = cv; changed = true; }
+        } else if (typeof cv === 'number') { if ((lv||0) < cv) { achStats[k] = cv; changed = true; } }
         else if (typeof cv === 'boolean') { if (cv && !lv) { achStats[k] = true; changed = true; } }
+        else if (typeof cv === 'string' && !lv) { achStats[k] = cv; changed = true; }
       }
     }
     // Theme color: pull cloud's choice if this device hasn't set one locally yet
@@ -6112,18 +6211,52 @@ function cellBlockedForEnemy(r,c){if(BSET.has(grid[r][c])) return true;if(isMapL
 function bfs(){
   flow=Array.from({length:ROWS},()=>Array(COLS).fill(null));
   const dist=Array.from({length:ROWS},()=>Array(COLS).fill(Infinity));
-  const q=[];dist[BASE_R][BASE_C]=0;flow[BASE_R][BASE_C]={dx:0,dy:0};q.push([BASE_R,BASE_C]);let qi=0;
-  while(qi<q.length){const[r,c]=q[qi++];for(const[dr,dc] of[[-1,0],[1,0],[0,-1],[0,1]]){const nr=r+dr,nc=c+dc;if(nr<0||nr>=ROWS||nc<0||nc>=COLS||dist[nr][nc]!==Infinity) continue;if(cellBlockedForEnemy(nr,nc)) continue;dist[nr][nc]=dist[r][c]+1;const mx=c-nc,my=r-nr,ml2=Math.sqrt(mx*mx+my*my)||1;flow[nr][nc]={dx:mx/ml2,dy:my/ml2};q.push([nr,nc]);}}
+  // If a Decoy Base is alive, enemies path toward IT instead of the real base
+  const _decoy=typeof getDecoyTarget==='function'?getDecoyTarget():null;
+  const _tr=_decoy?_decoy.row:BASE_R, _tc=_decoy?_decoy.col:BASE_C;
+  const q=[];dist[_tr][_tc]=0;flow[_tr][_tc]={dx:0,dy:0};q.push([_tr,_tc]);let qi=0;
+  while(qi<q.length){const[r,c]=q[qi++];for(const[dr,dc] of[[-1,0],[1,0],[0,-1],[0,1]]){const nr=r+dr,nc=c+dc;if(nr<0||nr>=ROWS||nc<0||nc>=COLS||dist[nr][nc]!==Infinity) continue;
+    // Allow standing on the decoy cell itself (flow origin); block other towers/walls
+    if(cellBlockedForEnemy(nr,nc)&&!(nr===_tr&&nc===_tc)) continue;
+    dist[nr][nc]=dist[r][c]+1;const mx=c-nc,my=r-nr,ml2=Math.sqrt(mx*mx+my*my)||1;flow[nr][nc]={dx:mx/ml2,dy:my/ml2};q.push([nr,nc]);}}
   pathBlocked=!(flow[SPAWN_R]&&flow[SPAWN_R][SPAWN_C]);document.getElementById('abar').classList.toggle('vis',pathBlocked);allyBfs();
 }
 
-// === BARRACKS: ALLY FLOW FIELD (toward spawn) ===
+// === BARRACKS: ALLY FLOW FIELD (reverse of enemy path: BASE → SPAWN) ===
+// Allies walk the same corridors enemies use, but toward the spawn.
+// Towers/walls are blocked (same cellBlockedForEnemy rules) so allies never path through towers.
 let allyFlow=Array.from({length:ROWS},()=>Array(COLS).fill(null));
 function allyBfs(){
   allyFlow=Array.from({length:ROWS},()=>Array(COLS).fill(null));
   const dist=Array.from({length:ROWS},()=>Array(COLS).fill(Infinity));
   const q=[];dist[SPAWN_R][SPAWN_C]=0;allyFlow[SPAWN_R][SPAWN_C]={dx:0,dy:0};q.push([SPAWN_R,SPAWN_C]);let qi=0;
-  while(qi<q.length){const[r,c]=q[qi++];for(const[dr,dc] of[[-1,0],[1,0],[0,-1],[0,1]]){const nr=r+dr,nc=c+dc;if(nr<0||nr>=ROWS||nc<0||nc>=COLS||dist[nr][nc]!==Infinity) continue;if(cellBlockedForEnemy(nr,nc)) continue;dist[nr][nc]=dist[r][c]+1;allyFlow[nr][nc]={dx:c-nc,dy:r-nr};q.push([nr,nc]);}}
+  while(qi<q.length){const[r,c]=q[qi++];for(const[dr,dc] of[[-1,0],[1,0],[0,-1],[0,1]]){const nr=r+dr,nc=c+dc;if(nr<0||nr>=ROWS||nc<0||nc>=COLS||dist[nr][nc]!==Infinity) continue;if(cellBlockedForEnemy(nr,nc)) continue; // never walk through towers
+    dist[nr][nc]=dist[r][c]+1;const mx=c-nc,my=r-nr,ml=Math.sqrt(mx*mx+my*my)||1;allyFlow[nr][nc]={dx:mx/ml,dy:my/ml};q.push([nr,nc]);}}
+}
+
+// One-step local path toward a grid cell while staying on walkable tiles (no towers).
+// Returns unit direction {dx,dy} or null if stuck.
+function allyStepToward(a, tgtRow, tgtCol){
+  const col=Math.floor(a.x/CS), row=Math.floor(a.y/CS);
+  if(row<0||row>=ROWS||col<0||col>=COLS) return null;
+  // Already on/near target cell — steer in world space
+  if(Math.abs(row-tgtRow)+Math.abs(col-tgtCol)<=1){
+    const tx=tgtCol*CS+CS/2, ty=tgtRow*CS+CS/2;
+    const dx=tx-a.x, dy=ty-a.y, d=Math.sqrt(dx*dx+dy*dy)||1;
+    return {dx:dx/d, dy:dy/d};
+  }
+  // Pick neighbor walkable cell closest to target
+  let best=null, bestScore=Infinity;
+  for(const[dr,dc] of[[-1,0],[1,0],[0,-1],[0,1]]){
+    const nr=row+dr, nc=col+dc;
+    if(nr<0||nr>=ROWS||nc<0||nc>=COLS) continue;
+    if(cellBlockedForEnemy(nr,nc)) continue; // refuse towers/walls
+    const score=Math.abs(nr-tgtRow)+Math.abs(nc-tgtCol);
+    if(score<bestScore){bestScore=score;best={dx:dc,dy:dr};}
+  }
+  if(!best) return null;
+  const ml=Math.sqrt(best.dx*best.dx+best.dy*best.dy)||1;
+  return {dx:best.dx/ml, dy:best.dy/ml};
 }
 
 // === BARRACKS: ALLY UPDATE SYSTEM ===
@@ -6142,7 +6275,8 @@ function updateAllies(){try{
     const myAllies=allies.filter(a=>a.towerId===t.id);
     if(t.allySpawnCd<=0&&myAllies.length<cfg.allyMax&&waveOn){
       t.allySpawnCd=cfg.allySpawnCd;
-      const bx=BASE_C*CS+CS/2,by=BASE_R*CS+CS/2;
+      const _dSpawn=(allySpawnAtDecoy&&typeof getDecoyTarget==='function')?getDecoyTarget():null;
+      const bx=_dSpawn?(_dSpawn.col*CS+CS/2):(BASE_C*CS+CS/2),by=_dSpawn?(_dSpawn.row*CS+CS/2):(BASE_R*CS+CS/2);
       allies.push({
         x:bx+(Math.random()-.5)*10, y:by+(Math.random()-.5)*10,
         hp:cfg.allyHp, maxHp:cfg.allyHp,
@@ -6250,27 +6384,44 @@ function updateAllies(){try{
 }catch(err){console.warn('updateAllies error:',err);}}
 
 function allyMove(a){try{
-  // Find nearest enemy to chase
+  // PRIORITY 1: pathfind toward nearest enemy and attack (never walk through towers)
   let nearest=null,minD2=Infinity;
   for(const e of enemies){
     if(e.isHidden) continue;
     const dx=e.x-a.x,dy=e.y-a.y,d2=dx*dx+dy*dy;
     if(d2<minD2){minD2=d2;nearest=e;}
   }
-  // If enemy nearby, chase it
-  if(nearest&&minD2<250*250&&enemies.includes(nearest)){
-    const dx=nearest.x-a.x,dy=nearest.y-a.y;
-    const dist=Math.sqrt(dx*dx+dy*dy);
-    if(dist>1){
-      a.x+=dx/dist*a.spd;
-      a.y+=dy/dist*a.spd;
+  const CHASE_RNG=320;
+  if(nearest&&minD2<CHASE_RNG*CHASE_RNG&&enemies.includes(nearest)&&nearest.hp>0){
+    const tCol=Math.floor(nearest.x/CS), tRow=Math.floor(nearest.y/CS);
+    const step=allyStepToward(a, tRow, tCol);
+    if(step){
+      a.x+=step.dx*a.spd;
+      a.y+=step.dy*a.spd;
+      a.moveAngle=Math.atan2(step.dy,step.dx);
+    } else {
+      const dx=nearest.x-a.x, dy=nearest.y-a.y, dist=Math.sqrt(dx*dx+dy*dy)||1;
+      const nx=a.x+dx/dist*a.spd, ny=a.y+dy/dist*a.spd;
+      const ncol=Math.floor(nx/CS), nrow=Math.floor(ny/CS);
+      if(nrow>=0&&nrow<ROWS&&ncol>=0&&ncol<COLS&&!cellBlockedForEnemy(nrow,ncol)){
+        a.x=nx; a.y=ny;
+      }
     }
   } else {
-    // No enemies nearby — follow flow toward spawn
+    // PRIORITY 2: no enemy in range — follow reverse enemy path (base → spawn)
     const col=Math.floor(a.x/CS),row=Math.floor(a.y/CS);
     if(col>=0&&col<COLS&&row>=0&&row<ROWS){
       const f=allyFlow[row]&&allyFlow[row][col];
-      if(f){a.x+=f.dx*a.spd;a.y+=f.dy*a.spd;}
+      if(f){a.x+=f.dx*a.spd;a.y+=f.dy*a.spd;a.moveAngle=Math.atan2(f.dy,f.dx);}
+    }
+  }
+  // Final clamp: if somehow on a blocked cell, snap to nearest walkable neighbor
+  const fcol=Math.floor(a.x/CS), frow=Math.floor(a.y/CS);
+  if(frow>=0&&frow<ROWS&&fcol>=0&&fcol<COLS&&cellBlockedForEnemy(frow,fcol)){
+    for(const[dr,dc] of[[0,0],[-1,0],[1,0],[0,-1],[0,1]]){
+      const nr=frow+dr, nc=fcol+dc;
+      if(nr<0||nr>=ROWS||nc<0||nc>=COLS) continue;
+      if(!cellBlockedForEnemy(nr,nc)){a.x=nc*CS+CS/2;a.y=nr*CS+CS/2;break;}
     }
   }
   a.x=Math.max(4,Math.min(W-4,a.x));
@@ -6278,10 +6429,19 @@ function allyMove(a){try{
 }catch(err){}}
 
 function allyMovePathOnly(a){try{
+  // Tanks stick to the reverse enemy corridor and never cut through towers
   const col=Math.floor(a.x/CS),row=Math.floor(a.y/CS);
   if(col>=0&&col<COLS&&row>=0&&row<ROWS){
     const f=allyFlow[row]&&allyFlow[row][col];
     if(f&&(f.dx||f.dy)){a.x+=f.dx*a.spd;a.y+=f.dy*a.spd;a.moveAngle=Math.atan2(f.dy,f.dx);}
+  }
+  const fcol=Math.floor(a.x/CS), frow=Math.floor(a.y/CS);
+  if(frow>=0&&frow<ROWS&&fcol>=0&&fcol<COLS&&cellBlockedForEnemy(frow,fcol)){
+    for(const[dr,dc] of[[0,0],[-1,0],[1,0],[0,-1],[0,1]]){
+      const nr=frow+dr, nc=fcol+dc;
+      if(nr<0||nr>=ROWS||nc<0||nc>=COLS) continue;
+      if(!cellBlockedForEnemy(nr,nc)){a.x=nc*CS+CS/2;a.y=nr*CS+CS/2;break;}
+    }
   }
   a.x=Math.max(4,Math.min(W-4,a.x));
   a.y=Math.max(4,Math.min(H-4,a.y));
@@ -6591,7 +6751,40 @@ function drawAlly(a){
   }
 }
 
-function findBreakthrough(fr,fc){const vis=new Set(),q=[[fr,fc]],cands=[];vis.add(`${fr},${fc}`);let qi=0;while(qi<q.length){const[r,c]=q[qi++];for(const[dr,dc] of[[-1,0],[1,0],[0,-1],[0,1]]){const nr=r+dr,nc=c+dc;if(nr<0||nr>=ROWS||nc<0||nc>=COLS) continue;const k=`${nr},${nc}`;if(vis.has(k)) continue;vis.add(k);const g=grid[nr][nc];if(g===CT.BASE||g===CT.SPAWN){q.push([nr,nc]);continue;}if(BSET.has(g)){const t=towers.find(t=>t.row===nr&&t.col===nc);if(t) cands.push(t);}else q.push([nr,nc]);}}if(!cands.length) return null;cands.sort((a,b)=>(a.hp/a.maxHp)-(b.hp/b.maxHp));return cands[0];}
+// When path is sealed: find the best tower to break through (prefer low %HP, then walls).
+function findBreakthrough(fr,fc){const vis=new Set(),q=[[fr,fc]],cands=[];vis.add(`${fr},${fc}`);let qi=0;while(qi<q.length){const[r,c]=q[qi++];for(const[dr,dc] of[[-1,0],[1,0],[0,-1],[0,1]]){const nr=r+dr,nc=c+dc;if(nr<0||nr>=ROWS||nc<0||nc>=COLS) continue;const k=`${nr},${nc}`;if(vis.has(k)) continue;vis.add(k);const g=grid[nr][nc];if(g===CT.BASE||g===CT.SPAWN){q.push([nr,nc]);continue;}if(BSET.has(g)){const t=towers.find(t=>t.row===nr&&t.col===nc);if(t) cands.push(t);}else q.push([nr,nc]);}}if(!cands.length) return null;cands.sort((a,b)=>{const pa=a.hp/Math.max(1,a.maxHp),pb=b.hp/Math.max(1,b.maxHp);if(pa!==pb) return pa-pb;const wa=a.cfg&&a.cfg.t===CT.WALL?0:1,wb=b.cfg&&b.cfg.t===CT.WALL?0:1;return wa-wb;});return cands[0];}
+
+// Opportunistic decision: should this enemy divert from the base path to attack a nearby tower?
+// Prefers low-HP / wall towers adjacent to current cell.
+function considerAttackTower(e, erow, ecol){
+  if(e.flying||e.mode==='attack'||e.mode==='attackBase') return null;
+  if(e.isBoss&&(e.bossType==='king'||e.bossType==='hacklord'||e.bossType==='reaver')) return null;
+  if((e._atkDecideCd||0)>0){e._atkDecideCd--;return null;}
+  e._atkDecideCd=18+((e.id||0)%12);
+  const cands=[];
+  for(const[dr,dc] of[[-1,0],[1,0],[0,-1],[0,1],[-1,-1],[-1,1],[1,-1],[1,1]]){
+    const nr=erow+dr, nc=ecol+dc;
+    if(nr<0||nr>=ROWS||nc<0||nc>=COLS) continue;
+    if(!BSET.has(grid[nr][nc])) continue;
+    const t=towers.find(tt=>tt.row===nr&&tt.col===nc);
+    if(!t||t.hp<=0) continue;
+    const hpPct=t.hp/Math.max(1,t.maxHp);
+    const wallBonus=(t.cfg&&t.cfg.t===CT.WALL)?0.25:0;
+    const score=hpPct-wallBonus;
+    cands.push({t,score,hpPct});
+  }
+  if(!cands.length) return null;
+  cands.sort((a,b)=>a.score-b.score);
+  const best=cands[0];
+  let p=0.12;
+  if(best.hpPct<0.35) p=1;
+  else if(best.t.cfg&&best.t.cfg.t===CT.WALL&&best.hpPct<0.7) p=0.55;
+  else if(best.hpPct<0.55) p=0.28;
+  if(e.variant==='berserk'||e.isGunner) p=Math.min(1,p+0.2);
+  if(e.isBoss) p=Math.min(1,p+0.15);
+  if(Math.random()>p) return null;
+  return best.t;
+}
 function destroyTower(t){const i=towers.indexOf(t);if(i===-1) return;towers.splice(i,1);clearTowerGrid(t);for(const e of enemies) if(e.atkTarget===t){e.atkTarget=null;e.mode='move';}if(t.key==='barracks'||t.key==='mech_base'||t.key==='cowboy'||t.key==='necromancer'){for(let ai=allies.length-1;ai>=0;ai--){if(allies[ai]&&allies[ai].towerId===t.id){try{if(allies[ai].explode)allyExplode(allies[ai]);}catch(e){}sparks(allies[ai].x,allies[ai].y,'#ff4444',5,2);allies.splice(ai,1);}}}if(t.key==='heli'){const hi=helicopters.findIndex(h=>h.towerId===t.id);if(hi!==-1) helicopters.splice(hi,1);}if(t.key==='admindrone'){adminDrones=adminDrones.filter(d=>d.towerId!==t.id);}if(selTower===t) hidePanel();bfs();sparks(t.col*CS+CS/2,t.row*CS+CS/2,t.cfg.col,24,3.5);ft(t.col*CS+CS/2,t.row*CS-4,'DESTROYED!','#ff4444');}
 function getBuffsAt(col,row){let dmgMult=getSkillDmgMult(),cdDiv=1,rngMult=1,costReduce=0,goldBonusMult=0;const tx=col*CS+CS/2,ty=row*CS+CS/2;for(const bt of towers){if((bt.key!=='buff'&&bt.key!=='hero_score'&&bt.key!=='hero_sacrifice'&&bt.key!=='lumina')||!bt.cfg.buffType) continue;const dx=bt.col*CS+CS/2-tx,dy=bt.row*CS+CS/2-ty;
   // For sacrifice temple, use dynamic sacrifice level stats
@@ -6801,6 +6994,33 @@ function showPanel(t){
   document.getElementById('ts-spent').textContent=(t.totalGoldSpent||0)+'g';
   const siloMBEl=document.getElementById('silo-mark-btn'),siloTiEl=document.getElementById('silo-target-info');
   if(t.key==='silo'){if(siloMBEl)siloMBEl.style.display='block';if(siloTiEl){siloTiEl.style.display='block';siloTiEl.textContent=t.siloTarget&&enemies.includes(t.siloTarget)?'TARGET: '+(t.siloTarget.variant||'?').toUpperCase()+' HP:'+Math.round(t.siloTarget.hp)+'/'+t.siloTarget.mhp+(t.siloManual?' [MANUAL]':' [AUTO]'):'NO TARGET (auto-scan)';}}else{if(siloMBEl)siloMBEl.style.display='none';if(siloTiEl)siloTiEl.style.display='none';}
+
+  // ── DECOY BASE PANEL ──
+  const decoyPanel=document.getElementById('decoy-panel');
+  const isDecoy=t.key==='decoy_base';
+  if(decoyPanel) decoyPanel.style.display=isDecoy?'flex':'none';
+  if(isDecoy){
+    const dab=document.getElementById('decoy-ally-spawn-btn');
+    if(dab){
+      dab.classList.toggle('on', !!allySpawnAtDecoy);
+      dab.textContent=allySpawnAtDecoy?'🏛 ALLIES SPAWN AT DECOY: ON':'🏛 ALLIES SPAWN AT DECOY: OFF';
+    }
+    // No upgrades — hide path buttons, upgrade, merge, level bar, next preview
+    const pr=document.getElementById('pr'),ub=document.getElementById('up-btn');
+    if(pr) pr.style.display='none';
+    if(ub) ub.style.display='none';
+    const pC=document.getElementById('pC'); if(pC) pC.style.display='none';
+    const pipBar=document.getElementById('up-level-bar'); if(pipBar) pipBar.style.display='none';
+    const nextPreview=document.getElementById('up-next-preview'); if(nextPreview) nextPreview.style.display='none';
+    ['up-merge-btn','up-merge-btn2','up-merge-btn3','up-merge-btn4','up-merge-btn5','up-merge-btn6','up-merge-btn7'].forEach(id=>{const el=document.getElementById(id);if(el)el.style.display='none';});
+    // Friendly stats
+    let ds='HP: '+Math.round(t.hp)+'/'+t.maxHp;
+    ds+='\nROLE: Enemy magnet — path targets this cell';
+    ds+='\nLIMIT: One per game · cannot upgrade';
+    ds+='\nALLIES: '+(allySpawnAtDecoy?'spawn HERE':'spawn at real base');
+    document.getElementById('up-stats').textContent=ds;
+    document.getElementById('up-title').textContent='DECOY BASE';
+  }
   // ── SACRIFICE TEMPLE PANEL ──
   const sacPanel=document.getElementById('sacrifice-panel');
   const isSacTemple=t.key==='hero_sacrifice';
@@ -6866,7 +7086,10 @@ function showPanel(t){
   } else {
     pr.style.display='none';
     const _pCBtn=document.getElementById('pC');if(_pCBtn)_pCBtn.style.display='none';
-    if(t.level>=getML(t.key)){ub.style.display='';ub.textContent='✓ MAX LEVEL';ub.disabled=true;ub.style.borderColor='#ffd700';ub.style.color='#ffd700';}
+    if(t.key==='decoy_base'){
+      // Decoy has no upgrades — keep upgrade UI hidden
+      ub.style.display='none';
+    } else if(t.level>=getML(t.key)){ub.style.display='';ub.textContent='✓ MAX LEVEL';ub.disabled=true;ub.style.borderColor='#ffd700';ub.style.color='#ffd700';}
     else{ub.style.display='';const uc=getDiscountedUpgCost(t,t.level+1,t.path);const canAff=gold>=uc;const nextCfg=t.key==='snowball'?getCfg('snowball',t.level+1,t.path||'A'):(TS[t.key]&&(TS[t.key][(t.level+1)+(t.path||'A')]||TS[t.key][t.level+1]));const nextName=(t.key==='snowball'&&nextCfg&&nextCfg.name)?nextCfg.name:null;ub.textContent=nextName?`⬆ ${nextName}  ${uc}g`:`⬆ UPGRADE  ${uc}g`;ub.disabled=!canAff;ub.style.borderColor=canAff?'#00ff88':'#3a6a4a';ub.style.color=canAff?'#00ff88':'#4a8a6a';}
   }
 }
@@ -7230,15 +7453,17 @@ cv.addEventListener('click',e=>{
   if((selBuild==='hero_accel'||selBuild==='hero_score'||selBuild==='hero_sacrifice')&&towers.filter(t=>t.key==='hero_accel'||t.key==='hero_score'||t.key==='hero_sacrifice').length>=getHeroLimit()){msg('⚠ Only '+getHeroLimit()+' Hero Tower(s) allowed per game! (Upgrade in Skill Tree 🌳)',2500);return;}
   if((selBuild==='hero_accel'||selBuild==='hero_score'||selBuild==='hero_sacrifice')&&towers.some(t=>t.key===selBuild)){msg('⚠ You already placed this Hero Tower! Each hero type can only be placed once.',2500);return;}
   if(selBuild==='buff'&&towers.filter(t=>t.key==='buff').length>=getDjLimit()){msg('⚠ Only '+getDjLimit()+' DJ TOWERS allowed per game! (Upgrade in Skill Tree 🌳)',2500);return;}
+  if(selBuild==='decoy_base'&&towers.some(t=>t.key==='decoy_base')){msg('⚠ Only ONE DECOY BASE allowed!',2500);return;}
   // === HARDCORE: General allowed-set guard (catches any bypass path) ===
   {const _hcEa=gameMode==='hardcore'?getHcAllowed():null;
    if(_hcEa&&!_hcEa.has(selBuild)){msg('⚠ Tower locked — unlock via Upgrade Points!',2500);return;}}
   const _evoVariant=(selBuild==='basic')?getEvolvedBlasterVariant():null;
   const cfg=getCfg(selBuild,1,null,_evoVariant);const actualCost=getDiscountedCost(selBuild,col,row);
   if(gold<actualCost){msg('⚠ Insufficient gold!');return;}
-  grid[row][col]=cfg.t;bfs();const saved=cfg.cost-actualCost;gold-=actualCost;if(gameMode!=='sandbox'){achStats.totalGoldSpent=(achStats.totalGoldSpent||0)+actualCost;if(achStats.totalGoldSpent>=50000)unlockAchievement('gambler');if(achStats.totalGoldSpent%5000<actualCost)saveAchStats();}
+  grid[row][col]=cfg.t;const saved=cfg.cost-actualCost;gold-=actualCost;if(gameMode!=='sandbox'){achStats.totalGoldSpent=(achStats.totalGoldSpent||0)+actualCost;if(achStats.totalGoldSpent>=50000)unlockAchievement('gambler');if(achStats.totalGoldSpent%5000<actualCost)saveAchStats();}
   const newTower={row,col,key:selBuild,cfg,hp:cfg.hp,maxHp:cfg.hp,cd:0,angle:0,level:1,path:null,healCd:0,hitFlash:0,stunned:0,id:++_towerIdCounter,laserTarget:null,laserStacks:0,laserFiring:0,crystals:[],owner:MP.active?MP.playerId:null,ownerColor:MP.active?PLAYER_COLORS[MP.colorIndex]:'#00ff88',ownerName:MP.active?MP.playerName:'YOU',totalDmgDealt:0,totalKills:0,totalGoldSpent:actualCost,skins:{...mgEquipped},evolvedBlaster:_evoVariant};
-  towers.push(newTower);TowerStats.log(selBuild);if(selBuild!=='wall'){_sessionTowerTypes.add(selBuild);}_sessionAllTypes.add(selBuild);if(selBuild==='wall')_sessionWallCount++;
+  towers.push(newTower);bfs(); // after push so decoy/path targets see the new tower
+  TowerStats.log(selBuild);if(selBuild!=='wall'){_sessionTowerTypes.add(selBuild);}_sessionAllTypes.add(selBuild);if(selBuild==='wall')_sessionWallCount++;
   if(selectedMap==='towerroulette'&&typeof rsOnBuilt==='function') rsOnBuilt(selBuild);
   if(typeof checkAchievements_towerPlaced==='function') checkAchievements_towerPlaced(selBuild);
   if(MP.active){MP.broadcast('tower:place',{pid:MP.playerId,row,col,key:selBuild,lvl:1,colorIdx:MP.colorIndex,name:MP.playerName,skins:{...mgEquipped},evolvedBlaster:_evoVariant});MP.updatePlayerGold();}if(selBuild==='heli') spawnHelicopter(newTower);if(selBuild==='admindrone') spawnAdminDrones(newTower);  if(newTower.cfg&&newTower.cfg.barracksTower){newTower.allySpawnCd=0;}
@@ -7267,7 +7492,7 @@ cv.addEventListener('touchmove',function(e){e.preventDefault();const touch=e.tou
   });});
   applyAbyssalLockUI();
   document.querySelectorAll('#ss-save-slots .ss-slot').forEach((btn,i)=>{btn.addEventListener('click',()=>{if(!isUnlocked('slot',String(i))){msg(`⚠ Slot ${i+1} unlocks at Level ${getUnlockLevel('slot',String(i))}!`,2500);return;}if(MP.active){msg('⚠ Cannot load saves in CO-OP mode',2000);return;}const data=getSaveData(i);if(!data) return;if(!confirm(`Load Slot ${i+1}? (Wave ${data.wave})`)) return;if(deserializeGameState(data)){gameStarted=true;ss.classList.add('gone');document.querySelectorAll('.mb').forEach(b=>{b.classList.toggle('on',b.dataset.m===gameMode);b.style.opacity=b.dataset.m===gameMode?'1':'.25';b.style.pointerEvents='none';});msg(`Loaded Slot ${i+1} — Wave ${data.wave}!`,3000);}else alert('Incompatible save!');});});
-  document.getElementById('ss-begin').addEventListener('click',()=>{gameMode=ssMode;gameStarted=true;document.querySelectorAll('.mb').forEach(b=>{b.classList.toggle('on',b.dataset.m===gameMode);b.style.opacity=b.dataset.m===gameMode?'1':'.25';b.style.pointerEvents='none';});applyMapDimensions(selectedMap);init();ss.classList.add('gone');
+  document.getElementById('ss-begin').addEventListener('click',()=>{gameMode=ssMode;gameStarted=true;document.querySelectorAll('.mb').forEach(b=>{b.classList.toggle('on',b.dataset.m===gameMode);b.style.opacity=b.dataset.m===gameMode?'1':'.25';b.style.pointerEvents='none';});applyMapDimensions(selectedMap);init();ss.classList.add('gone');if(typeof touchLastPlayed==='function')touchLastPlayed();
     if(gameMode==='sandbox'){
       const wInput=document.getElementById('ss-sandbox-wave');
       let startWaveVal=Math.max(1,Math.min(9999,Math.round(parseInt(wInput&&wInput.value,10)||1)));
@@ -8118,7 +8343,16 @@ function update(){
       e.mirrorImmCd--;
       if(e.mirrorImmCd<=0){e.mirrorImmCd=90;let bestK=null,bestV=0;for(const k in e.dmgByType){if(e.dmgByType[k]>bestV){bestV=e.dmgByType[k];bestK=k;}}e.mirrorImmuneType=bestK;}
     }
-    if(e.flying){e.flyWob+=.04;const dx=bx-e.x,dy=(by-e.altitude)-e.y,dist=Math.sqrt(dx*dx+dy*dy);if(dist<CS*.7){baseHP-=e.atkDmg*2.5;if(baseHP<=0){baseHP=0;doGameOver();}enemies.splice(i,1);sparks(e.x,e.y,e.col,10,2.5);ft(bx,by-16,`-${Math.round(e.atkDmg*2.5)}`,'#ff4444');syncUI();continue;}e.x+=dx/dist*e.spd;e.y+=dy/dist*e.spd;continue;}if(e.mode==='attackBase'){const dx=bx-e.x,dy=by-e.y,d=Math.sqrt(dx*dx+dy*dy);if(d>CS*.45){e.x+=dx/d*e.spd*.55;e.y+=dy/d*e.spd*.55;}if(e.atkCd<=0){e.atkCd=e.atkCdB;baseHP-=e.atkDmg*.6*(e.guardianBuffed?1.5:1);sparks(bx+(Math.random()-.5)*18,by+(Math.random()-.5)*18,'#ff4444',3,1.2);addLx(e.x,e.y,bx,by,'#ff3300');if(baseHP<=0){baseHP=0;doGameOver();}syncUI();}else e.atkCd--;continue;}if(e.mode==='attack'){if(!e.atkTarget||!towers.includes(e.atkTarget)){e.mode='move';e.atkTarget=null;continue;}const tx=e.atkTarget.col*CS+CS/2,ty=e.atkTarget.row*CS+CS/2;const dx=tx-e.x,dy=ty-e.y,d=Math.sqrt(dx*dx+dy*dy);if(d>CS*.55){e.x+=dx/d*e.spd*.8;e.y+=dy/d*e.spd*.8;}else{if(e.atkCd<=0){e.atkCd=e.atkCdB;const _rawAtkDmg=e.atkDmg*(e.guardianBuffed?1.5:1);const _finalAtkDmg=applyBarrierAbsorb(e.atkTarget,e,_rawAtkDmg);e.atkTarget.hp-=_finalAtkDmg;e.atkTarget.hitFlash=9;sparks(tx,ty,e.col,4,1.2);addLx(e.x,e.y,tx,ty,'#ff4444');if(e.atkTarget.cfg.thorns) e.hp-=e.atkTarget.cfg.thorns;if(e.atkTarget.hp<=0) destroyTower(e.atkTarget);}else e.atkCd--;}continue;}if(e.isBoss&&e.bossType==='commander'){if(!e.cmdHealCd) e.cmdHealCd=0;if(!e.cmdStrikeCd) e.cmdStrikeCd=0;e.cmdHealCd--;e.cmdStrikeCd--;if(e.cmdHealCd<=0){e.cmdHealCd=180;let healed=0;for(const oe of enemies){if(oe===e) continue;const hdx=oe.x-e.x,hdy=oe.y-e.y;if(hdx*hdx+hdy*hdy<=120*120&&oe.hp<oe.mhp){const heal=Math.round(oe.mhp*.15);oe.hp=Math.min(oe.mhp,oe.hp+heal);healed++;addBeam(e.x,e.y,oe.x,oe.y);sparks(oe.x,oe.y,'#ffdd00',5,1.5);}}if(healed>0){ft(e.x,e.y-e.sz-14,'HEAL +'+(healed),'#ffdd00');sparks(e.x,e.y,'#ffdd00',10,2);}}if(e.cmdStrikeCd<=0){e.cmdStrikeCd=360;let strikeTgt=null,bestD=Infinity;for(const t of towers){if(t.cfg.t===CT.WALL) continue;const tdx=t.col*CS+CS/2-e.x,tdy=t.row*CS+CS/2-e.y,td=tdx*tdx+tdy*tdy;if(td<bestD){bestD=td;strikeTgt=t;}}if(strikeTgt){const sx=strikeTgt.col*CS+CS/2,sy=strikeTgt.row*CS+CS/2;for(const t of towers){const adx=t.col*CS+CS/2-sx,ady=t.row*CS+CS/2-sy;if(adx*adx+ady*ady<=85*85){const _airFinalDmg=applyBarrierAbsorb(t,null,35);t.hp-=_airFinalDmg;t.hitFlash=18;t.stunned=Math.max(t.stunned||0,90);sparks(t.col*CS+CS/2,t.row*CS+CS/2,'#ff4400',12,3);if(t.hp<=0) destroyTower(t);}}ft(sx,sy-20,'⚡ AIRSTRIKE!','#ff4400');sparks(sx,sy,'#ff6600',20,4);lxfx.push({x1:sx,y1:0,x2:sx,y2:sy,col:'#ff4400',life:15,ml:15});}}}
+    if(e.flying){e.flyWob+=.04;
+      // Flyers also divert to Decoy Base when one is active
+      const _fd=(typeof getDecoyTarget==='function')?getDecoyTarget():null;
+      const _ftx=_fd?(_fd.col*CS+CS/2):bx, _fty=_fd?(_fd.row*CS+CS/2):by;
+      const dx=_ftx-e.x,dy=(_fty-e.altitude)-e.y,dist=Math.sqrt(dx*dx+dy*dy);
+      if(dist<CS*.7){
+        if(_fd){e.mode='attack';e.atkTarget=_fd;e.atkCd=0;continue;}
+        baseHP-=e.atkDmg*2.5;if(baseHP<=0){baseHP=0;doGameOver();}enemies.splice(i,1);sparks(e.x,e.y,e.col,10,2.5);ft(bx,by-16,`-${Math.round(e.atkDmg*2.5)}`,'#ff4444');syncUI();continue;
+      }
+      e.x+=dx/dist*e.spd;e.y+=dy/dist*e.spd;continue;}if(e.mode==='attackBase'){const dx=bx-e.x,dy=by-e.y,d=Math.sqrt(dx*dx+dy*dy);if(d>CS*.45){e.x+=dx/d*e.spd*.55;e.y+=dy/d*e.spd*.55;}if(e.atkCd<=0){e.atkCd=e.atkCdB;baseHP-=e.atkDmg*.6*(e.guardianBuffed?1.5:1);sparks(bx+(Math.random()-.5)*18,by+(Math.random()-.5)*18,'#ff4444',3,1.2);addLx(e.x,e.y,bx,by,'#ff3300');if(baseHP<=0){baseHP=0;doGameOver();}syncUI();}else e.atkCd--;continue;}if(e.mode==='attack'){if(!e.atkTarget||!towers.includes(e.atkTarget)){e.mode='move';e.atkTarget=null;continue;}const tx=e.atkTarget.col*CS+CS/2,ty=e.atkTarget.row*CS+CS/2;const dx=tx-e.x,dy=ty-e.y,d=Math.sqrt(dx*dx+dy*dy);if(d>CS*.55){e.x+=dx/d*e.spd*.8;e.y+=dy/d*e.spd*.8;}else{if(e.atkCd<=0){e.atkCd=e.atkCdB;const _rawAtkDmg=e.atkDmg*(e.guardianBuffed?1.5:1);const _finalAtkDmg=applyBarrierAbsorb(e.atkTarget,e,_rawAtkDmg);e.atkTarget.hp-=_finalAtkDmg;e.atkTarget.hitFlash=9;sparks(tx,ty,e.col,4,1.2);addLx(e.x,e.y,tx,ty,'#ff4444');if(e.atkTarget.cfg.thorns) e.hp-=e.atkTarget.cfg.thorns;if(e.atkTarget.hp<=0) destroyTower(e.atkTarget);}else e.atkCd--;}continue;}if(e.isBoss&&e.bossType==='commander'){if(!e.cmdHealCd) e.cmdHealCd=0;if(!e.cmdStrikeCd) e.cmdStrikeCd=0;e.cmdHealCd--;e.cmdStrikeCd--;if(e.cmdHealCd<=0){e.cmdHealCd=180;let healed=0;for(const oe of enemies){if(oe===e) continue;const hdx=oe.x-e.x,hdy=oe.y-e.y;if(hdx*hdx+hdy*hdy<=120*120&&oe.hp<oe.mhp){const heal=Math.round(oe.mhp*.15);oe.hp=Math.min(oe.mhp,oe.hp+heal);healed++;addBeam(e.x,e.y,oe.x,oe.y);sparks(oe.x,oe.y,'#ffdd00',5,1.5);}}if(healed>0){ft(e.x,e.y-e.sz-14,'HEAL +'+(healed),'#ffdd00');sparks(e.x,e.y,'#ffdd00',10,2);}}if(e.cmdStrikeCd<=0){e.cmdStrikeCd=360;let strikeTgt=null,bestD=Infinity;for(const t of towers){if(t.cfg.t===CT.WALL) continue;const tdx=t.col*CS+CS/2-e.x,tdy=t.row*CS+CS/2-e.y,td=tdx*tdx+tdy*tdy;if(td<bestD){bestD=td;strikeTgt=t;}}if(strikeTgt){const sx=strikeTgt.col*CS+CS/2,sy=strikeTgt.row*CS+CS/2;for(const t of towers){const adx=t.col*CS+CS/2-sx,ady=t.row*CS+CS/2-sy;if(adx*adx+ady*ady<=85*85){const _airFinalDmg=applyBarrierAbsorb(t,null,35);t.hp-=_airFinalDmg;t.hitFlash=18;t.stunned=Math.max(t.stunned||0,90);sparks(t.col*CS+CS/2,t.row*CS+CS/2,'#ff4400',12,3);if(t.hp<=0) destroyTower(t);}}ft(sx,sy-20,'⚡ AIRSTRIKE!','#ff4400');sparks(sx,sy,'#ff6600',20,4);lxfx.push({x1:sx,y1:0,x2:sx,y2:sy,col:'#ff4400',life:15,ml:15});}}}
     if(e.isSummoner){if(!e.summonCd)e.summonCd=110;e.summonCd--;if(e.summonCd<=0&&enemies.length<400){e.summonCd=110+Math.floor(Math.random()*30);const sVariant=Math.random()<.55?'void_lost':'void_phantom';const minion=spawnE({variant:sVariant,sizeMult:.85});minion.x=e.x+(Math.random()-.5)*24;minion.y=e.y+(Math.random()-.5)*24;minion.hp=Math.max(1,Math.round(minion.hp*.55));minion.mhp=minion.hp;enemies.push(minion);sparks(e.x,e.y,'#cc44ff',10,2.2);ft(e.x,e.y-e.sz-10,'⚠ SUMMON!','#cc44ff');}}
     // === VOID CHAMPION — periodically grants nearby void enemies a defense buff (reduces incoming damage) ===
     if(e.isChampion){if(!e.champBuffCd)e.champBuffCd=60;e.champBuffCd--;if(e.champBuffCd<=0){e.champBuffCd=150;let buffed=0;for(const oe of enemies){const bdx=oe.x-e.x,bdy=oe.y-e.y;if(bdx*bdx+bdy*bdy<=160*160){oe.champBuffed=true;oe.champBuffDur=Math.max(oe.champBuffDur||0,210);if(oe!==e){buffed++;sparks(oe.x,oe.y,'#b060ff',4,1.2);}}}if(buffed>0){ft(e.x,e.y-e.sz-14,'🛡 WARD!','#b060ff');sparks(e.x,e.y,'#b060ff',12,2.2);}}}
@@ -8418,7 +8652,20 @@ function update(){
     }
     // === END HACKLORD BOSS ===
     if(e.isGunner){if(e.gunCd>0) e.gunCd--;if(e.gunCd<=0){let closestTwr=null,bestScore=Infinity;for(const t of towers){const twx=t.col*CS+CS/2,twy=t.row*CS+CS/2;const dx2=twx-e.x,dy2=twy-e.y,d2=dx2*dx2+dy2*dy2;if(d2>190*190) continue;let sc=d2;if(t.cfg.t===CT.WALL&&t.level>=5) sc*=.3;else if(t.cfg.t===CT.WALL&&t.level>=3) sc*=.6;if(sc<bestScore){bestScore=sc;closestTwr=t;}}if(closestTwr){const twx=closestTwr.col*CS+CS/2,twy=closestTwr.row*CS+CS/2;projs.push({x:e.x,y:e.y,tgt:null,lastX:twx,lastY:twy,spd:5.5,dmg:GUNNER_BASE_DMG,aoe:0,chn:0,col:'#ff8800',sz:3,type:'towershot',stunTwr:closestTwr,stunDur:GUNNER_STUN_DUR,towerDmg:true});e.gunCd=75;sparks(e.x,e.y,'#ff6600',4,1.2);}}}
-  const ecol=Math.floor(e.x/CS),erow=Math.floor(e.y/CS);const dx=bx-e.x,dy=by-e.y,dist2=dx*dx+dy*dy;if(dist2<(CS*.85)**2){if(e.bossType==='king'||e.bossType==='hacklord'||e.bossType==='reaver'){if(gameMode==='sandbox'){e.mode='attackBase';e.atkCd=0;continue;}baseHP=0;sparks(bx,by,e.col,40,7);ft(bx,by-20,'💥 BASE DESTROYED!','#ff2200');doGameOver();enemies.splice(i,1);continue;}e.mode='attackBase';e.atkCd=0;continue;}if(erow<0||erow>=ROWS||ecol<0){enemies.splice(i,1);continue;}const f=(erow>=0&&erow<ROWS&&ecol>=0&&ecol<COLS)?flow[erow][ecol]:null;if(f){e.x+=f.dx*e.spd;e.y+=f.dy*e.spd;}else{const tgt=findBreakthrough(erow,ecol);if(tgt){e.mode='attack';e.atkTarget=tgt;e.atkCd=0;}else{const d=Math.sqrt(dist2)||1;e.x+=dx/d*e.spd*.25;e.y+=dy/d*e.spd*.25;}}}
+  const ecol=Math.floor(e.x/CS),erow=Math.floor(e.y/CS);const dx=bx-e.x,dy=by-e.y,dist2=dx*dx+dy*dy;
+    // Decoy Base pulls enemies: if close to decoy, attack it first
+    const _decoyE=(typeof getDecoyTarget==='function')?getDecoyTarget():null;
+    if(_decoyE){
+      const ddx=_decoyE.col*CS+CS/2-e.x, ddy=_decoyE.row*CS+CS/2-e.y;
+      if(ddx*ddx+ddy*ddy<(CS*.9)**2){e.mode='attack';e.atkTarget=_decoyE;e.atkCd=0;continue;}
+    }
+    if(dist2<(CS*.85)**2){if(e.bossType==='king'||e.bossType==='hacklord'||e.bossType==='reaver'){if(gameMode==='sandbox'){e.mode='attackBase';e.atkCd=0;continue;}baseHP=0;sparks(bx,by,e.col,40,7);ft(bx,by-20,'💥 BASE DESTROYED!','#ff2200');doGameOver();enemies.splice(i,1);continue;}e.mode='attackBase';e.atkCd=0;continue;}if(erow<0||erow>=ROWS||ecol<0||ecol>=COLS){enemies.splice(i,1);continue;}
+    // Smart decision: attack a nearby weak/wall tower OR keep going to base
+    const peel=considerAttackTower(e,erow,ecol);
+    if(peel){e.mode='attack';e.atkTarget=peel;e.atkCd=0;continue;}
+    const f=(erow>=0&&erow<ROWS&&ecol>=0&&ecol<COLS)?flow[erow][ecol]:null;
+    if(f){e.x+=f.dx*e.spd;e.y+=f.dy*e.spd;}
+    else{const tgt=findBreakthrough(erow,ecol);if(tgt){e.mode='attack';e.atkTarget=tgt;e.atkCd=0;}else{const d=Math.sqrt(dist2)||1;e.x+=dx/d*e.spd*.25;e.y+=dy/d*e.spd*.25;}}}
   updateVoidSlashes();
   updateHelicopters();
   updateAllies();
@@ -9494,6 +9741,32 @@ function drawGasterCannon(px,py,ang,eyeCol,firing,scale,level,accentCol){
 }
 function drawTower(t){
   const _frm=(GM()===3)?0:frame;
+  // ── DECOY BASE — mirrors the real base look so enemies are fooled ──
+  if(t.key==='decoy_base'){
+    const x=t.col*CS, y=t.row*CS, cx=x+CS/2, cy=y+CS/2;
+    const hr=Math.max(0,t.hp)/Math.max(1,t.maxHp);
+    const bc=t.hitFlash>0?'#ff4444':(hr>.5?'#00ff88':hr>.25?'#ffaa00':'#ff3300');
+    const pulse=(Math.sin(_frm*.08)+1)*.5;
+    // Soft glow like the real base
+    ctx.fillStyle=bc+'33';ctx.beginPath();ctx.arc(cx,cy,CS*.55+pulse*3,0,Math.PI*2);ctx.fill();
+    ctx.fillStyle='#061a12';ctx.fillRect(x+2,y+2,CS-4,CS-4);
+    ctx.strokeStyle=bc;ctx.lineWidth=2;ctx.strokeRect(x+2,y+2,CS-4,CS-4);
+    // Inner plate
+    ctx.fillStyle='#0a2418';ctx.fillRect(x+6,y+6,CS-12,CS-12);
+    ctx.strokeStyle=bc+'88';ctx.lineWidth=1;ctx.strokeRect(x+6,y+6,CS-12,CS-12);
+    // HP bar
+    const bw=CS-10,bh=4,bx=x+5,by=y+CS-9;
+    ctx.fillStyle='#1a0010';ctx.fillRect(bx,by,bw,bh);
+    ctx.fillStyle=bc;ctx.fillRect(bx,by,bw*hr,bh);
+    ctx.fillStyle=bc;ctx.font='bold 7px Share Tech Mono';ctx.textAlign='center';ctx.textBaseline='middle';
+    ctx.fillText('BASE',cx,cy-7);
+    ctx.fillStyle='#ffffff77';ctx.font='5px Share Tech Mono';
+    ctx.fillText(Math.round(t.hp)+'/'+Math.round(t.maxHp),cx,cy+2);
+    // Tiny "DECOY" tag so the player can tell (enemies still path to it)
+    ctx.fillStyle='#ffd700aa';ctx.font='bold 5px Share Tech Mono';
+    ctx.fillText('DECOY',cx,cy+11);
+    return;
+  }
   if(t.key&&t.key.indexOf('custom')===0){
     const cfg=t.cfg;
     const sz=CS*(t.size||1), x=t.col*CS, y=t.row*CS, cx=x+sz/2, cy=y+sz/2;
@@ -13742,39 +14015,41 @@ async function bgChatPoll(){
   // getter below, so editing a tower's cost in TS is instantly reflected
   // in the quick-build bar and tower picker.
   const QB_TOWERS_BASE = [
+    // Order: made first → made last (player-requested list)
     {key:'wall',    name:'BARRIER',       col:'#4a708a', type:'Support',     unlock:0},
-    {key:'basic',   name:'BLASTER',       col:'#33aaff', type:'Attack',      unlock:0},
-    {key:'sniper',  name:'RAILGUN',       col:'#bb44ff', type:'Attack',      unlock:0},
-    {key:'cannon',  name:'CANNON',        col:'#ff8800', type:'Splash',      unlock:0},
-    {key:'mace',     name:'MACE',          col:'#7766cc', type:'Splash',      unlock:130},
-    {key:'electric',name:'TESLA',         col:'#aaff00', type:'Splash',      unlock:5},
+    {key:'basic',   name:'BLASTER',       col:'#33aaff', type:'Attack',      unlock:1},
+    {key:'sniper',  name:'RAILGUN',       col:'#bb44ff', type:'Attack',      unlock:2},
+    {key:'cannon',  name:'CANNON',        col:'#ff8800', type:'Splash',      unlock:3},
+    {key:'electric',name:'TESLA',         col:'#aaff00', type:'Splash',      unlock:4},
     {key:'healer',  name:'MEDIC',         col:'#00ffcc', type:'Support',     unlock:5},
-    {key:'spike',   name:'SPIKE',         col:'#ff4488', type:'Executioner', unlock:15},
-    {key:'buff',    name:'DJ TOWER',      col:'#ffaa33', type:'Support',     unlock:15},
-    {key:'mine',    name:'FARM',          col:'#ffe066', type:'Economic',    unlock:30},
-    {key:'cowboy',  name:'COWBOY',        col:'#d2a679', type:'Economic',    unlock:90},
-    {key:'hunter',  name:'HUNTER',        col:'#33cc66', type:'Executioner', unlock:150},
-    {key:'necromancer',name:'NECROMANCER',   col:'#7a4fae', type:'Support',     unlock:999},
-    {key:'alchemist',name:'ALCHEMIST',     col:'#88ff44', type:'Splash',      unlock:140},
-    {key:'flame',   name:'FLAME',         col:'#ff6622', type:'Splash',      unlock:35},
-    {key:'laser',   name:'LASER',         col:'#00ccff', type:'Executioner', unlock:40},
-    {key:'bhole',   name:'B.HOLE',        col:'#aa44ff', type:'Executioner', unlock:50},
-    {key:'ice',     name:'ICE',           col:'#88ddff', type:'Support',      unlock:60},
-    {key:'snowball',name:'SNOWBALLER',    col:'#eafcff', type:'Attack',       unlock:0},
-    {key:'lumina',  name:'LUMINA',        col:'#ffe680', type:'Support',      unlock:0},
-    {key:'barbwire',name:'BARBWIRE',      col:'#c8a874', type:'Support',      unlock:120},
-    {key:'heli',    name:'HELI PAD',      col:'#44ffcc', type:'Attack',      unlock:70},
-    {key:'barracks',name:'BARRACKS',      col:'#44aa44', type:'Support',     unlock:80},
-    {key:'mech_base',name:'MECH BASE',    col:'#8899aa', type:'Support',     unlock:110},
-    {key:'admindrone',name:'DRONE PAD',   col:'#ff88ff', type:'Attack',      unlock:110},
-    {key:'silo',    name:'MISSILE SILO',  col:'#ff6600', type:'Executioner', unlock:999},
-    {key:'hero_accel', name:'HERO: ACCELERATOR',    col:'#ffd23f', type:'Hero', unlock:999},
-    {key:'hero_score', name:'HERO: SCORE MACHINE',  col:'#ff66cc', type:'Hero', unlock:999},
-    {key:'hero_sacrifice', name:'HERO: SACRIFICE TEMPLE',  col:'#ff1f5e', type:'Hero', unlock:50},
-    {key:'custom', name:'CUSTOM TOWER 1', col:'#ffcc00', type:'Custom', unlock:0},
-    {key:'custom2', name:'CUSTOM TOWER 2', col:'#ff66cc', type:'Custom', unlock:0},
-    {key:'custom3', name:'CUSTOM TOWER 3', col:'#66ff99', type:'Custom', unlock:0},
-    {key:'custom4', name:'CUSTOM TOWER 4', col:'#66aaff', type:'Custom', unlock:0},
+    {key:'spike',   name:'SPIKE',         col:'#ff4488', type:'Executioner', unlock:6},
+    {key:'buff',    name:'DJ TOWER',      col:'#ffaa33', type:'Support',     unlock:7},
+    {key:'mine',    name:'FARM',          col:'#ffe066', type:'Economic',    unlock:8},
+    {key:'flame',   name:'FLAME',         col:'#ff6622', type:'Splash',      unlock:9},
+    {key:'laser',   name:'LASER',         col:'#00ccff', type:'Executioner', unlock:10},
+    {key:'bhole',   name:'B.HOLE',        col:'#aa44ff', type:'Executioner', unlock:11},
+    {key:'ice',     name:'ICE',           col:'#88ddff', type:'Support',      unlock:12},
+    {key:'heli',    name:'HELI PAD',      col:'#44ffcc', type:'Attack',      unlock:13},
+    {key:'barracks',name:'BARRACKS',      col:'#44aa44', type:'Support',     unlock:14},
+    {key:'silo',    name:'MISSILE SILO',  col:'#ff6600', type:'Executioner', unlock:15},
+    {key:'admindrone',name:'DRONE PAD',   col:'#ff88ff', type:'Attack',      unlock:16},
+    {key:'cowboy',  name:'COWBOY',        col:'#d2a679', type:'Economic',    unlock:17},
+    {key:'necromancer',name:'NECROMANCER',   col:'#7a4fae', type:'Support',     unlock:18},
+    {key:'mech_base',name:'MECH BASE',    col:'#8899aa', type:'Support',     unlock:19},
+    {key:'alchemist',name:'ALCHEMIST',     col:'#88ff44', type:'Splash',      unlock:20},
+    {key:'hunter',  name:'HUNTER',        col:'#33cc66', type:'Executioner', unlock:21},
+    {key:'barbwire',name:'BARBWIRE',      col:'#c8a874', type:'Support',      unlock:22},
+    {key:'mace',     name:'MACE',          col:'#7766cc', type:'Splash',      unlock:23},
+    {key:'lumina',  name:'LUMINA',        col:'#ffe680', type:'Support',      unlock:24},
+    {key:'snowball',name:'SNOWBALLER',    col:'#eafcff', type:'Attack',       unlock:25},
+    {key:'decoy_base', name:'DECOY BASE', col:'#00ff88', type:'Support', unlock:26},
+    {key:'hero_accel', name:'HERO: ACCELERATOR',    col:'#ffd23f', type:'Hero', unlock:27},
+    {key:'hero_score', name:'HERO: SCORE MACHINE',  col:'#ff66cc', type:'Hero', unlock:28},
+    {key:'hero_sacrifice', name:'HERO: SACRIFICE TEMPLE',  col:'#ff1f5e', type:'Hero', unlock:29},
+    {key:'custom', name:'CUSTOM TOWER 1', col:'#ffcc00', type:'Custom', unlock:100},
+    {key:'custom2', name:'CUSTOM TOWER 2', col:'#ff66cc', type:'Custom', unlock:101},
+    {key:'custom3', name:'CUSTOM TOWER 3', col:'#66ff99', type:'Custom', unlock:102},
+    {key:'custom4', name:'CUSTOM TOWER 4', col:'#66aaff', type:'Custom', unlock:103},
   ];
 
   // Live-cost getter: reads straight from TS[key][1].cost (the base/level-1
@@ -13930,7 +14205,8 @@ async function bgChatPoll(){
     const mapIsCustom = (typeof selectedMap === 'undefined') || selectedMap === 'custom';
     for (const typeKey of TYPE_ORDER) {
       if (typeKey === 'Custom' && !mapIsCustom) continue;
-      const towers = QB_TOWERS.filter(t => t.type === typeKey);
+      // Oldest → newest within each type
+      const towers = QB_TOWERS.filter(t => t.type === typeKey).slice().sort((a,b)=>(a.unlock||0)-(b.unlock||0));
       if (!towers.length) continue;
       const tm = TYPE_META[typeKey];
 
@@ -14220,12 +14496,12 @@ async function bgChatPoll(){
     electric:{type:'Splash'}, healer:{type:'Support'}, spike:{type:'Executioner'}, buff:{type:'Support'},
     mine:{type:'Economic'}, cowboy:{type:'Economic'}, necromancer:{type:'Support'}, flame:{type:'Splash'}, laser:{type:'Executioner'}, bhole:{type:'Executioner'}, alchemist:{type:'Splash (DoT)'},
     ice:{type:'Support'}, lumina:{type:'Support'}, heli:{type:'Attack'}, barracks:{type:'Support'}, mech_base:{type:'Support'}, silo:{type:'Executioner'},
-    hero_accel:{type:'Hero'}, hero_score:{type:'Hero'}, hero_sacrifice:{type:'Hero'}, admindrone:{type:'Attack'}, barbwire:{type:'Support'}, hunter:{type:'Executioner'},
+    hero_accel:{type:'Hero'}, hero_score:{type:'Hero'}, hero_sacrifice:{type:'Hero'}, admindrone:{type:'Attack'}, barbwire:{type:'Support'}, decoy_base:{type:'Support — Enemy Magnet'}, hunter:{type:'Executioner'},
     railgun_cannon:{type:'Merge 2\u00d72 \u2014 Attack'}, blaster_cannon:{type:'Merge 2\u00d72 \u2014 Attack'}, tesla_cannon:{type:'Merge 2\u00d72 \u2014 Splash'},
     siege_cannon:{type:'Merge 2\u00d72 \u2014 Splash'}, barrier_cannon:{type:'Merge 2\u00d72 \u2014 Support'}, laser_cannon:{type:'Merge 2\u00d72 \u2014 Executioner'},
     mega_blaster_cannon:{type:'Merge 4\u00d74 \u2014 Attack'}
   };
-  const TOWER_ORDER = ['wall','basic','evolved_rifle','evolved_shotgun','sniper','cannon','mace','electric','healer','spike','buff','mine','cowboy','hunter','flame','laser','alchemist','bhole','ice','lumina','barbwire','heli','barracks','necromancer','mech_base','admindrone','silo','hero_accel','hero_score','hero_sacrifice',
+  const TOWER_ORDER = ['wall','basic','evolved_rifle','evolved_shotgun','sniper','cannon','mace','electric','healer','spike','buff','mine','cowboy','hunter','decoy_base','flame','laser','alchemist','bhole','ice','lumina','barbwire','heli','barracks','necromancer','mech_base','admindrone','silo','hero_accel','hero_score','hero_sacrifice',
     'railgun_cannon','blaster_cannon','tesla_cannon','siege_cannon','barrier_cannon','laser_cannon','mega_blaster_cannon'];
 
   let curTowerKey = null;
@@ -14672,6 +14948,11 @@ function applyHeroLockUI(){
       <div class="set-sec-lbl">TOWER UPGRADE STYLE</div>
       <button class="set-tog on" id="sett-upgstyle-tog" onclick="toggleUpgradeStyle()">&#11014; UPGRADE STYLE: NEW (CLICK TOWER)</button>
       <div class="as-info">NEW: click any tower directly to open its upgrade panel. OLD: press the UPGRADE button in the build menu first, then click a tower.</div>
+    </div>
+    <div class="set-sec">
+      <div class="set-sec-lbl">TOWER PICKER STYLE</div>
+      <button class="set-tog" id="sett-picker-tog" onclick="toggleTowerPickerStyle()">&#128203; TOWER PICKER: NEW (QUICK BAR)</button>
+      <div class="as-info">NEW: compact 10-slot quick bar (edit slots with the pencil). OLD: classic full tower button list in the sidebar.</div>
     </div>
     <div class="set-sec">
       <div class="set-sec-lbl">AUTO-SAVE</div>
