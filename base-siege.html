@@ -1143,7 +1143,18 @@ canvas{display:block;border:1px solid #0e2030;box-shadow:0 0 30px rgba(0,255,136
 .auth-close:hover{color:#ff4444;}
 
 /* LEADERBOARD MODAL */
-#lb-modal{position:fixed;inset:0;background:#04080fee;z-index:1000;display:none;align-items:center;justify-content:center;}
+#lb-modal{position:fixed;inset:0;background:#04080fee;z-index:1000;display:none;align-items:center;justify-content:center;gap:14px;}
+.lb-side{width:230px;flex-shrink:0;display:flex;flex-direction:column;gap:12px;align-self:center;}
+.lbs-card{background:#060c18;border:1px solid #0e2030;padding:14px 16px;display:flex;flex-direction:column;gap:6px;font-family:'Share Tech Mono',monospace;}
+.lbs-card.top{border-color:#ffd70066;}
+.lbs-card.online{border-color:#00ff8855;}
+.lbs-h{font-family:'Orbitron',sans-serif;font-size:9px;letter-spacing:2px;color:#4a7a9a;line-height:1.5;}
+.lbs-big{font-family:'Orbitron',sans-serif;font-size:20px;letter-spacing:1px;color:#ffd700;word-break:break-word;}
+.lbs-card.online .lbs-big{color:#00ff88;font-size:30px;}
+.lbs-row{display:flex;justify-content:space-between;align-items:baseline;font-size:11px;color:#2a6a8a;}
+.lbs-row b{color:#00ccff;font-size:13px;}
+.lbs-note{font-size:8px;letter-spacing:1px;color:#2a4a5a;}
+@media (max-width:900px){#lb-modal{flex-direction:column;overflow-y:auto;justify-content:flex-start;padding:12px 0;}.lb-side{width:min(540px,92vw);flex-direction:row;align-self:center;}.lbs-card{flex:1;}}
 #lb-modal.vis{display:flex;}
 .lb-box{background:#060c18;border:1px solid #0e2030;padding:28px 32px;display:flex;flex-direction:column;gap:12px;min-width:460px;max-width:540px;width:100%;max-height:80vh;overflow:hidden;}
 .lb-title{font-family:'Orbitron',sans-serif;font-size:14px;letter-spacing:4px;color:#aa88ff;border-bottom:1px solid #0e2030;padding-bottom:10px;display:flex;justify-content:space-between;align-items:center;}
@@ -2029,6 +2040,20 @@ body.old-tower-picker #qb{display:none!important;}
       <div class="lb-empty" id="lb-empty" style="display:none">NO RECORDS FOUND</div>
     </div>
   </div>
+  <div class="lb-side">
+    <div class="lbs-card top">
+      <div class="lbs-h">👑 MOST PLAYED THIS WEEK</div>
+      <div class="lbs-big" id="lbs-top-name">—</div>
+      <div class="lbs-row"><span>PLAY TIME</span><b id="lbs-top-hours">—</b></div>
+      <div class="lbs-row"><span>DAYS PLAYED</span><b id="lbs-top-days">—</b></div>
+      <div class="lbs-note">LAST 7 DAYS</div>
+    </div>
+    <div class="lbs-card online">
+      <div class="lbs-h">🟢 AVERAGE PLAYERS ONLINE</div>
+      <div class="lbs-big" id="lbs-avg">—</div>
+      <div class="lbs-note" id="lbs-avg-note">ACTIVE TODAY + YESTERDAY</div>
+    </div>
+  </div>
 </div>
 <div id="lb-toast">✓ SCORE SUBMITTED</div>
 
@@ -2466,7 +2491,7 @@ document.getElementById('lb-modal').addEventListener('click',e=>{if(e.target===d
 let lbFilter='all';
 document.querySelectorAll('.lb-f').forEach(btn=>{btn.addEventListener('click',()=>{document.querySelectorAll('.lb-f').forEach(b=>b.classList.remove('on'));btn.classList.add('on');lbFilter=btn.dataset.m;updateSubmitRow();loadLeaderboard();});});
 
-async function openLeaderboard(){document.getElementById('lb-modal').classList.add('vis');updateSubmitRow();loadLeaderboard();}
+async function openLeaderboard(){document.getElementById('lb-modal').classList.add('vis');updateSubmitRow();loadLeaderboard();if(typeof loadActivityStats==='function')loadActivityStats(true);}
 function updateSubmitRow(){
   const row=document.getElementById('lb-submit-row'),info=document.getElementById('lb-submit-info'),btn=document.getElementById('lb-submit-btn');
   if(lbFilter==='level'){
@@ -13671,6 +13696,59 @@ window.addEventListener('beforeunload', () => {
 // ================================================================
 // END DB SYSTEM
 // ================================================================
+</script>
+<script>
+// ── ACTIVITY TRACKING (feeds the leaderboard side panel) ──
+// Presence: any visible tab pings once a minute -> counts the player as "online" for that (UTC) day.
+// Play time: seconds where a non-sandbox run is actually in progress in a visible tab.
+// Server keeps one row per player per day; "average players online" = players active today or yesterday
+// (a player adds 1 on the day they play, stays through the next day, then drops off).
+(function(){
+  let pending=0,flushing=false;
+  setInterval(function(){
+    try{ if(!document.hidden&&gameStarted&&!gameOver&&gameMode!=='sandbox') pending++; }catch(e){}
+  },1000);
+  async function flush(){
+    if(flushing) return;
+    if(document.hidden&&pending===0) return; // tab not visible -> not online
+    flushing=true;
+    const secs=Math.min(pending,120);
+    try{
+      const name=(typeof playerName!=='undefined'&&playerName)?playerName:((typeof currentUser!=='undefined'&&currentUser&&currentUser.email)?currentUser.email.split('@')[0]:'Guest');
+      const{error}=await sb.rpc('report_activity',{p_player_id:getPlayerId(),p_name:name,p_seconds:secs});
+      if(error) console.warn('Activity report:',error.message); else pending-=secs;
+    }catch(e){console.warn('Activity report:',e);}
+    finally{flushing=false;}
+  }
+  setInterval(flush,60000);
+  setTimeout(flush,4000);
+  document.addEventListener('visibilitychange',function(){if(!document.hidden) flush();});
+})();
+
+let _actStatsAt=0;
+function _fmtPlayHours(sec){
+  const h=sec/3600;
+  if(h>=10) return Math.round(h)+' H';
+  if(h>=0.1) return h.toFixed(1)+' H';
+  return Math.max(1,Math.round(sec/60))+' MIN';
+}
+async function loadActivityStats(force){
+  if(!force&&Date.now()-_actStatsAt<20000) return;
+  _actStatsAt=Date.now();
+  const set=(id,v)=>{const e=document.getElementById(id);if(e)e.textContent=v;};
+  try{
+    const{data,error}=await sb.rpc('get_activity_stats');
+    if(error||!data){console.warn('Activity stats:',error&&error.message);return;}
+    const top=data.top;
+    if(top){
+      set('lbs-top-name',top.name||'Guest');
+      set('lbs-top-hours',_fmtPlayHours(top.seconds||0));
+      set('lbs-top-days',(top.days||0)+' / 7');
+    }else{set('lbs-top-name','NO DATA YET');set('lbs-top-hours','—');set('lbs-top-days','—');}
+    set('lbs-avg',String(data.avg_online||0));
+    set('lbs-avg-note','TODAY '+(data.today||0)+' · YESTERDAY '+(data.yesterday||0));
+  }catch(e){console.warn('Activity stats:',e);}
+}
 </script>
 <div id="chat-notif-popup"></div>
 <button id="chat-toggle" onclick="toggleChat()">💬 CHAT<span class="notif" id="chat-notif-badge">NEW</span></button>
