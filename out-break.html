@@ -137,27 +137,32 @@
       radial-gradient(ellipse at 20% 0%,rgba(143,209,63,.05) 0%,transparent 50%),
       radial-gradient(ellipse at 80% 100%,rgba(179,35,28,.06) 0%,transparent 50%),
       radial-gradient(ellipse at center,#141b0f 0%,#050603 80%);
-    display:flex;flex-direction:column;overflow:hidden;
+    display:flex;flex-direction:column;
+    overflow-x:hidden;overflow-y:auto;
+    scrollbar-width:thin;scrollbar-color:#2b3323 #0a0d08;
   }
-  /* sticky header */
+  #startScreen::-webkit-scrollbar{width:8px;}
+  #startScreen::-webkit-scrollbar-track{background:#0a0d08;}
+  #startScreen::-webkit-scrollbar-thumb{background:#2b3323;border-radius:4px;}
+  /* header — scrolls with the page */
   .menuHeader{
     flex-shrink:0;
     display:flex;flex-direction:column;align-items:center;
-    padding:18px 24px 12px;
+    padding:16px 20px 12px;
     background:linear-gradient(180deg,#050603 65%,transparent);
     border-bottom:1px solid var(--line);
   }
   .menuHeader h1{
-    font-size:38px;letter-spacing:11px;color:var(--blood);
-    text-shadow:0 0 18px rgba(179,35,28,.85);
+    font-size:36px;letter-spacing:10px;color:var(--blood);
+    text-shadow:0 0 16px rgba(179,35,28,.85);
   }
   .menuHeader .tagline{color:#8a9078;letter-spacing:3px;font-size:10px;margin:4px 0 10px;}
   .currencyRow{display:flex;gap:10px;align-items:center;}
   .goldBar{
     display:flex;align-items:center;gap:8px;
     background:linear-gradient(180deg,#1a1f14,#12160f);
-    border:1px solid #3a3420;padding:5px 16px;border-radius:2px;
-    font-size:13px;letter-spacing:2px;color:#f0c94a;
+    border:1px solid #3a3420;padding:5px 14px;border-radius:2px;
+    font-size:12px;letter-spacing:2px;color:#f0c94a;
     box-shadow:0 0 10px rgba(240,201,74,.1) inset;
   }
   .goldBar.blood{
@@ -165,10 +170,10 @@
     box-shadow:0 0 10px rgba(179,35,28,.1) inset;
   }
   .diffBtn{
-    font-family:inherit;letter-spacing:2px;font-size:11px;font-weight:700;
+    font-family:inherit;letter-spacing:2px;font-size:10px;font-weight:700;
     background:linear-gradient(180deg,#1a1f14,#12160f);
     border:1px solid var(--line);color:#8a9078;
-    padding:7px 16px;border-radius:2px;cursor:pointer;transition:.15s;
+    padding:6px 14px;border-radius:2px;cursor:pointer;transition:.15s;
   }
   .diffBtn:hover{border-color:#5c6650;color:var(--bone);}
   .diffBtn[data-diff="normal"].active{border-color:var(--toxic);color:var(--toxic);box-shadow:0 0 10px rgba(143,209,63,.25) inset;}
@@ -191,23 +196,19 @@
   .clsBtn:disabled{cursor:not-allowed;opacity:.4;}
 
 
-  /* scrollable body */
+  /* body — grows with content; whole screen scrolls */
   .menuBody{
-    flex:1;overflow-y:auto;padding:18px 28px 16px;
-    scrollbar-width:thin;scrollbar-color:#2b3323 #0a0d08;
+    flex:0 0 auto;overflow:visible;padding:16px 24px 14px;
   }
-  .menuBody::-webkit-scrollbar{width:5px;}
-  .menuBody::-webkit-scrollbar-track{background:#0a0d08;}
-  .menuBody::-webkit-scrollbar-thumb{background:#2b3323;border-radius:3px;}
 
   .shopNote{
-    font-size:10px;letter-spacing:.3px;color:#7a8168;
-    max-width:1100px;margin:0 auto 16px;text-align:center;line-height:1.8;font-size:11.5px;
+    letter-spacing:.3px;color:#7a8168;
+    max-width:1100px;margin:0 auto 14px;text-align:center;line-height:1.7;font-size:11px;
   }
   .shopNote b{color:var(--bone);}
 
   .sectionLabel{
-    max-width:1300px;margin:0 auto 12px;
+    max-width:1200px;margin:0 auto 10px;
     display:flex;align-items:center;gap:12px;
     font-size:10px;letter-spacing:4px;color:var(--toxic-dim);text-transform:uppercase;
   }
@@ -215,12 +216,12 @@
 
   /* ── Slot Tabs ── */
   .slotTabs{
-    display:flex;gap:10px;max-width:1100px;margin:0 auto 16px;
+    display:flex;gap:8px;max-width:1100px;margin:0 auto 14px;
   }
   .slotTab{
     flex:1;display:flex;flex-direction:column;align-items:center;gap:3px;
     background:#12160f;border:1px solid var(--line);
-    padding:10px 8px 8px;cursor:pointer;font-family:inherit;
+    padding:8px 6px 7px;cursor:pointer;font-family:inherit;
     color:#5c6650;transition:all .15s;position:relative;
   }
   .slotTab:hover{border-color:var(--toxic-dim);color:var(--bone);}
@@ -232,18 +233,18 @@
     content:'';position:absolute;bottom:-1px;left:0;right:0;height:2px;
     background:var(--toxic);
   }
-  .slotTabNum{font-size:8px;letter-spacing:3px;text-transform:uppercase;opacity:.7;}
-  .slotTabIcon{font-size:22px;line-height:1;}
+  .slotTabNum{font-size:8px;letter-spacing:2px;text-transform:uppercase;opacity:.7;}
+  .slotTabIcon{font-size:20px;line-height:1;}
   .slotTabName{font-size:9px;letter-spacing:1px;text-transform:uppercase;}
 
   /* weapon card grid — compact */
   .weaponGrid{
-    display:grid;grid-template-columns:repeat(auto-fill,minmax(215px,1fr));
-    gap:14px;max-width:1440px;margin:0 auto 22px;
+    display:grid;grid-template-columns:repeat(auto-fill,minmax(200px,1fr));
+    gap:12px;max-width:1200px;margin:0 auto 18px;
   }
   .wCard{
     position:relative;background:linear-gradient(180deg,var(--panel),#0d1109);
-    border:1px solid var(--line);padding:16px 16px 13px;
+    border:1px solid var(--line);padding:12px 12px 10px;
     display:flex;flex-direction:column;align-items:center;text-align:center;
     transition:border-color .15s,box-shadow .15s,transform .15s;
   }
@@ -260,22 +261,26 @@
   .wCard.knife-card:hover{border-color:#4fa3e0;}
   .wCard.knife-card.equipped{border-color:#4fa3e0;box-shadow:0 0 12px rgba(79,163,224,.35);}
   .wCard.knife-card .wEquipTag{color:#4fa3e0;border-color:#4fa3e0;background:rgba(79,163,224,.1);}
+  .wCard.energy-card{border-color:#2a5a4a;}
+  .wCard.energy-card:hover{border-color:var(--legend);}
+  .wCard.energy-card.equipped{border-color:var(--legend);box-shadow:0 0 14px rgba(224,168,60,.4);}
+  .wCard.energy-card .wEquipTag{color:var(--legend);border-color:var(--legend);background:rgba(224,168,60,.1);}
   .wCard .wEquipTag{
-    position:absolute;top:6px;right:6px;font-size:8px;letter-spacing:1px;
-    color:var(--toxic);border:1px solid var(--toxic);padding:1px 5px;background:rgba(143,209,63,.08);
+    position:absolute;top:5px;right:5px;font-size:8px;letter-spacing:1px;
+    color:var(--toxic);border:1px solid var(--toxic);padding:1px 4px;background:rgba(143,209,63,.08);
   }
   .wCard.tesla-card .wEquipTag{color:var(--epic);border-color:var(--epic);background:rgba(154,94,224,.08);}
-  .wCard .wIcon{font-size:30px;margin-bottom:6px;filter:drop-shadow(0 0 5px rgba(0,0,0,.6));}
-  .wCard .wName{font-size:15px;letter-spacing:2px;margin-bottom:2px;}
-  .wCard .wWeight{font-size:8px;letter-spacing:2px;color:var(--toxic-dim);text-transform:uppercase;margin-bottom:6px;}
-  .wCard .wDesc{font-size:10.5px;color:#7a8168;line-height:1.6;min-height:30px;margin-bottom:10px;}
+  .wCard .wIcon{font-size:26px;margin-bottom:5px;filter:drop-shadow(0 0 4px rgba(0,0,0,.6));}
+  .wCard .wName{font-size:13px;letter-spacing:1.5px;margin-bottom:2px;}
+  .wCard .wWeight{font-size:8px;letter-spacing:1.5px;color:var(--toxic-dim);text-transform:uppercase;margin-bottom:5px;}
+  .wCard .wDesc{font-size:10px;color:#7a8168;line-height:1.5;min-height:28px;margin-bottom:8px;}
   .wCard .wStats{
     display:flex;justify-content:space-around;width:100%;
-    font-size:7.5px;letter-spacing:1px;color:#5c6650;text-transform:uppercase;
+    font-size:7px;letter-spacing:1px;color:#5c6650;text-transform:uppercase;
     border-top:1px solid var(--line);border-bottom:1px solid var(--line);
-    padding:6px 0;margin-bottom:8px;gap:2px;
+    padding:5px 0;margin-bottom:6px;gap:2px;
   }
-  .wCard .wStats .statVal{display:block;font-size:14px;letter-spacing:0;color:var(--bone);margin-bottom:1px;font-weight:bold;}
+  .wCard .wStats .statVal{display:block;font-size:12px;letter-spacing:0;color:var(--bone);margin-bottom:1px;font-weight:bold;}
   .wCard .wStats .statGain{display:block;font-size:7px;letter-spacing:.5px;color:var(--toxic-dim);margin-top:1px;}
   .wCard .wAction{width:100%;margin-top:auto;}
 
@@ -370,12 +375,12 @@
 
   /* ── Class Shop ── */
   .clsGrid{
-    display:grid;grid-template-columns:repeat(auto-fill,minmax(215px,1fr));
-    gap:14px;max-width:1100px;margin:0 auto 22px;
+    display:grid;grid-template-columns:repeat(auto-fill,minmax(200px,1fr));
+    gap:12px;max-width:1100px;margin:0 auto 16px;
   }
   .clsCard{
     position:relative;background:linear-gradient(180deg,var(--panel),#0d1109);
-    border:1px solid var(--line);padding:16px 16px 13px;
+    border:1px solid var(--line);padding:12px 12px 10px;
     display:flex;flex-direction:column;align-items:center;text-align:center;
     transition:border-color .15s,box-shadow .15s,transform .15s;
   }
@@ -385,16 +390,16 @@
     position:absolute;top:6px;right:6px;font-size:8px;letter-spacing:1px;
     color:var(--toxic);border:1px solid var(--toxic);padding:1px 5px;background:rgba(143,209,63,.08);
   }
-  .clsCard .cIcon{font-size:30px;margin-bottom:6px;filter:drop-shadow(0 0 5px rgba(0,0,0,.6));}
-  .clsCard .cName{font-size:15px;letter-spacing:2px;margin-bottom:7px;}
-  .clsCard .cDesc{font-size:10.5px;color:#7a8168;line-height:1.6;min-height:30px;margin-bottom:10px;}
+  .clsCard .cIcon{font-size:26px;margin-bottom:5px;filter:drop-shadow(0 0 4px rgba(0,0,0,.6));}
+  .clsCard .cName{font-size:13px;letter-spacing:1.5px;margin-bottom:6px;}
+  .clsCard .cDesc{font-size:10px;color:#7a8168;line-height:1.5;min-height:28px;margin-bottom:8px;}
   .clsCard .cStats{
     display:flex;justify-content:space-around;width:100%;
-    font-size:7.5px;letter-spacing:1px;color:#5c6650;text-transform:uppercase;
+    font-size:7px;letter-spacing:1px;color:#5c6650;text-transform:uppercase;
     border-top:1px solid var(--line);border-bottom:1px solid var(--line);
-    padding:6px 0;margin-bottom:8px;gap:2px;
+    padding:5px 0;margin-bottom:6px;gap:2px;
   }
-  .clsCard .cStats .statVal{display:block;font-size:12px;letter-spacing:0;color:var(--bone);margin-bottom:1px;font-weight:bold;}
+  .clsCard .cStats .statVal{display:block;font-size:11px;letter-spacing:0;color:var(--bone);margin-bottom:1px;font-weight:bold;}
   .clsCard .cBuildsLabel{font-size:7.5px;letter-spacing:1.5px;color:var(--toxic-dim);text-transform:uppercase;margin-bottom:5px;}
   .clsCard .cBuilds{
     display:flex;flex-direction:column;gap:3px;width:100%;
@@ -405,7 +410,7 @@
   .clsCard .cBuilds .buildIcon{font-size:12px;width:16px;text-align:center;}
   .clsCard .cActBtn{
     width:100%;background:#1a1f14;color:#5c6650;border:1px solid var(--line);
-    padding:7px 8px;font-family:inherit;font-size:10px;letter-spacing:1.5px;cursor:not-allowed;margin-top:auto;
+    padding:6px 6px;font-family:inherit;font-size:9px;letter-spacing:1px;cursor:not-allowed;margin-top:auto;
   }
   .clsCard .cActBtn.unlock{background:#241c0a;color:#f0c94a;border-color:#4a3a12;cursor:pointer;font-weight:bold;}
   .clsCard .cActBtn.unlock:hover:not(:disabled){background:#f0c94a;color:#0a0d08;}
@@ -419,12 +424,12 @@
     display:flex;align-items:center;justify-content:center;gap:4px;
     margin-bottom:6px;
   }
-  .star{font-size:14px;cursor:default;transition:transform .1s;}
+  .star{font-size:12px;cursor:default;transition:transform .1s;}
   .star.filled{color:#f0c94a;text-shadow:0 0 6px rgba(240,201,74,.7);}
   .star.empty{color:#2b3323;}
   .upgradeBtn{
     width:100%;background:#1c1a0a;color:#f0c94a;border:1px solid #3a3218;
-    padding:5px 6px;font-family:inherit;font-size:9px;letter-spacing:1px;cursor:pointer;
+    padding:4px 5px;font-family:inherit;font-size:8px;letter-spacing:1px;cursor:pointer;
     margin-bottom:4px;
   }
   .upgradeBtn:hover{background:#f0c94a;color:#0a0d08;}
@@ -433,7 +438,7 @@
 
   .wActBtn{
     width:100%;background:#1a1f14;color:#5c6650;border:1px solid var(--line);
-    padding:7px 8px;font-family:inherit;font-size:10px;letter-spacing:1.5px;cursor:not-allowed;
+    padding:6px 6px;font-family:inherit;font-size:9px;letter-spacing:1px;cursor:not-allowed;
   }
   .wActBtn.unlock{background:#241c0a;color:#f0c94a;border-color:#4a3a12;cursor:pointer;font-weight:bold;}
   .wActBtn.unlock:hover{background:#f0c94a;color:#0a0d08;}
@@ -442,21 +447,22 @@
   .wActBtn.free{background:#161f11;color:var(--toxic-dim);cursor:default;}
   .wActBtn.equipped-lbl{background:#0f140c;color:var(--toxic);cursor:default;font-weight:bold;letter-spacing:2px;}
 
-  /* sticky footer */
+  /* footer — sits below shop content, scrolls into view */
   .menuFooter{
     flex-shrink:0;display:flex;flex-direction:column;justify-content:center;align-items:center;
-    padding:10px 24px 16px;
+    padding:12px 20px 18px;
     background:linear-gradient(0deg,#050603 65%,transparent);
     border-top:1px solid var(--line);
     gap:8px;
+    margin-top:auto;
   }
   .menuFooter .equippedLine{font-size:10px;letter-spacing:2px;color:#7a8168;}
   .menuFooter .equippedLine b{color:var(--toxic);}
   .startBtn{
     background:var(--toxic);color:#0a0d08;border:none;
-    padding:11px 40px;font-family:inherit;font-size:13px;
-    letter-spacing:4px;cursor:pointer;font-weight:bold;
-    box-shadow:0 0 16px rgba(143,209,63,.35);
+    padding:10px 36px;font-family:inherit;font-size:12px;
+    letter-spacing:3px;cursor:pointer;font-weight:bold;
+    box-shadow:0 0 14px rgba(143,209,63,.35);
   }
   .startBtn:hover{background:#a6e35a;}
 
@@ -668,7 +674,6 @@
         <div style="font-size:8px;letter-spacing:1px;color:#ff5a4d;margin-top:2px" id="staffChargeTxt">CHARGE 0/15</div>
       </div>
       <div class="row" style="margin-top:8px"><span>Cash</span><span id="moneyTxt">$0</span></div>
-      <div class="row"><span>🩸 Blood Coin</span><span id="bloodCoinTxt">0</span></div>
       <div class="row" id="soulRow" style="display:none"><span>💀 Souls</span><span id="soulTxt">0</span></div>
       <div id="slotBar" style="display:flex;gap:6px;justify-content:flex-end;margin-top:10px"></div>
     </div>
@@ -684,7 +689,7 @@
     Q turret · E mine (instant drop) · R barricade — click to place · right-click cancel<br>
     C quick-buy +10 max HP · killing zombies regens a sliver of HP<br>
     🌀 TURRET $100 · 💣 MINE $50 · 🧱 BARRICADE $50 · ❤ +10 HP $100 — prices rise each purchase<br>
-    🩸 Blood Coin: 20% drop (normal) / 40% drop (tough), scaled up on Hardcore/Nightmare — turret &amp; barricade snap to grid
+    Turret &amp; barricade snap to grid
   </div>
 
   <div class="levelup" id="levelup"><div class="big" id="levelupText"></div></div>
@@ -717,7 +722,6 @@
       <div class="tagline">SCAVENGE · UPGRADE · SURVIVE</div>
       <div class="currencyRow">
         <div class="goldBar">◆ GOLD &nbsp;<span id="goldTxt">0</span></div>
-        <div class="goldBar blood">🩸 &nbsp;<span id="bloodTxt">0</span></div>
       </div>
       <div class="diffRow" id="diffRow" style="display:flex;gap:8px;justify-content:center;margin-top:10px">
         <button class="diffBtn" data-diff="normal">NORMAL</button>
@@ -729,16 +733,13 @@
 
     <div class="menuBody">
       <div class="shopNote">
-        Kill zombies to earn <b>Cash</b> (unlock slots in-field), <b>Gold</b> (unlock Tesla &amp; Classes), and <b>🩸 Blood Coin</b> (open Blood Crates).<br>
-        Select a slot tab to see weapons for that slot. Spend <b>Gold</b> to upgrade weapons up to ⭐⭐⭐⭐⭐.
+        Kill zombies to earn <b>Cash</b> (unlock slots in-field) and <b>Gold</b> (unlock weapons &amp; classes).<br>
+        Select a slot tab to equip weapons. Spend <b>Gold</b> to upgrade weapons up to ⭐⭐⭐⭐⭐.
       </div>
 
       <div class="sectionLabel">CLASS SHOP</div>
       <div class="clsGrid" id="clsGrid"></div>
       <div class="diffNote" id="clsNote" style="text-align:center;font-size:10px;letter-spacing:1px;color:#7a8168;margin-top:-8px;margin-bottom:18px"></div>
-
-      <div class="sectionLabel">BLOOD CRATE</div>
-      <div id="crateWrap"></div>
 
       <!-- Slot tabs -->
       <div class="slotTabs" id="slotTabs">
@@ -960,30 +961,6 @@ const WEAPONS = [
     desc:"Fires a tilted 3-round burst — never-stop suppression fire.",
   },
   {
-    name:"Blood Pistol", weight:"Exclusive", type:"bullet", icon:"🩸", model:"bloodpistol",
-    dmg:15, fireRate:122, bullets:1, spread:0, speed:13, range:1100,
-    homing:true, turnRate:0.16, bulletStyle:'bloodSquare', trail:true,
-    color:"#e0453b",
-    desc:"Event-exclusive sidearm. Rapid-fire, auto-tracking bullets that leave a burning red trail.",
-    exclusive:'blood',
-  },
-  {
-    name:"Blood SMG", weight:"Exclusive", type:"bullet", icon:"🔪", model:"bloodsmg",
-    dmg:28, fireRate:55, bullets:1, spread:0.02, speed:17, range:1100,
-    homing:true, turnRate:0.26, bulletStyle:'bloodSquare', trail:true,
-    color:"#ff5a4d",
-    desc:"Event-exclusive SMG. Faster-firing, harder-hitting auto-tracking rounds — Slot 2 exclusive.",
-    exclusive:'bloodsmg',
-  },
-  {
-    name:"Blood Staff", weight:"Exclusive", type:"staff", icon:"🦯", model:"staff",
-    dmg:70, fireRate:320, range:100, speed:0,
-    burstDmg:340, burstRadius:260, healMult:3.5,
-    color:"#ff2f2f",
-    desc:"Event-exclusive melee staff. Every strike builds blood charge — at 15 charge it erupts into a devastating AoE burst. Kills heal far more HP — Slot 3 exclusive.",
-    exclusive:'bloodstaff',
-  },
-  {
     name:"Combat Knife", weight:"Rare", type:"knife", icon:"🗡️", model:"knife",
     dmg:14, fireRate:230, range:65, speed:0,
     bleedDmg:3, bleedTicks:5, bleedInterval:500, healOnKill:6, maxBleedStacks:5,
@@ -996,15 +973,20 @@ const WEAPONS = [
     color:"#ff6a2e",
     desc:"Slot 4 alternative to the Minigun. Sprays a continuous cone of fire that burns every zombie caught inside it at once — pure area damage, no aiming needed.",
   },
+  {
+    name:"Energy Rifle", weight:"Legendary", type:"bullet", icon:"🔷", model:"energyrifle",
+    dmg:48, fireRate:220, bullets:1, spread:0, speed:22, range:1000,
+    piercing:true, pierceCount:4, bulletStyle:'energyBolt', trail:true,
+    color:"#5ee0c0",
+    desc:"Legendary Slot 3 energy weapon. Fires a high-velocity plasma bolt that pierces through multiple zombies.",
+  },
 ];
 
 function getWeapon(ti){ return getWeaponWithStars(ti); }
 const TESLA_IDX = 1;
-const BLOOD_IDX = WEAPONS.findIndex(w=>w.exclusive==='blood');
-const BLOOD_SMG_IDX = WEAPONS.findIndex(w=>w.exclusive==='bloodsmg');
-const BLOOD_STAFF_IDX = WEAPONS.findIndex(w=>w.exclusive==='bloodstaff');
 const KNIFE_IDX = WEAPONS.findIndex(w=>w.type==='knife');
 const FLAME_IDX = WEAPONS.findIndex(w=>w.type==='flame');
+const ENERGY_RIFLE_IDX = WEAPONS.findIndex(w=>w.name==='Energy Rifle');
 
 
 // ── Weapon star upgrades (persistent, per weapon index) ──
@@ -1014,7 +996,7 @@ const MAX_STARS = 5;
 const STAR_BASE_COSTS = [150, 300, 600, 1200, 2500];
 // Rarity multiplier per weapon index (rarer = more expensive)
 // 0=Pistol(common), 2=Shotgun(uncommon), 3=Rifle(rare), 4=Minigun(epic), 1=Tesla(legendary), 5=BloodPistol(exclusive)
-const WEAPON_RARITY_MULT = { 0: 1.0, 2: 1.5, 3: 2.0, 4: 3.6, 1: 4.5, 5: 5.0, 6: 5.5, 7: 6.5, 8: 2.2, 9: 3.0 };
+const WEAPON_RARITY_MULT = { 0: 1.0, 2: 1.5, 3: 2.0, 4: 3.6, 1: 4.5, 5: 2.2, 6: 3.0, 7: 5.0 };
 function getStarCosts(wIdx){
   const mult = WEAPON_RARITY_MULT[wIdx] || 1.0;
   return STAR_BASE_COSTS.map(c => Math.round(c * mult));
@@ -1035,17 +1017,15 @@ function getStars(wIdx){ return weaponStars[wIdx] || 0; }
 // Format: { dmg, fireRate (lower=faster), range, speed, spread (lower=tighter) }
 // All are "per star" multipliers stacked via Math.pow
 const RARITY_SCALING = {
-  // wIdx: [dmgMult, fireRateMult, rangeMult, speedMult, spreadMult]
+  // wIdx: dmg/rate/range/speed/spread per star
   0: { dmg:1.10, rate:0.94, range:1.08, speed:1.04, spread:0.93 }, // Pistol — common
   2: { dmg:1.13, rate:0.92, range:1.10, speed:1.05, spread:0.90 }, // Shotgun — uncommon
   3: { dmg:1.16, rate:0.90, range:1.13, speed:1.06, spread:0.88 }, // Rifle — rare
   4: { dmg:1.20, rate:0.87, range:1.15, speed:1.07, spread:0.85 }, // Minigun — epic
-  1: { dmg:1.25, rate:0.84, range:1.18, speed:1.08, spread:1.00, chain:1.15 }, // Tesla — legendary (chain bonus)
-  5: { dmg:1.28, rate:0.82, range:1.20, speed:1.09, spread:1.00 }, // Blood Pistol — exclusive
-  6: { dmg:1.35, rate:0.77, range:1.22, speed:1.11, spread:0.88 }, // Blood SMG — exclusive
-  7: { dmg:1.32, rate:0.85, range:1.00, speed:1.00, spread:1.00, burst:1.24 }, // Blood Staff — exclusive
-  8: { dmg:1.15, rate:0.90, range:1.05, speed:1.00, spread:1.00, bleed:1.16 }, // Combat Knife — rare
-  9: { dmg:1.14, rate:0.91, range:1.08, speed:1.00, spread:1.00, cone:1.06 }, // Flamethrower — very heavy
+  1: { dmg:1.25, rate:0.84, range:1.18, speed:1.08, spread:1.00, chain:1.15 }, // Tesla — legendary
+  5: { dmg:1.15, rate:0.90, range:1.05, speed:1.00, spread:1.00, bleed:1.16 }, // Combat Knife — rare
+  6: { dmg:1.14, rate:0.91, range:1.08, speed:1.00, spread:1.00, cone:1.06 }, // Flamethrower — very heavy
+  7: { dmg:1.22, rate:0.88, range:1.12, speed:1.08, spread:1.00 }, // Energy Rifle — legendary
 };
 
 // Apply star multipliers to base weapon stats when shooting
@@ -1102,14 +1082,12 @@ const TIER_COST   = [0, 300, 700, 2000];    // cash cost to advance INTO that sl
 // Slot 2 can be overridden to the Blood SMG (event-exclusive) instead of the base Shotgun,
 // once permanently unlocked with Blood Coin and selected in the Main Menu.
 function getTierWeapon(tier){
-  if(tier===2 && equippedSlot2==='bloodsmg' && bloodSmgUnlocked) return BLOOD_SMG_IDX;
-  if(tier===3 && equippedSlot3==='bloodstaff' && bloodStaffUnlocked) return BLOOD_STAFF_IDX;
+  if(tier===3 && equippedSlot3==='energy' && energyRifleUnlocked) return ENERGY_RIFLE_IDX;
   if(tier===4 && equippedSlot4==='flamethrower' && flamethrowerUnlocked) return FLAME_IDX;
   return TIER_WEAPON[tier-1];
 }
 function getTierCost(tier){
-  if(tier===2 && equippedSlot2==='bloodsmg' && bloodSmgUnlocked) return BLOOD_SMG_CASH_COST;
-  if(tier===3 && equippedSlot3==='bloodstaff' && bloodStaffUnlocked) return BLOOD_STAFF_CASH_COST;
+  if(tier===3 && equippedSlot3==='energy' && energyRifleUnlocked) return ENERGY_RIFLE_CASH_COST;
   if(tier===4 && equippedSlot4==='flamethrower' && flamethrowerUnlocked) return FLAMETHROWER_CASH_COST;
   return TIER_COST[tier-1];
 }
@@ -1127,55 +1105,6 @@ function loadKnifeUnlocked(){ return localStorage.getItem('ob_knifeUnlocked')===
 function saveKnifeUnlocked(v){ localStorage.setItem('ob_knifeUnlocked', v?'1':'0'); }
 let knifeUnlocked = loadKnifeUnlocked();
 
-// Blood Pistol is an event-exclusive weapon unlocked with Blood Coin — earned directly,
-// in-run, by killing zombies (not converted from scrap like Gold).
-const BLOOD_COIN_COST = 250;
-function loadBloodCoin(){ const v=localStorage.getItem('ob_bloodCoin'); return v?+v:0; }
-function saveBloodCoin(v){ localStorage.setItem('ob_bloodCoin',String(v)); }
-let bloodCoin = loadBloodCoin();
-
-// ── Blood Crate ──────────────────────────────────────────
-// The ONLY way to get Blood Pistol/SMG/Staff — they can no longer be bought
-// directly. Each crate costs Blood Coin and rolls one of these outcomes:
-//   20% Blood Pistol · 5% Blood SMG · 1% Blood Staff · 74% a random Gold payout.
-// If the roll lands on a weapon you already own, it converts to a Gold payout
-// instead so a crate never feels wasted on a duplicate.
-const CRATE_COST = 50;
-const CRATE_ODDS = { bloodPistol:0.20, bloodSmg:0.05, bloodStaff:0.01 }; // remainder (0.74) = gold
-const CRATE_GOLD_MIN = 80, CRATE_GOLD_MAX = 350;
-// Reel display info for each possible prize — icon/label/color shown in the odds
-// legend and used to build the scrolling reel strip.
-const CRATE_REEL_POOL = [
-  { key:'gold',        icon:'💰', label:'GOLD',         color:'#f0c94a', weight:74, pct:'74%' },
-  { key:'bloodPistol',  icon:'🩸', label:'BLOOD PISTOL', color:'#e0453b', weight:20, pct:'20%' },
-  { key:'bloodSmg',     icon:'🔪', label:'BLOOD SMG',    color:'#ff5a4d', weight:5,  pct:'5%'  },
-  { key:'bloodStaff',   icon:'🦯', label:'BLOOD STAFF',  color:'#ff2f2f', weight:1,  pct:'1%'  },
-];
-function pickWeightedFillerItem(){
-  const total = CRATE_REEL_POOL.reduce((s,it)=>s+it.weight,0);
-  let r = Math.random()*total;
-  for(const it of CRATE_REEL_POOL){ if(r<it.weight) return it; r-=it.weight; }
-  return CRATE_REEL_POOL[0];
-}
-function rollBloodCrate(){
-  const r = Math.random();
-  let prize;
-  if(r < CRATE_ODDS.bloodPistol) prize='bloodPistol';
-  else if(r < CRATE_ODDS.bloodPistol + CRATE_ODDS.bloodSmg) prize='bloodSmg';
-  else if(r < CRATE_ODDS.bloodPistol + CRATE_ODDS.bloodSmg + CRATE_ODDS.bloodStaff) prize='bloodStaff';
-  else prize='gold';
-
-  // Duplicate protection — already-owned weapon rolls become a Gold payout instead.
-  if(prize==='bloodPistol' && bloodPistolUnlocked) prize='gold';
-  if(prize==='bloodSmg' && bloodSmgUnlocked) prize='gold';
-  if(prize==='bloodStaff' && bloodStaffUnlocked) prize='gold';
-
-  if(prize==='gold'){
-    const amt = CRATE_GOLD_MIN + Math.round(Math.random()*(CRATE_GOLD_MAX-CRATE_GOLD_MIN));
-    return { prize, amt };
-  }
-  return { prize };
-}
 
 // ── Difficulty modes ──────────────────────────────────────
 // Harder modes push tougher, faster, more frequent zombies — but reward that risk
@@ -1238,28 +1167,12 @@ function getClassCost(id){
 // Guard against a stale/edited save pointing at a class that isn't actually unlocked.
 if(!isClassUnlocked(playerClass)) playerClass='survivor';
 
-function loadBloodPistolUnlocked(){ return localStorage.getItem('ob_bloodPistolUnlocked')==='1'; }
-function saveBloodPistolUnlocked(v){ localStorage.setItem('ob_bloodPistolUnlocked', v?'1':'0'); }
-let bloodPistolUnlocked = loadBloodPistolUnlocked();
-
-// Blood SMG — event-exclusive Slot 2 weapon. Permanently unlocked with Blood Coin,
-// then costs extra in-run cash (vs the base Shotgun) to bring into Slot 2 each run.
-const BLOOD_SMG_COIN_COST = 500;
-const BLOOD_SMG_CASH_COST = 500;
-function loadBloodSmgUnlocked(){ return localStorage.getItem('ob_bloodSmgUnlocked')==='1'; }
-function saveBloodSmgUnlocked(v){ localStorage.setItem('ob_bloodSmgUnlocked', v?'1':'0'); }
-let bloodSmgUnlocked = loadBloodSmgUnlocked();
-function loadEquippedSlot2(){ return localStorage.getItem('ob_equippedSlot2')||'none'; }
-function saveEquippedSlot2(v){ localStorage.setItem('ob_equippedSlot2', v); }
-let equippedSlot2 = loadEquippedSlot2();
-
-// Blood Staff — event-exclusive Slot 3 melee weapon. Permanently unlocked with Blood Coin,
-// then costs extra in-run cash (vs the base Rifle) to bring into Slot 3 each run.
-const BLOOD_STAFF_COIN_COST = 1000;
-const BLOOD_STAFF_CASH_COST = 1500;
-function loadBloodStaffUnlocked(){ return localStorage.getItem('ob_bloodStaffUnlocked')==='1'; }
-function saveBloodStaffUnlocked(v){ localStorage.setItem('ob_bloodStaffUnlocked', v?'1':'0'); }
-let bloodStaffUnlocked = loadBloodStaffUnlocked();
+// Energy Rifle — legendary Slot 3 alternative to the base Rifle. Permanent GOLD unlock.
+const ENERGY_RIFLE_GOLD_COST = 10000;
+const ENERGY_RIFLE_CASH_COST = 1200;
+function loadEnergyRifleUnlocked(){ return localStorage.getItem('ob_energyRifleUnlocked')==='1'; }
+function saveEnergyRifleUnlocked(v){ localStorage.setItem('ob_energyRifleUnlocked', v?'1':'0'); }
+let energyRifleUnlocked = loadEnergyRifleUnlocked();
 function loadEquippedSlot3(){ return localStorage.getItem('ob_equippedSlot3')||'none'; }
 function saveEquippedSlot3(v){ localStorage.setItem('ob_equippedSlot3', v); }
 let equippedSlot3 = loadEquippedSlot3();
@@ -1305,9 +1218,8 @@ let buildMode  = null;    // null | 1 | 2 | 3  (build SLOT number — the actual
                            // placed by each slot depends on the active class, see slotType())
 
 // ── Game state ───────────────────────────────────────────
-let currentTier, maxTier, teslaActive, bloodActive, knifeActive, activeSlot;
+let currentTier, maxTier, teslaActive, knifeActive, activeSlot;
 function computeActiveSlot(){
-  if(bloodActive) return BLOOD_IDX;
   if(teslaActive) return TESLA_IDX;
   if(knifeActive) return KNIFE_IDX;
   return getTierWeapon(currentTier);
@@ -1334,7 +1246,6 @@ function resetGame(){
   currentTier = 1;
   maxTier = 1;
   teslaActive = equippedSpecial==='tesla' && teslaUnlocked;
-  bloodActive = equippedSpecial==='blood' && bloodPistolUnlocked;
   knifeActive = equippedSpecial==='knife' && knifeUnlocked;
   activeSlot = computeActiveSlot();
   money=0; kills=0; wave=1; score=0; scrapCollected=0; souls=0;
@@ -1388,7 +1299,7 @@ window.addEventListener('keydown',e=>{
 function trySelectTier(tier){
   if(tier<=maxTier){
     // Already unlocked this run — free switch, any time, even while Tesla/Blood Pistol equipped.
-    teslaActive=false; bloodActive=false; knifeActive=false; currentTier=tier; activeSlot=computeActiveSlot();
+    teslaActive=false; knifeActive=false; currentTier=tier; activeSlot=computeActiveSlot();
     showLevelup('EQUIPPED: '+WEAPONS[activeSlot].name.toUpperCase(), WEAPONS[activeSlot].color);
     updateHud();
     return;
@@ -1396,7 +1307,7 @@ function trySelectTier(tier){
   const cost=getTierCost(tier);
   if(money<cost){ showLevelup('NEED $'+cost,'#e05050'); return; }
   money-=cost; maxTier=tier; currentTier=tier;
-  teslaActive=false; bloodActive=false; knifeActive=false; activeSlot=computeActiveSlot();
+  teslaActive=false; knifeActive=false; activeSlot=computeActiveSlot();
   showLevelup('EQUIPPED: '+WEAPONS[activeSlot].name.toUpperCase(), WEAPONS[activeSlot].color);
   updateHud();
 }
@@ -1412,7 +1323,7 @@ window.addEventListener('keydown',e=>{
   if(k==='u') tryUpgrade();
   // Number keys disabled for weapon switching — use U to unlock next slot, click slot icon to switch
   else if(e.key==='1'||e.key==='2'||e.key==='3'||e.key==='4') showLevelup('USE U TO UNLOCK · CLICK SLOT ICON TO SWITCH','#7a8168');
-  else if(e.key==='5'||e.key==='6'||e.key==='7') showLevelup('SWAP TESLA/BLOOD/KNIFE IN MAIN MENU','#7a8168');
+  else if(e.key==='5'||e.key==='6'||e.key==='7') showLevelup('SWAP SPECIAL WEAPONS IN MAIN MENU','#7a8168');
   // Q/E/R quick-build hotkeys (toggle: press again to cancel)
   else if(k==='q') toggleBuildSlot(1);
   else if(k==='e') toggleBuildSlot(2);
@@ -1436,7 +1347,6 @@ function updateHud(){
   document.getElementById('scoreTxt').textContent=score;
   document.getElementById('killTxt').textContent=kills;
   document.getElementById('moneyTxt').textContent='$'+money;
-  document.getElementById('bloodCoinTxt').textContent=bloodCoin;
   const soulRow=document.getElementById('soulRow');
   if(soulRow){
     soulRow.style.display = playerClass==='necromancer' ? 'flex' : 'none';
@@ -1447,8 +1357,8 @@ function updateHud(){
   const nameEl=document.getElementById('weaponName');
   if(w.type==='tesla'){
     nameEl.innerHTML=`<span class="r-epic">${w.name}</span><span class="tag r-epic">EPIC</span>`;
-  } else if(w.exclusive==='blood' || w.exclusive==='bloodsmg' || w.exclusive==='bloodstaff'){
-    nameEl.innerHTML=`<span style="color:${w.color}">${w.name}</span><span class="tag" style="color:${w.color}">EVENT</span>`;
+  } else if(w.name==='Energy Rifle'){
+    nameEl.innerHTML=`<span style="color:${w.color}">${w.name}</span><span class="tag" style="color:var(--legend)">LEGEND</span>`;
   } else if(w.type==='knife'){
     nameEl.innerHTML=`<span style="color:#4fa3e0">${w.name}</span><span class="tag" style="color:#4fa3e0">RARE</span>`;
   } else {
@@ -1481,7 +1391,7 @@ function renderSlotBar(){
   // ── Show all unlocked tiers as clickable slots ──
   for(let tier=1; tier<=maxTier; tier++){
     const wt = WEAPONS[getTierWeapon(tier)];
-    const isCurrent = !teslaActive && !bloodActive && !knifeActive && currentTier===tier;
+    const isCurrent = !teslaActive && !knifeActive && currentTier===tier;
     const btn=document.createElement('div');
     btn.className='slotBtn'+(isCurrent?' current':'');
     btn.innerHTML=`<span class="sIcon">${wt.icon}</span><span class="sCost">${isCurrent?'ON':('S'+tier)}</span>`;
@@ -1535,13 +1445,7 @@ function regenOnKill(z, mult){
 }
 
 function awardBloodCoin(z){
-  // Chance-based drop: tough zombies 40% chance to drop 2, normal 20% chance to drop 1
-  // Harder difficulties multiply the drop chance, rewarding the added risk.
-  const dropChance = Math.min(0.95, (z.tough ? 0.40 : 0.20) * DIFFICULTIES[difficulty].dropMult);
-  if(Math.random() > dropChance) return;
-  const val=z.tough?2:1;
-  bloodCoin+=val; saveBloodCoin(bloodCoin);
-  spawnBloodPop(z.x,z.y,val);
+  // Event currency removed — kept as no-op so kill call-sites stay simple.
 }
 
 // ── Entities ─────────────────────────────────────────────
@@ -1597,7 +1501,7 @@ function shoot(){
       const a=aimAngle+tilt+(Math.random()-0.5)*w.spread*2;
       const jx=mx+(Math.random()-0.5)*10;
       const jy=my+(Math.random()-0.5)*10;
-      bullets.push({x:jx,y:jy,vx:Math.cos(a)*w.speed,vy:Math.sin(a)*w.speed,dmg:w.dmg,life:w.range/w.speed,color:w.color,homing:!!w.homing,turnRate:w.turnRate||0.16,style:w.bulletStyle||null,trail:!!w.trail,spin:Math.random()*Math.PI*2});
+      bullets.push({x:jx,y:jy,vx:Math.cos(a)*w.speed,vy:Math.sin(a)*w.speed,dmg:w.dmg,life:w.range/w.speed,color:w.color,homing:!!w.homing,turnRate:w.turnRate||0.16,style:w.bulletStyle||null,trail:!!w.trail,spin:Math.random()*Math.PI*2,pierceLeft:w.piercing?(w.pierceCount||4):0,hitIds:w.piercing?new Set():null});
     }
     for(let i=0;i<3;i++)
       particles.push({x:mx,y:my,vx:(Math.random()-0.5)*2,vy:(Math.random()-0.5)*2,life:10,color:'#ffdd88',size:3});
@@ -2543,19 +2447,19 @@ function update(dt){
     }
     b.x+=b.vx*dt; b.y+=b.vy*dt; b.life-=dt;
     if(b.trail){
-      particles.push({x:b.x,y:b.y,vx:(Math.random()-.5)*0.4,vy:(Math.random()-.5)*0.4,life:12,color:'#e0453b',size:2.4+Math.random()*0.8});
+      const tcol = b.style==='energyBolt' ? '#5ee0c0' : '#e0453b';
+      particles.push({x:b.x,y:b.y,vx:(Math.random()-.5)*0.4,vy:(Math.random()-.5)*0.4,life:12,color:tcol,size:2.4+Math.random()*0.8});
     }
     if(b.life<=0||b.x<-60||b.x>canvas.width+60||b.y<-60||b.y>canvas.height+60){ bullets.splice(i,1); continue; }
     for(let j=zombies.length-1;j>=0;j--){
       const z=zombies[j];
       if(Math.hypot(b.x-z.x,b.y-z.y)<z.r){
-        bullets.splice(i,1);
-        for(let k=0;k<4;k++) particles.push({x:b.x,y:b.y,vx:(Math.random()-.5)*3,vy:(Math.random()-.5)*3,life:14,color:'#5fbf2f',size:2.5});
+        if(b.hitIds && b.hitIds.has(z.id)) continue;
+        if(b.hitIds) b.hitIds.add(z.id);
+        for(let k=0;k<4;k++) particles.push({x:b.x,y:b.y,vx:(Math.random()-.5)*3,vy:(Math.random()-.5)*3,life:14,color:b.style==='energyBolt'?'#5ee0c0':'#5fbf2f',size:2.5});
         if(mp && !mp.isHost){
-          // Guests don't own the zombie list — report the hit to the host
-          // instead of mutating hp directly, so state never desyncs.
           mpReportHit(z.id, b.dmg);
-          z.hitFlash=6; // optimistic visual only; corrected by the next host snapshot
+          z.hitFlash=6;
         } else {
           z.hp-=b.dmg; z.hitFlash=6;
           if(z.hp<=0){
@@ -2567,7 +2471,13 @@ function update(dt){
             spawnScrapPop(z.x,z.y,val);
           }
         }
-        break;
+        if(b.pierceLeft && b.pierceLeft>0){
+          b.pierceLeft--;
+          if(b.pierceLeft<=0){ bullets.splice(i,1); break; }
+        } else {
+          bullets.splice(i,1);
+          break;
+        }
       }
     }
   }
@@ -2672,7 +2582,20 @@ function draw(){
   });
 
   bullets.forEach(b=>{
-    if(b.style==='bloodSquare'){
+    if(b.style==='energyBolt'){
+      ctx.save();
+      ctx.translate(b.x,b.y);
+      ctx.rotate(Math.atan2(b.vy,b.vx));
+      ctx.shadowColor='#5ee0c0'; ctx.shadowBlur=14;
+      ctx.fillStyle='#5ee0c0';
+      ctx.beginPath();
+      ctx.moveTo(10,0); ctx.lineTo(-6,-3.5); ctx.lineTo(-6,3.5);
+      ctx.closePath(); ctx.fill();
+      ctx.fillStyle='#e8fff8';
+      ctx.beginPath(); ctx.arc(2,0,2,0,7); ctx.fill();
+      ctx.shadowBlur=0;
+      ctx.restore();
+    } else if(b.style==='bloodSquare'){
       b.spin+=0.35;
       ctx.save();
       ctx.translate(b.x,b.y);
@@ -2816,6 +2739,7 @@ function drawWeaponModel(w, recoil, swing){
     case 'staff':        drawStaffModel(w,r); break;
     case 'knife':        drawKnifeModel(w,r,swing); break;
     case 'flamethrower': drawFlamethrowerModel(w,r); break;
+    case 'energyrifle':  drawEnergyRifleModel(w,r); break;
     default:
       ctx.fillStyle=w.color; ctx.fillRect(0,-3,r+16,6);
   }
@@ -2967,6 +2891,24 @@ function drawFlamethrowerModel(w,r){
   ctx.fillStyle='#ffdd66';
   ctx.beginPath(); ctx.arc(r+39,0,flick,0,7); ctx.fill();
 }
+
+function drawEnergyRifleModel(w,r){
+  ctx.save();
+  ctx.shadowColor=w.color; ctx.shadowBlur=12;
+  ctx.fillStyle='#1a2a28';
+  ctx.fillRect(r-10,-3,12,6); // stock
+  ctx.fillStyle='#243a36';
+  ctx.fillRect(r,-4,14,8); // receiver
+  ctx.fillStyle=w.color;
+  ctx.fillRect(r+12,-2,30,4); // long energy barrel
+  ctx.beginPath(); ctx.arc(r+44,0,5,0,7); ctx.fill(); // emitter tip
+  ctx.fillStyle='#e8fff8';
+  ctx.beginPath(); ctx.arc(r+44,0,2.2,0,7); ctx.fill();
+  ctx.restore();
+  ctx.fillStyle='#0a1a16';
+  ctx.fillRect(r+4,-7,8,3); // optic
+}
+
 
 function loop(t){
   if(!running) return;
@@ -3141,14 +3083,14 @@ function submitScore(){
 let shopSlot = 1;
 
 // Weapons per slot:
-// Slot 1: Pistol(0), Tesla(1), Blood Pistol(BLOOD_IDX)
-// Slot 2: Shotgun(2)
-// Slot 3: Rifle(3)
-// Slot 4: Minigun(4)
+// Slot 1: Pistol / Tesla / Knife
+// Slot 2: Shotgun
+// Slot 3: Rifle / Energy Rifle
+// Slot 4: Minigun / Flamethrower
 function getWeaponsForSlot(slot){
-  if(slot===1) return [0, TESLA_IDX, KNIFE_IDX, BLOOD_IDX];
-  if(slot===2) return [2, BLOOD_SMG_IDX];
-  if(slot===3) return [3, BLOOD_STAFF_IDX];
+  if(slot===1) return [0, TESLA_IDX, KNIFE_IDX];
+  if(slot===2) return [2];
+  if(slot===3) return [3, ENERGY_RIFLE_IDX];
   if(slot===4) return [4, FLAME_IDX];
   return [];
 }
@@ -3157,16 +3099,14 @@ function getWeaponsForSlot(slot){
 function getEquippedForSlot(slot){
   if(slot===1){
     if(equippedSpecial==='tesla' && teslaUnlocked) return TESLA_IDX;
-    if(equippedSpecial==='blood' && bloodPistolUnlocked) return BLOOD_IDX;
     if(equippedSpecial==='knife' && knifeUnlocked) return KNIFE_IDX;
     return 0; // Pistol
   }
   if(slot===2){
-    if(equippedSlot2==='bloodsmg' && bloodSmgUnlocked) return BLOOD_SMG_IDX;
     return 2; // Shotgun
   }
   if(slot===3){
-    if(equippedSlot3==='bloodstaff' && bloodStaffUnlocked) return BLOOD_STAFF_IDX;
+    if(equippedSlot3==='energy' && energyRifleUnlocked) return ENERGY_RIFLE_IDX;
     return 3; // Rifle
   }
   if(slot===4){
@@ -3194,7 +3134,6 @@ function updateSlotTabs(){
 
 function renderShop(){
   document.getElementById('goldTxt').textContent=gold;
-  document.getElementById('bloodTxt').textContent=bloodCoin;
   if(typeof renderClasses==='function') renderClasses();
   updateSlotTabs();
 
@@ -3204,12 +3143,10 @@ function renderShop(){
   weaponIndices.forEach(ti=>{
     const wt=WEAPONS[ti];
     const isTesla=wt.type==='tesla';
-    const isBlood=wt.exclusive==='blood';
-    const isBloodSmg=wt.exclusive==='bloodsmg';
-    const isBloodStaff=wt.exclusive==='bloodstaff';
     const isKnife=wt.type==='knife';
     const isFlamethrower=wt.type==='flame';
-    const isBase = !isTesla && !isBlood && !isBloodSmg && !isBloodStaff && !isKnife && !isFlamethrower;
+    const isEnergy=wt.name==='Energy Rifle';
+    const isBase = !isTesla && !isKnife && !isFlamethrower && !isEnergy;
 
     // Equipped state for this slot
     const equippedIdx = getEquippedForSlot(shopSlot);
@@ -3252,29 +3189,13 @@ function renderShop(){
       } else {
         costLabel = `<button class="wActBtn equip" id="equipKnifeBtn">EQUIP IN SLOT 1</button>`;
       }
-    } else if(isBlood){
-      if(!bloodPistolUnlocked){
-        costLabel = `<span class="wActBtn" style="display:block;opacity:.6;cursor:not-allowed">🔒 CRATE ONLY</span>`;
+    } else if(isEnergy){
+      if(!energyRifleUnlocked){
+        costLabel = `<button class="wActBtn unlock" id="buyEnergyRifleBtn" ${gold>=ENERGY_RIFLE_GOLD_COST?'':'disabled'}>◆ UNLOCK — ${ENERGY_RIFLE_GOLD_COST} GOLD</button>`;
       } else if(isEquippedCard){
-        costLabel = `<span class="wActBtn equipped-lbl" style="display:block;color:var(--blood);border-color:#6a1414">✓ EQUIPPED IN SLOT 1</span>`;
+        costLabel = `<span class="wActBtn equipped-lbl" style="display:block;color:var(--legend);border-color:#8a6a20">✓ EQUIPPED IN SLOT 3 · $${ENERGY_RIFLE_CASH_COST} mid-run</span>`;
       } else {
-        costLabel = `<button class="wActBtn equip" id="equipBloodBtn">EQUIP IN SLOT 1</button>`;
-      }
-    } else if(isBloodSmg){
-      if(!bloodSmgUnlocked){
-        costLabel = `<span class="wActBtn" style="display:block;opacity:.6;cursor:not-allowed">🔒 CRATE ONLY</span>`;
-      } else if(isEquippedCard){
-        costLabel = `<span class="wActBtn equipped-lbl" style="display:block;color:var(--blood);border-color:#6a1414">✓ EQUIPPED IN SLOT 2 · $${BLOOD_SMG_CASH_COST} mid-run</span>`;
-      } else {
-        costLabel = `<button class="wActBtn equip" id="equipBloodSmgBtn">EQUIP IN SLOT 2</button>`;
-      }
-    } else if(isBloodStaff){
-      if(!bloodStaffUnlocked){
-        costLabel = `<span class="wActBtn" style="display:block;opacity:.6;cursor:not-allowed">🔒 CRATE ONLY</span>`;
-      } else if(isEquippedCard){
-        costLabel = `<span class="wActBtn equipped-lbl" style="display:block;color:var(--blood);border-color:#6a1414">✓ EQUIPPED IN SLOT 3 · $${BLOOD_STAFF_CASH_COST} mid-run</span>`;
-      } else {
-        costLabel = `<button class="wActBtn equip" id="equipBloodStaffBtn">EQUIP IN SLOT 3</button>`;
+        costLabel = `<button class="wActBtn equip" id="equipEnergyRifleBtn">EQUIP IN SLOT 3</button>`;
       }
     } else if(isFlamethrower){
       if(!flamethrowerUnlocked){
@@ -3296,11 +3217,11 @@ function renderShop(){
          <div><span class="statVal">${Math.round(1000/upgraded.fireRate)}/s</span>RATE<br><span class="statGain">${pctDown(s.rate)} cd/★</span></div>
          <div><span class="statVal">${upgraded.chainRange||wt.chainRange}px</span>CHAIN<br><span class="statGain">+${Math.round((s.chain||1.15)-1)*100}%/★</span></div>
          <div><span class="statVal">${upgraded.range}</span>RANGE<br><span class="statGain">${pct(s.range)}/★</span></div>`
-      : isBloodStaff
+      : isEnergy
       ? `<div><span class="statVal">${upgraded.dmg}</span>DMG<br><span class="statGain">${pct(s.dmg)}/★</span></div>
          <div><span class="statVal">${Math.round(1000/upgraded.fireRate)}/s</span>RATE<br><span class="statGain">${pctDown(s.rate)} cd/★</span></div>
-         <div><span class="statVal">${upgraded.burstDmg}</span>BURST<br><span class="statGain">+${Math.round(((s.burst||1.18)-1)*100)}%/★</span></div>
-         <div><span class="statVal">15</span>MAX CHG<br><span class="statGain">x${wt.healMult} HEAL</span></div>`
+         <div><span class="statVal">${upgraded.range}</span>RANGE<br><span class="statGain">${pct(s.range)}/★</span></div>
+         <div><span class="statVal">x${wt.pierceCount||4}</span>PIERCE<br><span class="statGain">through foes</span></div>`
       : isKnife
       ? `<div><span class="statVal">${upgraded.dmg}</span>DMG<br><span class="statGain">${pct(s.dmg)}/★</span></div>
          <div><span class="statVal">${Math.round(1000/upgraded.fireRate)}/s</span>RATE<br><span class="statGain">${pctDown(s.rate)} cd/★</span></div>
@@ -3320,11 +3241,9 @@ function renderShop(){
       `<span class="star ${i<stars?'filled':'empty'}">★</span>`).join('');
 
     const isLocked = (isTesla && !teslaUnlocked)
-                   || (isBlood && !bloodPistolUnlocked)
-                   || (isBloodSmg && !bloodSmgUnlocked)
-                   || (isBloodStaff && !bloodStaffUnlocked)
                    || (isKnife && !knifeUnlocked)
-                   || (isFlamethrower && !flamethrowerUnlocked);
+                   || (isFlamethrower && !flamethrowerUnlocked)
+                   || (isEnergy && !energyRifleUnlocked);
 
     let upgradeHtml = '';
     if(isLocked){
@@ -3339,18 +3258,18 @@ function renderShop(){
     }
 
     // Rarity label — display only, doesn't affect cost/upgrade mechanics
-    const rarityLabel = isTesla ? '<span style="color:var(--epic);font-size:8px;letter-spacing:2px">⬡ EPIC</span>'
-                      : (isBlood||isBloodSmg||isBloodStaff) ? '<span style="color:var(--blood);font-size:8px;letter-spacing:2px">⬡ EXCLUSIVE</span>'
-                      : isKnife ? '<span style="color:#4fa3e0;font-size:8px;letter-spacing:2px">⬡ RARE</span>'
-                      : isFlamethrower ? '<span style="color:#4fa37a;font-size:8px;letter-spacing:2px">⬡ UNCOMMON</span>'
-                      : '<span style="font-size:8px;letter-spacing:2px;color:#5c6650">⬡ COMMON</span>';
+    const rarityLabel = isTesla ? '<span style="color:var(--epic);font-size:9px;letter-spacing:2px">⬡ EPIC</span>'
+                      : isEnergy ? '<span style="color:var(--legend);font-size:9px;letter-spacing:2px">⬡ LEGENDARY</span>'
+                      : isKnife ? '<span style="color:#4fa3e0;font-size:9px;letter-spacing:2px">⬡ RARE</span>'
+                      : isFlamethrower ? '<span style="color:#4fa37a;font-size:9px;letter-spacing:2px">⬡ UNCOMMON</span>'
+                      : '<span style="font-size:9px;letter-spacing:2px;color:#5c6650">⬡ COMMON</span>';
 
     const card=document.createElement('div');
-    card.className='wCard'+(isTesla?' tesla-card':'')+((isBlood||isBloodSmg||isBloodStaff)?' blood-card':'')+(isKnife?' knife-card':'')+(isEquippedCard?' equipped':'');
+    card.className='wCard'+(isTesla?' tesla-card':'')+(isEnergy?' energy-card':'')+(isKnife?' knife-card':'')+(isEquippedCard?' equipped':'');
     card.innerHTML=`
       ${isEquippedCard?'<div class="wEquipTag">EQUIPPED</div>':''}
       <div class="wIcon">${wt.icon}</div>
-      <div class="wName" style="${isTesla?'color:var(--epic)':((isBlood||isBloodSmg||isBloodStaff)?'color:var(--blood)':isKnife?'color:#4fa3e0':isFlamethrower?'color:#ff6a2e':'color:'+wt.color)}">${wt.name}</div>
+      <div class="wName" style="${isTesla?'color:var(--epic)':isEnergy?'color:var(--legend)':isKnife?'color:#4fa3e0':isFlamethrower?'color:#ff6a2e':'color:'+wt.color}">${wt.name}</div>
       <div class="wWeight">${rarityLabel}</div>
       <div class="wDesc">${wt.desc}</div>
       <div class="wStats">${statCols}</div>
@@ -3367,11 +3286,9 @@ function renderShop(){
       const wIdx = +btn.dataset.widx;
       const wt = WEAPONS[wIdx];
       const locked = (wt.type==='tesla' && !teslaUnlocked)
-                   || (wt.exclusive==='blood' && !bloodPistolUnlocked)
-                   || (wt.exclusive==='bloodsmg' && !bloodSmgUnlocked)
-                   || (wt.exclusive==='bloodstaff' && !bloodStaffUnlocked)
                    || (wt.type==='knife' && !knifeUnlocked)
-                   || (wt.type==='flame' && !flamethrowerUnlocked);
+                   || (wt.type==='flame' && !flamethrowerUnlocked)
+                   || (wt.name==='Energy Rifle' && !energyRifleUnlocked);
       if(locked) return;
       const stars = getStars(wIdx);
       if(stars >= MAX_STARS) return;
@@ -3393,14 +3310,22 @@ function renderShop(){
       renderShop();
     });
   }
-  // Blood Pistol/SMG/Staff are crate-only now — no direct buy buttons/handlers
-
   const buyKnifeBtn=document.getElementById('buyKnifeBtn');
   if(buyKnifeBtn){
     buyKnifeBtn.addEventListener('click',()=>{
       if(gold<KNIFE_GOLD_COST) return;
       gold-=KNIFE_GOLD_COST; saveGold(gold);
       knifeUnlocked=true; saveKnifeUnlocked(knifeUnlocked);
+      renderShop();
+    });
+  }
+
+  const buyEnergyRifleBtn=document.getElementById('buyEnergyRifleBtn');
+  if(buyEnergyRifleBtn){
+    buyEnergyRifleBtn.addEventListener('click',()=>{
+      if(gold<ENERGY_RIFLE_GOLD_COST) return;
+      gold-=ENERGY_RIFLE_GOLD_COST; saveGold(gold);
+      energyRifleUnlocked=true; saveEnergyRifleUnlocked(energyRifleUnlocked);
       renderShop();
     });
   }
@@ -3413,27 +3338,19 @@ function renderShop(){
   if(equipKnifeBtn) equipKnifeBtn.addEventListener('click',()=>{
     equippedSpecial='knife'; saveEquippedSpecial(equippedSpecial); renderShop();
   });
-  const equipBloodBtn=document.getElementById('equipBloodBtn');
-  if(equipBloodBtn) equipBloodBtn.addEventListener('click',()=>{
-    equippedSpecial='blood'; saveEquippedSpecial(equippedSpecial); renderShop();
-  });
   const equipPistolBtn=document.getElementById('equipPistolBtn');
   if(equipPistolBtn) equipPistolBtn.addEventListener('click',()=>{
     equippedSpecial='none'; saveEquippedSpecial(equippedSpecial); renderShop();
   });
 
-  const equipBloodSmgBtn=document.getElementById('equipBloodSmgBtn');
-  if(equipBloodSmgBtn) equipBloodSmgBtn.addEventListener('click',()=>{
-    equippedSlot2='bloodsmg'; saveEquippedSlot2(equippedSlot2); renderShop();
-  });
   const equipShotgunBtn=document.getElementById('equipShotgunBtn');
   if(equipShotgunBtn) equipShotgunBtn.addEventListener('click',()=>{
-    equippedSlot2='none'; saveEquippedSlot2(equippedSlot2); renderShop();
+    renderShop();
   });
 
-  const equipBloodStaffBtn=document.getElementById('equipBloodStaffBtn');
-  if(equipBloodStaffBtn) equipBloodStaffBtn.addEventListener('click',()=>{
-    equippedSlot3='bloodstaff'; saveEquippedSlot3(equippedSlot3); renderShop();
+  const equipEnergyRifleBtn=document.getElementById('equipEnergyRifleBtn');
+  if(equipEnergyRifleBtn) equipEnergyRifleBtn.addEventListener('click',()=>{
+    equippedSlot3='energy'; saveEquippedSlot3(equippedSlot3); renderShop();
   });
   const equipRifleBtn=document.getElementById('equipRifleBtn');
   if(equipRifleBtn) equipRifleBtn.addEventListener('click',()=>{
@@ -3477,8 +3394,8 @@ function renderDifficulty(){
   if(note){
     const pct=v=>Math.round((v-1)*100);
     note.innerHTML = difficulty==='normal'
-      ? 'Standard threat, standard Blood Coin drops.'
-      : `Zombies: +${pct(d.hpMult)}% HP · +${pct(d.speedMult)}% speed · +${pct(d.spawnMult)}% spawn rate &nbsp;|&nbsp; Blood Coin drops: ${d.dropMult}×`;
+      ? 'Standard threat level.'
+      : `Zombies: +${pct(d.hpMult)}% HP · +${pct(d.speedMult)}% speed · +${pct(d.spawnMult)}% spawn rate`;
   }
 }
 document.getElementById('diffRow').addEventListener('click', e=>{
@@ -3572,150 +3489,6 @@ document.getElementById('clsGrid').addEventListener('click', e=>{
 renderClasses();
 
 // ── Blood Crate UI ──────────────────────────────────────
-function renderBloodCrate(){
-  const wrap = document.getElementById('crateWrap');
-  if(!wrap) return;
-  const affordable = bloodCoin >= CRATE_COST;
-  wrap.innerHTML = `
-    <div class="crateCard">
-      <div class="crateIcon">🎁</div>
-      <div class="crateBody">
-        <div class="crateTitle">BLOOD CRATE</div>
-        <div class="crateOdds">
-          <b>20%</b> Blood Pistol &nbsp;·&nbsp; <b>5%</b> Blood SMG &nbsp;·&nbsp; <b>1%</b> Blood Staff<br>
-          <b>74%</b> a Gold payout (${CRATE_GOLD_MIN}–${CRATE_GOLD_MAX}) &nbsp;·&nbsp; duplicates always convert to Gold
-        </div>
-        <div class="crateBtnRow">
-          <button class="crateOpenBtn" id="openCrateBtn" ${affordable?'':'disabled'}>OPEN — ${CRATE_COST} 🩸</button>
-          <span class="crateBalance">You have <b style="color:var(--bone)">${bloodCoin}</b> 🩸 Blood Coin</span>
-        </div>
-      </div>
-    </div>
-  `;
-  const btn = document.getElementById('openCrateBtn');
-  if(btn) btn.addEventListener('click', openBloodCrate);
-}
-
-const CRATE_ITEM_W = 84;   // must match .crateReelItem width in CSS
-const CRATE_TARGET_INDEX = 26; // where the winning item sits in the generated reel
-
-function buildCrateReelHtml(items, winIndex){
-  return items.map((it,i)=>`
-    <div class="crateReelItem${i===winIndex?' winner':''}">
-      <div class="riIcon" style="${i===winIndex?`filter:drop-shadow(0 0 10px ${it.color})`:''}">${it.icon}</div>
-      <div class="riLabel" style="${i===winIndex?`color:${it.color}`:''}">${it.label}</div>
-    </div>
-  `).join('');
-}
-
-function openBloodCrate(){
-  if(bloodCoin < CRATE_COST) return;
-  bloodCoin -= CRATE_COST; saveBloodCoin(bloodCoin);
-  document.getElementById('bloodTxt').textContent=bloodCoin;
-
-  const result = rollBloodCrate();
-  // Map the roll onto a reel-display item (gold gets its rolled amount baked into the label)
-  let winItem;
-  if(result.prize==='gold'){
-    const base = CRATE_REEL_POOL.find(it=>it.key==='gold');
-    winItem = { ...base, label:`+${result.amt} GOLD` };
-  } else {
-    winItem = CRATE_REEL_POOL.find(it=>it.key===result.prize);
-  }
-
-  // Build a long filler reel, then drop the actual result in at the fixed target index
-  // so the animation can scroll to a known stopping point.
-  const items = [];
-  for(let i=0;i<32;i++) items.push(pickWeightedFillerItem());
-  items[CRATE_TARGET_INDEX] = winItem;
-
-  // ── Overlay ──
-  const overlay = document.createElement('div');
-  overlay.className = 'crateReelOverlay';
-  overlay.innerHTML = `
-    <div class="crateReelBox">
-      <div class="crateReelTitle">🎁 OPENING BLOOD CRATE…</div>
-      <div class="crateReelOddsRow">
-        ${CRATE_REEL_POOL.map(it=>`
-          <div class="oddItem">
-            <span class="oddIcon">${it.icon}</span>
-            <span class="oddPct" style="color:${it.color}">${it.pct}</span>
-          </div>`).join('')}
-      </div>
-      <div class="crateReelViewport" id="crateReelViewport">
-        <div class="crateReelPointer"></div>
-        <div class="crateReelStrip" id="crateReelStrip">${buildCrateReelHtml(items, CRATE_TARGET_INDEX)}</div>
-      </div>
-      <div class="crateReelResult" id="crateReelResult">&nbsp;</div>
-      <div class="crateReelBtnRow">
-        <button class="crateReelSkipBtn" id="crateReelSkipBtn">SKIP ▶▶</button>
-        <button class="crateReelCloseBtn" id="crateReelCloseBtn">CONTINUE</button>
-      </div>
-    </div>
-  `;
-  document.body.appendChild(overlay);
-
-  const viewport = document.getElementById('crateReelViewport');
-  const strip = document.getElementById('crateReelStrip');
-  const vw = viewport.getBoundingClientRect().width;
-  const targetOffset = CRATE_TARGET_INDEX*CRATE_ITEM_W + CRATE_ITEM_W/2 - vw/2;
-
-  // Start at 0, force a layout, then animate to the target with a slot-machine ease-out.
-  strip.style.transform = 'translateX(0px)';
-  // eslint-disable-next-line no-unused-expressions
-  strip.getBoundingClientRect(); // force reflow before enabling the transition
-  strip.style.transition = 'transform 3.4s cubic-bezier(0.12,0.85,0.15,1)';
-  requestAnimationFrame(()=>{
-    strip.style.transform = `translateX(-${targetOffset}px)`;
-  });
-
-  let finished = false;
-  function finishReel(){
-    if(finished) return;
-    finished = true;
-    clearTimeout(finishTimer);
-    // Snap the strip straight to its landing spot in case Skip was hit mid-spin
-    strip.style.transition = 'none';
-    strip.style.transform = `translateX(-${targetOffset}px)`;
-
-    // Apply the actual reward now that the reel has (visually) landed on it
-    let msg, color;
-    if(result.prize==='bloodPistol'){
-      bloodPistolUnlocked=true; saveBloodPistolUnlocked(bloodPistolUnlocked);
-      msg='🎉 YOU GOT THE BLOOD PISTOL!'; color='var(--blood)';
-    } else if(result.prize==='bloodSmg'){
-      bloodSmgUnlocked=true; saveBloodSmgUnlocked(bloodSmgUnlocked);
-      msg='🎉 YOU GOT THE BLOOD SMG!'; color='var(--blood)';
-    } else if(result.prize==='bloodStaff'){
-      bloodStaffUnlocked=true; saveBloodStaffUnlocked(bloodStaffUnlocked);
-      msg='🎉 YOU GOT THE BLOOD STAFF!'; color='var(--blood)';
-    } else {
-      gold += result.amt; saveGold(gold);
-      document.getElementById('goldTxt').textContent=gold;
-      msg=`💰 +${result.amt} GOLD`; color='#f0c94a';
-    }
-    const resEl=document.getElementById('crateReelResult');
-    if(resEl){ resEl.textContent=msg; resEl.style.color=color; resEl.style.textShadow=`0 0 10px ${color}88`; }
-    const skipBtn=document.getElementById('crateReelSkipBtn');
-    if(skipBtn) skipBtn.classList.add('hide');
-    const closeBtn=document.getElementById('crateReelCloseBtn');
-    if(closeBtn) closeBtn.classList.add('show');
-
-    renderBloodCrate();
-    renderShop(); // refresh weapon cards in case a blood weapon just unlocked
-  }
-
-  const finishTimer = setTimeout(finishReel, 3500);
-  document.getElementById('crateReelSkipBtn').addEventListener('click', finishReel);
-
-  document.getElementById('crateReelCloseBtn').addEventListener('click', ()=>{
-    overlay.remove();
-  });
-}
-renderBloodCrate();
-
-renderShop();
-
 // ══════════════════════════════════════════════════════════════════════
 // MULTIPLAYER — lobby (room browser), room (waiting area), and the
 // in-match networking layer (presence sync + host-authoritative zombies).
