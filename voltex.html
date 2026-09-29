@@ -137,6 +137,18 @@
   #nameInput:focus { border-color: #7ee8fa; background: rgba(255,255,255,0.13); }
   #nameInput::placeholder { color: rgba(255,255,255,0.45); }
 
+  #authChoice, #authUser { margin-top: 16px; display: flex; flex-direction: column; align-items: center; gap: 10px; }
+  .authBtn { display: flex; align-items: center; justify-content: center; gap: 10px; width: 260px; padding: 12px 18px; font-size: 15px; font-weight: 700; border-radius: 10px; cursor: pointer; border: 1px solid transparent; transition: transform 0.12s, box-shadow 0.12s, background 0.15s; }
+  .authBtn:hover { transform: translateY(-1px); }
+  #googleBtn { background: #fff; color: #1f1f1f; box-shadow: 0 4px 14px rgba(0,0,0,0.3); }
+  #googleBtn:hover { box-shadow: 0 6px 18px rgba(0,0,0,0.4); }
+  #guestBtn { background: rgba(255,255,255,0.08); color: #fff; border-color: rgba(255,255,255,0.25); }
+  #guestBtn:hover { background: rgba(255,255,255,0.14); }
+  #authUser { flex-direction: row; justify-content: center; gap: 10px; background: rgba(255,255,255,0.07); border-radius: 10px; padding: 8px 14px; font-size: 13px; }
+  #authUser img { width: 28px; height: 28px; border-radius: 50%; }
+  .linkBtn { background: none; border: none; color: #7ee8fa; cursor: pointer; font-size: 12px; text-decoration: underline; padding: 2px 4px; }
+  #authMsg { margin-top: 8px; font-size: 12px; color: #ff9d9d; min-height: 0; }
+  #playSection { display: none; }
   #connStatus { margin-top: 10px; font-size: 12px; opacity: 0.75; display: flex; align-items: center; justify-content: center; gap: 8px; }
   .connDot { width: 8px; height: 8px; border-radius: 50%; background: #ffd54a; box-shadow: 0 0 8px #ffd54a; animation: pulse 1.2s infinite ease-in-out; }
   .connDot.ready { background: #5ce87a; box-shadow: 0 0 8px #5ce87a; animation: none; }
@@ -332,11 +344,20 @@
     <p>A tiny Minecraft-style voxel sandbox with textured blocks, water, trees, and a day/night cycle.</p>
     <p class="kbd-line"><b>WASD</b> move · <b>Space</b> jump · <b>Mouse</b> look · <b>Left Click</b> break/mine · <b>Right Click</b> place · <b>1-9</b> select block · <b>E</b> inventory · <b>Esc</b> release mouse</p>
     <p>🌐 This is one shared multiplayer world — everyone who opens this page joins the same server and sees the same blocks and players in real time.</p>
+    <div id="authChoice">
+      <button class="authBtn" id="googleBtn"><svg width="18" height="18" viewBox="0 0 48 48"><path fill="#EA4335" d="M24 9.5c3.5 0 6.6 1.2 9.1 3.6l6.8-6.8C35.8 2.4 30.3 0 24 0 14.6 0 6.5 5.4 2.6 13.2l7.9 6.1C12.4 13.6 17.7 9.5 24 9.5z"/><path fill="#4285F4" d="M46.5 24.5c0-1.6-.1-3.1-.4-4.5H24v9h12.7c-.6 3-2.3 5.5-4.8 7.2l7.6 5.9c4.4-4.1 7-10.1 7-17.6z"/><path fill="#FBBC05" d="M10.5 28.7c-.5-1.4-.8-3-.8-4.7s.3-3.2.8-4.7l-7.9-6.1C.9 16.4 0 20.1 0 24s.9 7.6 2.6 10.8l7.9-6.1z"/><path fill="#34A853" d="M24 48c6.5 0 11.9-2.1 15.9-5.8l-7.6-5.9c-2.1 1.4-4.9 2.3-8.3 2.3-6.3 0-11.6-4.1-13.5-9.8l-7.9 6.1C6.5 42.6 14.6 48 24 48z"/></svg>Sign in with Google</button>
+      <button class="authBtn" id="guestBtn">Play as Guest</button>
+    </div>
+    <div id="authMsg"></div>
+    <div id="playSection">
+    <div id="authUser" style="display:none"><img id="authAvatar" alt=""><span id="authLabel"></span><button class="linkBtn" id="signOutBtn">Sign out</button></div>
+    <div id="guestNote" style="margin-top:12px;font-size:12px;opacity:.8">Guest progress is saved on this device only. <button class="linkBtn" id="guestGoogleLink">Sign in with Google</button> <button class="linkBtn" id="guestBackLink" style="display:none">Back</button></div>
     <input id="nameInput" maxlength="16" placeholder="Your name">
     <div id="loadBarWrap"><div id="loadBarFill"></div></div>
     <div id="connStatus"><span class="connDot" id="connDot"></span><span id="connText">Connecting to server…</span></div>
     <button id="startBtn" disabled>Start Game</button><br>
     <button id="resetBtn">Reset My Local Data</button>
+    </div>
   </div>
 </div>
 
@@ -860,7 +881,7 @@ ITEM_STYLE.trapdoor = { g: 'trapdoor', bg: '#a9773f', x: '#d9a866', s: '#f0d98a'
 // Hand-drawn 16x16 grids; letters index a per-item palette (a=light, b=mid,
 // c=dark, h/H=handle dark/light, l=leaf). Items render as outlined flat
 // sprites (like Minecraft) instead of a cube with a backing tile.
-const SPRITE_GRIDS = {"sword": [".............ooo", "............obao", "...........obabo", "..........obabo.", ".........obabo..", "........obabo...", "..oo...ocabo....", "..oCo.ocaco.....", "...oCocbco......", "...oCCCco.......", "....oCoo........", "...CBoooo.......", "..CAo.oooo......", "ooBo....oo......", "oCo.............", "ooo............."], "pickaxe": ["................", "................", ".....oooooooooo.", ".....oaaaaabbbo.", ".....obbbbbccco.", ".....ooooooobco.", ".........oBoabo.", "........oBooabo.", ".......oAo.oabo.", "......oBo..oabo.", ".....oAo...oabo.", "....oBo....oooo.", "...oAo..........", "..oBo...........", "..oo............", "................"], "axe": ["................", "........aaa.....", "........abbaa...", "........abbbba..", "........abbbbba.", "........cbbbbba.", "........ccbbba..", "........hcccaa..", "........hH......", ".......hH.......", "......hH........", ".....hH.........", "....hH..........", "...hH...........", "..hH............", "................"], "shovel": ["............aa..", "..........aaaaa.", ".........aaabbac", ".........aabbbcc", "........aabbbcc.", "........abbbccc.", "........bhbccc..", "........hbcc....", ".......hH.......", "......hH........", ".....hH.........", "....hH..........", "...hH...........", "..hH............", ".hH.............", "................"], "stick": ["................", "................", ".............hH.", "............hH..", "...........hH...", "..........hH....", ".........hH.....", "........hH......", ".......hH.......", "......hH........", ".....hH.........", "....hH..........", "...hH...........", "..hH............", "................", "................"], "ingot": ["................", "................", "................", "......aaaaaaaa..", "....aaaaaaaaab..", "...abbbbbbbbbb..", "...abbbbbbbbc...", "...abbbbbbbcc...", "...acccccccc....", "................", "................", "................", "................", "................", "................", "................"], "coal": ["................", "................", "................", ".......aa.......", ".....aaabbb.....", "....aaaabbbb....", "...aaabbbbbbb...", "...aabbbbbbbb...", "...abbbbbbbbc...", "...bbbbbbbbcc...", "...bbbbbbbccc...", "....bbbbbccc....", ".....bbbccc.....", ".......cc.......", "................", "................"], "apple": ["................", "................", "................", ".........lll....", "........h.l.....", "........h.......", ".....aabcbbb....", "....aaabbbbbb...", "....aaabbbbbb...", "....bbbbbbbbb...", "....bbbbbbbbb...", "....bbbbbbccc...", "....bbbbbbccc...", ".....bbbbbcc....", "................", "................"]};
+const SPRITE_GRIDS = {"sword": [".............ooo", "............obao", "...........obabo", "..........obabo.", ".........obabo..", "........obabo...", "..oo...ocabo....", "..oCo.ocaco.....", "...oCocbco......", "...oCCCco.......", "....oCoo........", "...CBoooo.......", "..CAo.oooo......", "ooBo....oo......", "oCo.............", "ooo............."], "pickaxe": ["................", "................", ".....oooooooooo.", ".....oaaaaabbbo.", ".....obbbbbccco.", ".....ooooooobco.", ".........oBoabo.", "........oBooabo.", ".......oAo.oabo.", "......oBo..oabo.", ".....oAo...oabo.", "....oBo....oooo.", "...oAo..........", "..oBo...........", "..oo............", "................"], "axe": ["................", ".........oooo...", "........oaaabo..", "....ooooaabbbbo.", "...oaaaabbbbbbco", "...oaabbbbbbbcco", "....obbbbbbbcco.", ".....obbbbbccoo.", ".....oABoocco...", "....oABo........", "...oABo.........", "..oABo..........", ".oABo...........", "oABo............", "oBo.............", "ooo............."], "shovel": ["............aa..", "..........aaaaa.", ".........aaabbac", ".........aabbbcc", "........aabbbcc.", "........abbbccc.", "........bhbccc..", "........hbcc....", ".......hH.......", "......hH........", ".....hH.........", "....hH..........", "...hH...........", "..hH............", ".hH.............", "................"], "stick": ["................", "................", ".............hH.", "............hH..", "...........hH...", "..........hH....", ".........hH.....", "........hH......", ".......hH.......", "......hH........", ".....hH.........", "....hH..........", "...hH...........", "..hH............", "................", "................"], "ingot": ["................", "................", "................", "......aaaaaaaa..", "....aaaaaaaaab..", "...abbbbbbbbbb..", "...abbbbbbbbc...", "...abbbbbbbcc...", "...acccccccc....", "................", "................", "................", "................", "................", "................", "................"], "coal": ["................", "................", "................", ".......aa.......", ".....aaabbb.....", "....aaaabbbb....", "...aaabbbbbbb...", "...aabbbbbbbb...", "...abbbbbbbbc...", "...bbbbbbbbcc...", "...bbbbbbbccc...", "....bbbbbccc....", ".....bbbccc.....", ".......cc.......", "................", "................"], "apple": ["................", "................", "................", ".........lll....", "........h.l.....", "........h.......", ".....aabcbbb....", "....aaabbbbbb...", "....aaabbbbbb...", "....bbbbbbbbb...", "....bbbbbbbbb...", "....bbbbbbccc...", "....bbbbbbccc...", ".....bbbbbcc....", "................", "................"]};
 const SPRITE_MAT = {
   wood:  { a:'#a07a30', b:'#82622a', c:'#5e4820' },
   stone: { a:'#bdbdbd', b:'#909090', c:'#666666' },
@@ -1084,7 +1105,7 @@ const RECIPES = [
   // No wool block in Voltex, so leaves stand in for the blanket row.
   { shape: [['leaves','leaves','leaves'],['planks','planks','planks']], out: 'bed', outCount: 1, needsTable: true },
   // TNT: coal (stands in for gunpowder) + sand, checkerboard like Minecraft's 5+4.
-  { shape: [['coal','sand','coal'],['sand','coal','sand'],['coal','sand','coal']], out: 'tnt', outCount: 1, needsTable: true },
+  { shape: [['coal','sand','coal'],['sand','coal','sand'],['coal','sand','coal']], out: 'tnt', outCount: 3, needsTable: true },
   // Stairs (both mirror images), door, trapdoor — same shapes as Minecraft.
   { shape: [['planks',null,null],['planks','planks',null],['planks','planks','planks']], out: 'stairs', outCount: 4, needsTable: true },
   { shape: [[null,null,'planks'],[null,'planks','planks'],['planks','planks','planks']], out: 'stairs', outCount: 4, needsTable: true },
@@ -2188,32 +2209,53 @@ function updateSaplingGrowth(dt) {
 // Supabase (table `world_blocks`), not in this browser. Only this player's
 // personal stuff (position, inventory, chosen block) is kept locally so a
 // refresh drops you back where you were.
-const SAVE_KEY = 'voltex_save_v2';
+const GUEST_SAVE_KEY = 'voltex_save_v2';
+let SAVE_KEY = GUEST_SAVE_KEY; // switches to a per-account key once a Google session is found
 const CHEST_SAVE_KEY = 'voltex_chests_v1'; // chest contents, keyed by block position — local to this device/browser, same as the rest of the local save (world_blocks itself has no per-block inventory column)
+function snapshotSave() {
+  return {
+    playerPos: [player.pos.x, player.pos.y, player.pos.z],
+    inventory,
+    currentSlot,
+    hp: player.hp,
+    name: MY_NAME,
+    respawnPoint,
+    ts: Date.now()
+  };
+}
 function saveLocalPlayer() {
-  try {
-    localStorage.setItem(SAVE_KEY, JSON.stringify({
-      playerPos: [player.pos.x, player.pos.y, player.pos.z],
-      inventory,
-      currentSlot,
-      hp: player.hp,
-      name: MY_NAME,
-      respawnPoint
-    }));
-  } catch(e) { /* storage may be unavailable; fail silently */ }
+  try { localStorage.setItem(SAVE_KEY, JSON.stringify(snapshotSave())); } catch(e) { /* storage may be unavailable; fail silently */ }
+  scheduleCloudSave();
+}
+function applySaveData(data) {
+  if (data.playerPos) player.pos.set(data.playerPos[0], data.playerPos[1], data.playerPos[2]);
+  if (Array.isArray(data.inventory)) inventory = data.inventory;
+  if (Number.isInteger(data.currentSlot)) currentSlot = data.currentSlot;
+  if (typeof data.hp === 'number') player.hp = Math.max(1, Math.min(player.maxHp, data.hp));
+  if (data.respawnPoint && typeof data.respawnPoint.x === 'number') respawnPoint = data.respawnPoint;
 }
 function loadLocalPlayer() {
   try {
     const raw = localStorage.getItem(SAVE_KEY);
     if (!raw) return false;
-    const data = JSON.parse(raw);
-    if (data.playerPos) player.pos.set(data.playerPos[0], data.playerPos[1], data.playerPos[2]);
-    if (Array.isArray(data.inventory)) inventory = data.inventory;
-    if (Number.isInteger(data.currentSlot)) currentSlot = data.currentSlot;
-    if (typeof data.hp === 'number') player.hp = Math.max(1, Math.min(player.maxHp, data.hp));
-    if (data.respawnPoint && typeof data.respawnPoint.x === 'number') respawnPoint = data.respawnPoint;
+    applySaveData(JSON.parse(raw));
     return true;
   } catch(e) { return false; }
+}
+// ---- optional cloud copy of a signed-in player's save (follows them across devices) ----
+// Needs the `voltex_saves` table (see setup SQL); if it doesn't exist the game just
+// keeps using the per-account local save and never complains.
+let authUser = null, cloudSaveOk = true, cloudSaveTimer = null;
+function scheduleCloudSave() {
+  if (!authUser || !cloudSaveOk || cloudSaveTimer) return;
+  cloudSaveTimer = setTimeout(async () => {
+    cloudSaveTimer = null;
+    if (!authUser || !cloudSaveOk) return;
+    try {
+      const { error } = await sb.from('voltex_saves').upsert({ user_id: authUser.id, data: snapshotSave(), updated_at: new Date().toISOString() });
+      if (error) { cloudSaveOk = false; console.warn('Cloud save unavailable, using local save only:', error.message); }
+    } catch (e) { cloudSaveOk = false; }
+  }, 15000);
 }
 // Just the saved name, read early (before the rest of loadLocalPlayer's
 // dependencies — player object, inventory, etc. — are ready) so the name
@@ -4187,6 +4229,93 @@ function startGame() {
   saveLocalPlayer(); // remember the name (and everything else) for next time
 }
 document.getElementById('startBtn').addEventListener('click', startGame);
+
+// ================= Sign-in: Google account or guest =================
+const authChoiceEl = document.getElementById('authChoice'), playSectionEl = document.getElementById('playSection');
+const authUserEl = document.getElementById('authUser'), guestNoteEl = document.getElementById('guestNote');
+const authMsgEl = document.getElementById('authMsg');
+const MODE_KEY = 'voltex_auth_mode';
+function showPlaySection(signedIn) {
+  authChoiceEl.style.display = 'none';
+  playSectionEl.style.display = 'block';
+  authUserEl.style.display = signedIn ? 'flex' : 'none';
+  guestNoteEl.style.display = signedIn ? 'none' : 'block';
+}
+function showChooser() {
+  authChoiceEl.style.display = 'flex';
+  playSectionEl.style.display = 'none';
+}
+async function signInWithGoogle() {
+  authMsgEl.textContent = '';
+  try {
+    try { localStorage.removeItem(MODE_KEY); } catch(e) {}
+    saveLocalPlayer();
+    const { error } = await sb.auth.signInWithOAuth({ provider: 'google', options: { redirectTo: location.origin + location.pathname } });
+    if (error) authMsgEl.textContent = 'Google sign-in failed: ' + error.message;
+  } catch (e) { authMsgEl.textContent = 'Google sign-in failed: ' + (e && e.message || e); }
+}
+document.getElementById('googleBtn').addEventListener('click', signInWithGoogle);
+document.getElementById('guestGoogleLink').addEventListener('click', signInWithGoogle);
+document.getElementById('guestBtn').addEventListener('click', () => {
+  try { localStorage.setItem(MODE_KEY, 'guest'); } catch(e) {}
+  showPlaySection(false);
+  document.getElementById('guestBackLink').style.display = 'inline';
+});
+document.getElementById('guestBackLink').addEventListener('click', () => {
+  try { localStorage.removeItem(MODE_KEY); } catch(e) {}
+  showChooser();
+});
+document.getElementById('signOutBtn').addEventListener('click', async () => {
+  try { saveLocalPlayer(); await sb.auth.signOut(); } catch(e) {}
+  try { localStorage.removeItem(MODE_KEY); } catch(e) {}
+  location.reload();
+});
+
+async function applyAuthUser(user) {
+  if (authUser && authUser.id === user.id) return;
+  authUser = user;
+  if (!gameStarted) {
+    const meta = user.user_metadata || {};
+    const googleName = String(meta.full_name || meta.name || (user.email || '').split('@')[0] || '').trim().slice(0, 16);
+    SAVE_KEY = GUEST_SAVE_KEY + '_' + user.id;
+    let local = null, cloud = null;
+    try { const raw = localStorage.getItem(SAVE_KEY); if (raw) local = JSON.parse(raw); } catch(e) {}
+    try {
+      const { data, error } = await sb.from('voltex_saves').select('data').eq('user_id', user.id).maybeSingle();
+      if (error) { cloudSaveOk = false; } else if (data && data.data) cloud = data.data;
+    } catch (e) { cloudSaveOk = false; }
+    const best = (cloud && (!local || (cloud.ts || 0) > (local.ts || 0))) ? cloud : local;
+    if (best) applySaveData(best);
+    else {                                   // brand-new account: clean slate (don't inherit a guest's stuff)
+      inventory = new Array(INV_SIZE).fill(null); currentSlot = 1; respawnPoint = null; respawnPlayer();
+    }
+    MY_NAME = ((best && best.name) || googleName || MY_NAME).slice(0, 16);
+    nameInput.value = MY_NAME;
+    renderHotbar(); updateHpUI();
+  }
+  const meta = user.user_metadata || {};
+  const av = document.getElementById('authAvatar');
+  if (meta.avatar_url || meta.picture) av.src = meta.avatar_url || meta.picture; else av.style.display = 'none';
+  document.getElementById('authLabel').textContent = 'Signed in as ' + (meta.full_name || meta.name || user.email || 'Google user');
+  showPlaySection(true);
+  document.getElementById('guestBackLink').style.display = 'none';
+}
+(async function initAuth() {
+  const h = (location.hash || '') + '&' + (location.search || '');
+  const em = /error_description=([^&]+)/.exec(h);
+  if (em) authMsgEl.textContent = 'Sign-in error: ' + decodeURIComponent(em[1].replace(/\+/g, ' '));
+  let mode = null; try { mode = localStorage.getItem(MODE_KEY); } catch(e) {}
+  try {
+    const { data } = await sb.auth.getSession();
+    if (data && data.session) await applyAuthUser(data.session.user);
+    else if (mode === 'guest') { showPlaySection(false); document.getElementById('guestBackLink').style.display = 'inline'; }
+    else showChooser();
+  } catch (e) { if (mode === 'guest') showPlaySection(false); else showChooser(); }
+  sb.auth.onAuthStateChange((ev, sess) => {
+    if (ev === 'SIGNED_IN' && sess && sess.user) setTimeout(() => applyAuthUser(sess.user), 0);
+  });
+  // Show the chooser immediately on slow connections instead of an empty card
+})();
 
 const confirmOverlay = document.getElementById('confirmOverlay');
 document.getElementById('resetBtn').addEventListener('click', () => {
