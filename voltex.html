@@ -688,6 +688,28 @@ const TEX = {
     ctx.fillStyle = '#f2f2f2'; ctx.fillRect(0,0,16,3);
     ctx.strokeStyle = '#b83a3a'; ctx.lineWidth = 1; ctx.strokeRect(0,0,16,16);
   }),
+  doorLower: makeTexture(ctx => {
+    ctx.fillStyle = '#a9773f'; ctx.fillRect(0,0,16,16);
+    ctx.strokeStyle = '#5a3417'; ctx.lineWidth = 1; ctx.strokeRect(0.5,0.5,15,15);
+    ctx.fillStyle = '#8f6030'; ctx.fillRect(3,9,10,5); ctx.fillRect(3,2,10,5);
+    ctx.strokeStyle = '#6f4420'; ctx.strokeRect(3.5,9.5,9,4); ctx.strokeRect(3.5,2.5,9,4);
+    ctx.fillStyle = '#f0d98a'; ctx.fillRect(12,7,2,2);
+  }),
+  doorUpper: makeTexture(ctx => {
+    ctx.fillStyle = '#a9773f'; ctx.fillRect(0,0,16,16);
+    ctx.strokeStyle = '#5a3417'; ctx.lineWidth = 1; ctx.strokeRect(0.5,0.5,15,15);
+    ctx.fillStyle = '#bfe3f5'; ctx.fillRect(3,2,4,5); ctx.fillRect(9,2,4,5);
+    ctx.strokeStyle = '#6f4420'; ctx.strokeRect(2.5,1.5,5,6); ctx.strokeRect(8.5,1.5,5,6);
+    ctx.fillStyle = '#8f6030'; ctx.fillRect(3,9,10,5);
+    ctx.strokeStyle = '#6f4420'; ctx.strokeRect(3.5,9.5,9,4);
+  }),
+  trapdoor: makeTexture(ctx => {
+    ctx.fillStyle = '#a9773f'; ctx.fillRect(0,0,16,16);
+    ctx.strokeStyle = '#5a3417'; ctx.lineWidth = 1; ctx.strokeRect(0.5,0.5,15,15);
+    ctx.fillStyle = '#7a4d24';
+    for (let i = 4; i < 16; i += 4) { ctx.fillRect(i,1,1,14); ctx.fillRect(1,i,14,1); }
+    ctx.fillStyle = '#f0d98a'; ctx.fillRect(7,13,2,2);
+  }),
 };
 
 // ================= Block types =================
@@ -710,6 +732,11 @@ const BLOCK_TYPES = {
   furnace: { transparent: false, hardness: 1.75, tool: 'pickaxe' },
   chest: { transparent: false, hardness: 1.0, tool: 'axe' },
   bed:   { transparent: false, hardness: 0.3, tool: null },
+  // Partial-volume blocks: drawn/collided from sub-boxes (see blockBoxes). Marked
+  // transparent so neighbours still draw their faces against them.
+  stairs:   { transparent: true, hardness: 1.0, tool: 'axe', shape: 'stairs' },
+  door:     { transparent: true, hardness: 0.8, tool: 'axe', shape: 'door' },
+  trapdoor: { transparent: true, hardness: 0.8, tool: 'axe', shape: 'trapdoor' },
 };
 // Non-block items: sticks, tools, and food. Tools don't stack (max 1 per slot).
 const ITEM_INFO = {
@@ -791,6 +818,12 @@ const ITEM_STYLE = {
 for (const m of ['wood', 'stone', 'iron'])
   for (const t of ['pickaxe', 'axe', 'shovel', 'sword'])
     ITEM_STYLE[m + '_' + t] = { g: t, ...ITEM_MATS[m] };
+ITEM_GLYPHS.stairs   = ['........','........','......xx','......xx','....xxxx','....xxxx','..xxxxxx','xxxxxxxx'];
+ITEM_GLYPHS.door     = ['.xxxxxx.','.xx..xx.','.xxxxxx.','.xx..xx.','.xxxxxs.','.xxxxxx.','.xxxxxx.','.xxxxxx.'];
+ITEM_GLYPHS.trapdoor = ['xxxxxxxx','x......x','x.xxxx.x','x.x..x.x','x.x..x.x','x.xxxx.x','x......x','xxxxxxxx'];
+ITEM_STYLE.stairs   = { g: 'stairs',   bg: '#b98a4e', x: '#e8c48a', s: '#7a5530' };
+ITEM_STYLE.door     = { g: 'door',     bg: '#a9773f', x: '#d9a866', s: '#f0d98a' };
+ITEM_STYLE.trapdoor = { g: 'trapdoor', bg: '#a9773f', x: '#d9a866', s: '#f0d98a' };
 // Non-cube blocks (cross sprites / see-through) get a solid backing colour.
 const TILE_BG = { sapling: '#2f6f25', torch: '#2a2018', glass: '#a9d6e5', water: '#2a55b0' };
 
@@ -936,6 +969,11 @@ const RECIPES = [
   { shape: [['planks','planks','planks'],['planks',null,'planks'],['planks','planks','planks']], out: 'chest', outCount: 1, needsTable: true },
   // No wool block in Voltex, so leaves stand in for the blanket row.
   { shape: [['leaves','leaves','leaves'],['planks','planks','planks']], out: 'bed', outCount: 1, needsTable: true },
+  // Stairs (both mirror images), door, trapdoor — same shapes as Minecraft.
+  { shape: [['planks',null,null],['planks','planks',null],['planks','planks','planks']], out: 'stairs', outCount: 4, needsTable: true },
+  { shape: [[null,null,'planks'],[null,'planks','planks'],['planks','planks','planks']], out: 'stairs', outCount: 4, needsTable: true },
+  { shape: [['planks','planks'],['planks','planks'],['planks','planks']], out: 'door', outCount: 3, needsTable: true },
+  { shape: [['planks','planks','planks'],['planks','planks','planks']], out: 'trapdoor', outCount: 2, needsTable: true },
 
   { shape: [['planks'],['planks'],['stick']], out: 'wood_sword', outCount: 1, needsTable: true },
   { shape: [['stone'],['stone'],['stick']], out: 'stone_sword', outCount: 1, needsTable: true },
@@ -1025,6 +1063,11 @@ const MI = {
   bedTop:    regMat(TEX.bedTop),
   bedSide:   regMat(TEX.bedSide),
 };
+MI.doorLower = regMat(TEX.doorLower);
+MI.doorUpper = regMat(TEX.doorUpper);
+MI.trapdoor  = regMat(TEX.trapdoor);
+MI.door      = MI.doorLower;   // held / icon material
+MI.stairs    = MI.planks;
 MI.glassV = GLASS_TEX.map((t, m) => m === 15 ? MI.glass : regMat(t, true));
 // Torches glow on their own regardless of ambient/sun lighting, like a
 // Minecraft light-emitting block.
@@ -1218,6 +1261,126 @@ function addFace(buffers, mi, x,y,z, faceIdx, shade) {
   buf.idx.push(start,start+1,start+2, start,start+2,start+3);
   buf.count += 4;
 }
+// ---------- Partial-volume blocks (stairs, doors, trapdoors) ----------
+// A block entry may carry `meta` (small int). Stairs: bits0-1 = direction the
+// stairs climb toward. Door: bits0-1 = edge it sits on, bit2 = open, bit3 = upper
+// half. Trapdoor: bits0-1 = edge it stands on when open, bit2 = open.
+// Directions: 0=+x, 1=-x, 2=+z, 3=-z.
+const SHAPE_T = 0.1875;
+const OPEN_DIR = [2, 3, 1, 0];
+const OPEN_DIR_R = [3, 2, 0, 1];   // mirrored hinge (bit 16): swings to the opposite side
+function doorOpenEdge(m) { return (m & 16) ? OPEN_DIR_R[m & 3] : OPEN_DIR[m & 3]; }
+function edgeBox(dir, yLo, yHi) {
+  const T = SHAPE_T;
+  switch (dir) {
+    case 0: return [0.5 - T, 0.5, yLo, yHi, -0.5, 0.5];
+    case 1: return [-0.5, -0.5 + T, yLo, yHi, -0.5, 0.5];
+    case 2: return [-0.5, 0.5, yLo, yHi, 0.5 - T, 0.5];
+    default: return [-0.5, 0.5, yLo, yHi, -0.5, -0.5 + T];
+  }
+}
+const _boxCache = new Map();
+function blockBoxes(b) {
+  const m = b.meta | 0, ck = b.type + '|' + m;
+  let r = _boxCache.get(ck);
+  if (r) return r;
+  const dir = m & 3;
+  const shape = BLOCK_TYPES[b.type].shape;
+  if (shape === 'stairs') {
+    const bot = [-0.5, 0.5, -0.5, 0, -0.5, 0.5];
+    let top;
+    if (dir === 0) top = [0, 0.5, 0, 0.5, -0.5, 0.5];
+    else if (dir === 1) top = [-0.5, 0, 0, 0.5, -0.5, 0.5];
+    else if (dir === 2) top = [-0.5, 0.5, 0, 0.5, 0, 0.5];
+    else top = [-0.5, 0.5, 0, 0.5, -0.5, 0];
+    r = [bot, top];
+  } else if (shape === 'door') {
+    r = [edgeBox((m & 4) ? doorOpenEdge(m) : dir, -0.5, 0.5)];
+  } else if (shape === 'trapdoor') {
+    r = [(m & 4) ? edgeBox(dir, -0.5, 0.5) : [-0.5, 0.5, -0.5, -0.5 + SHAPE_T, -0.5, 0.5]];
+  } else r = [[-0.5, 0.5, -0.5, 0.5, -0.5, 0.5]];
+  _boxCache.set(ck, r);
+  return r;
+}
+function pointInBlock(b, x, y, z) {
+  const lx = x - b.x, ly = y - b.y, lz = z - b.z;
+  const boxes = blockBoxes(b);
+  for (let i = 0; i < boxes.length; i++) {
+    const q = boxes[i];
+    if (lx >= q[0] && lx < q[1] && ly >= q[2] && ly < q[3] && lz >= q[4] && lz < q[5]) return true;
+  }
+  return false;
+}
+function cardinalFromYaw(yaw) {
+  const fx = -Math.sin(yaw), fz = -Math.cos(yaw);
+  if (Math.abs(fx) > Math.abs(fz)) return fx > 0 ? 0 : 1;
+  return fz > 0 ? 2 : 3;
+}
+function shapeMat(b) {
+  if (b.type === 'door') return ((b.meta | 0) & 8) ? MI.doorUpper : MI.doorLower;
+  if (b.type === 'trapdoor') return MI.trapdoor;
+  return MI.planks;
+}
+function addShapedBlock(buffers, b, x, y, z, cellShade) {
+  const mi = shapeMat(b);
+  let buf = buffers[mi];
+  if (!buf) buf = buffers[mi] = { pos:[], norm:[], uv:[], col:[], idx:[], count:0 };
+  const ownShade = cellShade(x, y, z);
+  for (const bx of blockBoxes(b)) {
+    for (let f = 0; f < 6; f++) {
+      const F = FACES[f];
+      const axis = f >> 1, sign = (f & 1) ? -1 : 1;
+      const bound = sign > 0 ? bx[axis*2 + 1] : bx[axis*2];
+      let shade = ownShade;
+      if (Math.abs(bound) === 0.5) {
+        const nb = world.get(key(x + F.dir[0], y + F.dir[1], z + F.dir[2]));
+        if (nb && !BLOCK_TYPES[nb.type].transparent) continue;   // hidden against a solid neighbour
+        shade = cellShade(x + F.dir[0], y + F.dir[1], z + F.dir[2]);
+      }
+      const start = buf.count;
+      for (let i = 0; i < 4; i++) {
+        const c = F.corners[i];
+        const px = c[0] > 0 ? bx[1] : bx[0];
+        const py = c[1] > 0 ? bx[3] : bx[2];
+        const pz = c[2] > 0 ? bx[5] : bx[4];
+        buf.pos.push(x + px, y + py, z + pz);
+        buf.norm.push(F.normal[0], F.normal[1], F.normal[2]);
+        buf.col.push(shade, shade, shade);
+        if (axis === 0) buf.uv.push(pz + 0.5, py + 0.5);
+        else if (axis === 1) buf.uv.push(px + 0.5, pz + 0.5);
+        else buf.uv.push(px + 0.5, py + 0.5);
+      }
+      buf.idx.push(start, start+1, start+2, start, start+2, start+3);
+      buf.count += 4;
+    }
+  }
+}
+// Flip a door / trapdoor open or closed (both halves of a door together) and sync it.
+function setBlockMeta(x, y, z, meta) {
+  const b = world.get(key(x, y, z));
+  if (!b) return;
+  b.meta = meta;
+  markChunkDirty(x, z);
+  pushBlockDiff(x, y, z, b.type, meta);
+}
+function toggleOpenable(b) {
+  const wasTop = ((b.meta | 0) & 8) !== 0;
+  const newMeta = (b.meta | 0) ^ 4;
+  const bx = b.x, by = b.y, bz = b.z;
+  setBlockMeta(bx, by, bz, newMeta);
+  if (b.type === 'door') {
+    const oy = wasTop ? by - 1 : by + 1;
+    const ob = world.get(key(bx, oy, bz));
+    if (ob && ob.type === 'door') setBlockMeta(bx, oy, bz, ((ob.meta | 0) & ~4) | (newMeta & 4));
+  }
+  flushDirtyChunks();
+}
+function cellHitsPlayer(cx, cy, cz) {
+  return cx + 0.5 > player.pos.x - player.radius && cx - 0.5 < player.pos.x + player.radius &&
+         cy + 0.5 > player.pos.y && cy - 0.5 < player.pos.y + player.height &&
+         cz + 0.5 > player.pos.z - player.radius && cz - 0.5 < player.pos.z + player.radius;
+}
+
 // Two quads crossed through the block's center — one facing 0°, one facing
 // 90° — for cross-model blocks (torch, sapling), matching how Minecraft
 // renders flowers/saplings/torches as flat 2D sprites instead of solid
@@ -1381,6 +1544,7 @@ function rebuildChunk(cx, cz) {
         if (!b) continue;
         // Cross-model blocks (torch, sapling) are flat crossed sprites, not
         // cubes — always drawn in full, no per-neighbor face culling.
+        if (BLOCK_TYPES[b.type].shape) { addShapedBlock(buffers, b, x, y, z, cellShade); continue; }
         if (BLOCK_TYPES[b.type].cross) {
           if (b.type === 'torch') {
             // a torch is its own light source: always full level 11
@@ -1601,12 +1765,12 @@ function updateTorchLightFades(dt) {
   });
 }
 
-function addBlock(x,y,z,type,skipMark) {
+function addBlock(x,y,z,type,skipMark,meta) {
   x=Math.round(x); y=Math.round(y); z=Math.round(z);
   const k = key(x,y,z);
   if (world.has(k)) return false;
   if (removedDiffs.has(k)) return false; // a player explicitly mined this spot — don't regrow it
-  world.set(k, { type, x, y, z });
+  world.set(k, { type, x, y, z, meta: meta == null ? 0 : meta });
   syncBlockLight(x,y,z,type,skipMark);
   syncSaplingGrowth(x,y,z,type);
   if (!skipMark) { markChunkDirty(x,z); markLightArea(x,y,z, type === 'torch'); }
@@ -1903,14 +2067,20 @@ function loadSavedName() {
 // the block there was removed; anything else means a block of that type
 // was placed (overwriting whatever was there, including base terrain).
 function applyBlockDiff(row, skipMark) {
-  const { x, y, z, type } = row;
+  const { x, y, z } = row;
+  let type = row.type, meta = 0;
+  // Orientation/open-state rides along in the type string ("stairs|2"), so no schema change is needed.
+  if (typeof type === 'string' && type.indexOf('|') >= 0) {
+    const parts = type.split('|');
+    type = parts[0]; meta = parseInt(parts[1], 10) || 0;
+  }
   const k = key(x,y,z);
   if (type === 'air') {
     removedDiffs.add(k);
     if (world.has(k)) world.delete(k);
   } else {
     removedDiffs.delete(k);
-    world.set(k, { type, x, y, z });
+    world.set(k, { type, x, y, z, meta });
   }
   syncBlockLight(x, y, z, type === 'air' ? null : type, skipMark);
   syncSaplingGrowth(x, y, z, type === 'air' ? null : type);
@@ -1935,8 +2105,9 @@ async function loadWorldDiffs() {
 
 // Push this player's block change to Supabase so every other connected
 // browser's realtime subscription picks it up and applies the same diff.
-async function pushBlockDiff(x, y, z, type) {
-  const { error } = await sb.from('world_blocks').upsert({ x, y, z, type, updated_at: new Date().toISOString() });
+async function pushBlockDiff(x, y, z, type, meta) {
+  const typeStr = (meta != null && type !== 'air' && BLOCK_TYPES[type] && BLOCK_TYPES[type].shape) ? (type + '|' + meta) : type;
+  const { error } = await sb.from('world_blocks').upsert({ x, y, z, type: typeStr, updated_at: new Date().toISOString() });
   if (error) console.error('pushBlockDiff', error);
 }
 
@@ -2506,14 +2677,63 @@ function closeFurnace() {
 // device/browser rather than synced to other players).
 const CHEST_SIZE = 27; // 3 rows of 9, same footprint as the main inventory
 let chestData = {}; // "x,y,z" -> array(27) of {type,count}|null
+let chestStamps = {}; // "x,y,z" -> ms timestamp of the last change (newest write wins when merging)
 function loadChestData() {
   try {
     const raw = localStorage.getItem(CHEST_SAVE_KEY);
     if (raw) chestData = JSON.parse(raw) || {};
   } catch(e) { chestData = {}; }
+  try {
+    const raw2 = localStorage.getItem(CHEST_SAVE_KEY + '_stamps');
+    if (raw2) chestStamps = JSON.parse(raw2) || {};
+  } catch(e) { chestStamps = {}; }
 }
 function saveChestData() {
   try { localStorage.setItem(CHEST_SAVE_KEY, JSON.stringify(chestData)); } catch(e) {}
+  try { localStorage.setItem(CHEST_SAVE_KEY + '_stamps', JSON.stringify(chestStamps)); } catch(e) {}
+}
+// ---- live chest sync over the realtime channel ----
+let chestSyncedStr = '';
+function broadcastChest(k) {
+  playersChannel.send({ type: 'broadcast', event: 'chest',
+    payload: { from: MY_ID, key: k, slots: chestData[k], stamp: chestStamps[k] } });
+}
+function broadcastChestRemove(k) {
+  delete chestStamps[k];
+  playersChannel.send({ type: 'broadcast', event: 'chest_remove', payload: { from: MY_ID, key: k } });
+}
+// Runs every frame: if the open chest's contents changed (click, shift-click, ...),
+// stamp it, save it and tell everyone.
+function chestSyncTick() {
+  if (!chestOpen || !chestSlots || !chestKey) return;
+  const str = JSON.stringify(chestSlots);
+  if (str === chestSyncedStr) return;
+  chestSyncedStr = str;
+  chestStamps[chestKey] = Date.now();
+  saveChestData();
+  broadcastChest(chestKey);
+}
+function applyRemoteChest(k, slots, stamp) {
+  if (!Array.isArray(slots)) return;
+  stamp = stamp || 0;
+  if ((chestStamps[k] || 0) > stamp) return; // we already have something newer
+  chestStamps[k] = stamp;
+  if (chestOpen && chestKey === k && chestSlots) {
+    for (let i = 0; i < CHEST_SIZE; i++) chestSlots[i] = slots[i] || null; // update in place: panel keeps its reference
+    chestSyncedStr = JSON.stringify(chestSlots);
+    renderChestPanel();
+  } else {
+    const arr = new Array(CHEST_SIZE).fill(null);
+    for (let i = 0; i < CHEST_SIZE; i++) arr[i] = slots[i] || null;
+    chestData[k] = arr;
+  }
+  saveChestData();
+}
+function applyRemoteChestRemove(k) {
+  delete chestData[k];
+  delete chestStamps[k];
+  if (chestOpen && chestKey === k) { chestSlots = null; closeChest(); }
+  saveChestData();
 }
 function getChestSlots(k) {
   if (!chestData[k]) chestData[k] = new Array(CHEST_SIZE).fill(null);
@@ -2575,11 +2795,13 @@ function openChest(x, y, z) {
   chestOpen = true;
   chestKey = key(x, y, z);
   chestSlots = getChestSlots(chestKey);
+  chestSyncedStr = JSON.stringify(chestSlots);
   chestPanel.style.display = 'flex';
   renderChestPanel();
   document.exitPointerLock();
 }
 function closeChest() {
+  chestSyncTick(); // push any last change before closing
   chestOpen = false;
   chestPanel.style.display = 'none';
   returnCursorItemToInventory();
@@ -2599,6 +2821,7 @@ function solidAt(x,y,z) {
   // volume to collide with — like Minecraft, you can walk straight through
   // a torch or a sapling instead of it acting like a solid cube.
   if (BLOCK_TYPES[b.type].cross) return false;
+  if (BLOCK_TYPES[b.type].shape) return pointInBlock(b, x, y, z);
   return true;
 }
 
@@ -2614,24 +2837,49 @@ function checkCollision(x,y,z,r,h) {
   return false;
 }
 
+// Walking into a half-block ledge (stairs, slab-height steps) lifts the player
+// onto it instead of stopping dead — only up to ~0.6 so full blocks still need a jump.
+function tryStepUp(pos, vel, nx, nz, r, h) {
+  if (!player.onGround || vel.y > 0.01) return false;
+  for (let lift = 0.1; lift <= 0.6001; lift += 0.05) {
+    if (!checkCollision(nx, pos.y + lift, nz, r, h)) {
+      pos.x = nx; pos.z = nz; pos.y += lift;
+      return true;
+    }
+  }
+  return false;
+}
 function collideAndMove(pos, vel, dt) {
   const r = player.radius;
   const h = player.height;
+  // Sub-step so fast movement/falling can't tunnel through thin doors and trapdoors.
+  const hv = Math.max(Math.abs(vel.x), Math.abs(vel.z));
+  const nh = Math.max(1, Math.ceil(hv * dt / 0.12));
+  const sdt = dt / nh;
+  for (let i = 0; i < nh; i++) {
+    let newX = pos.x + vel.x*sdt;
+    if (!checkCollision(newX, pos.y, pos.z, r, h)) pos.x = newX;
+    else if (!tryStepUp(pos, vel, newX, pos.z, r, h)) vel.x = 0;
 
-  let newX = pos.x + vel.x*dt;
-  if (!checkCollision(newX, pos.y, pos.z, r, h)) pos.x = newX; else vel.x = 0;
-
-  let newZ = pos.z + vel.z*dt;
-  if (!checkCollision(pos.x, pos.y, newZ, r, h)) pos.z = newZ; else vel.z = 0;
-
-  let newY = pos.y + vel.y*dt;
-  if (!checkCollision(pos.x, newY, pos.z, r, h)) {
-    pos.y = newY;
-    player.onGround = false;
-  } else {
-    if (vel.y < 0) player.onGround = true;
-    vel.y = 0;
+    let newZ = pos.z + vel.z*sdt;
+    if (!checkCollision(pos.x, pos.y, newZ, r, h)) pos.z = newZ;
+    else if (!tryStepUp(pos, vel, pos.x, newZ, r, h)) vel.z = 0;
   }
+
+  const nv = Math.max(1, Math.ceil(Math.abs(vel.y) * dt / 0.15));
+  const vdt = dt / nv;
+  let grounded = false;
+  for (let i = 0; i < nv; i++) {
+    let newY = pos.y + vel.y*vdt;
+    if (!checkCollision(pos.x, newY, pos.z, r, h)) {
+      pos.y = newY;
+    } else {
+      if (vel.y < 0) grounded = true;
+      vel.y = 0;
+      break;
+    }
+  }
+  player.onGround = grounded;
 }
 
 // Called once after real terrain (base + saved diffs) has fully loaded.
@@ -2823,6 +3071,44 @@ scene.add(myModel.group);
 let myWalkCycle = 0;
 let mineSwingCycle = 0;
 
+// ---------- Attack swing / block pose (shared by my model and other players) ----------
+const swing = { active: false, t: 0 };   // my own attack swing, t = 0..1
+const SWING_DURATION = 0.3;
+let myShieldPulse = 0;                    // brief shield flash when a blocked hit lands
+let blockAmt = 0;                         // 0..1 eased first-person guard pose
+function startSwing() {
+  if (swing.active) return;
+  swing.active = true; swing.t = 0.001;
+  playersChannel.send({ type: 'broadcast', event: 'swing', payload: { id: MY_ID } });
+}
+// st: { swing (0..1 progress or 0), blocking, eating, eatProg, mining, mineCycle, pulse }
+function poseArms(m, st, walkSwing) {
+  m.armL.rotation.set(-walkSwing, 0, 0);
+  m.armR.rotation.set(walkSwing, 0, 0);
+  if (st.swing > 0) {
+    // overhead chop: arm starts raised behind/above and slashes down in front
+    const e = 1 - Math.pow(1 - st.swing, 2);
+    m.armR.rotation.x = -2.7 + 2.5 * e;
+    m.armR.rotation.z = -0.4 * (1 - e);
+    m.armL.rotation.x = 0.3 * (1 - e);
+  } else if (st.blocking) {
+    // Hold the sword up and across the body in a guard stance.
+    m.armR.rotation.x = -1.6;
+    m.armR.rotation.z = -0.5;
+    m.armL.rotation.x = -1.2;
+  } else if (st.eating) {
+    // Raise the arm to the mouth and give it a quick "bite" bob.
+    m.armR.rotation.x = -2.1 + Math.sin(st.eatProg * 16) * 0.12;
+  } else if (st.mining) {
+    // Punch/swing the mining arm forward and back, faster than a walk cycle.
+    m.armR.rotation.x = -1.9 + Math.sin(st.mineCycle) * 0.9;
+  }
+  if (m.shield) {
+    m.shield.visible = !!st.blocking;
+    m.shield.material.opacity = 0.28 + Math.min(0.4, st.pulse || 0) * 2;
+  }
+}
+
 function updateMyModel(dt, isMoving) {
   myModel.group.position.set(player.pos.x, player.pos.y, player.pos.z);
   myModel.group.rotation.y = player.yaw;
@@ -2832,25 +3118,30 @@ function updateMyModel(dt, isMoving) {
   const walkSwing = (isMoving && player.onGround) ? Math.sin(myWalkCycle) * 0.6 : 0;
   myModel.legL.rotation.x = walkSwing;
   myModel.legR.rotation.x = -walkSwing;
-  myModel.armL.rotation.x = -walkSwing;
-  myModel.armR.rotation.x = walkSwing;
-  myModel.armR.rotation.z = 0;
+  if (swing.active) { swing.t += dt / SWING_DURATION; if (swing.t >= 1) { swing.active = false; swing.t = 0; } }
+  if (mining.active) mineSwingCycle += dt * 9;
+  if (myShieldPulse > 0) myShieldPulse -= dt;
+  poseArms(myModel, {
+    swing: swing.active ? swing.t : 0, blocking: isBlocking, eating: eating.active, eatProg: eating.progress,
+    mining: mining.active, mineCycle: mineSwingCycle, pulse: myShieldPulse
+  }, walkSwing);
   myModel.head.rotation.x = player.pitch;
-
-  if (mining.active) {
-    // Punch/swing the mining arm forward and back, faster than a walk cycle.
-    mineSwingCycle += dt * 9;
-    myModel.armR.rotation.x = -1.9 + Math.sin(mineSwingCycle) * 0.9;
-  } else if (eating.active) {
-    // Raise the arm to the mouth and give it a quick "bite" bob.
-    myModel.armR.rotation.x = -2.1 + Math.sin(eating.progress * 16) * 0.12;
-  } else if (isBlocking) {
-    // Hold the sword up and across the body in a guard stance.
-    myModel.armR.rotation.x = -1.6;
-    myModel.armR.rotation.z = -0.5;
-    myModel.armL.rotation.x = -1.2;
-  }
 }
+
+// First-person hand + guard shield (the held item alone can't show a punch when your hand is empty).
+const fpArmGeo = new THREE.BoxGeometry(0.13, 0.13, 0.6);
+fpArmGeo.translate(0, 0, -0.3);   // pivot at the shoulder end
+const fpArm = new THREE.Mesh(fpArmGeo, new THREE.MeshBasicMaterial({ color: colorForId(MY_ID).clone().offsetHSL(0, 0, 0.15) }));
+fpArm.visible = false;
+camera.add(fpArm);
+const fpShield = new THREE.Mesh(
+  new THREE.PlaneGeometry(0.7, 0.8),
+  new THREE.MeshBasicMaterial({ color: 0x66b3ff, transparent: true, opacity: 0, depthTest: false, depthWrite: false })
+);
+fpShield.position.set(0, -0.02, -0.8);
+fpShield.renderOrder = 999;
+fpShield.visible = false;
+camera.add(fpShield);
 
 // ================= Other players (Supabase Realtime) =================
 // Presence tracks who is connected (join/leave); broadcast carries frequent
@@ -2930,7 +3221,7 @@ function flashRed(group) {
   if (!group.userData._flashMeshes) {
     const meshes = [];
     group.traverse(o => {
-      if (o.isMesh && o.material && o.material.color) {
+      if (o.isMesh && o.material && o.material.color && !o.userData.noFlash) {
         meshes.push({ mesh: o, orig: o.material.color.clone() });
       }
     });
@@ -2948,6 +3239,14 @@ function flashRed(group) {
 function buildHumanoid(color) {
   const group = new THREE.Group();
   const skin = color.clone().offsetHSL(0, 0, 0.15);
+  // Translucent guard shield shown in front of a player while they're blocking.
+  const shield = new THREE.Mesh(
+    new THREE.BoxGeometry(0.9, 1.2, 0.05),
+    new THREE.MeshBasicMaterial({ color: 0x66b3ff, transparent: true, opacity: 0.28, depthWrite: false })
+  );
+  shield.position.set(0, 1.2, -0.6);
+  shield.visible = false;
+  shield.userData.noFlash = true;
 
   const torso = new THREE.Mesh(
     new THREE.BoxGeometry(0.6, 0.75, 0.35),
@@ -2984,8 +3283,8 @@ function buildHumanoid(color) {
   handAnchor.position.set(0, -0.62, 0.14);
   armR.add(handAnchor);
 
-  group.add(torso, head, legL, legR, armL, armR);
-  return { group, head, legL, legR, armL, armR, handAnchor };
+  group.add(torso, head, legL, legR, armL, armR, shield);
+  return { group, head, legL, legR, armL, armR, handAnchor, shield };
 }
 
 // ---------- Held item visuals ----------
@@ -3149,21 +3448,37 @@ function makeItemSprite(type) {
 }
 
 const droppedItems = [];
-function spawnDroppedItem(type, count, pos, vel) {
+let dropSeq = 0;
+// Every drop gets a network-unique id. The client that causes a drop (throw,
+// block break, chest overflow...) broadcasts it, and every other client spawns
+// the same item under the same id; whoever picks it up broadcasts that, so the
+// item disappears for everybody. `opts.remote` = spawned from a network message
+// (don't re-broadcast).
+function spawnDroppedItem(type, count, pos, vel, opts) {
   if (!type || count <= 0) return;
+  opts = opts || {};
+  const id = opts.id || (MY_ID + '_' + (dropSeq++));
+  if (opts.id && droppedItems.some(d => d.id === id)) return; // already have this one
   const sprite = makeItemSprite(type);
   sprite.position.copy(pos);
   scene.add(sprite);
+  // Gentler, mostly-upward pop so items don't get launched sideways into
+  // a neighboring solid block and end up visually wedged inside it.
+  const v = vel ? vel.clone() : new THREE.Vector3((Math.random()-0.5)*0.6, 2.5, (Math.random()-0.5)*0.6);
   droppedItems.push({
-    sprite, type, count,
+    id, sprite, type, count,
     pos: pos.clone(),
-    // Gentler, mostly-upward pop so items don't get launched sideways into
-    // a neighboring solid block and end up visually wedged inside it.
-    vel: vel ? vel.clone() : new THREE.Vector3((Math.random()-0.5)*0.6, 2.5, (Math.random()-0.5)*0.6),
+    vel: v,
     radius: 0.15, height: 0.15,
     bornAt: performance.now(),
     bobPhase: Math.random()*Math.PI*2,
   });
+  if (!opts.remote) {
+    playersChannel.send({
+      type: 'broadcast', event: 'drop',
+      payload: { from: MY_ID, id, itemType: type, count, x: pos.x, y: pos.y, z: pos.z, vx: v.x, vy: v.y, vz: v.z }
+    });
+  }
 }
 function updateDroppedItems(dt) {
   const now = performance.now();
@@ -3198,9 +3513,14 @@ function updateDroppedItems(dt) {
       const dx = it.pos.x - player.pos.x, dz = it.pos.z - player.pos.z;
       const dy = it.pos.y - (player.pos.y + player.height*0.5);
       if (dx*dx + dz*dz < 1.6*1.6 && Math.abs(dy) < 2.2) {
+        const before = it.count;
         const leftover = addItemToInventory(it.type, it.count);
         renderHotbar();
         if (inventoryOpen) renderInventoryPanel();
+        if (leftover < before) {
+          // tell everyone else how much is left (0 = gone) so it vanishes for them too
+          playersChannel.send({ type: 'broadcast', event: 'pickup', payload: { from: MY_ID, id: it.id, left: leftover } });
+        }
         if (leftover > 0) {
           it.count = leftover; // inventory full — leave the remainder on the ground
         } else {
@@ -3220,7 +3540,7 @@ function throwCurrentItem() {
   camera.getWorldDirection(dir);
   const startPos = new THREE.Vector3(player.pos.x, player.pos.y + player.height*0.6, player.pos.z)
     .add(dir.clone().multiplyScalar(0.6));
-  const vel = dir.clone().multiplyScalar(5).add(new THREE.Vector3(0, 2.5, 0));
+  const vel = dir.clone().multiplyScalar(6.5).add(new THREE.Vector3(0, 2.8, 0));
   spawnDroppedItem(held.type, 1, startPos, vel);
   removeFromCurrentSlot(1);
   renderHotbar();
@@ -3273,7 +3593,8 @@ function createOtherPlayer(id, name) {
     group: model.group, head: model.head, legL: model.legL, legR: model.legR, armL: model.armL, armR: model.armR,
     handAnchor: model.handAnchor, heldState: { heldType: undefined, heldMesh: null },
     target: { x: model.group.position.x, y: model.group.position.y, z: model.group.position.z, yaw: 0 },
-    name, walkCycle: 0, lastPos: { x: 0, y: 0, z: 0 }
+    name, walkCycle: 0, lastPos: { x: 0, y: 0, z: 0 },
+    shield: model.shield, swing: { active: false, t: 0 }, blocking: false, mining: false, mineCycle: 0, shieldPulse: 0
   };
   otherPlayers.set(id, entry);
   updatePlayerCountHUD();
@@ -3311,6 +3632,8 @@ playersChannel
     if (!entry) entry = createOtherPlayer(payload.id, payload.name || 'Player');
     entry.target.x = payload.x; entry.target.y = payload.y; entry.target.z = payload.z; entry.target.yaw = payload.yaw;
     setHeldVisual(entry.heldState, entry.handAnchor, payload.heldType || null);
+    entry.blocking = !!payload.blocking;
+    entry.mining = !!payload.mining;
   })
   .on('broadcast', { event: 'chat' }, ({ payload }) => {
     if (!payload || payload.id === MY_ID) return;
@@ -3326,11 +3649,57 @@ playersChannel
   .on('broadcast', { event: 'hit' }, ({ payload }) => {
     if (!payload) return;
     if (payload.targetId === MY_ID) {
+      if (isBlocking) myShieldPulse = 0.25;   // shield flashes when a blocked hit lands
       damagePlayer(payload.amount);
     } else {
       const entry = otherPlayers.get(payload.targetId);
-      if (entry) flashRed(entry.group);
+      if (entry) { flashRed(entry.group); if (entry.blocking) entry.shieldPulse = 0.25; }
     }
+  })
+  // Someone swung their arm (attack animation).
+  .on('broadcast', { event: 'swing' }, ({ payload }) => {
+    if (!payload || payload.id === MY_ID) return;
+    const entry = otherPlayers.get(payload.id);
+    if (entry && !entry.swing.active) { entry.swing.active = true; entry.swing.t = 0.001; }
+  })
+  // Dropped items: another player threw / dropped something, or picked something up.
+  .on('broadcast', { event: 'drop' }, ({ payload }) => {
+    if (!payload || payload.from === MY_ID || !BLOCK_TYPES[payload.itemType] && !ITEM_INFO[payload.itemType]) return;
+    spawnDroppedItem(payload.itemType, payload.count, new THREE.Vector3(payload.x, payload.y, payload.z),
+      new THREE.Vector3(payload.vx, payload.vy, payload.vz), { id: payload.id, remote: true });
+  })
+  .on('broadcast', { event: 'pickup' }, ({ payload }) => {
+    if (!payload || payload.from === MY_ID) return;
+    const i = droppedItems.findIndex(d => d.id === payload.id);
+    if (i < 0) return;
+    if (payload.left > 0) droppedItems[i].count = payload.left;
+    else { scene.remove(droppedItems[i].sprite); droppedItems.splice(i, 1); }
+  })
+  // Chests: contents changed / chest broken elsewhere.
+  .on('broadcast', { event: 'chest' }, ({ payload }) => {
+    if (!payload || payload.from === MY_ID) return;
+    applyRemoteChest(payload.key, payload.slots, payload.stamp);
+  })
+  .on('broadcast', { event: 'chest_remove' }, ({ payload }) => {
+    if (!payload || payload.from === MY_ID) return;
+    applyRemoteChestRemove(payload.key);
+  })
+  // A player who just joined asks for the current chests + items lying around.
+  .on('broadcast', { event: 'sync_req' }, ({ payload }) => {
+    if (!payload || payload.id === MY_ID) return;
+    playersChannel.send({ type: 'broadcast', event: 'sync_state', payload: {
+      to: payload.id, from: MY_ID, chests: chestData, stamps: chestStamps,
+      drops: droppedItems.slice(0, 60).map(d => ({ id: d.id, type: d.type, count: d.count, x: d.pos.x, y: d.pos.y, z: d.pos.z }))
+    } });
+  })
+  .on('broadcast', { event: 'sync_state' }, ({ payload }) => {
+    if (!payload || payload.to !== MY_ID) return;
+    const ch = payload.chests || {}, st = payload.stamps || {};
+    Object.keys(ch).forEach(k => applyRemoteChest(k, ch[k], st[k] || 0));
+    (payload.drops || []).forEach(d => {
+      if (!BLOCK_TYPES[d.type] && !ITEM_INFO[d.type]) return;
+      spawnDroppedItem(d.type, d.count, new THREE.Vector3(d.x, d.y, d.z), new THREE.Vector3(0, 0, 0), { id: d.id, remote: true });
+    });
   });
 
 let posBroadcastTimer = 0;
@@ -3342,7 +3711,8 @@ function broadcastMyPosition(dt) {
     type: 'broadcast', event: 'pos',
     payload: {
       id: MY_ID, name: MY_NAME, x: player.pos.x, y: player.pos.y, z: player.pos.z, yaw: player.yaw,
-      heldType: currentItem() ? currentItem().type : null
+      heldType: currentItem() ? currentItem().type : null,
+      blocking: isBlocking, mining: mining.active
     }
   });
 }
@@ -3359,94 +3729,18 @@ function updateOtherPlayerVisuals(dt) {
     entry.group.position.z += dz * lerpT;
     entry.group.rotation.y = entry.target.yaw;
 
-    if (moving) entry.walkCycle += dt * 8; 
-    const swing = moving ? Math.sin(entry.walkCycle) * 0.6 : 0;
-    entry.legL.rotation.x = swing;
-    entry.legR.rotation.x = -swing;
-    entry.armL.rotation.x = -swing;
-    entry.armR.rotation.x = swing;
+    if (moving) entry.walkCycle += dt * 8;
+    const walkAmt = moving ? Math.sin(entry.walkCycle) * 0.6 : 0;
+    entry.legL.rotation.x = walkAmt;
+    entry.legR.rotation.x = -walkAmt;
+    if (entry.swing.active) { entry.swing.t += dt / SWING_DURATION; if (entry.swing.t >= 1) { entry.swing.active = false; entry.swing.t = 0; } }
+    if (entry.mining) entry.mineCycle += dt * 9;
+    if (entry.shieldPulse > 0) entry.shieldPulse -= dt;
+    poseArms(entry, {
+      swing: entry.swing.active ? entry.swing.t : 0, blocking: entry.blocking,
+      mining: entry.mining, mineCycle: entry.mineCycle, pulse: entry.shieldPulse
+    }, walkAmt);
   });
-}
-
-// ================= AI Companion (one per human player) =================
-// Broadcasts itself as a fake "other player" on the same channel so it
-// renders automatically via the existing createOtherPlayer/pos/chat handlers.
-const AI_ID = MY_ID + '_ai';
-const AI_NAME = MY_NAME + "'s AI";
-
-const aiBot = {
-  pos: { x: player.pos.x + 1.5, y: player.pos.y, z: player.pos.z + 1.5 },
-  yaw: 0,
-  wanderTarget: null,
-  wanderTimer: 0,
-  chatTimer: 8 + Math.random() * 8, // first line comes a bit after spawn
-};
-
-function pickNewWanderTarget() {
-  // Wander in a loose radius around the owner, so it feels like it's
-  // exploring but never strays far.
-  const angle = Math.random() * Math.PI * 2;
-  const dist = 2 + Math.random() * 5;
-  aiBot.wanderTarget = {
-    x: player.pos.x + Math.cos(angle) * dist,
-    z: player.pos.z + Math.sin(angle) * dist,
-  };
-}
-
-let aiPosBroadcastTimer = 0;
-function updateAIBot(dt) {
-  aiBot.wanderTimer -= dt;
-  if (aiBot.wanderTimer <= 0 || !aiBot.wanderTarget) {
-    pickNewWanderTarget();
-    aiBot.wanderTimer = 3 + Math.random() * 4;
-  }
-
-  // Simple move-toward-target, keep it near ground height (matches owner's
-  // y so it doesn't need real physics/collision of its own).
-  const dx = aiBot.wanderTarget.x - aiBot.pos.x;
-  const dz = aiBot.wanderTarget.z - aiBot.pos.z;
-  const dist = Math.hypot(dx, dz);
-  if (dist > 0.1) {
-    const speed = 3;
-    aiBot.pos.x += (dx / dist) * speed * dt;
-    aiBot.pos.z += (dz / dist) * speed * dt;
-    aiBot.yaw = Math.atan2(-dx, -dz);
-  }
-  // Follow the owner's vertical position (skip real gravity/terrain for now).
-  aiBot.pos.y += (player.pos.y - aiBot.pos.y) * Math.min(1, dt * 2);
-
-  aiPosBroadcastTimer += dt;
-  if (aiPosBroadcastTimer >= 0.1) {
-    aiPosBroadcastTimer = 0;
-    playersChannel.send({
-      type: 'broadcast', event: 'pos',
-      payload: { id: AI_ID, name: AI_NAME, x: aiBot.pos.x, y: aiBot.pos.y, z: aiBot.pos.z, yaw: aiBot.yaw, heldType: null },
-    });
-  }
-
-  aiBot.chatTimer -= dt;
-  if (aiBot.chatTimer <= 0) {
-    aiBot.chatTimer = 25 + Math.random() * 20; // chat every ~25-45s, keeps API usage low
-    requestAICompanionChat();
-  }
-}
-
-async function requestAICompanionChat() {
-  try {
-    const timeOfDay = (typeof dayTime !== 'undefined') ? dayTime : 'unknown';
-    const { data, error } = await sb.functions.invoke('ai-companion', {
-      body: { ownerName: MY_NAME, hp: Math.round(player.hp), timeOfDay, nearby: [] },
-    });
-    if (error || !data || !data.message) return;
-    const text = String(data.message).slice(0, 120);
-    addChatLine(AI_NAME, text, false);
-    playersChannel.send({ type: 'broadcast', event: 'chat', payload: { id: AI_ID, name: AI_NAME, text } });
-    const entry = otherPlayers.get(AI_ID);
-    if (entry) showChatBubbleOn(entry, text);
-  } catch (e) {
-    // Silent fail is fine here — a missed companion line shouldn't affect gameplay.
-    console.warn('AI companion chat failed', e);
-  }
 }
 
 // ================= Chat =================
@@ -3710,6 +4004,7 @@ const KEYBINDS = [
   ['Look around', 'Mouse'],
   ['Mine / attack', 'Left click (hold)'],
   ['Place block / eat / block with sword', 'Right click (hold)'],
+  ['Open / close door or trapdoor', 'Right click it'],
   ['Hotbar slot', '1 – 9'],
   ['Inventory', 'E'],
   ['Eat held food', 'F'],
@@ -3757,7 +4052,7 @@ function castVoxelRay(origin, dir, maxDist) {
     const x = origin.x + dir.x*t, y = origin.y + dir.y*t, z = origin.z + dir.z*t;
     const bx = Math.round(x), by = Math.round(y), bz = Math.round(z);
     const b = world.get(key(bx,by,bz));
-    if (b && b.type !== 'water') return { x:bx, y:by, z:bz, px, py, pz };
+    if (b && b.type !== 'water' && (!BLOCK_TYPES[b.type].shape || pointInBlock(b, x, y, z))) return { x:bx, y:by, z:bz, px, py, pz, hx:x, hy:y, hz:z };
     px = bx; py = by; pz = bz;
   }
   return null;
@@ -3801,8 +4096,14 @@ function updateMining(dt) {
       // A mined chest hands its contents straight to the player (dropping
       // any overflow nearby) instead of just vanishing with items inside —
       // same idea as Minecraft popping a chest's inventory out when broken.
+      if (b.type === 'door') {
+        const oy = ((b.meta | 0) & 8) ? hit.y - 1 : hit.y + 1;
+        const ob = getBlock(hit.x, oy, hit.z);
+        if (ob && ob.type === 'door') { removeBlock(hit.x, oy, hit.z); pushBlockDiff(hit.x, oy, hit.z, 'air'); }
+      }
       if (b.type === 'chest') {
         const k = key(hit.x, hit.y, hit.z);
+        broadcastChestRemove(k);
         const slots = chestData[k];
         if (slots) {
           slots.forEach(s => {
@@ -3890,6 +4191,7 @@ canvas.addEventListener('mousedown', e => {
   if (!pointerLocked) return;
   if (e.button === 0) {
     if (eating.active) cancelEating();
+    startSwing(); // arm swing animation, visible to you and to other players
     if (attackCooldown <= 0) {
       const held = currentItem();
       const dmg = (held && ITEM_INFO[held.type] && ITEM_INFO[held.type].attack) || 2;
@@ -3900,6 +4202,7 @@ canvas.addEventListener('mousedown', e => {
           payload: { targetId: playerTarget.id, amount: dmg, attackerId: MY_ID }
         });
         flashRed(playerTarget.entry.group); // instant local feedback; target also flashes when they apply the hit
+        if (playerTarget.entry.blocking) playerTarget.entry.shieldPulse = 0.25;
         attackCooldown = 0.4;
         return; // hitting a player takes priority over mining that click
       }
@@ -3921,6 +4224,7 @@ canvas.addEventListener('mousedown', e => {
     camera.getWorldDirection(dir);
     const hit = castVoxelRay(camera.position, dir, RAY_DIST);
     if (!hit) return;
+    startSwing(); // hand moves whenever you interact with / place on a block (others see it too)
     const targeted = getBlock(hit.x, hit.y, hit.z);
     if (targeted && targeted.type === 'crafting_table') {
       openWorkbench(); // interacting with a functional block takes priority over placing
@@ -3932,6 +4236,10 @@ canvas.addEventListener('mousedown', e => {
     }
     if (targeted && targeted.type === 'chest') {
       openChest(hit.x, hit.y, hit.z);
+      return;
+    }
+    if (targeted && (targeted.type === 'door' || targeted.type === 'trapdoor')) {
+      toggleOpenable(targeted);
       return;
     }
     if (targeted && targeted.type === 'bed') {
@@ -3970,12 +4278,64 @@ canvas.addEventListener('mousedown', e => {
       // unplaceable after the "air" diff round-trips through Supabase
       // (immediately for you, or after a fresh page/world load for anyone).
       removedDiffs.delete(key(nx, ny, nz));
-      if (canPlace && addBlock(nx, ny, nz, type)) {
-        removeFromCurrentSlot(1);
-        flushDirtyChunks();
-        renderHotbar();
-        if (inventoryOpen) renderInventoryPanel();
-        pushBlockDiff(nx, ny, nz, type); // tell the server (and everyone else) about the new block
+      const facing = cardinalFromYaw(player.yaw);
+      if (type === 'door') {
+        // Doors are two blocks tall and need something under them.
+        const below = world.get(key(nx, ny - 1, nz));
+        if (canPlace && below && below.type !== 'water' && !world.has(key(nx, ny, nz)) &&
+            !world.has(key(nx, ny + 1, nz)) && !cellHitsPlayer(nx, ny + 1, nz)) {
+          removedDiffs.delete(key(nx, ny + 1, nz));
+          // Double doors: next to a door with the same facing, hinges go on the outer
+          // sides so the pair swings open like two wings (one left, one right).
+          const DV = [[1,0],[-1,0],[0,1],[0,-1]];
+          const sideDirs = facing < 2 ? [2, 3] : [0, 1];
+          let hinge = 0, nbDir = -1;
+          // Aim decides the swing side: crosshair on the LEFT part of the block -> opens to the
+          // left, RIGHT part -> opens to the right (default hinge 0 opens to the player's right).
+          {
+            let ox = hit.hx - hit.px, oz = hit.hz - hit.pz;
+            const nX = hit.x - hit.px, nZ = hit.z - hit.pz;
+            const dotN = ox * nX + oz * nZ;
+            ox -= dotN * nX; oz -= dotN * nZ;
+            const rv = DV[OPEN_DIR[facing]];
+            hinge = (ox * rv[0] + oz * rv[1] < 0) ? 16 : 0;
+          }
+          for (const sd of sideDirs) {
+            const nb = world.get(key(nx + DV[sd][0], ny, nz + DV[sd][1]));
+            if (nb && nb.type === 'door' && ((nb.meta | 0) & 3) === facing && !((nb.meta | 0) & 8)) { nbDir = sd; break; }
+          }
+          if (nbDir >= 0) {
+            // pick the hinge whose open edge points away from the neighbour
+            hinge = (OPEN_DIR[facing] === nbDir) ? 16 : 0;
+            const nb = world.get(key(nx + DV[nbDir][0], ny, nz + DV[nbDir][1]));
+            const nbHinge = (nb.meta | 0) & 16;
+            const nbOpenEdge = nbHinge ? OPEN_DIR_R[facing] : OPEN_DIR[facing];
+            const opposite = nbDir ^ 1;
+            if (nbOpenEdge !== opposite) {   // neighbour's hinge faces us: flip it to its outer side
+              const fx = nb.x, fz = nb.z, nm = ((nb.meta | 0) ^ 16);
+              const up = world.get(key(fx, ny + 1, fz));
+              setBlockMeta(fx, ny, fz, nm);
+              if (up && up.type === 'door') setBlockMeta(fx, ny + 1, fz, ((up.meta | 0) & ~16) | (nm & 16));
+            }
+          }
+          addBlock(nx, ny, nz, 'door', false, facing | hinge);
+          addBlock(nx, ny + 1, nz, 'door', false, facing | hinge | 8);
+          removeFromCurrentSlot(1);
+          flushDirtyChunks();
+          renderHotbar();
+          if (inventoryOpen) renderInventoryPanel();
+          pushBlockDiff(nx, ny, nz, 'door', facing | hinge);
+          pushBlockDiff(nx, ny + 1, nz, 'door', facing | hinge | 8);
+        }
+      } else {
+        const meta = (type === 'stairs' || type === 'trapdoor') ? facing : null;
+        if (canPlace && addBlock(nx, ny, nz, type, false, meta)) {
+          removeFromCurrentSlot(1);
+          flushDirtyChunks();
+          renderHotbar();
+          if (inventoryOpen) renderInventoryPanel();
+          pushBlockDiff(nx, ny, nz, type, meta); // tell the server (and everyone else) about the new block
+        }
       }
     }
   }
@@ -4021,6 +4381,7 @@ setLoadProgress(10, 'Connecting to server…');
     playersChannel.subscribe(status => {
       if (status === 'SUBSCRIBED') {
         setLoadProgress(100, 'Connected to shared world ✔');
+        playersChannel.send({ type: 'broadcast', event: 'sync_req', payload: { id: MY_ID } }); // get chests + dropped items from whoever is online
         connDot.classList.add('ready');
         startBtn.disabled = false;
       }
@@ -4064,6 +4425,7 @@ function animate() {
   updateFurnace(dt);
   updateSaplingGrowth(dt);
   updateEating(dt);
+  chestSyncTick();
   torchShadowTimer += dt;
   if (torchShadowTimer > 0.3) { updateTorchShadows(); torchShadowTimer = 0; }
   updateTorchLightFades(dt);
@@ -4163,7 +4525,6 @@ function animate() {
   broadcastMyPosition(dt);
 
   updateOtherPlayerVisuals(dt);
-  updateAIBot(dt);
   updateMyModel(dt, isMoving);
 
   if (thirdPerson) {
@@ -4201,14 +4562,32 @@ function animate() {
   // sway on top of the camera's own swing/eating roll sells the motion.
   const heldNow = currentItem();
   viewModelGroup.visible = !thirdPerson && !!heldNow;
+  fpArm.visible = !thirdPerson && !heldNow;
+  blockAmt += ((isBlocking ? 1 : 0) - blockAmt) * Math.min(1, dt * 14);
   if (!thirdPerson) {
     setHeldVisual(viewModelState, viewModelGroup, heldNow ? heldNow.type : null);
-    let vx = 0.32, vy = -0.28, vz = -0.55;
+    let vx = 0.32, vy = -0.28, vz = -0.55, rx = 0.2, ry = -0.6, rz = -0.15;
     if (mining.active) { vz += Math.sin(mineSwingCycle) * 0.08; vy -= Math.abs(Math.sin(mineSwingCycle)) * 0.03; }
     else if (eating.active) { vy += 0.06; vz += 0.1; }
-    viewModelGroup.position.set(vx, vy, vz);
-    viewModelGroup.rotation.set(0.2, -0.6, -0.15);
+    if (swing.active) {                       // attack swing: chop forward and down
+      const sw = Math.sin(swing.t * Math.PI);
+      vx -= sw * 0.12; vy += sw * 0.10; vz -= sw * 0.22; rx -= sw * 1.3; rz -= sw * 0.35;
+    }
+    if (blockAmt > 0.01) {                    // guard: bring it to the centre, held upright
+      const bl = blockAmt;
+      vx += (0.0 - vx) * bl; vy += (-0.12 - vy) * bl; vz += (-0.5 - vz) * bl;
+      rx += (-0.1 - rx) * bl; ry += (0.0 - ry) * bl; rz += (0.0 - rz) * bl;
+    }
+    if (heldNow) {
+      viewModelGroup.position.set(vx, vy, vz);
+      viewModelGroup.rotation.set(rx, ry, rz);
+    } else {
+      fpArm.position.set(vx + 0.05, vy - 0.02, vz + 0.3);
+      fpArm.rotation.set(rx, ry, rz);
+    }
   }
+  fpShield.visible = !thirdPerson && blockAmt > 0.02;
+  if (fpShield.visible) fpShield.material.opacity = (0.16 + Math.min(0.4, myShieldPulse) * 1.6) * blockAmt;
 
   renderer.render(scene, camera);
 }
