@@ -408,7 +408,7 @@
 <div id="chatLog"></div>
 <div id="chatInputWrap"><input id="chatInput" type="text" maxlength="200" placeholder="Say something... (Enter to send, Esc to cancel)"></div>
 <div id="damageFlash"></div>
-<div id="hud">Mine blocks to collect materials · place them from your inventory.<br>Press <b>E</b> for inventory · <b>F5</b> for third-person · <b>F</b> to eat food · <b>Q</b> to throw item · <b>T</b> to chat. Right-click a crafting table/furnace/chest to use it, or a bed to set your respawn point. World auto-saves as you play.</div>
+<div id="hud">Mine blocks to collect materials · place them from your inventory.<br>Press <b>E</b> for inventory · <b>F5</b> for third-person · <b>F</b> to eat food · <b>Q</b> to throw item · <b>T</b> to chat. Right-click a crafting table/furnace/chest to use it, right-click <b>TNT</b> to light it, or a bed to set your respawn point. World auto-saves as you play.</div>
 <div id="fps">FPS: --<br><span id="playerCount">Players online: 1</span></div>
 <div id="coordsDisplay">XYZ: 0, 0, 0</div>
 <button id="settingsBtn" title="Settings">⚙️</button>
@@ -477,6 +477,7 @@ const viewModelGroup = new THREE.Group();
 camera.add(viewModelGroup);
 scene.add(camera);
 const viewModelState = { heldType: undefined, heldMesh: null };
+const _restHeldEuler = new THREE.Euler(0.2, -0.6, -0.15);
 const renderer = new THREE.WebGLRenderer({ antialias: true, powerPreference: 'high-performance' });
 // Cap devicePixelRatio: on a 2x/3x retina/high-DPI screen an uncapped ratio
 // means the GPU shades 4x-9x the fragments for a barely-visible sharpness
@@ -654,9 +655,19 @@ const TEX = {
   }),
   torch: makeTexture(ctx => {
     ctx.clearRect(0,0,16,16);
-    ctx.fillStyle = '#6f4420'; ctx.fillRect(7,7,2,8);
-    ctx.fillStyle = '#ff8a1e'; ctx.fillRect(6,4,4,4);
-    ctx.fillStyle = '#ffe066'; ctx.fillRect(7,5,2,2);
+    // stick (two-tone wood with grain)
+    ctx.fillStyle = '#a9773f'; ctx.fillRect(7,7,1,9);
+    ctx.fillStyle = '#7a5326'; ctx.fillRect(8,7,1,9);
+    ctx.fillStyle = '#c99a5c'; ctx.fillRect(7,9,1,1); ctx.fillRect(7,13,1,1);
+    ctx.fillStyle = '#5a3a18'; ctx.fillRect(8,11,1,1);
+    // charred head
+    ctx.fillStyle = '#3a2a1c'; ctx.fillRect(7,6,2,1);
+    // flame: red outer, orange, yellow, white-hot core
+    ctx.fillStyle = '#d9480f'; ctx.fillRect(6,3,4,3); ctx.fillRect(7,2,2,1);
+    ctx.fillStyle = '#ff8a1e'; ctx.fillRect(6,4,4,2); ctx.fillRect(7,3,2,1);
+    ctx.fillStyle = '#ffc233'; ctx.fillRect(7,4,2,2);
+    ctx.fillStyle = '#fff2a8'; ctx.fillRect(7,5,2,1);
+    ctx.fillStyle = '#ff5a12'; ctx.fillRect(8,1,1,1);
   }),
   furnace: makeTexture(ctx => {
     speckle(ctx, '#8a8a8a', ['#7d7d7d','#959595','#6f6f6f'], 25);
@@ -676,6 +687,25 @@ const TEX = {
     ctx.strokeStyle = '#5a3417'; ctx.lineWidth = 1;
     ctx.strokeRect(0,0,16,16); ctx.strokeRect(2,2,12,12);
     ctx.fillStyle = '#d8ac7c'; ctx.fillRect(7,1,2,2); // latch peeking over the top edge
+  }),
+  tnt: makeTexture(ctx => {
+    ctx.fillStyle = '#c8321f'; ctx.fillRect(0,0,16,16);
+    ctx.fillStyle = '#a42616';
+    for (let i = 0; i < 16; i += 4) ctx.fillRect(i+1,0,1,16);          // rolled dynamite sticks
+    ctx.fillStyle = '#e9e2cf'; ctx.fillRect(0,5,16,7);                  // label band
+    ctx.fillStyle = '#b8b09a'; ctx.fillRect(0,11,16,1);
+    ctx.fillStyle = '#1c1c1c';
+    const L = { T: [[0,0],[1,0],[2,0],[1,1],[1,2],[1,3],[1,4]],
+                N: [[0,0],[0,1],[0,2],[0,3],[0,4],[1,1],[2,0],[2,1],[2,2],[2,3],[2,4]] };
+    [['T',2],['N',6],['T',10]].forEach(([c,ox]) => L[c].forEach(([x,y]) => ctx.fillRect(ox+x,6+y,1,1)));
+    ctx.fillStyle = '#7a1c10'; ctx.fillRect(0,0,16,1); ctx.fillRect(0,15,16,1);
+  }),
+  tntTop: makeTexture(ctx => {
+    ctx.fillStyle = '#b02a19'; ctx.fillRect(0,0,16,16);
+    ctx.fillStyle = '#8f2012'; ctx.strokeStyle = '#7a1c10'; ctx.lineWidth = 1; ctx.strokeRect(0.5,0.5,15,15);
+    ctx.fillStyle = '#e9e2cf'; ctx.beginPath(); ctx.arc(8,8,3.2,0,7); ctx.fill();
+    ctx.fillStyle = '#3a2a1c'; ctx.fillRect(7,7,2,2);                   // fuse hole
+    ctx.fillStyle = '#ffb02e'; ctx.fillRect(7,6,1,1);
   }),
   bedTop: makeTexture(ctx => {
     ctx.fillStyle = '#d84f4f'; ctx.fillRect(0,0,16,16); // blanket
@@ -732,6 +762,7 @@ const BLOCK_TYPES = {
   furnace: { transparent: false, hardness: 1.75, tool: 'pickaxe' },
   chest: { transparent: false, hardness: 1.0, tool: 'axe' },
   bed:   { transparent: false, hardness: 0.3, tool: null },
+  tnt:   { transparent: false, hardness: 0.1, tool: null },
   // Partial-volume blocks: drawn/collided from sub-boxes (see blockBoxes). Marked
   // transparent so neighbours still draw their faces against them.
   stairs:   { transparent: true, hardness: 1.0, tool: 'axe', shape: 'stairs' },
@@ -824,6 +855,86 @@ ITEM_GLYPHS.trapdoor = ['xxxxxxxx','x......x','x.xxxx.x','x.x..x.x','x.x..x.x','
 ITEM_STYLE.stairs   = { g: 'stairs',   bg: '#b98a4e', x: '#e8c48a', s: '#7a5530' };
 ITEM_STYLE.door     = { g: 'door',     bg: '#a9773f', x: '#d9a866', s: '#f0d98a' };
 ITEM_STYLE.trapdoor = { g: 'trapdoor', bg: '#a9773f', x: '#d9a866', s: '#f0d98a' };
+
+// ---------- Flat pixel-art item sprites (tools, torch, food, armor...) ----------
+// Hand-drawn 16x16 grids; letters index a per-item palette (a=light, b=mid,
+// c=dark, h/H=handle dark/light, l=leaf). Items render as outlined flat
+// sprites (like Minecraft) instead of a cube with a backing tile.
+const SPRITE_GRIDS = {"sword": [".............ooo", "............obao", "...........obabo", "..........obabo.", ".........obabo..", "........obabo...", "..oo...ocabo....", "..oCo.ocaco.....", "...oCocbco......", "...oCCCco.......", "....oCoo........", "...CBoooo.......", "..CAo.oooo......", "ooBo....oo......", "oCo.............", "ooo............."], "pickaxe": ["................", "................", ".....oooooooooo.", ".....oaaaaabbbo.", ".....obbbbbccco.", ".....ooooooobco.", ".........oBoabo.", "........oBooabo.", ".......oAo.oabo.", "......oBo..oabo.", ".....oAo...oabo.", "....oBo....oooo.", "...oAo..........", "..oBo...........", "..oo............", "................"], "axe": ["................", "........aaa.....", "........abbaa...", "........abbbba..", "........abbbbba.", "........cbbbbba.", "........ccbbba..", "........hcccaa..", "........hH......", ".......hH.......", "......hH........", ".....hH.........", "....hH..........", "...hH...........", "..hH............", "................"], "shovel": ["............aa..", "..........aaaaa.", ".........aaabbac", ".........aabbbcc", "........aabbbcc.", "........abbbccc.", "........bhbccc..", "........hbcc....", ".......hH.......", "......hH........", ".....hH.........", "....hH..........", "...hH...........", "..hH............", ".hH.............", "................"], "stick": ["................", "................", ".............hH.", "............hH..", "...........hH...", "..........hH....", ".........hH.....", "........hH......", ".......hH.......", "......hH........", ".....hH.........", "....hH..........", "...hH...........", "..hH............", "................", "................"], "ingot": ["................", "................", "................", "......aaaaaaaa..", "....aaaaaaaaab..", "...abbbbbbbbbb..", "...abbbbbbbbc...", "...abbbbbbbcc...", "...acccccccc....", "................", "................", "................", "................", "................", "................", "................"], "coal": ["................", "................", "................", ".......aa.......", ".....aaabbb.....", "....aaaabbbb....", "...aaabbbbbbb...", "...aabbbbbbbb...", "...abbbbbbbbc...", "...bbbbbbbbcc...", "...bbbbbbbccc...", "....bbbbbccc....", ".....bbbccc.....", ".......cc.......", "................", "................"], "apple": ["................", "................", "................", ".........lll....", "........h.l.....", "........h.......", ".....aabcbbb....", "....aaabbbbbb...", "....aaabbbbbb...", "....bbbbbbbbb...", "....bbbbbbbbb...", "....bbbbbbccc...", "....bbbbbbccc...", ".....bbbbbcc....", "................", "................"]};
+const SPRITE_MAT = {
+  wood:  { a:'#a07a30', b:'#82622a', c:'#5e4820' },
+  stone: { a:'#bdbdbd', b:'#909090', c:'#666666' },
+  iron:  { a:'#f4f7f9', b:'#c9d0d5', c:'#8a949b' },
+};
+// 'o' = built-in pixel outline (sword / pickaxe grids); A/B/C = wooden handle & guard
+const SPRITE_HANDLE = { h:'#6a4e1f', H:'#8f6b2a', o:'#20180a', A:'#a07a30', B:'#82622a', C:'#5e4820' };
+const SPRITE_PAL = {
+  stick:      { h:'#7a4f24', H:'#b98850' },
+  iron_ingot: SPRITE_MAT.iron,
+  coal:       { a:'#5c5c5c', b:'#2e2e2e', c:'#141414' },
+  apple:      { a:'#ff7a6b', b:'#d8322a', c:'#8f1d1d', h:'#6b4423', l:'#4fae3c' },
+  raw_meat:   { a:'#f29aa2', b:'#c94450', c:'#84232e', h:'#f4ead6' },
+  cooked_meat:{ a:'#e0a35e', b:'#a9622a', c:'#66381a', h:'#f4ead6' },
+};
+const SPRITE_GLYPH_ITEMS = { iron_helmet:'helmet', iron_chestplate:'chest', iron_leggings:'legs', iron_boots:'boots', raw_meat:'meat', cooked_meat:'meat' };
+function _spriteGridFor(type) {
+  const m = /^(wood|stone|iron)_(pickaxe|axe|shovel|sword)$/.exec(type);
+  if (m) return { rows: SPRITE_GRIDS[m[2]], pal: { ...SPRITE_MAT[m[1]], ...SPRITE_HANDLE } };
+  if (type === 'stick' || type === 'coal' || type === 'apple') return { rows: SPRITE_GRIDS[type], pal: SPRITE_PAL[type] };
+  if (type === 'iron_ingot') return { rows: SPRITE_GRIDS.ingot, pal: SPRITE_PAL.iron_ingot };
+  const gl = SPRITE_GLYPH_ITEMS[type];
+  if (gl) {                                    // upscale the old 8x8 glyph 2x with edge shading
+    const src = ITEM_GLYPHS[gl], on = (x, y) => y >= 0 && y < 8 && x >= 0 && x < 8 && src[y][x] !== '.';
+    const rowsOut = [];
+    for (let y = 0; y < 16; y++) {
+      let r = '';
+      for (let x = 0; x < 16; x++) {
+        const cx = x >> 1, cy = y >> 1, ch = src[cy][cx];
+        if (ch === '.') { r += '.'; continue; }
+        if (ch === 's') { r += 'h'; continue; }
+        let c = 'b';
+        if (!on(cx, cy - 1) && (y & 1) === 0) c = 'a'; else if (!on(cx - 1, cy) && (x & 1) === 0) c = 'a';
+        else if (!on(cx, cy + 1) && (y & 1) === 1) c = 'c'; else if (!on(cx + 1, cy) && (x & 1) === 1) c = 'c';
+        r += c;
+      }
+      rowsOut.push(r);
+    }
+    return { rows: rowsOut, pal: SPRITE_PAL[type] || SPRITE_MAT.iron };
+  }
+  return null;
+}
+const _sprite16Cache = {};
+function sprite16(type) {                       // -> 16x16 canvas (no outline) or null
+  if (type in _sprite16Cache) return _sprite16Cache[type];
+  let c = null;
+  const sg = _spriteGridFor(type);
+  if (sg) {
+    c = _mk16(); const g = c.getContext('2d');
+    c.hasOutline = sg.rows.some(r => r.indexOf('o') >= 0);
+    sg.rows.forEach((row, y) => [...row].forEach((ch, x) => {
+      const col = sg.pal[ch]; if (!col) return;
+      g.fillStyle = col; g.fillRect(x, y, 1, 1);
+    }));
+  } else if ((type === 'torch' || type === 'sapling') && TEX[type]) {
+    c = _mk16(); c.getContext('2d').drawImage(TEX[type].image, 0, 0, 16, 16);
+  }
+  return (_sprite16Cache[type] = c);
+}
+function spriteIconCanvas(type, N) {
+  const s = sprite16(type); if (!s) return null;
+  const c = document.createElement('canvas'); c.width = c.height = N;
+  const g = c.getContext('2d'); g.imageSmoothingEnabled = false;
+  if (s.hasOutline) { g.drawImage(s, 0, 0, N, N); return c; }
+  const sil = document.createElement('canvas'); sil.width = sil.height = N;
+  const sg = sil.getContext('2d'); sg.imageSmoothingEnabled = false;
+  sg.drawImage(s, 0, 0, N, N);
+  sg.globalCompositeOperation = 'source-in'; sg.fillStyle = '#17110c'; sg.fillRect(0, 0, N, N);
+  const o = Math.max(1, Math.round(N / 32));
+  for (const [dx, dy] of [[-o,0],[o,0],[0,-o],[0,o],[-o,-o],[o,o],[-o,o],[o,-o]]) g.drawImage(sil, dx, dy + o * 0.5);
+  g.drawImage(s, 0, 0, N, N);
+  return c;
+}
+
 // Non-cube blocks (cross sprites / see-through) get a solid backing colour.
 const TILE_BG = { sapling: '#2f6f25', torch: '#2a2018', glass: '#a9d6e5', water: '#2a55b0' };
 
@@ -864,6 +975,7 @@ function blockFaceCanvases(type) {            // -> { top, side } source canvase
     case 'crafting_table': return { top: T('craftTop'), side: T('planks') };
     case 'chest': return { top: T('chestTop'), side: T('chest') };
     case 'bed':   return { top: T('bedTop'), side: T('bedSide') };
+    case 'tnt':   return { top: T('tntTop'), side: T('tnt') };
     case 'coal_ore': return { top: T('coalOre'), side: T('coalOre') };
   }
   const b = BLOCK_TYPES[type];
@@ -874,6 +986,8 @@ const _iconCanvasCache = {};
 function iconCanvas(type, N = 64) {
   const key = type + N;
   if (_iconCanvasCache[key]) return _iconCanvasCache[key];
+  const flat = spriteIconCanvas(type, N);
+  if (flat) return (_iconCanvasCache[key] = flat);
   const c = document.createElement('canvas'); c.width = c.height = N;
   const g = c.getContext('2d'); g.imageSmoothingEnabled = false;
   const k = N / 48, ox = 24 * k, oy = 4 * k;
@@ -969,6 +1083,8 @@ const RECIPES = [
   { shape: [['planks','planks','planks'],['planks',null,'planks'],['planks','planks','planks']], out: 'chest', outCount: 1, needsTable: true },
   // No wool block in Voltex, so leaves stand in for the blanket row.
   { shape: [['leaves','leaves','leaves'],['planks','planks','planks']], out: 'bed', outCount: 1, needsTable: true },
+  // TNT: coal (stands in for gunpowder) + sand, checkerboard like Minecraft's 5+4.
+  { shape: [['coal','sand','coal'],['sand','coal','sand'],['coal','sand','coal']], out: 'tnt', outCount: 1, needsTable: true },
   // Stairs (both mirror images), door, trapdoor — same shapes as Minecraft.
   { shape: [['planks',null,null],['planks','planks',null],['planks','planks','planks']], out: 'stairs', outCount: 4, needsTable: true },
   { shape: [[null,null,'planks'],[null,'planks','planks'],['planks','planks','planks']], out: 'stairs', outCount: 4, needsTable: true },
@@ -1061,6 +1177,8 @@ const MI = {
   chest:     regMat(TEX.chest),
   chestTop:  regMat(TEX.chestTop),
   bedTop:    regMat(TEX.bedTop),
+  tnt:       regMat(TEX.tnt),
+  tntTop:    regMat(TEX.tntTop),
   bedSide:   regMat(TEX.bedSide),
 };
 MI.doorLower = regMat(TEX.doorLower);
@@ -1096,6 +1214,7 @@ function faceMatIndex(type, faceIdx) {
     case 'crafting_table': return (faceIdx===2 || faceIdx===3) ? MI.craftTop : MI.planks;
     case 'chest': return (faceIdx===2 || faceIdx===3) ? MI.chestTop : MI.chest;
     case 'bed':   return (faceIdx===2 || faceIdx===3) ? MI.bedTop : MI.bedSide;
+    case 'tnt':   return (faceIdx===2 || faceIdx===3) ? MI.tntTop : MI.tnt;
     default: return MI[type];
   }
 }
@@ -1469,7 +1588,7 @@ function torchWallDir(x, y, z) {
   return null; // unsupported — falls back to the old upright look
 }
 function columnSkyTop(x, z) {
-  for (let y = Y_MAX; y >= Y_MIN; y--) {
+  for (let y = Math.min(Y_MAX, worldMaxY); y >= Y_MIN; y--) {
     const b = world.get(key(x, y, z));
     if (b && !BLOCK_TYPES[b.type].transparent) return y;
   }
@@ -1537,9 +1656,11 @@ function rebuildChunk(cx, cz) {
     return shadeFromLevel(Math.min(LIGHT_MAX, Math.max(sky, 0) + torch));
   }
 
+  const _yr = chunkYRange.get(ck);
+  const yLo = _yr ? Math.max(Y_MIN, _yr[0]) : Y_MAX + 1, yHi = _yr ? Math.min(Y_MAX, _yr[1]) : Y_MAX;
   for (let x=x0; x<=x1; x++){
     for (let z=z0; z<=z1; z++){
-      for (let y=Y_MIN; y<=Y_MAX; y++){
+      for (let y=yLo; y<=yHi; y++){
         const b = world.get(key(x,y,z));
         if (!b) continue;
         // Cross-model blocks (torch, sapling) are flat crossed sprites, not
@@ -1623,12 +1744,39 @@ function rebuildChunk(cx, cz) {
   scene.add(mesh);
   chunk.mesh = mesh;
 }
-function flushDirtyChunks() {
+// Picks the dirty chunk closest to the player (the one you just mined in).
+function _nearestDirtyChunkKey() {
+  let best = null, bd = Infinity;
+  const px = player.pos.x / CHUNK_SIZE - 0.5, pz = player.pos.z / CHUNK_SIZE - 0.5;
   dirtyChunkKeys.forEach(k => {
-    const [cx,cz] = k.split(',').map(Number);
-    rebuildChunk(cx,cz);
+    const c = k.indexOf(',');
+    const dx = +k.slice(0, c) - px, dz = +k.slice(c + 1) - pz, d = dx * dx + dz * dz;
+    if (d < bd) { bd = d; best = k; }
   });
-  dirtyChunkKeys.clear();
+  return best;
+}
+function _rebuildDirtyKey(k) {
+  dirtyChunkKeys.delete(k);
+  const [cx,cz] = k.split(',').map(Number);
+  rebuildChunk(cx,cz);
+}
+// all = true : rebuild everything now (world load).
+// all = false: rebuild only the nearest dirty chunk now; neighbours (edge faces,
+// torch light) are finished one per frame by stepDirtyChunks(), so mining or
+// placing a block no longer rebuilds 2-4 chunks inside a single frame (lag spike).
+function flushDirtyChunks(all = true) {
+  if (all) {
+    Array.from(dirtyChunkKeys).forEach(_rebuildDirtyKey);
+    dirtyChunkKeys.clear();
+    return;
+  }
+  const k = _nearestDirtyChunkKey();
+  if (k) _rebuildDirtyKey(k);
+}
+function stepDirtyChunks() {
+  if (!dirtyChunkKeys.size) return;
+  const k = _nearestDirtyChunkKey();
+  if (k) _rebuildDirtyKey(k);
 }
 function markGeneratedChunksDirty() {
   generatedChunks.forEach(ck => { const [cx,cz] = ck.split(',').map(Number); markOne(cx,cz); });
@@ -1636,6 +1784,22 @@ function markGeneratedChunksDirty() {
 
 // ================= World data =================
 const world = new Map(); // key "x,y,z" -> {type,x,y,z}
+// Cheap extents tracking: the tallest block anywhere, and each chunk's lowest/highest
+// block. Chunk rebuilds and sky-height scans use these to skip the huge empty air
+// above the terrain instead of doing ~80 string-keyed Map lookups per column.
+let worldMaxY = Y_MIN;
+const chunkYRange = new Map(); // "cx,cz" -> [minY, maxY]
+const _worldSetOrig = world.set.bind(world);
+world.set = function (k, v) {
+  if (v && typeof v.y === 'number') {
+    if (v.y > worldMaxY) worldMaxY = v.y;
+    const ck = Math.floor(v.x / CHUNK_SIZE) + ',' + Math.floor(v.z / CHUNK_SIZE);
+    const r = chunkYRange.get(ck);
+    if (!r) chunkYRange.set(ck, [v.y, v.y]);
+    else { if (v.y < r[0]) r[0] = v.y; if (v.y > r[1]) r[1] = v.y; }
+  }
+  return _worldSetOrig(k, v);
+};
 // Coordinates a diff explicitly removed (mined by a player). Terrain
 // generation for a not-yet-loaded chunk consults this so it never
 // resurrects a block someone already mined, however late that chunk
@@ -2069,6 +2233,12 @@ function loadSavedName() {
 function applyBlockDiff(row, skipMark) {
   const { x, y, z } = row;
   let type = row.type, meta = 0;
+  // Chest rows carry their contents in the type string, so they're saved in the
+  // shared world table and every player (even ones who join later) gets them.
+  if (typeof type === 'string' && type.indexOf('chest|c:') === 0) {
+    applyChestFromDb(key(x, y, z), type.slice(8), !!skipMark);
+    type = 'chest';
+  }
   // Orientation/open-state rides along in the type string ("stairs|2"), so no schema change is needed.
   if (typeof type === 'string' && type.indexOf('|') >= 0) {
     const parts = type.split('|');
@@ -2323,14 +2493,17 @@ function quickMove(zone) {
         if (zone.i < HOTBAR_SIZE) stashInto(inventory, HOTBAR_SIZE, INV_SIZE, item);  // hotbar -> inventory
         else stashInto(inventory, 0, HOTBAR_SIZE, item);                              // inventory -> hotbar
       }
+    } else if (zone.k === 'chest') {
+      stashInto(inventory, HOTBAR_SIZE, INV_SIZE, item);                              // chest -> main inventory first...
+      if (item.count > 0) stashInto(inventory, 0, HOTBAR_SIZE, item);                 // ...then hotbar if that's full
     } else {
-      stashBackpack(item);                                                            // craft / chest / furnace -> hotbar, then inventory
+      stashBackpack(item);                                                            // craft / furnace -> hotbar, then inventory
     }
     setZoneItem(zone, item.count > 0 ? item : null);
   }
   renderInventoryPanel();
   if (furnaceOpen) renderFurnacePanel();
-  if (chestOpen) { renderChestPanel(); saveChestData(); }
+  if (chestOpen) { renderChestPanel(); chestSyncTick(); saveChestData(); }
   renderHotbar();
   saveLocalPlayer();
 }
@@ -2374,6 +2547,7 @@ function clickSlot(getItem, setItem, isRight) {
   }
   renderInventoryPanel();
   if (furnaceOpen) renderFurnacePanel();
+  if (chestOpen) { renderChestPanel(); chestSyncTick(); }
   renderHotbar();
   saveLocalPlayer();
 }
@@ -2537,9 +2711,9 @@ function openWorkbench() {
 const SMELT_RECIPES = {
   sand:      { out: 'glass',       time: 4 },
   raw_meat:  { out: 'cooked_meat', time: 5 },
-  iron_ore:  { out: 'iron_ingot',  time: 7 },
+  iron_ore:  { out: 'iron_ingot',  time: 5 },
 };
-const FUEL_VALUES = { coal: 8, wood: 3, planks: 2.5, stick: 1, sapling: 0.5 };
+const FUEL_VALUES = { coal: 16, wood: 8, planks: 6, stick: 2.5, sapling: 1 };
 
 const furnacePanel = document.getElementById('furnacePanel');
 const furnaceInputWrap = document.getElementById('furnaceInputWrap');
@@ -2569,6 +2743,7 @@ function updateFurnace(dt) {
     if (fuelVal) {
       furnaceBurnLeft = fuelVal;
       furnaceBurnTotal = fuelVal;
+      furnaceCookTime = Math.max(0, furnaceCookTime); // never wipe progress on a refuel
       furnaceSlots.fuel.count--;
       if (furnaceSlots.fuel.count <= 0) furnaceSlots.fuel = null;
     }
@@ -2588,7 +2763,7 @@ function updateFurnace(dt) {
       furnaceCookTime = 0;
     }
   } else {
-    furnaceCookTime = Math.max(0, furnaceCookTime - dt * 2);
+    if (!(recipe && furnaceSlots.fuel)) furnaceCookTime = Math.max(0, furnaceCookTime - dt * 0.5); // slow cool-down only when truly out of fuel/input
   }
   if (furnaceBurnLeft < 0) furnaceBurnLeft = 0;
   if (!furnaceOpen) return;
@@ -2699,6 +2874,7 @@ function broadcastChest(k) {
     payload: { from: MY_ID, key: k, slots: chestData[k], stamp: chestStamps[k] } });
 }
 function broadcastChestRemove(k) {
+  clearTimeout(chestDbTimers[k]); // don't let a pending save resurrect a chest that was just broken
   delete chestStamps[k];
   playersChannel.send({ type: 'broadcast', event: 'chest_remove', payload: { from: MY_ID, key: k } });
 }
@@ -2712,6 +2888,40 @@ function chestSyncTick() {
   chestStamps[chestKey] = Date.now();
   saveChestData();
   broadcastChest(chestKey);
+  scheduleChestDbPush(chestKey);
+}
+// ---- chest contents in the shared world table (survives reloads, visible to everyone) ----
+const recentChestPushes = [];   // our own recent writes, so their realtime echo can't undo newer local edits
+const chestDbTimers = {};
+function encodeChest(slots) { return 'c:' + slots.map(s => s ? s.type + '*' + s.count : '').join(','); }
+function decodeChest(str) {
+  const arr = new Array(CHEST_SIZE).fill(null);
+  str.split(',').forEach((e, i) => {
+    if (i >= CHEST_SIZE || !e) return;
+    const [t, c] = e.split('*'), n = parseInt(c, 10);
+    if (t && n > 0 && (BLOCK_TYPES[t] || ITEM_INFO[t])) arr[i] = { type: t, count: n };
+  });
+  return arr;
+}
+function scheduleChestDbPush(k) {
+  clearTimeout(chestDbTimers[k]);
+  chestDbTimers[k] = setTimeout(async () => {
+    const slots = chestData[k]; if (!slots) return;
+    const enc = encodeChest(slots);
+    recentChestPushes.push(enc); if (recentChestPushes.length > 30) recentChestPushes.shift();
+    const [x, y, z] = k.split(',').map(Number);
+    const { error } = await sb.from('world_blocks').upsert({ x, y, z, type: 'chest|' + enc, updated_at: new Date().toISOString() });
+    if (error) console.error('chest save', error);
+  }, 250);
+}
+function applyChestFromDb(k, enc, initial) {
+  const encFull = 'c:' + enc;
+  const arr = decodeChest(enc);
+  if (initial) {                       // world load: the shared copy beats a stale local one
+    chestData[k] = arr; chestStamps[k] = 1; saveChestData(); return;
+  }
+  if (chestOpen && chestKey === k && recentChestPushes.indexOf(encFull) >= 0) return; // our own echo
+  applyRemoteChest(k, arr, Date.now());
 }
 function applyRemoteChest(k, slots, stamp) {
   if (!Array.isArray(slots)) return;
@@ -3312,8 +3522,69 @@ function makeHeldItemMesh(type) {
     const mats = [0,1,2,3,4,5].map(i => MAT_LIST[faceMatIndex(type, i)]);
     return new THREE.Mesh(geo, mats);
   }
-  // Items (tools, armor, food, materials) and sprite-blocks: a small textured cube too.
+  // Items (tools, armor, food, materials, torch...): the same pixel-art sprite as
+  // the backpack icon, extruded into a chunky 3D voxel model (like Minecraft).
+  const vox = makeVoxelItemMesh(type);
+  if (vox) return vox;
   return new THREE.Mesh(new THREE.BoxGeometry(0.26, 0.26, 0.26), getHeldCubeMaterials(type));
+}
+// Builds one merged mesh from the sprite's pixels (with its dark outline): a
+// front + back face per pixel, plus side faces wherever a neighbour is empty.
+const _voxelGeoCache = {};
+function makeVoxelItemMesh(type) {
+  const spr = sprite16(type); if (!spr) return null;
+  if (!_voxelGeoCache[type]) {
+    const P = 18, px = new Array(P * P).fill(null);        // 1px padding for the outline
+    const d = spr.getContext('2d').getImageData(0, 0, 16, 16).data;
+    const filled = (x, y) => x >= 0 && y >= 0 && x < P && y < P && !!px[y * P + x];
+    for (let y = 0; y < 16; y++) for (let x = 0; x < 16; x++) {
+      const i = (y * 16 + x) * 4;
+      if (d[i + 3] > 40) px[(y + 1) * P + (x + 1)] = [d[i] / 255, d[i + 1] / 255, d[i + 2] / 255];
+    }
+    const base = px.slice();
+    for (let y = 0; y < P; y++) for (let x = 0; x < P; x++) {
+      if (spr.hasOutline || base[y * P + x]) continue;
+      let near = false;
+      for (let dy = -1; dy <= 1 && !near; dy++) for (let dx = -1; dx <= 1; dx++) {
+        const nx = x + dx, ny = y + dy;
+        if ((dx || dy) && nx >= 0 && ny >= 0 && nx < P && ny < P && base[ny * P + nx]) { near = true; break; }
+      }
+      if (near) px[y * P + x] = [0.09, 0.07, 0.05];
+    }
+    const pos = [], col = [], S = 0.5 / P, T = S * 1.6;    // pixel size, thickness
+    // Tools pivot around their grip (handle, bottom-left of the sprite) instead of
+    // their middle, so swinging turns them from where the player holds them.
+    const isTool = /_(sword|pickaxe|axe|shovel)$/.test(type);
+    const gpx = isTool ? 3 : P / 2, gpy = isTool ? 14 : P / 2;      // grip pixel (padded coords)
+    const gx = (gpx - P / 2 + 0.5) * S, gy = (P / 2 - gpy - 0.5) * S;
+    const quad = (v, c, sh) => { for (const i of [0, 1, 2, 0, 2, 3]) { pos.push(v[i][0], v[i][1], v[i][2]); col.push(c[0] * sh, c[1] * sh, c[2] * sh); } };
+    for (let y = 0; y < P; y++) for (let x = 0; x < P; x++) {
+      const c = px[y * P + x]; if (!c) continue;
+      const x0 = (x - P / 2) * S - gx, x1 = x0 + S, y1 = (P / 2 - y) * S - gy, y0 = y1 - S, z0 = -T / 2, z1 = T / 2;
+      quad([[x0,y0,z1],[x1,y0,z1],[x1,y1,z1],[x0,y1,z1]], c, 1.0);            // front
+      quad([[x1,y0,z0],[x0,y0,z0],[x0,y1,z0],[x1,y1,z0]], c, 0.7);            // back
+      if (!filled(x - 1, y)) quad([[x0,y0,z0],[x0,y0,z1],[x0,y1,z1],[x0,y1,z0]], c, 0.78);  // left
+      if (!filled(x + 1, y)) quad([[x1,y0,z1],[x1,y0,z0],[x1,y1,z0],[x1,y1,z1]], c, 0.78);  // right
+      if (!filled(x, y - 1)) quad([[x0,y1,z1],[x1,y1,z1],[x1,y1,z0],[x0,y1,z0]], c, 0.9);   // top
+      if (!filled(x, y + 1)) quad([[x0,y0,z0],[x1,y0,z0],[x1,y0,z1],[x0,y0,z1]], c, 0.6);   // bottom
+    }
+    const geo = new THREE.BufferGeometry();
+    geo.setAttribute('position', new THREE.BufferAttribute(new Float32Array(pos), 3));
+    geo.setAttribute('color', new THREE.BufferAttribute(new Float32Array(col), 3));
+    geo.userData = { gx, gy };
+    _voxelGeoCache[type] = geo;
+  }
+  const geo = _voxelGeoCache[type];
+  const mesh = new THREE.Mesh(geo, new THREE.MeshBasicMaterial({ vertexColors: true, side: THREE.DoubleSide }));
+  mesh.scale.set(-1.15, 1.15, 1.15);          // mirrored: the tip/head tilts LEFT
+  mesh.userData.sharedGeo = true;
+  // Tools/weapons: turn so the head points forward, away from the player.
+  if (/_(sword|pickaxe|axe|shovel)$/.test(type)) mesh.rotation.y = -1.1;
+  mesh.updateMatrix();
+  // where the sprite's middle sits relative to the pivot (grip) — used to keep the
+  // first-person pose looking the same while rotations happen around the grip
+  mesh.userData.centerOffset = new THREE.Vector3(-geo.userData.gx, -geo.userData.gy, 0).applyMatrix4(mesh.matrix);
+  return mesh;
 }
 // Swaps the mesh parented to `anchor` only when the held type actually
 // changes, so this is cheap to call every frame.
@@ -3322,7 +3593,7 @@ function setHeldVisual(state, anchor, type) {
   state.heldType = type;
   if (state.heldMesh) {
     anchor.remove(state.heldMesh);
-    if (state.heldMesh.geometry) state.heldMesh.geometry.dispose();
+    if (state.heldMesh.geometry && !state.heldMesh.userData.sharedGeo) state.heldMesh.geometry.dispose();
   }
   const mesh = makeHeldItemMesh(type);
   if (mesh) anchor.add(mesh);
@@ -3358,9 +3629,9 @@ function buildPig() {
 }
 
 const animals = [];
-function spawnAnimal(x, z) {
-  const h = noise2D(x, z);
-  if (h <= WATER_LEVEL) return; // don't spawn in/under water
+function spawnAnimal(x, z, surfaceY) {
+  const h = surfaceY != null ? surfaceY : noise2D(x, z);
+  if (h <= WATER_LEVEL) return false; // don't spawn in/under water
   const group = buildPig();
   scene.add(group);
   const pos = new THREE.Vector3(x + 0.5, h + 1.5, z + 0.5);
@@ -3371,6 +3642,7 @@ function spawnAnimal(x, z) {
     radius: 0.35, height: 0.7,
     wanderTimer: Math.random()*2, facing: 0,
   });
+  return true;
 }
 function spawnAnimals(count, centerX, centerZ, radius) {
   for (let i = 0; i < count; i++) {
@@ -3416,6 +3688,59 @@ function updateAnimals(dt) {
     a.group.position.copy(a.pos);
     a.group.rotation.y = a.facing;
   });
+}
+
+// ---- natural spawning: keep a few animals around the player as they explore ----
+const ANIMAL_CAP = 12;          // max living animals within ANIMAL_NEAR of the player
+const ANIMAL_NEAR = 70;         // counts as "nearby"
+const ANIMAL_DESPAWN = 110;     // wandered/left behind this far -> removed to keep things light
+let animalSpawnTimer = 3;
+function findGrassSurface(x, z) {   // real top grass block (respects mined/built terrain), or null
+  const base = noise2D(x, z);
+  for (let y = base + 8; y >= base - 8; y--) {
+    const b = world.get(key(x, y, z));
+    if (!b) continue;
+    if (b.type !== 'grass') return null;
+    if (world.get(key(x, y + 1, z)) || world.get(key(x, y + 2, z))) return null; // covered
+    return y;
+  }
+  return null;
+}
+function updateAnimalSpawning(dt) {
+  // drop dead entries and animals we've left far behind
+  for (let i = animals.length - 1; i >= 0; i--) {
+    const a = animals[i];
+    if (!a.alive) { animals.splice(i, 1); continue; }
+    const dx = a.pos.x - player.pos.x, dz = a.pos.z - player.pos.z;
+    if (dx*dx + dz*dz > ANIMAL_DESPAWN * ANIMAL_DESPAWN) { a.alive = false; scene.remove(a.group); animals.splice(i, 1); }
+  }
+  animalSpawnTimer -= dt;
+  if (animalSpawnTimer > 0) return;
+  animalSpawnTimer = 3 + Math.random() * 4;
+  let near = 0;
+  for (const a of animals) {
+    const dx = a.pos.x - player.pos.x, dz = a.pos.z - player.pos.z;
+    if (dx*dx + dz*dz < ANIMAL_NEAR * ANIMAL_NEAR) near++;
+  }
+  if (near >= ANIMAL_CAP) return;
+  // pick a spot 24-60 blocks away (outside the immediate view), on loaded grass
+  const camDir = new THREE.Vector3(); camera.getWorldDirection(camDir);
+  for (let tries = 0; tries < 12; tries++) {
+    const ang = Math.random() * Math.PI * 2, dist = 24 + Math.random() * 36;
+    const x = Math.floor(player.pos.x + Math.cos(ang) * dist), z = Math.floor(player.pos.z + Math.sin(ang) * dist);
+    if (Math.abs(Math.cos(ang) * camDir.x + Math.sin(ang) * camDir.z) > 0.8 && dist < 34) continue; // not right in front of the player
+    const y = findGrassSurface(x, z);
+    if (y == null) continue;
+    // small herd of 1-3
+    const herd = 1 + Math.floor(Math.random() * 3);
+    let made = 0;
+    for (let i = 0; i < herd && near + made < ANIMAL_CAP; i++) {
+      const hx = x + Math.floor((Math.random() - 0.5) * 4), hz = z + Math.floor((Math.random() - 0.5) * 4);
+      const hy = findGrassSurface(hx, hz);
+      if (hy != null && spawnAnimal(hx, hz, hy)) made++;
+    }
+    if (made) return;
+  }
 }
 
 function damageAnimal(animal, dmg) {
@@ -3655,6 +3980,12 @@ playersChannel
       const entry = otherPlayers.get(payload.targetId);
       if (entry) { flashRed(entry.group); if (entry.blocking) entry.shieldPulse = 0.25; }
     }
+  })
+  // Primed TNT lit by another player: show the same fuse + blast here (that player's
+  // client is the one that actually removes the blocks; we only add visuals + our own damage).
+  .on('broadcast', { event: 'tnt' }, ({ payload }) => {
+    if (!payload || payload.from === MY_ID) return;
+    spawnPrimedTnt(payload.x, payload.y, payload.z, payload.fuse, { id: payload.id, remote: true, vx: payload.vx, vy: payload.vy, vz: payload.vz });
   })
   // Someone swung their arm (attack animation).
   .on('broadcast', { event: 'swing' }, ({ payload }) => {
@@ -4033,6 +4364,15 @@ settingsBtn.addEventListener('click', () => { if (settingsOpen) closeSettings();
 document.getElementById('settingsCloseBtn').addEventListener('click', closeSettings);
 settingsOverlay.addEventListener('click', e => { if (e.target === settingsOverlay) closeSettings(); });
 
+// Mouse wheel cycles through the hotbar (scroll down = next slot, up = previous)
+document.addEventListener('wheel', e => {
+  if (!pointerLocked || inventoryOpen || furnaceOpen || chestOpen || chatOpen || settingsOpen) return;
+  e.preventDefault();
+  if (!e.deltaY) return;
+  const dir = e.deltaY > 0 ? 1 : -1;
+  selectSlot((currentSlot + dir + HOTBAR_SIZE) % HOTBAR_SIZE);
+}, { passive: false });
+
 document.addEventListener('mousemove', e => {
   if (!pointerLocked) return;
   player.yaw -= e.movementX * 0.0022;
@@ -4155,7 +4495,7 @@ function updateMining(dt) {
           spawnDroppedItem(drop, 1, popPos);
         }
       }
-      flushDirtyChunks();
+      flushDirtyChunks(false);
       renderHotbar();
       if (inventoryOpen) renderInventoryPanel();
       pushBlockDiff(hit.x, hit.y, hit.z, 'air'); // tell the server (and everyone else) this block is gone
@@ -4217,6 +4557,7 @@ canvas.addEventListener('mousedown', e => {
     mining.progress = 0;
     mining.target = null; // resolved fresh each frame in updateMining()
   } else if (e.button === 2) {
+    if (tryIgniteLookedTnt()) return; // right-click TNT = light the fuse (works with any item in hand)
     if (startEating()) return; // holding food takes priority over placing a block
     const heldItem = currentItem();
     if (heldItem && isSword(heldItem.type)) { isBlocking = true; return; } // hold right-click with a sword to block
@@ -4321,7 +4662,7 @@ canvas.addEventListener('mousedown', e => {
           addBlock(nx, ny, nz, 'door', false, facing | hinge);
           addBlock(nx, ny + 1, nz, 'door', false, facing | hinge | 8);
           removeFromCurrentSlot(1);
-          flushDirtyChunks();
+          flushDirtyChunks(false);
           renderHotbar();
           if (inventoryOpen) renderInventoryPanel();
           pushBlockDiff(nx, ny, nz, 'door', facing | hinge);
@@ -4331,7 +4672,7 @@ canvas.addEventListener('mousedown', e => {
         const meta = (type === 'stairs' || type === 'trapdoor') ? facing : null;
         if (canPlace && addBlock(nx, ny, nz, type, false, meta)) {
           removeFromCurrentSlot(1);
-          flushDirtyChunks();
+          flushDirtyChunks(false);
           renderHotbar();
           if (inventoryOpen) renderInventoryPanel();
           pushBlockDiff(nx, ny, nz, type, meta); // tell the server (and everyone else) about the new block
@@ -4398,6 +4739,227 @@ setLoadProgress(10, 'Connecting to server…');
 let saveTimer = 0;
 let torchShadowTimer = 0;
 
+
+// ================= TNT =================
+// Right-click a TNT block to light it: the block turns into a primed entity that
+// pulses white/red for ~4s, then explodes (blast radius 4). Blocks inside the blast are
+// destroyed (synced to everyone through world_blocks), other TNT in range is chain-lit,
+// and players/animals nearby take damage + knockback. Whoever lit it removes the blocks;
+// every client shows the fuse/fireball and applies damage to its own player.
+const TNT_FUSE = 4, TNT_RADIUS = 4;
+const primedTnts = [];
+let tntSeq = 0, tntShake = 0;
+const _tntGeo = new THREE.BoxGeometry(0.98, 0.98, 0.98);
+_tntGeo.setAttribute('color', new THREE.BufferAttribute(new Float32Array(_tntGeo.attributes.position.count * 3).fill(1), 3));
+const _tntFlashGeo = new THREE.BoxGeometry(1.03, 1.03, 1.03);
+const _fxBoxGeo = new THREE.BoxGeometry(1, 1, 1);
+const _fxSphereGeo = new THREE.SphereGeometry(1, 16, 12);
+const tntFx = []; // fireballs / debris
+
+let _tntAudio = null;
+function tntSound(kind) {
+  try {
+    _tntAudio = _tntAudio || new (window.AudioContext || window.webkitAudioContext)();
+    const ac = _tntAudio; if (ac.state === 'suspended') ac.resume();
+    const dur = kind === 'boom' ? 1.1 : 0.9;
+    const buf = ac.createBuffer(1, Math.floor(ac.sampleRate * dur), ac.sampleRate), d = buf.getChannelData(0);
+    for (let i = 0; i < d.length; i++) d[i] = (Math.random() * 2 - 1) * Math.pow(1 - i / d.length, kind === 'boom' ? 2.2 : 1.2);
+    const src = ac.createBufferSource(); src.buffer = buf;
+    const f = ac.createBiquadFilter(); f.type = kind === 'boom' ? 'lowpass' : 'highpass';
+    f.frequency.value = kind === 'boom' ? 380 : 3800;
+    const g = ac.createGain(); g.gain.value = kind === 'boom' ? 0.9 : 0.12;
+    src.connect(f); f.connect(g); g.connect(ac.destination); src.start();
+  } catch (e) {}
+}
+
+function spawnPrimedTnt(x, y, z, fuse, opts) {
+  opts = opts || {};
+  const id = opts.id || (MY_ID + '_tnt' + (tntSeq++));
+  if (primedTnts.some(t => t.id === id)) return;
+  const grp = new THREE.Group();
+  const mats = [0,1,2,3,4,5].map(i => MAT_LIST[faceMatIndex('tnt', i)]);
+  grp.add(new THREE.Mesh(_tntGeo, mats));
+  const flashMat = new THREE.MeshBasicMaterial({ color: 0xffffff, transparent: true, opacity: 0, depthWrite: false });
+  const flash = new THREE.Mesh(_tntFlashGeo, flashMat);
+  grp.add(flash);
+  scene.add(grp);
+  const pos = new THREE.Vector3(x, y - 0.48, z); // pos = feet of the 0.98-tall cube
+  const vel = new THREE.Vector3(opts.vx || 0, opts.vy != null ? opts.vy : 3.2, opts.vz || 0);
+  if (opts.vx == null) { vel.x = (Math.random() - 0.5) * 0.8; vel.z = (Math.random() - 0.5) * 0.8; }
+  primedTnts.push({ id, grp, flashMat, pos, vel, fuse, total: fuse, owner: !opts.remote });
+  if (!opts.remote) {
+    playersChannel.send({ type: 'broadcast', event: 'tnt', payload: { from: MY_ID, id, x, y, z, fuse, vx: vel.x, vy: vel.y, vz: vel.z } });
+  }
+  tntSound('fuse');
+}
+
+// Turn the TNT block at (x,y,z) into a primed entity.
+function igniteTntAt(x, y, z, fuse) {
+  const b = getBlock(x, y, z);
+  if (!b || b.type !== 'tnt') return false;
+  removeBlock(x, y, z);
+  removedDiffs.add(key(x, y, z));
+  pushBlockDiff(x, y, z, 'air');
+  flushDirtyChunks(false);
+  spawnPrimedTnt(x, y, z, fuse == null ? TNT_FUSE : fuse);
+  return true;
+}
+function tryIgniteLookedTnt() {
+  const dir = new THREE.Vector3();
+  camera.getWorldDirection(dir);
+  const hit = castVoxelRay(camera.position, dir, RAY_DIST);
+  if (!hit) return false;
+  const b = getBlock(hit.x, hit.y, hit.z);
+  if (!b || b.type !== 'tnt') return false;
+  startSwing();
+  return igniteTntAt(hit.x, hit.y, hit.z, TNT_FUSE);
+}
+
+function pushBlockDiffsBatch(list) { // [{x,y,z}] -> 'air'
+  const stamp = new Date().toISOString();
+  for (let i = 0; i < list.length; i += 400) {
+    const rows = list.slice(i, i + 400).map(p => ({ x: p.x, y: p.y, z: p.z, type: 'air', updated_at: stamp }));
+    sb.from('world_blocks').upsert(rows).then(({ error }) => { if (error) console.error('tnt batch diff', error); });
+  }
+}
+
+function spawnExplosionFx(c) {
+  const ballMat = new THREE.MeshBasicMaterial({ color: 0xffb030, transparent: true, opacity: 0.95, depthWrite: false });
+  const ball = new THREE.Mesh(_fxSphereGeo, ballMat); ball.position.copy(c); ball.scale.setScalar(0.5); scene.add(ball);
+  tntFx.push({ kind: 'ball', mesh: ball, mat: ballMat, t: 0, life: 0.55 });
+  const core = new THREE.MeshBasicMaterial({ color: 0xfff3b0, transparent: true, opacity: 1, depthWrite: false });
+  const cm = new THREE.Mesh(_fxSphereGeo, core); cm.position.copy(c); cm.scale.setScalar(0.3); scene.add(cm);
+  tntFx.push({ kind: 'core', mesh: cm, mat: core, t: 0, life: 0.35 });
+  for (let i = 0; i < 26; i++) {
+    const hot = Math.random() < 0.45;
+    const m = new THREE.MeshBasicMaterial({ color: hot ? (Math.random() < 0.5 ? 0xff7a1a : 0xffcf40) : (Math.random() < 0.5 ? 0x3a3a3a : 0x666666), transparent: true, opacity: 1 });
+    const mesh = new THREE.Mesh(_fxBoxGeo, m);
+    const sz = 0.12 + Math.random() * 0.22; mesh.scale.setScalar(sz);
+    mesh.position.copy(c).add(new THREE.Vector3((Math.random()-0.5)*1.5, (Math.random()-0.5)*1.5, (Math.random()-0.5)*1.5));
+    scene.add(mesh);
+    const v = new THREE.Vector3(Math.random()-0.5, Math.random()*0.8+0.1, Math.random()-0.5).normalize().multiplyScalar(4 + Math.random() * 7);
+    tntFx.push({ kind: 'debris', mesh, mat: m, v, t: 0, life: 0.8 + Math.random() * 0.8 });
+  }
+}
+
+function explodeTnt(t) {
+  const c = new THREE.Vector3(t.pos.x, t.pos.y + 0.5, t.pos.z);
+  const R = TNT_RADIUS;
+  spawnExplosionFx(c);
+  tntSound('boom');
+  tntShake = Math.max(tntShake, Math.max(0, 0.9 - c.distanceTo(camera.position) / 18) * 0.5);
+
+  // --- damage: every client handles its own player + its own animals, BEFORE terrain
+  // is removed so blocks between you and the blast still shield you a bit.
+  const reach = R * 2;
+  {
+    const pc = new THREE.Vector3(player.pos.x, player.pos.y + player.height * 0.5, player.pos.z);
+    const d = pc.distanceTo(c);
+    if (d < reach && player.hp > 0) {
+      const dirv = pc.clone().sub(c); if (dirv.lengthSq() < 1e-4) dirv.set(0, 1, 0); dirv.normalize();
+      const blocked = d > 1 && castVoxelRay(c, dirv, Math.max(0, d - 0.6));
+      let imp = (1 - d / reach) * (blocked ? 0.45 : 1);
+      const dmg = Math.round(imp * imp * 24 + imp * 4);
+      player.vel.x += dirv.x * imp * 14; player.vel.z += dirv.z * imp * 14;
+      player.vel.y = Math.max(player.vel.y, 3 + dirv.y * imp * 12 + imp * 4);
+      player.onGround = false;
+      if (dmg > 0) damagePlayer(dmg);
+    }
+  }
+  animals.forEach(a => {
+    if (!a.alive) return;
+    const ac = new THREE.Vector3(a.pos.x, a.pos.y + 0.4, a.pos.z);
+    const d = ac.distanceTo(c);
+    if (d >= reach) return;
+    const imp = 1 - d / reach;
+    const dirv = ac.clone().sub(c); if (dirv.lengthSq() < 1e-4) dirv.set(0, 1, 0); dirv.normalize();
+    a.vel.x += dirv.x * imp * 12; a.vel.z += dirv.z * imp * 12; a.vel.y = 4 + imp * 6;
+    damageAnimal(a, Math.round(imp * imp * 24 + imp * 4));
+  });
+
+  if (!t.owner) return; // terrain changes come from the client that lit it (via world_blocks)
+
+  // --- terrain: remove blocks in a slightly ragged sphere, chain-light other TNT
+  const cx = Math.round(c.x), cy = Math.round(c.y), cz = Math.round(c.z);
+  const removed = [], chain = [];
+  let drops = 0;
+  for (let dx = -R; dx <= R; dx++) for (let dy = -R; dy <= R; dy++) for (let dz = -R; dz <= R; dz++) {
+    const d = Math.sqrt(dx*dx + dy*dy + dz*dz);
+    if (d > R + 0.3) continue;
+    if (d > R * 0.62 && Math.random() < (d - R * 0.62) / (R * 0.5)) continue; // ragged rim
+    const x = cx + dx, y = cy + dy, z = cz + dz;
+    const b = getBlock(x, y, z);
+    if (!b || b.type === 'water') continue;
+    if (b.type === 'tnt') { chain.push({ x, y, z }); continue; }
+    if (b.type === 'chest') {
+      const k = key(x, y, z);
+      broadcastChestRemove(k);
+      const slots = chestData[k];
+      if (slots) {
+        slots.forEach(s => { if (s) spawnDroppedItem(s.type, s.count, new THREE.Vector3(x, y, z)); });
+        delete chestData[k]; saveChestData();
+      }
+    } else if (b.type !== 'leaves' && b.type !== 'glass' && b.type !== 'torch' && b.type !== 'sapling' && drops < 30 && Math.random() < 0.22) {
+      const drop = b.type === 'grass' ? 'dirt' : (b.type === 'coal_ore' ? 'coal' : b.type);
+      spawnDroppedItem(drop, 1, new THREE.Vector3(x, y, z));
+      drops++;
+    }
+    if (removeBlock(x, y, z, true)) {
+      removedDiffs.add(key(x, y, z));
+      removed.push({ x, y, z });
+    }
+  }
+  // mesh + light refresh for everything we touched
+  const seen = new Set();
+  removed.forEach(p => { const k = p.x + ',' + p.z; if (!seen.has(k)) { seen.add(k); markChunkDirty(p.x, p.z); } });
+  markLightArea(cx, cy, cz, true);
+  flushDirtyChunks(false);
+  if (removed.length) pushBlockDiffsBatch(removed);
+  // chain reaction: neighbours get a short random fuse
+  chain.forEach(p => igniteTntAt(p.x, p.y, p.z, 0.35 + Math.random() * 0.9));
+  renderHotbar();
+  if (inventoryOpen) renderInventoryPanel();
+}
+
+function updateTnt(dt) {
+  for (let i = primedTnts.length - 1; i >= 0; i--) {
+    const t = primedTnts[i];
+    t.fuse -= dt;
+    t.vel.y -= 20 * dt;
+    const og = moveEntity(t.pos, t.vel, dt, 0.48, 0.98);
+    if (og) { t.vel.x *= 0.6; t.vel.z *= 0.6; }
+    if (t.pos.y < -30) { scene.remove(t.grp); primedTnts.splice(i, 1); continue; }
+    t.grp.position.set(t.pos.x, t.pos.y + 0.49, t.pos.z);
+    // fuse visuals: flash white at an accelerating rate, swell slightly right before the blast
+    const p = 1 - Math.max(0, t.fuse) / t.total;
+    const blink = Math.floor(Math.max(0, t.fuse) * (3 + p * 9)) % 2 === 0;
+    t.flashMat.opacity = blink ? 0.75 : 0;
+    const sc = 1 + (t.fuse < 0.6 ? (0.6 - Math.max(0, t.fuse)) * 0.35 : 0);
+    t.grp.scale.setScalar(sc);
+    if (t.fuse <= 0) {
+      scene.remove(t.grp);
+      primedTnts.splice(i, 1);
+      explodeTnt(t);
+    }
+  }
+  for (let i = tntFx.length - 1; i >= 0; i--) {
+    const f = tntFx[i];
+    f.t += dt;
+    const k = f.t / f.life;
+    if (k >= 1) { scene.remove(f.mesh); f.mat.dispose(); tntFx.splice(i, 1); continue; }
+    if (f.kind === 'debris') {
+      f.v.y -= 16 * dt; f.v.multiplyScalar(1 - 0.6 * dt);
+      f.mesh.position.addScaledVector(f.v, dt);
+      f.mesh.rotation.x += dt * 6; f.mesh.rotation.y += dt * 5;
+      f.mat.opacity = 1 - k * k;
+    } else {
+      const grow = f.kind === 'ball' ? (0.5 + k * (TNT_RADIUS * 1.15)) : (0.3 + k * TNT_RADIUS * 0.7);
+      f.mesh.scale.setScalar(grow);
+      f.mat.opacity = (f.kind === 'ball' ? 0.9 : 1) * (1 - k);
+    }
+  }
+}
+
 // ================= Main loop =================
 let lastTime = performance.now();
 let frameCount = 0, fpsTimer = 0;
@@ -4434,6 +4996,7 @@ function animate() {
     if (!held || !isSword(held.type)) isBlocking = false; // item switched away mid-block
   }
   updateAnimals(dt);
+  updateAnimalSpawning(dt);
   updateDroppedItems(dt);
   if (attackCooldown > 0) attackCooldown -= dt;
 
@@ -4567,11 +5130,15 @@ function animate() {
   if (!thirdPerson) {
     setHeldVisual(viewModelState, viewModelGroup, heldNow ? heldNow.type : null);
     let vx = 0.32, vy = -0.28, vz = -0.55, rx = 0.2, ry = -0.6, rz = -0.15;
-    if (mining.active) { vz += Math.sin(mineSwingCycle) * 0.08; vy -= Math.abs(Math.sin(mineSwingCycle)) * 0.03; }
-    else if (eating.active) { vy += 0.06; vz += 0.1; }
-    if (swing.active) {                       // attack swing: chop forward and down
-      const sw = Math.sin(swing.t * Math.PI);
-      vx -= sw * 0.12; vy += sw * 0.10; vz -= sw * 0.22; rx -= sw * 1.3; rz -= sw * 0.35;
+    if (!mining.active && eating.active) { vy += 0.06; vz += 0.1; }
+    // Mining repeats the exact same forward swing as an attack hit, over and over
+    let swAmt = swing.active ? Math.sin(swing.t * Math.PI) : 0;
+    if (mining.active) swAmt = Math.max(swAmt, Math.abs(Math.sin(mineSwingCycle * 0.5)));
+    if (swAmt > 0) {                          // forward swing: pitch forward and down
+      const sw = swAmt;
+      // swing straight forward (away from the player), pivoting on the grip:
+      // the head pitches forward/down and the whole item thrusts ahead, no sideways drift
+      vx += sw * 0.02; vy -= sw * 0.05; vz -= sw * 0.28; rx -= sw * 1.2;
     }
     if (blockAmt > 0.01) {                    // guard: bring it to the centre, held upright
       const bl = blockAmt;
@@ -4579,7 +5146,9 @@ function animate() {
       rx += (-0.1 - rx) * bl; ry += (0.0 - ry) * bl; rz += (0.0 - rz) * bl;
     }
     if (heldNow) {
+      const co = viewModelState.heldMesh && viewModelState.heldMesh.userData.centerOffset;
       viewModelGroup.position.set(vx, vy, vz);
+      if (co) viewModelGroup.position.sub(co.clone().applyEuler(_restHeldEuler));  // pivot = grip
       viewModelGroup.rotation.set(rx, ry, rz);
     } else {
       fpArm.position.set(vx + 0.05, vy - 0.02, vz + 0.3);
@@ -4589,6 +5158,14 @@ function animate() {
   fpShield.visible = !thirdPerson && blockAmt > 0.02;
   if (fpShield.visible) fpShield.material.opacity = (0.16 + Math.min(0.4, myShieldPulse) * 1.6) * blockAmt;
 
+  updateTnt(dt);
+  if (tntShake > 0.001) {
+    camera.position.x += (Math.random()-0.5) * tntShake;
+    camera.position.y += (Math.random()-0.5) * tntShake;
+    camera.position.z += (Math.random()-0.5) * tntShake;
+    tntShake *= Math.pow(0.02, dt);
+  }
+  stepDirtyChunks();
   renderer.render(scene, camera);
 }
 
