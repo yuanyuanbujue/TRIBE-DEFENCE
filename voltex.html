@@ -264,6 +264,23 @@
     text-shadow: 2px 2px 2px rgba(0,0,0,0.7); transform: translate(-50%,-50%);
   }
   #cursorItem .count { position:absolute; bottom:-8px; right:-10px; font-size:12px; color:#fff; font-weight:bold; text-shadow:1px 1px 1px black; }
+  .blkIcon { width: 38px; height: 38px; pointer-events: none; user-select: none; -webkit-user-drag: none; }
+  .slot .blkIcon { width: 36px; height: 36px; }
+  .invSlot .blkIcon { width: 42px; height: 42px; }
+  #cursorItem .blkIcon { width: 46px; height: 46px; filter: drop-shadow(2px 2px 2px rgba(0,0,0,0.6)); }
+  #statsBoard {
+    position: fixed; top: 16px; right: 16px; width: 230px; box-sizing: border-box;
+    background: rgba(40,32,24,0.92); border: 3px solid rgba(255,255,255,0.4); border-radius: 10px;
+    padding: 10px 14px 12px; text-align: left; font-size: 12px; line-height: 1.4;
+  }
+  #statsBoard h2 { margin: 0 0 8px; text-align: center; font-size: 15px; }
+  #statsBoard .stRow { display: flex; justify-content: space-between; gap: 8px; padding: 3px 0; border-bottom: 1px solid rgba(255,255,255,0.1); }
+  #statsBoard .stRow:last-child { border-bottom: none; }
+  #statsBoard .stRow span:first-child { opacity: 0.7; }
+  #statsBoard .stRow span:last-child { font-weight: bold; text-align: right; }
+  #statsBoard .stBar { height: 7px; border-radius: 4px; background: rgba(0,0,0,0.45); overflow: hidden; margin: 1px 0 5px; }
+  #statsBoard .stBar > div { height: 100%; }
+  @media (max-width: 900px) { #statsBoard { display: none; } }
   #invHint { font-size: 12px; opacity: 0.8; margin-top: 6px; max-width: 480px; }
 
   /* ===== Furnace panel ===== */
@@ -337,6 +354,7 @@
 <div id="pauseOverlay"><h2>Paused</h2><p>Click to resume</p></div>
 
 <div id="invPanel">
+  <div id="statsBoard"></div>
   <div id="invPanelBox">
     <h2 id="craftTitle">Crafting</h2>
     <div id="craftSection">
@@ -347,7 +365,7 @@
     <h2>Inventory</h2>
     <div id="mainGrid"></div>
     <div id="hotbarGrid"></div>
-    <p id="invHint">Left-click: pick up / place stack · Right-click: pick up half / place one · Click a slot while holding an item to swap or stack · Press E to close</p>
+    <p id="invHint">Left-click: pick up / place stack · Right-click: pick up half / place one · Click a slot while holding an item to swap or stack · Shift+click moves items instantly · Press E to close</p>
   </div>
 </div>
 <div id="cursorItem"></div>
@@ -518,6 +536,16 @@ function makeTexture(drawFn) {
   tex.minFilter = THREE.NearestFilter;
   return tex;
 }
+function makeSmoothTexture(size, drawFn) {
+  const c = document.createElement('canvas');
+  c.width = c.height = size;
+  drawFn(c.getContext('2d'));
+  const tex = new THREE.CanvasTexture(c);
+  tex.magFilter = THREE.LinearFilter;
+  tex.minFilter = THREE.LinearFilter;
+  tex.generateMipmaps = false;
+  return tex;
+}
 function speckle(ctx, base, variants, count) {
   ctx.fillStyle = base;
   ctx.fillRect(0,0,16,16);
@@ -528,6 +556,37 @@ function speckle(ctx, base, variants, count) {
   }
 }
 
+// Glass: smooth pane with a white outline drawn ONLY on edges that don't touch
+// another glass block. 16 texture variants = every on/off combination of the
+// four edges (bit0 = left/u0, bit1 = right/u1, bit2 = bottom/v0, bit3 = top/v1).
+// The mesher picks the variant per face, so where glass joins glass the white
+// line disappears and the panes merge into one sheet.
+function makeGlassVariant(mask) {
+  return makeSmoothTexture(64, ctx => {
+    const g = ctx.createLinearGradient(0, 0, 64, 64);
+    g.addColorStop(0, 'rgba(215,240,255,0.50)');
+    g.addColorStop(1, 'rgba(160,205,235,0.42)');
+    ctx.fillStyle = g; ctx.fillRect(0, 0, 64, 64);
+    const shine = ctx.createLinearGradient(0, 64, 64, 0);
+    shine.addColorStop(0.00, 'rgba(255,255,255,0)');
+    shine.addColorStop(0.28, 'rgba(255,255,255,0)');
+    shine.addColorStop(0.36, 'rgba(255,255,255,0.45)');
+    shine.addColorStop(0.44, 'rgba(255,255,255,0)');
+    shine.addColorStop(0.58, 'rgba(255,255,255,0)');
+    shine.addColorStop(0.62, 'rgba(255,255,255,0.28)');
+    shine.addColorStop(0.68, 'rgba(255,255,255,0)');
+    shine.addColorStop(1.00, 'rgba(255,255,255,0)');
+    ctx.fillStyle = shine; ctx.fillRect(0, 0, 64, 64);
+    ctx.fillStyle = 'rgba(255,255,255,0.95)';
+    const T = 3; // outline thickness in texture pixels
+    if (mask & 1) ctx.fillRect(0, 0, T, 64);
+    if (mask & 2) ctx.fillRect(64 - T, 0, T, 64);
+    if (mask & 4) ctx.fillRect(0, 64 - T, 64, T);   // v=0 is the bottom of the image
+    if (mask & 8) ctx.fillRect(0, 0, 64, T);        // v=1 is the top of the image
+  });
+}
+const GLASS_TEX = [];
+for (let m = 0; m < 16; m++) GLASS_TEX.push(makeGlassVariant(m));
 const TEX = {
   grassTop:  makeTexture(ctx => speckle(ctx, '#5cae4c', ['#6dc44f','#4c9a3e','#7bd15e'], 40)),
   grassSide: makeTexture(ctx => {
@@ -561,10 +620,7 @@ const TEX = {
     ctx.strokeStyle = '#96622f';
     for (let i=0;i<16;i+=4){ ctx.strokeRect(0,i,16,4); }
   }),
-  glass: makeTexture(ctx => {
-    ctx.fillStyle = 'rgba(200,230,255,0.35)'; ctx.fillRect(0,0,16,16);
-    ctx.strokeStyle = 'rgba(255,255,255,0.6)'; ctx.strokeRect(0,0,16,16);
-  }),
+  glass: GLASS_TEX[15],
   brick: makeTexture(ctx => {
     ctx.fillStyle = '#9c4a3a'; ctx.fillRect(0,0,16,16);
     ctx.strokeStyle = '#7a3327';
@@ -636,50 +692,50 @@ const TEX = {
 
 // ================= Block types =================
 const BLOCK_TYPES = {
-  grass:  { icon: '🟩', transparent: false, hardness: 0.6, tool: 'shovel' },
-  dirt:   { icon: '🟫', transparent: false, hardness: 0.5, tool: 'shovel' },
-  stone:  { icon: '⬜', transparent: false, hardness: 1.5, tool: 'pickaxe' },
-  wood:   { icon: '🪵', transparent: false, hardness: 1.0, tool: 'axe' },
-  leaves: { icon: '🍃', transparent: false, hardness: 0.2, tool: null },
-  sand:   { icon: '🟨', transparent: false, hardness: 0.5, tool: 'shovel' },
-  planks: { icon: '🟧', transparent: false, hardness: 1.0, tool: 'axe' },
-  brick:  { icon: '🧱', transparent: false, hardness: 1.5, tool: 'pickaxe' },
-  glass:  { icon: '⬛', transparent: true, hardness: 0.3, tool: null },
-  water:  { icon: '💧', transparent: true, hardness: 0 },
-  crafting_table: { icon: '🛠️', transparent: false, hardness: 1.0, tool: 'axe' },
-  sapling: { icon: '🌱', transparent: true, hardness: 0.1, tool: null, cross: true },
-  coal_ore: { icon: '⚫', transparent: false, hardness: 1.5, tool: 'pickaxe' },
-  iron_ore: { icon: '🟤', transparent: false, hardness: 2.5, tool: 'pickaxe' },
-  torch: { icon: '🕯️', transparent: true, hardness: 0.1, tool: null, cross: true },
-  furnace: { icon: '🔥', transparent: false, hardness: 1.75, tool: 'pickaxe' },
-  chest: { icon: '📦', transparent: false, hardness: 1.0, tool: 'axe' },
-  bed:   { icon: '🛏️', transparent: false, hardness: 0.3, tool: null },
+  grass:  { transparent: false, hardness: 0.6, tool: 'shovel' },
+  dirt:   { transparent: false, hardness: 0.5, tool: 'shovel' },
+  stone:  { transparent: false, hardness: 1.5, tool: 'pickaxe' },
+  wood:   { transparent: false, hardness: 1.0, tool: 'axe' },
+  leaves: { transparent: false, hardness: 0.2, tool: null },
+  sand:   { transparent: false, hardness: 0.5, tool: 'shovel' },
+  planks: { transparent: false, hardness: 1.0, tool: 'axe' },
+  brick:  { transparent: false, hardness: 1.5, tool: 'pickaxe' },
+  glass:  { transparent: true, hardness: 0.3, tool: null },
+  water:  { transparent: true, hardness: 0 },
+  crafting_table: { transparent: false, hardness: 1.0, tool: 'axe' },
+  sapling: { transparent: true, hardness: 0.1, tool: null, cross: true },
+  coal_ore: { transparent: false, hardness: 1.5, tool: 'pickaxe' },
+  iron_ore: { transparent: false, hardness: 2.5, tool: 'pickaxe' },
+  torch: { transparent: true, hardness: 0.1, tool: null, cross: true },
+  furnace: { transparent: false, hardness: 1.75, tool: 'pickaxe' },
+  chest: { transparent: false, hardness: 1.0, tool: 'axe' },
+  bed:   { transparent: false, hardness: 0.3, tool: null },
 };
 // Non-block items: sticks, tools, and food. Tools don't stack (max 1 per slot).
 const ITEM_INFO = {
-  stick:          { icon: '🥢' },
-  wood_pickaxe:   { icon: '⛏️', maxStack: 1 },
-  wood_axe:       { icon: '🪓', maxStack: 1 },
-  wood_shovel:    { icon: '🥄', maxStack: 1 },
-  stone_pickaxe:  { icon: '⛏️', maxStack: 1 },
-  stone_axe:      { icon: '🪓', maxStack: 1 },
-  stone_shovel:   { icon: '🥄', maxStack: 1 },
-  wood_sword:     { icon: '🗡️', maxStack: 1, attack: 4 },
-  stone_sword:    { icon: '🗡️', maxStack: 1, attack: 6 },
-  iron_pickaxe:   { icon: '⛏️', maxStack: 1 },
-  iron_axe:       { icon: '🪓', maxStack: 1 },
-  iron_shovel:    { icon: '🥄', maxStack: 1 },
-  iron_sword:     { icon: '🗡️', maxStack: 1, attack: 8 },
-  iron_ingot:     { icon: '⬜' },
-  iron_helmet:     { icon: '🪖', maxStack: 1, armor: 2 },
-  iron_chestplate: { icon: '🎽', maxStack: 1, armor: 4 },
-  iron_leggings:   { icon: '👖', maxStack: 1, armor: 3 },
-  iron_boots:      { icon: '🥾', maxStack: 1, armor: 1 },
-  raw_meat:       { icon: '🥩', food: 3 },
-  apple:          { icon: '🍎', food: 2 },
-  sapling:        { icon: '🌱' },
-  coal:           { icon: '⚫' },
-  cooked_meat:    { icon: '🍗', food: 6 },
+  stick:          {},
+  wood_pickaxe:   { maxStack: 1 },
+  wood_axe:       { maxStack: 1 },
+  wood_shovel:    { maxStack: 1 },
+  stone_pickaxe:  { maxStack: 1 },
+  stone_axe:      { maxStack: 1 },
+  stone_shovel:   { maxStack: 1 },
+  wood_sword:     { maxStack: 1, attack: 4 },
+  stone_sword:    { maxStack: 1, attack: 6 },
+  iron_pickaxe:   { maxStack: 1 },
+  iron_axe:       { maxStack: 1 },
+  iron_shovel:    { maxStack: 1 },
+  iron_sword:     { maxStack: 1, attack: 8 },
+  iron_ingot:     {},
+  iron_helmet:     { maxStack: 1, armor: 2 },
+  iron_chestplate: { maxStack: 1, armor: 4 },
+  iron_leggings:   { maxStack: 1, armor: 3 },
+  iron_boots:      { maxStack: 1, armor: 1 },
+  raw_meat:       { food: 3 },
+  apple:          { food: 2 },
+  sapling:        {},
+  coal:           {},
+  cooked_meat:    { food: 6 },
 };
 const ARMOR_TYPES = ['iron_helmet', 'iron_chestplate', 'iron_leggings', 'iron_boots'];
 function isArmor(type) { return !!(ITEM_INFO[type] && ITEM_INFO[type].armor); }
@@ -695,7 +751,125 @@ function totalArmorReduction() {
 }
 function isSword(type) { return type === 'wood_sword' || type === 'stone_sword' || type === 'iron_sword'; }
 function isFood(type) { return !!(ITEM_INFO[type] && ITEM_INFO[type].food); }
-function iconFor(type) { return (BLOCK_TYPES[type] || ITEM_INFO[type]).icon; }
+// ================= Block-style icons =================
+// Every block AND every item (tools, armor, food, materials) is shown as a
+// small isometric textured cube — no emoji. Blocks reuse their real world
+// textures; items get a generated 16x16 tile (material colour + pixel glyph).
+function _rng(seed) { let h = 2166136261; for (const ch of seed) { h ^= ch.charCodeAt(0); h = Math.imul(h, 16777619); } return () => { h += 0x6D2B79F5; let t = Math.imul(h ^ h >>> 15, 1 | h); t ^= t + Math.imul(t ^ t >>> 7, 61 | t); return ((t ^ t >>> 14) >>> 0) / 4294967296; }; }
+const ITEM_GLYPHS = {
+  pickaxe: ['..xxxx..','.x.ss.x.','x..ss..x','...ss...','...ss...','...ss...','...ss...','...ss...'],
+  axe:     ['..xxx...','.xxxxs..','.xxxs...','..xxs...','....s...','....s...','....s...','....s...'],
+  shovel:  ['...xx...','..xxxx..','..xxxx..','...ss...','...ss...','...ss...','...ss...','...ss...'],
+  sword:   ['.......x','......xx','.....xx.','....xx..','.s.xx...','..sx....','..ss....','.s..s...'],
+  helmet:  ['..xxxx..','.xxxxxx.','xxxxxxxx','xxxxxxxx','xx....xx','xx....xx','........','........'],
+  chest:   ['xx....xx','xxx..xxx','xxxxxxxx','.xxxxxx.','.xxxxxx.','.xxxxxx.','.xxxxxx.','........'],
+  legs:    ['xxxxxxxx','xxxxxxxx','xxx..xxx','xxx..xxx','xxx..xxx','xxx..xxx','xxx..xxx','........'],
+  boots:   ['........','.xx.....','.xx.....','.xx.....','.xxxxx..','xxxxxxx.','xxxxxxx.','........'],
+  meat:    ['..xxxx..','.xxxxxx.','xxxxxxxx','xxxxxxxx','.xxxxxx.','..xxxx..','......ss','.....ss.'],
+  apple:   ['.....s..','....s...','..xx.xx.','.xxxxxxx','.xxxxxxx','.xxxxxxx','..xxxxx.','...xxx..'],
+  stick:   ['.......s','......s.','.....s..','....s...','...s....','..s.....','.s......','s.......'],
+  ingot:   ['........','..xxxxxx','.xxxxxxx','xxxxxxx.','xxxxxx..','........','........','........'],
+  lump:    ['..xxx...','.xxxxxx.','xxxsxxxx','xxxxxxx.','.xxxxxx.','..xxxx..','........','........'],
+};
+const ITEM_MATS = {
+  wood:  { bg: '#7a5530', x: '#e0bb7a', s: '#4a2f14' },
+  stone: { bg: '#5f5f5f', x: '#cfcfcf', s: '#4a2f14' },
+  iron:  { bg: '#55616b', x: '#eef2f5', s: '#4a2f14' },
+};
+const ITEM_STYLE = {
+  stick:       { g: 'stick', bg: '#8a5a2b', x: '#d9b26f', s: '#d9b26f' },
+  iron_ingot:  { g: 'ingot', bg: '#55616b', x: '#f2f2f2', s: '#f2f2f2' },
+  iron_helmet:     { g: 'helmet', ...ITEM_MATS.iron },
+  iron_chestplate: { g: 'chest',  ...ITEM_MATS.iron },
+  iron_leggings:   { g: 'legs',   ...ITEM_MATS.iron },
+  iron_boots:      { g: 'boots',  ...ITEM_MATS.iron },
+  raw_meat:    { g: 'meat',  bg: '#7d2c2c', x: '#e85d6a', s: '#f2e6d0' },
+  cooked_meat: { g: 'meat',  bg: '#5a3418', x: '#c47a3a', s: '#f2e6d0' },
+  apple:       { g: 'apple', bg: '#2e6b2e', x: '#e03a3a', s: '#6f4420' },
+  coal:        { g: 'lump',  bg: '#4a4a4a', x: '#141414', s: '#6a6a6a' },
+};
+for (const m of ['wood', 'stone', 'iron'])
+  for (const t of ['pickaxe', 'axe', 'shovel', 'sword'])
+    ITEM_STYLE[m + '_' + t] = { g: t, ...ITEM_MATS[m] };
+// Non-cube blocks (cross sprites / see-through) get a solid backing colour.
+const TILE_BG = { sapling: '#2f6f25', torch: '#2a2018', glass: '#a9d6e5', water: '#2a55b0' };
+
+const _tileCache = {};
+function _mk16() { const c = document.createElement('canvas'); c.width = c.height = 16; return c; }
+function _plain(bg, seed, top) {
+  const c = _mk16(), g = c.getContext('2d'), r = _rng(seed);
+  g.fillStyle = bg; g.fillRect(0, 0, 16, 16);
+  for (let i = 0; i < 34; i++) { g.fillStyle = r() > 0.5 ? 'rgba(255,255,255,0.09)' : 'rgba(0,0,0,0.11)'; g.fillRect((r() * 16) | 0, (r() * 16) | 0, 1, 1); }
+  return c;
+}
+function itemTiles(type) {                    // -> { side, top } 16x16 canvases
+  if (_tileCache[type]) return _tileCache[type];
+  let side, top;
+  const st = ITEM_STYLE[type];
+  if (st) {
+    side = _plain(st.bg, type); top = _plain(st.bg, type + 'top');
+    const g = side.getContext('2d'), rows = ITEM_GLYPHS[st.g];
+    for (const [ox, col] of [[1, 'rgba(0,0,0,0.35)'], [0, null]]) {
+      rows.forEach((row, y) => [...row].forEach((ch, x) => {
+        if (ch === '.') return;
+        g.fillStyle = col || (ch === 's' ? st.s : st.x);
+        g.fillRect(x * 2 + ox, y * 2 + ox, 2, 2);
+      }));
+    }
+  } else {                                     // cross / transparent block
+    const bg = TILE_BG[type] || '#777';
+    const mk = tex => { const c = _plain(bg, type); if (tex) c.getContext('2d').drawImage(tex.image, 0, 0, 16, 16); return c; };
+    side = mk(TEX[type]); top = _plain(bg, type + 'top');
+  }
+  return (_tileCache[type] = { side, top });
+}
+function blockFaceCanvases(type) {            // -> { top, side } source canvases
+  const T = n => TEX[n].image;
+  switch (type) {
+    case 'grass': return { top: T('grassTop'), side: T('grassSide') };
+    case 'wood':  return { top: T('woodTop'), side: T('wood') };
+    case 'crafting_table': return { top: T('craftTop'), side: T('planks') };
+    case 'chest': return { top: T('chestTop'), side: T('chest') };
+    case 'bed':   return { top: T('bedTop'), side: T('bedSide') };
+    case 'coal_ore': return { top: T('coalOre'), side: T('coalOre') };
+  }
+  const b = BLOCK_TYPES[type];
+  if (b && !b.cross && !['glass', 'water'].includes(type) && TEX[type]) return { top: T(type), side: T(type) };
+  const t = itemTiles(type); return { top: t.top, side: t.side };
+}
+const _iconCanvasCache = {};
+function iconCanvas(type, N = 64) {
+  const key = type + N;
+  if (_iconCanvasCache[key]) return _iconCanvasCache[key];
+  const c = document.createElement('canvas'); c.width = c.height = N;
+  const g = c.getContext('2d'); g.imageSmoothingEnabled = false;
+  const k = N / 48, ox = 24 * k, oy = 4 * k;
+  const X = [16.9 * k, 9.75 * k], Y = [-16.9 * k, 9.75 * k], Z = [0, 19.5 * k];
+  const { top, side } = blockFaceCanvases(type);
+  // dark silhouette first so no gaps show between faces
+  g.fillStyle = '#1b1b1b'; g.beginPath();
+  g.moveTo(ox, oy); g.lineTo(ox + X[0], oy + X[1]); g.lineTo(ox + X[0], oy + X[1] + Z[1]);
+  g.lineTo(ox, oy + X[1] * 2 + Z[1]); g.lineTo(ox + Y[0], oy + Y[1] + Z[1]); g.lineTo(ox + Y[0], oy + Y[1]); g.closePath(); g.fill();
+  const face = (img, o, u, v, shade) => {
+    g.save(); g.setTransform(u[0] / 16, u[1] / 16, v[0] / 16, v[1] / 16, o[0], o[1]);
+    g.drawImage(img, 0, 0); g.fillStyle = 'rgba(0,0,0,' + shade + ')'; g.fillRect(0, 0, 16, 16); g.restore();
+  };
+  face(top,  [ox, oy], X, Y, 0);
+  face(side, [ox + Y[0], oy + Y[1]], X, Z, 0.22);                                   // left face
+  face(side, [ox + X[0] + Y[0], oy + X[1] + Y[1]], [-Y[0], -Y[1]], Z, 0.42);         // right face
+  g.setTransform(1, 0, 0, 1, 0, 0);
+  g.strokeStyle = 'rgba(0,0,0,0.45)'; g.lineWidth = Math.max(1, k * 0.9); g.lineJoin = 'round'; g.beginPath();
+  g.moveTo(ox, oy); g.lineTo(ox + X[0], oy + X[1]); g.lineTo(ox + X[0], oy + X[1] + Z[1]);
+  g.lineTo(ox, oy + X[1] * 2 + Z[1]); g.lineTo(ox + Y[0], oy + Y[1] + Z[1]); g.lineTo(ox + Y[0], oy + Y[1]); g.closePath(); g.stroke();
+  g.beginPath(); g.moveTo(ox + Y[0], oy + Y[1]); g.lineTo(ox, oy + X[1] * 2); g.lineTo(ox + X[0], oy + X[1]);
+  g.moveTo(ox, oy + X[1] * 2); g.lineTo(ox, oy + X[1] * 2 + Z[1]); g.stroke();
+  return (_iconCanvasCache[key] = c);
+}
+const _iconUrlCache = {};
+function iconFor(type) {
+  if (!_iconUrlCache[type]) _iconUrlCache[type] = iconCanvas(type).toDataURL();
+  return `<img class="blkIcon" draggable="false" alt="" src="${_iconUrlCache[type]}">`;
+}
 function maxStackFor(type) {
   const info = ITEM_INFO[type];
   return info && info.maxStack ? info.maxStack : 64;
@@ -839,7 +1013,7 @@ const MI = {
   sand:      regMat(TEX.sand),
   planks:    regMat(TEX.planks),
   brick:     regMat(TEX.brick),
-  glass:     regMat(TEX.glass, true),
+  glass:     regMat(TEX.glass, true),   // variant 15 = outline on all four edges (icons / held item)
   water:     regMat(TEX.water, true),
   craftTop:  regMat(TEX.craftTop),
   sapling:   regMat(TEX.sapling, true),
@@ -851,6 +1025,7 @@ const MI = {
   bedTop:    regMat(TEX.bedTop),
   bedSide:   regMat(TEX.bedSide),
 };
+MI.glassV = GLASS_TEX.map((t, m) => m === 15 ? MI.glass : regMat(t, true));
 // Torches glow on their own regardless of ambient/sun lighting, like a
 // Minecraft light-emitting block.
 MAT_LIST[MI.torch].emissive = new THREE.Color(0xff9a3c);
@@ -908,6 +1083,35 @@ const FACES = [
     uvs:[[1,0],[0,0],[0,1],[1,1]] }, // -z
 ];
 
+
+// For each face and each UV edge (u=0, u=1, v=0, v=1): the world direction of
+// the neighbouring block that shares that edge — used to hide the glass
+// outline wherever another glass block touches.
+const FACE_EDGE_DIRS = FACES.map(f => {
+  const nAxis = f.normal.findIndex(v => v !== 0);
+  const dirs = [];
+  for (const [uvAxis, uvVal] of [[0,0],[0,1],[1,0],[1,1]]) {
+    const idx = [0,1,2,3].filter(i => f.uvs[i][uvAxis] === uvVal);
+    let found = null;
+    for (let ax = 0; ax < 3; ax++) {
+      if (ax === nAxis) continue;
+      const v0 = f.corners[idx[0]][ax], v1 = f.corners[idx[1]][ax];
+      if (v0 === v1) { found = [0,0,0]; found[ax] = v0 > 0 ? 1 : -1; break; }
+    }
+    dirs.push(found);
+  }
+  return dirs;
+});
+function glassFaceMask(x, y, z, f) {
+  let mask = 0;
+  for (let k = 0; k < 4; k++) {
+    const d = FACE_EDGE_DIRS[f][k];
+    const nb = world.get(key(x + d[0], y + d[1], z + d[2]));
+    if (!(nb && nb.type === 'glass')) mask |= (1 << k);
+  }
+  return mask;
+}
+
 const CHUNK_SIZE = 16;
 const Y_MIN = -20, Y_MAX = 60;
 const chunks = new Map();       // "cx,cz" -> { mesh, dirty }
@@ -926,26 +1130,79 @@ function markChunkDirty(x,z){
   markOne(cx,cz);
   const lx = ((x % CHUNK_SIZE)+CHUNK_SIZE)%CHUNK_SIZE;
   const lz = ((z % CHUNK_SIZE)+CHUNK_SIZE)%CHUNK_SIZE;
-  if (lx===0) markOne(cx-1,cz);
-  if (lx===CHUNK_SIZE-1) markOne(cx+1,cz);
-  if (lz===0) markOne(cx,cz-1);
-  if (lz===CHUNK_SIZE-1) markOne(cx,cz+1);
+  if (lx<=1) markOne(cx-1,cz);
+  if (lx>=CHUNK_SIZE-2) markOne(cx+1,cz);
+  if (lz<=1) markOne(cx,cz-1);
+  if (lz>=CHUNK_SIZE-2) markOne(cx,cz+1);
 }
-// ---------- Lighting (Minecraft-style 0-15 light levels) ----------
-// Each block gets a light LEVEL (0-15, like Minecraft), not just a binary
-// lit/dark flag: skylight fades gradually the deeper a block sits under
-// cover, block light fades gradually with distance from a torch, and the
-// two are combined by taking whichever is brighter — so light tapers off
-// step by step ("darker and darker") instead of snapping straight to full
-// dark the instant something is overhead.
-const LIGHT_FLOOR = 0.045;          // absolute safety floor on the final 0-1 shade value
-const MIN_LIGHT_LEVEL = 3;          // a block's light LEVEL (0-15) is never allowed below this —
-                                     // so "no sky, no torch" reads as dim, not pure black (fixes
-                                     // ground under thick tree canopy going full black)
-const SKY_FALLOFF_PER_BLOCK = 3;    // levels lost per block of depth under cover
-const SKY_BLEED_PENALTY = 2;        // levels lost bleeding in sideways from an open neighbor column
-const TORCH_LIGHT_LEVEL = 11;       // how bright a light-emitting block's light level is (0-15)
-const TORCH_LIGHT_RADIUS = TORCH_LIGHT_LEVEL - 1;
+// A block change near a torch changes how far/where its light reaches, which
+// can span neighbouring chunks — re-mesh every chunk within torch range.
+function markLightArea(x, y, z, force) {
+  const R = TORCH_LIGHT_RADIUS;
+  let near = !!force;
+  if (!near) {
+    for (const k of blockLights.keys()) {
+      const p = k.split(',');
+      if (Math.abs(p[0]-x) <= R && Math.abs(p[1]-y) <= R && Math.abs(p[2]-z) <= R) { near = true; break; }
+    }
+  }
+  if (!near) return;
+  const [cx0, cz0] = chunkCoord(x - R, z - R);
+  const [cx1, cz1] = chunkCoord(x + R, z + R);
+  for (let cx = cx0; cx <= cx1; cx++) for (let cz = cz0; cz <= cz1; cz++) {
+    if (chunks.has(cx+','+cz)) markOne(cx, cz);
+  }
+}
+// ---------- Lighting: levels 0 (dark) · 6 (normal) · 11 (max) ----------
+// Every cell has one light LEVEL from 0 to 11:
+//   0  = pitch dark        6 = normal daylight        11 = maximum brightness
+// * Open sky gives the "normal" level 6.
+// * Shadow is NEGATIVE light: every block of cover overhead subtracts
+//   SHADOW_PER_BLOCK from the sky level (so the space right under a roof is
+//   darker, and it keeps dropping — into negative numbers — the deeper it is).
+// * A torch emits 11 and spreads outward, losing 1 per block, so it reaches
+//   11 blocks. Solid blocks stop it (flood fill), so walls really cast light shadows.
+// * final level = clamp(max(sky, 0) + torch, 0, 11)
+const LIGHT_DARK = 0, LIGHT_NORMAL = 6, LIGHT_MAX = 11;
+const LIGHT_FLOOR = 0.03;           // shade at level 0 (near-black, not a hard 0)
+const SHADOW_PER_BLOCK = 2;         // negative light per block of cover above
+const SKY_BLEED_PENALTY = 2;        // levels lost bleeding in sideways from an open neighbour column
+const TORCH_LIGHT_LEVEL = 11;       // a torch's own light level
+const TORCH_LIGHT_RADIUS = 11;      // ...spreads across 11 blocks (11 - 1 per block = 0)
+function shadeFromLevel(level) {
+  const l = Math.max(LIGHT_DARK, Math.min(LIGHT_MAX, level));
+  if (l <= LIGHT_NORMAL) return Math.max(LIGHT_FLOOR, Math.pow(l / LIGHT_NORMAL, 1.3)); // 6 -> 1.0 (looks like before)
+  return 1 + (l - LIGHT_NORMAL) * 0.06;                                                  // 11 -> 1.30 (brighter than daylight)
+}
+// Flood-fills one torch's light through non-opaque cells. Opaque blocks get lit
+// on the surface facing the torch but don't pass it on.
+function floodTorchLight(tx, ty, tz, field) {
+  const seen = new Set();
+  let queue = [[tx, ty, tz]];
+  seen.add(key(tx, ty, tz));
+  for (let level = TORCH_LIGHT_LEVEL; level > 0 && queue.length; level--) {
+    const next = [];
+    for (const [x, y, z] of queue) {
+      const k = key(x, y, z);
+      if ((field.get(k) || 0) < level) field.set(k, level);
+      if (level === 1) continue;
+      for (let i = 0; i < 6; i++) {
+        const d = FACES[i].dir;
+        const nx = x + d[0], ny = y + d[1], nz = z + d[2];
+        if (ny < Y_MIN || ny > Y_MAX) continue;
+        const nk = key(nx, ny, nz);
+        if (seen.has(nk)) continue;
+        seen.add(nk);
+        const nb = world.get(nk);
+        if (nb && !BLOCK_TYPES[nb.type].transparent) {
+          // opaque: receives light on its face, blocks further spread
+          if ((field.get(nk) || 0) < level - 1) field.set(nk, level - 1);
+        } else next.push([nx, ny, nz]);
+      }
+    }
+    queue = next;
+  }
+}
 function addFace(buffers, mi, x,y,z, faceIdx, shade) {
   const f = FACES[faceIdx];
   let buf = buffers[mi];
@@ -1056,7 +1313,20 @@ function columnSkyTop(x, z) {
   return Y_MIN - 1; // nothing solid in this column at all
 }
 function skyLevelAt(y, topY) {
-  return y >= topY ? 15 : Math.max(0, 15 - (topY - y) * SKY_FALLOFF_PER_BLOCK);
+  // open sky = 6; each block of cover overhead adds another -SHADOW_PER_BLOCK (can go negative)
+  return y >= topY ? LIGHT_NORMAL : LIGHT_NORMAL - (topY - y) * SHADOW_PER_BLOCK;
+}
+// Live light level at a world cell (used by the stats board).
+function lightLevelAtWorld(x, y, z) {
+  let sky = skyLevelAt(y, columnSkyTop(x, z));
+  const nOff = [[1,0],[-1,0],[0,1],[0,-1]];
+  for (const [dx, dz] of nOff) sky = Math.max(sky, skyLevelAt(y, columnSkyTop(x+dx, z+dz)) - SKY_BLEED_PENALTY);
+  const field = new Map();
+  blockLights.forEach((light, k) => {
+    const [tx, ty, tz] = k.split(',').map(Number);
+    if (Math.abs(tx-x) <= TORCH_LIGHT_RADIUS && Math.abs(ty-y) <= TORCH_LIGHT_RADIUS && Math.abs(tz-z) <= TORCH_LIGHT_RADIUS) floodTorchLight(tx, ty, tz, field);
+  });
+  return Math.min(LIGHT_MAX, Math.max(sky, 0) + (field.get(key(x, y, z)) || 0));
 }
 function rebuildChunk(cx, cz) {
   const ck = cx+','+cz;
@@ -1066,48 +1336,42 @@ function rebuildChunk(cx, cz) {
   const x0 = cx*CHUNK_SIZE, x1 = x0+CHUNK_SIZE-1;
   const z0 = cz*CHUNK_SIZE, z1 = z0+CHUNK_SIZE-1;
 
-  // Precompute open-sky height for this chunk's columns plus a 1-block
-  // border (needed for the sideways light-bleed check below) once, instead
-  // of re-scanning the same column for every one of its ~80 vertical blocks.
-  const gridSize = CHUNK_SIZE + 2;
+  // Precompute open-sky height for this chunk's columns plus a 2-block
+  // border (a face's light sample sits one cell out, and its sideways
+  // sky-bleed check looks one more cell out) once, instead of re-scanning
+  // the same column for every one of its ~80 vertical blocks.
+  const GB = 2;
+  const gridSize = CHUNK_SIZE + GB*2;
   const topGrid = [];
   for (let gx = 0; gx < gridSize; gx++) {
     const row = new Int16Array(gridSize);
-    for (let gz = 0; gz < gridSize; gz++) row[gz] = columnSkyTop(x0-1+gx, z0-1+gz);
+    for (let gz = 0; gz < gridSize; gz++) row[gz] = columnSkyTop(x0-GB+gx, z0-GB+gz);
     topGrid.push(row);
   }
-  const topAt = (x, z) => topGrid[x - x0 + 1][z - z0 + 1];
+  const topAt = (x, z) => topGrid[x - x0 + GB][z - z0 + GB];
 
-  // Only torches close enough to this chunk to possibly matter — cheap
-  // bounding-box filter so the per-block distance loop below stays small.
-  const nearbyTorches = [];
+  // Torch light field for this chunk: flood-fill every torch close enough to
+  // reach it (walls block the light).
+  const torchField = new Map();
   blockLights.forEach((light, k) => {
     const [tx, ty, tz] = k.split(',').map(Number);
     if (tx >= x0 - TORCH_LIGHT_RADIUS && tx <= x1 + TORCH_LIGHT_RADIUS &&
         tz >= z0 - TORCH_LIGHT_RADIUS && tz <= z1 + TORCH_LIGHT_RADIUS) {
-      nearbyTorches.push({ x: tx, y: ty, z: tz });
+      floodTorchLight(tx, ty, tz, torchField);
     }
   });
 
-  function computeShade(x, y, z) {
+  // Light level of the CELL (x,y,z), which is the air/water cell in front of a
+  // face, not the solid block itself — so a roof's underside is dark, its top is bright.
+  function cellShade(x, y, z) {
     let sky = skyLevelAt(y, topAt(x, z));
     const nOff = [[1,0],[-1,0],[0,1],[0,-1]];
     for (let i = 0; i < 4; i++) {
       const lvl = skyLevelAt(y, topAt(x+nOff[i][0], z+nOff[i][1])) - SKY_BLEED_PENALTY;
       if (lvl > sky) sky = lvl;
     }
-    let torch = 0;
-    for (let i = 0; i < nearbyTorches.length; i++) {
-      const t = nearbyTorches[i];
-      const dist = Math.abs(x-t.x) + Math.abs(y-t.y) + Math.abs(z-t.z);
-      const lvl = TORCH_LIGHT_LEVEL - dist;
-      if (lvl > torch) torch = lvl;
-    }
-    // Whichever is brighter wins (sky vs. nearby torch), then clamp to the
-    // never-quite-dark floor — this is what makes blocks darken smoothly as
-    // light level drops but stop short of going full black at level 0.
-    const level = Math.max(sky, torch, MIN_LIGHT_LEVEL);
-    return Math.max(LIGHT_FLOOR, Math.min(1, level / 15));
+    const torch = torchField.get(key(x, y, z)) || 0;
+    return shadeFromLevel(Math.min(LIGHT_MAX, Math.max(sky, 0) + torch));
   }
 
   for (let x=x0; x<=x1; x++){
@@ -1119,9 +1383,10 @@ function rebuildChunk(cx, cz) {
         // cubes — always drawn in full, no per-neighbor face culling.
         if (BLOCK_TYPES[b.type].cross) {
           if (b.type === 'torch') {
-            addTorchQuads(buffers, MI[b.type], x, y, z, computeShade(x, y, z), torchWallDir(x, y, z));
+            // a torch is its own light source: always full level 11
+            addTorchQuads(buffers, MI[b.type], x, y, z, shadeFromLevel(TORCH_LIGHT_LEVEL), torchWallDir(x, y, z));
           } else {
-            addCrossQuads(buffers, MI[b.type], x, y, z, computeShade(x, y, z));
+            addCrossQuads(buffers, MI[b.type], x, y, z, cellShade(x, y, z));
           }
           continue;
         }
@@ -1139,9 +1404,12 @@ function rebuildChunk(cx, cz) {
           if (shouldRenderFace(b.type, nb ? nb.type : null)) visibleMask |= (1 << f);
         }
         if (!visibleMask) continue;
-        const shade = computeShade(x, y, z);
         for (let f=0; f<6; f++){
-          if (visibleMask & (1 << f)) addFace(buffers, faceMatIndex(b.type, f), x, y, z, f, shade);
+          if (!(visibleMask & (1 << f))) continue;
+          const d = FACES[f].dir;
+          const shade = cellShade(x+d[0], y+d[1], z+d[2]);
+          const mi = b.type === 'glass' ? MI.glassV[glassFaceMask(x, y, z, f)] : faceMatIndex(b.type, f);
+          addFace(buffers, mi, x, y, z, f, shade);
         }
       }
     }
@@ -1242,7 +1510,7 @@ function syncBlockLight(x,y,z,type,deferRerank) {
   const existing = blockLights.get(k);
   if (type === 'torch') {
     if (!existing) {
-      const light = new THREE.PointLight(0xffaa55, 0, TORCH_LIGHT_RADIUS + 1, 2);
+      const light = new THREE.PointLight(0xffaa55, 0, TORCH_LIGHT_RADIUS, 2);
       light.position.set(x+0.5, y+0.6, z+0.5);
       // Shadows are toggled on/off dynamically per-light in
       // updateTorchShadows(), but the shadow camera/map still needs to be
@@ -1251,7 +1519,7 @@ function syncBlockLight(x,y,z,type,deferRerank) {
       // still reads fine at the short distance torches actually light.
       light.shadow.mapSize.set(256, 256);
       light.shadow.camera.near = 0.15;
-      light.shadow.camera.far = TORCH_LIGHT_RADIUS + 1;
+      light.shadow.camera.far = TORCH_LIGHT_RADIUS;
       light.shadow.bias = -0.003;
       light.visible = false; // fades in via updateTorchLights() if it's close enough to matter
       light.userData.targetIntensity = 0;
@@ -1341,18 +1609,35 @@ function addBlock(x,y,z,type,skipMark) {
   world.set(k, { type, x, y, z });
   syncBlockLight(x,y,z,type,skipMark);
   syncSaplingGrowth(x,y,z,type);
-  if (!skipMark) markChunkDirty(x,z);
+  if (!skipMark) { markChunkDirty(x,z); markLightArea(x,y,z, type === 'torch'); }
   return true;
 }
 function removeBlock(x,y,z,skipMark) {
   x=Math.round(x); y=Math.round(y); z=Math.round(z);
   const k = key(x,y,z);
   if (!world.has(k)) return false;
+  const removedType = world.get(k).type;
   world.delete(k);
   syncBlockLight(x,y,z,null);
   syncSaplingGrowth(x,y,z,null);
-  if (!skipMark) markChunkDirty(x,z);
+  if (!skipMark) { markChunkDirty(x,z); markLightArea(x,y,z, removedType === 'torch'); }
+  // Torches need something to hold them up: if the block they were mounted on
+  // just vanished, they pop off as an item instead of floating in mid-air.
+  for (const [dx,dy,dz] of [[1,0,0],[-1,0,0],[0,0,1],[0,0,-1],[0,1,0]]) {
+    const tx = x+dx, ty = y+dy, tz = z+dz;
+    const nb = world.get(key(tx,ty,tz));
+    if (nb && nb.type === 'torch' && !torchSupported(tx,ty,tz)) {
+      removeBlock(tx,ty,tz,skipMark);
+      spawnDroppedItem('torch', 1, new THREE.Vector3(tx, ty, tz));
+      if (typeof pushBlockDiff === 'function') pushBlockDiff(tx,ty,tz,'air');
+    }
+  }
   return true;
+}
+function torchSupported(x,y,z) {
+  const below = world.get(key(x,y-1,z));
+  if (below && !BLOCK_TYPES[below.type].transparent) return true;
+  return torchWallDir(x,y,z) !== null;
 }
 function getBlock(x,y,z){
   return world.get(key(Math.round(x),Math.round(y),Math.round(z)));
@@ -1762,16 +2047,121 @@ function iconHtml(item) {
   return `${iconFor(item.type)}${item.count > 1 ? `<span class="count">${item.count}</span>` : ''}`;
 }
 
-function makeSlotEl(getItem, onLeftClick, onRightClick, extraClass) {
+function makeSlotEl(getItem, onLeftClick, onRightClick, extraClass, zone) {
   const div = document.createElement('div');
   div.className = 'invSlot' + (extraClass ? ' ' + extraClass : '');
   const item = getItem();
   if (!item) div.classList.add('dim');
   div.innerHTML = iconHtml(item);
   div.title = item ? displayName(item.type) : '';
-  div.addEventListener('click', e => { e.preventDefault(); onLeftClick(); });
+  div.addEventListener('mousedown', e => {
+    if (e.button !== 0) return;
+    e.preventDefault();
+    // Shift+click = quick move (see quickMove below)
+    if (e.shiftKey && zone && !cursorItem && (zone.k === 'cout' || getItem())) { quickMove(zone); return; }
+    onLeftClick();
+  });
   div.addEventListener('contextmenu', e => { e.preventDefault(); onRightClick(); });
   return div;
+}
+
+
+// ---------- Shift+click quick move ----------
+//  hotbar   -> main inventory        main inventory -> hotbar
+//  crafting grid / chest / furnace slot -> hotbar first, then main inventory
+//  chest or furnace open: inventory items go INTO the chest / furnace first
+//  craft output: crafts as many as your ingredients (and free space) allow, at once
+function stashInto(arr, lo, hi, item) {
+  const max = maxStackFor(item.type);
+  for (let i = lo; i < hi && item.count > 0; i++) {           // top up existing stacks first
+    const t = arr[i];
+    if (t && t.type === item.type && t.count < max) {
+      const add = Math.min(max - t.count, item.count);
+      t.count += add; item.count -= add;
+    }
+  }
+  for (let i = lo; i < hi && item.count > 0; i++) {           // then empty slots
+    if (!arr[i]) {
+      const add = Math.min(max, item.count);
+      arr[i] = { type: item.type, count: add }; item.count -= add;
+    }
+  }
+}
+function stashBackpack(item) {                                 // hotbar first, then main inventory
+  stashInto(inventory, 0, HOTBAR_SIZE, item);
+  if (item.count > 0) stashInto(inventory, HOTBAR_SIZE, INV_SIZE, item);
+}
+function stashFurnace(item) {
+  const key_ = SMELT_RECIPES[item.type] ? 'input' : (FUEL_VALUES[item.type] ? 'fuel' : null);
+  if (!key_) return;
+  const cur = furnaceSlots[key_], max = maxStackFor(item.type);
+  if (!cur) { const add = Math.min(max, item.count); furnaceSlots[key_] = { type: item.type, count: add }; item.count -= add; }
+  else if (cur.type === item.type && cur.count < max) { const add = Math.min(max - cur.count, item.count); cur.count += add; item.count -= add; }
+}
+function getZoneItem(z) {
+  switch (z.k) {
+    case 'inv': return inventory[z.i];
+    case 'craft': return craftSlots[z.i];
+    case 'chest': return chestSlots && chestSlots[z.i];
+    case 'fin': return furnaceSlots.input;
+    case 'ffuel': return furnaceSlots.fuel;
+    case 'fout': return furnaceSlots.output;
+  }
+  return null;
+}
+function setZoneItem(z, v) {
+  switch (z.k) {
+    case 'inv': inventory[z.i] = v; break;
+    case 'craft': craftSlots[z.i] = v; break;
+    case 'chest': chestSlots[z.i] = v; break;
+    case 'fin': furnaceSlots.input = v; break;
+    case 'ffuel': furnaceSlots.fuel = v; break;
+    case 'fout': furnaceSlots.output = v; break;
+  }
+}
+function inventoryRoomFor(type) {
+  const max = maxStackFor(type);
+  let room = 0;
+  for (let i = 0; i < INV_SIZE; i++) {
+    const t = inventory[i];
+    if (!t) room += max; else if (t.type === type) room += max - t.count;
+  }
+  return room;
+}
+function craftAllAtOnce() {
+  for (let guard = 0; guard < 2000; guard++) {
+    const recipe = computeCraftOutput();
+    if (!recipe || inventoryRoomFor(recipe.out) < recipe.outCount) break;
+    for (let i = 0; i < craftSlots.length; i++) {
+      if (craftSlots[i]) { craftSlots[i].count--; if (craftSlots[i].count <= 0) craftSlots[i] = null; }
+    }
+    stashBackpack({ type: recipe.out, count: recipe.outCount });
+  }
+}
+function quickMove(zone) {
+  if (zone.k === 'cout') {
+    craftAllAtOnce();
+  } else {
+    const src = getZoneItem(zone);
+    if (!src) return;
+    const item = { type: src.type, count: src.count };
+    if (zone.k === 'inv') {
+      if (chestOpen && chestSlots) stashInto(chestSlots, 0, CHEST_SIZE, item);
+      else if (furnaceOpen) stashFurnace(item);
+      if (item.count > 0) {
+        if (zone.i < HOTBAR_SIZE) stashInto(inventory, HOTBAR_SIZE, INV_SIZE, item);  // hotbar -> inventory
+        else stashInto(inventory, 0, HOTBAR_SIZE, item);                              // inventory -> hotbar
+      }
+    } else {
+      stashBackpack(item);                                                            // craft / chest / furnace -> hotbar, then inventory
+    }
+    setZoneItem(zone, item.count > 0 ? item : null);
+  }
+  renderInventoryPanel();
+  if (furnaceOpen) renderFurnacePanel();
+  if (chestOpen) { renderChestPanel(); saveChestData(); }
+  renderHotbar();
+  saveLocalPlayer();
 }
 
 // --- generic pick up / place logic shared by every slot type ---
@@ -1812,6 +2202,7 @@ function clickSlot(getItem, setItem, isRight) {
     }
   }
   renderInventoryPanel();
+  if (furnaceOpen) renderFurnacePanel();
   renderHotbar();
   saveLocalPlayer();
 }
@@ -1840,7 +2231,8 @@ function renderInventoryPanel() {
     mainGridEl.appendChild(makeSlotEl(
       () => inventory[idx],
       () => clickSlot(() => inventory[idx], v => inventory[idx] = v, false),
-      () => clickSlot(() => inventory[idx], v => inventory[idx] = v, true)
+      () => clickSlot(() => inventory[idx], v => inventory[idx] = v, true),
+      null, { k: 'inv', i: idx }
     ));
   }
   // hotbar row (slots 0..8) shown inside the panel too, same array
@@ -1850,7 +2242,8 @@ function renderInventoryPanel() {
     const el = makeSlotEl(
       () => inventory[idx],
       () => clickSlot(() => inventory[idx], v => inventory[idx] = v, false),
-      () => clickSlot(() => inventory[idx], v => inventory[idx] = v, true)
+      () => clickSlot(() => inventory[idx], v => inventory[idx] = v, true),
+      null, { k: 'inv', i: idx }
     );
     if (idx === currentSlot) el.style.borderColor = '#fff';
     hotbarGridEl.appendChild(el);
@@ -1862,14 +2255,15 @@ function renderInventoryPanel() {
     craftGridEl.appendChild(makeSlotEl(
       () => craftSlots[idx],
       () => clickSlot(() => craftSlots[idx], v => craftSlots[idx] = v, false),
-      () => clickSlot(() => craftSlots[idx], v => craftSlots[idx] = v, true)
+      () => clickSlot(() => craftSlots[idx], v => craftSlots[idx] = v, true),
+      null, { k: 'craft', i: idx }
     ));
   }
   // craft output (read-only ingredients-wise; clicking crafts + collects)
   craftOutputWrap.innerHTML = '';
   const recipe = computeCraftOutput();
   const outItem = recipe ? { type: recipe.out, count: recipe.outCount } : null;
-  const outEl = makeSlotEl(() => outItem, clickCraftOutput, clickCraftOutput, 'output');
+  const outEl = makeSlotEl(() => outItem, clickCraftOutput, clickCraftOutput, 'output', { k: 'cout' });
   craftOutputWrap.appendChild(outEl);
 
   cursorItemEl.style.display = cursorItem ? 'block' : 'none';
@@ -1887,13 +2281,65 @@ function returnCursorItemToInventory() {
   cursorItem = leftover > 0 ? { type: cursorItem.type, count: leftover } : null;
 }
 
+
+// ---------- Stats board (top-right of the inventory screen) ----------
+const statsBoardEl = document.getElementById('statsBoard');
+function renderStatsBoard() {
+  if (!statsBoardEl) return;
+  const held = currentItem();
+  const atk = (held && ITEM_INFO[held.type] && ITEM_INFO[held.type].attack) || 2;
+  let armorPts = 0, itemCount = 0, usedSlots = 0;
+  for (const it of inventory) {
+    if (!it) continue;
+    usedSlots++; itemCount += it.count;
+    if (isArmor(it.type)) armorPts += ITEM_INFO[it.type].armor;
+  }
+  const hpPct = Math.max(0, Math.min(100, player.hp / player.maxHp * 100));
+  const sun = Math.sin(worldTime * Math.PI * 2);
+  const timeTxt = sun > 0.15 ? 'Day' : (sun > -0.15 ? 'Dusk / Dawn' : 'Night');
+  const p = player.pos;
+  const row = (a, b) => `<div class="stRow"><span>${a}</span><span>${b}</span></div>`;
+  statsBoardEl.innerHTML =
+    '<h2>Stats</h2>' +
+    `<div class="stRow"><span>Health</span><span>${Math.max(0, Math.round(player.hp))} / ${player.maxHp}</span></div>` +
+    `<div class="stBar"><div style="width:${hpPct}%;background:linear-gradient(#ff5555,#cc2222)"></div></div>` +
+    row('Armor', `${armorPts} pts (-${Math.round(totalArmorReduction() * 100)}% dmg)`) +
+    row('Attack', `${atk} (${held ? displayName(held.type) : 'fist'})`) +
+    row('Position', `${Math.floor(p.x)}, ${Math.floor(p.y)}, ${Math.floor(p.z)}`) +
+    row('Light level', lightLevelAtWorld(Math.round(p.x), Math.round(p.y + 0.9), Math.round(p.z)) + ' / ' + LIGHT_MAX) +
+    row('Time', timeTxt) +
+    row('Players online', otherPlayers.size + 1) +
+    row('Inventory', `${usedSlots} / ${INV_SIZE} slots`) +
+    row('Total items', itemCount) +
+    row('Name', MY_NAME);
+}
+setInterval(() => { if (inventoryOpen) renderStatsBoard(); }, 250);
+
 function openInventory(atTable) {
   inventoryOpen = true;
   setCraftSize(atTable ? 3 : 2, atTable);
   invPanel.style.display = 'flex';
   renderInventoryPanel();
+  renderStatsBoard();
   document.exitPointerLock();
 }
+// Re-capture the mouse immediately after closing a menu (inventory, crafting
+// table, furnace, chest, chat) so play resumes instantly, like Minecraft.
+// Must run inside the key/click event that closed the menu (browsers only
+// allow pointer lock from a user gesture); if the browser refuses, the
+// normal "Click to resume" overlay appears as a fallback.
+function resumeGameplay() {
+  if (!gameStarted || inventoryOpen || furnaceOpen || chestOpen || chatOpen || settingsOpen) return;
+  if (pointerLocked) return;
+  pauseOverlay.style.display = 'none';
+  try {
+    const r = canvas.requestPointerLock();
+    if (r && r.catch) r.catch(() => { if (!pointerLocked) pauseOverlay.style.display = 'flex'; });
+  } catch (e) { pauseOverlay.style.display = 'flex'; }
+}
+document.addEventListener('pointerlockerror', () => {
+  if (gameStarted && !pointerLocked && !inventoryOpen && !furnaceOpen && !chestOpen && !chatOpen && !settingsOpen) pauseOverlay.style.display = 'flex';
+});
 function closeInventory() {
   inventoryOpen = false;
   invPanel.style.display = 'none';
@@ -1902,6 +2348,7 @@ function closeInventory() {
   returnCursorItemToInventory();
   renderHotbar();
   saveLocalPlayer();
+  resumeGameplay();
 }
 function toggleInventory() {
   if (inventoryOpen) closeInventory();
@@ -1915,7 +2362,7 @@ function openWorkbench() {
 // Simplified like the crafting table above: one shared session furnace UI
 // rather than per-block-instance state tied to world coordinates. Contents
 // persist while the game session runs, and only cook while the panel is
-// open (closing the furnace pauses the fire, like stepping away).
+// open; once lit it keeps smelting in the background.
 const SMELT_RECIPES = {
   sand:      { out: 'glass',       time: 4 },
   raw_meat:  { out: 'cooked_meat', time: 5 },
@@ -1943,8 +2390,8 @@ function currentSmeltRecipe() {
   return inp ? (SMELT_RECIPES[inp.type] || null) : null;
 }
 
+let furnaceLastSig = '';
 function updateFurnace(dt) {
-  if (!furnaceOpen) return;
   const recipe = currentSmeltRecipe();
   if (furnaceBurnLeft <= 0 && recipe && furnaceSlots.fuel) {
     const fuelVal = FUEL_VALUES[furnaceSlots.fuel.type];
@@ -1973,7 +2420,13 @@ function updateFurnace(dt) {
     furnaceCookTime = Math.max(0, furnaceCookTime - dt * 2);
   }
   if (furnaceBurnLeft < 0) furnaceBurnLeft = 0;
-  renderFurnacePanel();
+  if (!furnaceOpen) return;
+  // Rebuilding the slot DOM every frame swallowed clicks, so only do it when
+  // the slot contents actually change; otherwise just move the gauges.
+  const sig = ['input','fuel','output'].map(k => furnaceSlots[k] ? furnaceSlots[k].type + ':' + furnaceSlots[k].count : '-').join('|');
+  if (sig !== furnaceLastSig) { furnaceLastSig = sig; renderFurnacePanel(); return; }
+  furnaceFlameFill.style.height = (furnaceBurnTotal > 0 ? Math.max(0, furnaceBurnLeft / furnaceBurnTotal) * 100 : 0) + '%';
+  furnaceArrowFill.style.width = (recipe ? Math.min(100, (furnaceCookTime / recipe.time) * 100) : 0) + '%';
 }
 
 function renderFurnacePanel() {
@@ -1982,20 +2435,22 @@ function renderFurnacePanel() {
   furnaceInputWrap.appendChild(makeSlotEl(
     () => furnaceSlots.input,
     () => clickSlot(() => furnaceSlots.input, v => furnaceSlots.input = v, false),
-    () => clickSlot(() => furnaceSlots.input, v => furnaceSlots.input = v, true)
+    () => clickSlot(() => furnaceSlots.input, v => furnaceSlots.input = v, true),
+    null, { k: 'fin' }
   ));
   furnaceFuelWrap.innerHTML = '';
   furnaceFuelWrap.appendChild(makeSlotEl(
     () => furnaceSlots.fuel,
     () => clickSlot(() => furnaceSlots.fuel, v => furnaceSlots.fuel = v, false),
-    () => clickSlot(() => furnaceSlots.fuel, v => furnaceSlots.fuel = v, true)
+    () => clickSlot(() => furnaceSlots.fuel, v => furnaceSlots.fuel = v, true),
+    null, { k: 'ffuel' }
   ));
   furnaceOutputWrap.innerHTML = '';
   furnaceOutputWrap.appendChild(makeSlotEl(
     () => furnaceSlots.output,
     () => clickSlot(() => furnaceSlots.output, v => furnaceSlots.output = v, false),
     () => clickSlot(() => furnaceSlots.output, v => furnaceSlots.output = v, true),
-    'output'
+    'output', { k: 'fout' }
   ));
   furnaceFlameFill.style.height = (furnaceBurnTotal > 0 ? Math.max(0, furnaceBurnLeft / furnaceBurnTotal) * 100 : 0) + '%';
   furnaceArrowFill.style.width = (recipe ? Math.min(100, (furnaceCookTime / recipe.time) * 100) : 0) + '%';
@@ -2006,7 +2461,8 @@ function renderFurnacePanel() {
     furnaceMainGridEl.appendChild(makeSlotEl(
       () => inventory[idx],
       () => clickSlot(() => inventory[idx], v => inventory[idx] = v, false),
-      () => clickSlot(() => inventory[idx], v => inventory[idx] = v, true)
+      () => clickSlot(() => inventory[idx], v => inventory[idx] = v, true),
+      null, { k: 'inv', i: idx }
     ));
   }
   furnaceHotbarGridEl.innerHTML = '';
@@ -2015,7 +2471,8 @@ function renderFurnacePanel() {
     const el = makeSlotEl(
       () => inventory[idx],
       () => clickSlot(() => inventory[idx], v => inventory[idx] = v, false),
-      () => clickSlot(() => inventory[idx], v => inventory[idx] = v, true)
+      () => clickSlot(() => inventory[idx], v => inventory[idx] = v, true),
+      null, { k: 'inv', i: idx }
     );
     if (idx === currentSlot) el.style.borderColor = '#fff';
     furnaceHotbarGridEl.appendChild(el);
@@ -2036,6 +2493,7 @@ function closeFurnace() {
   returnCursorItemToInventory();
   renderHotbar();
   saveLocalPlayer();
+  resumeGameplay();
 }
 
 // ---------- Chest (item storage) ----------
@@ -2084,7 +2542,8 @@ function renderChestPanel() {
     chestGridEl.appendChild(makeSlotEl(
       () => chestSlots[idx],
       () => clickSlot(() => chestSlots[idx], v => chestSlots[idx] = v, false),
-      () => clickSlot(() => chestSlots[idx], v => chestSlots[idx] = v, true)
+      () => clickSlot(() => chestSlots[idx], v => chestSlots[idx] = v, true),
+      null, { k: 'chest', i: idx }
     ));
   }
   chestMainGridEl.innerHTML = '';
@@ -2093,7 +2552,8 @@ function renderChestPanel() {
     chestMainGridEl.appendChild(makeSlotEl(
       () => inventory[idx],
       () => clickSlot(() => inventory[idx], v => inventory[idx] = v, false),
-      () => clickSlot(() => inventory[idx], v => inventory[idx] = v, true)
+      () => clickSlot(() => inventory[idx], v => inventory[idx] = v, true),
+      null, { k: 'inv', i: idx }
     ));
   }
   chestHotbarGridEl.innerHTML = '';
@@ -2102,7 +2562,8 @@ function renderChestPanel() {
     const el = makeSlotEl(
       () => inventory[idx],
       () => clickSlot(() => inventory[idx], v => inventory[idx] = v, false),
-      () => clickSlot(() => inventory[idx], v => inventory[idx] = v, true)
+      () => clickSlot(() => inventory[idx], v => inventory[idx] = v, true),
+      null, { k: 'inv', i: idx }
     );
     if (idx === currentSlot) el.style.borderColor = '#fff';
     chestHotbarGridEl.appendChild(el);
@@ -2127,6 +2588,7 @@ function closeChest() {
   saveChestData();
   chestKey = null;
   chestSlots = null;
+  resumeGameplay();
 }
 
 // ================= Physics / collision =================
@@ -2203,8 +2665,14 @@ function unstickPlayerIfFloating() {
 }
 
 function isInWater(pos) {
-  const b = getBlock(pos.x, pos.y + 0.9, pos.z);
-  return !!b && b.type === 'water';
+  // Feet OR chest in water counts, so you keep swim controls at the surface
+  // (before, only the chest was checked and you lost them the moment your
+  // head rose out, sinking straight back in and never reaching the bank).
+  for (const dy of [0.3, 0.9]) {
+    const b = getBlock(pos.x, pos.y + dy, pos.z);
+    if (b && b.type === 'water') return true;
+  }
+  return false;
 }
 
 // ================= Day/Night cycle =================
@@ -2524,52 +2992,29 @@ function buildHumanoid(color) {
 // Blocks get a small textured cube built from the same materials used for
 // world geometry; anything else (tools, food, raw materials) gets a small
 // flat icon sprite, similar to how Minecraft renders 2D items in-hand.
-const iconMaterialCache = new Map();
-function getIconMaterial(type) {
-  if (iconMaterialCache.has(type)) return iconMaterialCache.get(type);
-  const canvas = document.createElement('canvas');
-  canvas.width = canvas.height = 64;
-  const ctx = canvas.getContext('2d');
-  ctx.font = '46px "Segoe UI Emoji", sans-serif';
-  ctx.textAlign = 'center';
-  ctx.textBaseline = 'middle';
-  ctx.fillText(iconFor(type), 32, 34);
-  const tex = new THREE.CanvasTexture(canvas);
-  tex.magFilter = THREE.NearestFilter;
-  const mat = new THREE.MeshBasicMaterial({ map: tex, transparent: true, side: THREE.DoubleSide });
-  iconMaterialCache.set(type, mat);
-  return mat;
+const heldMatCache = new Map();
+function getHeldCubeMaterials(type) {
+  if (heldMatCache.has(type)) return heldMatCache.get(type);
+  const t = itemTiles(type);
+  const mk = cv => { const tx = new THREE.CanvasTexture(cv); tx.magFilter = THREE.NearestFilter; tx.minFilter = THREE.NearestFilter; return new THREE.MeshBasicMaterial({ map: tx }); };
+  const side = mk(t.side), top = mk(t.top);
+  const mats = [side, side, top, top, side, side];
+  heldMatCache.set(type, mats);
+  return mats;
 }
 function makeHeldItemMesh(type) {
   if (!type) return null;
-  if (BLOCK_TYPES[type] && BLOCK_TYPES[type].cross) {
-    // Torch/sapling are flat sprite blocks in the world (see addCrossQuads),
-    // with their icon drawn into just a small region of the 16x16 texture
-    // and everything else alpha-cut-out. Wrapping that texture around a
-    // BoxGeometry's 6 full-face UVs used to alpha-test away most of each
-    // face, leaving a broken, hole-riddled little cube in the player's
-    // hand instead of a torch. A single small plane — the same shape the
-    // block itself uses in the world — shows the icon cleanly.
-    const geo = new THREE.PlaneGeometry(0.28, 0.28);
-    const tex = TEX[type];
-    const mat = new THREE.MeshBasicMaterial({ map: tex, transparent: true, alphaTest: 0.5, side: THREE.DoubleSide });
-    if (type === 'torch') mat.color = new THREE.Color(0xffcf99); // subtle warm tint so it still reads as "lit" in hand
-    return new THREE.Mesh(geo, mat);
-  }
-  if (BLOCK_TYPES[type]) {
+  if (BLOCK_TYPES[type] && !BLOCK_TYPES[type].cross) {
     const geo = new THREE.BoxGeometry(0.26, 0.26, 0.26);
-    // Chunk materials now use vertexColors for baked skylight shading, so
-    // any geometry sharing them needs a color attribute too (missing one
-    // would leave the shader's color input unbound) — held items should
-    // always render at full, undarkened brightness regardless of the
-    // surroundings, so fill it with white.
+    // Chunk materials use vertexColors for baked skylight shading, so any
+    // geometry sharing them needs a color attribute (white = full brightness).
     const vCount = geo.attributes.position.count;
     geo.setAttribute('color', new THREE.BufferAttribute(new Float32Array(vCount*3).fill(1), 3));
     const mats = [0,1,2,3,4,5].map(i => MAT_LIST[faceMatIndex(type, i)]);
     return new THREE.Mesh(geo, mats);
   }
-  const geo = new THREE.PlaneGeometry(0.32, 0.32);
-  return new THREE.Mesh(geo, getIconMaterial(type));
+  // Items (tools, armor, food, materials) and sprite-blocks: a small textured cube too.
+  return new THREE.Mesh(new THREE.BoxGeometry(0.26, 0.26, 0.26), getHeldCubeMaterials(type));
 }
 // Swaps the mesh parented to `anchor` only when the held type actually
 // changes, so this is cheap to call every frame.
@@ -2692,17 +3137,14 @@ function killAnimal(animal) {
 // world as a small floating icon instead of going straight into the
 // inventory. Walk over it to pick it up.
 function makeItemSprite(type) {
-  const c = document.createElement('canvas');
-  c.width = 64; c.height = 64;
-  const ctx = c.getContext('2d');
-  ctx.font = '44px sans-serif';
-  ctx.textAlign = 'center';
-  ctx.textBaseline = 'middle';
-  ctx.fillText(iconFor(type), 32, 36);
+  const src = iconCanvas(type, 64);
+  const c = document.createElement('canvas'); c.width = c.height = 64;
+  c.getContext('2d').drawImage(src, 0, 0);
   const tex = new THREE.CanvasTexture(c);
+  tex.magFilter = THREE.NearestFilter;
   const mat = new THREE.SpriteMaterial({ map: tex, depthTest: true });
   const sprite = new THREE.Sprite(mat);
-  sprite.scale.set(0.4, 0.4, 1);
+  sprite.scale.set(0.42, 0.42, 1);
   return sprite;
 }
 
@@ -3051,6 +3493,7 @@ function closeChat() {
   chatOpen = false;
   chatInputWrap.style.display = 'none';
   chatInput.blur();
+  resumeGameplay();
 }
 function sendChatMessage() {
   const text = chatInput.value.trim().slice(0, 200);
@@ -3071,7 +3514,14 @@ let lastWTapTime = 0;
 let isSprinting = false;
 document.addEventListener('keydown', e => {
   if (!gameStarted || chatOpen) return;
-  if (e.code === 'Escape') { if (settingsOpen) closeSettings(); else document.exitPointerLock(); return; }
+  if (e.code === 'Escape') {
+    if (settingsOpen) closeSettings();
+    else if (furnaceOpen) closeFurnace();
+    else if (chestOpen) closeChest();
+    else if (inventoryOpen) closeInventory();
+    else document.exitPointerLock();
+    return;
+  }
   if (e.code === 'KeyE') { if (furnaceOpen) closeFurnace(); else if (chestOpen) closeChest(); else if (!settingsOpen) toggleInventory(); return; }
   if (e.code === 'F5') { thirdPerson = !thirdPerson; myModel.group.visible = thirdPerson; e.preventDefault(); return; }
   if (e.code === 'KeyF') { startEating(); return; }
@@ -3626,6 +4076,7 @@ function animate() {
   if (attackCooldown > 0) attackCooldown -= dt;
 
   let isMoving = false;
+  let swimMoveDir = null;
   const inWater = isInWater(player.pos);
   // Sprint (from double-tapping W, or holding Shift as a fallback) only
   // applies while actually holding forward and not also backpedaling —
@@ -3648,6 +4099,7 @@ function animate() {
     if (keys['KeyA']) move.sub(right);
     isMoving = move.lengthSq() > 0;
     if (isMoving) move.normalize().multiplyScalar(speed);
+    swimMoveDir = isMoving ? move.clone().normalize() : null;
 
     player.vel.x = move.x;
     player.vel.z = move.z;
@@ -3663,7 +4115,16 @@ function animate() {
   // place (ignoring gravity) whenever chat or the inventory was open.
   if (inWater) {
     player.vel.y -= 6*dt;
-    if (pointerLocked && keys['Space']) player.vel.y = 4;
+    if (pointerLocked && keys['Space']) player.vel.y = 4.5;
+    // Climb out: pushing against a bank with open space above it gives a
+    // boost that carries you over the edge (like vanilla Minecraft).
+    if (swimMoveDir && pointerLocked) {
+      const px = player.pos.x + swimMoveDir.x * 0.25, pz = player.pos.z + swimMoveDir.z * 0.25;
+      if (checkCollision(px, player.pos.y, pz, player.radius, player.height * 0.6) &&
+          !checkCollision(px, player.pos.y + 1.1, pz, player.radius, player.height)) {
+        player.vel.y = Math.max(player.vel.y, 7.5);
+      }
+    }
     player.vel.y = Math.max(player.vel.y, -3);
   } else {
     player.vel.y -= 20*dt;
