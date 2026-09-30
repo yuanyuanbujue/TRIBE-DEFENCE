@@ -295,6 +295,18 @@
   @media (max-width: 900px) { #statsBoard { display: none; } }
   #invHint { font-size: 12px; opacity: 0.8; margin-top: 6px; max-width: 480px; }
 
+  /* ===== Equipment (armor + off hand) ===== */
+  #equipBox { display: flex; align-items: stretch; gap: 8px; margin-right: 10px; }
+  #armorCol, #offCol { display: flex; flex-direction: column; gap: 6px; }
+  #offCol { justify-content: flex-end; }
+  #playerFig { position: relative; width: 100px; height: 234px; background: rgba(0,0,0,0.35); border: 2px solid rgba(255,255,255,0.3); border-radius: 8px; overflow: hidden; }
+  #playerFig .pf { position: absolute; box-sizing: border-box; border: 1px solid rgba(0,0,0,0.55); }
+  #playerFig .skin { background: #e0ac82; } #playerFig .hair { background: #4a2f14; }
+  #playerFig .legs { background: #3a4a8a; }
+  #playerFig .ar { display: none; background: linear-gradient(135deg,#f4f7f9,#c9d0d5 55%,#8a949b); border-color: #5c666d; }
+  #playerFig.a0 .ar.a0, #playerFig.a1 .ar.a1, #playerFig.a2 .ar.a2, #playerFig.a3 .ar.a3 { display: block; }
+  .invSlot.ph.dim::before { content: attr(data-ph); font-size: 10px; opacity: 0.9; }
+  #offhandHud { position: fixed; bottom: 16px; left: calc(50% - 300px); z-index: 10; }
   /* ===== Furnace panel ===== */
   #furnacePanel {
     position: fixed; inset: 0; z-index: 60; display: none;
@@ -379,6 +391,26 @@
   <div id="invPanelBox">
     <h2 id="craftTitle">Crafting</h2>
     <div id="craftSection">
+      <div id="equipBox">
+        <div id="armorCol"></div>
+        <div id="playerFig">
+          <div class="pf hair" style="left:34px;top:12px;width:32px;height:10px"></div>
+          <div class="pf skin" style="left:34px;top:22px;width:32px;height:22px"></div>
+          <div class="pf skin" style="left:18px;top:46px;width:16px;height:60px"></div>
+          <div class="pf skin" style="left:66px;top:46px;width:16px;height:60px"></div>
+          <div class="pf pf-shirt" style="left:34px;top:46px;width:32px;height:60px"></div>
+          <div class="pf legs" style="left:34px;top:106px;width:16px;height:70px"></div>
+          <div class="pf legs" style="left:50px;top:106px;width:16px;height:70px"></div>
+          <div class="pf ar a0" style="left:30px;top:8px;width:40px;height:38px"></div>
+          <div class="pf ar a1" style="left:30px;top:46px;width:40px;height:62px"></div>
+          <div class="pf ar a1" style="left:14px;top:46px;width:20px;height:22px"></div>
+          <div class="pf ar a1" style="left:66px;top:46px;width:20px;height:22px"></div>
+          <div class="pf ar a2" style="left:32px;top:104px;width:36px;height:46px"></div>
+          <div class="pf ar a3" style="left:32px;top:156px;width:18px;height:20px"></div>
+          <div class="pf ar a3" style="left:50px;top:156px;width:18px;height:20px"></div>
+        </div>
+        <div id="offCol"></div>
+      </div>
       <div id="craftGrid"></div>
       <div id="craftArrow">➜</div>
       <div id="craftOutputWrap"></div>
@@ -429,11 +461,12 @@
 <div id="chatLog"></div>
 <div id="chatInputWrap"><input id="chatInput" type="text" maxlength="200" placeholder="Say something... (Enter to send, Esc to cancel)"></div>
 <div id="damageFlash"></div>
-<div id="hud">Mine blocks to collect materials · place them from your inventory.<br>Press <b>E</b> for inventory · <b>F5</b> for third-person · <b>F</b> to eat food · <b>Q</b> to throw item · <b>T</b> to chat. Right-click a crafting table/furnace/chest to use it, right-click <b>TNT</b> to light it, or a bed to set your respawn point. World auto-saves as you play.</div>
+<div id="hud">Mine blocks to collect materials · place them from your inventory.<br>Press <b>E</b> for inventory · <b>F5</b> for third-person · <b>F</b> to eat food · <b>Q</b> to throw item · <b>Right-click</b> uses your off-hand item · <b>T</b> to chat. Right-click a crafting table/furnace/chest to use it, right-click <b>TNT</b> to light it, or a bed to set your respawn point. World auto-saves as you play.</div>
 <div id="fps">FPS: --<br><span id="playerCount">Players online: 1</span></div>
 <div id="coordsDisplay">XYZ: 0, 0, 0</div>
 <button id="settingsBtn" title="Settings">⚙️</button>
 <div id="hotbar"></div>
+<div id="offhandHud" class="slot empty"></div>
 
 <div id="settingsOverlay">
   <div id="settingsBox">
@@ -806,10 +839,10 @@ const ITEM_INFO = {
   iron_shovel:    { maxStack: 1 },
   iron_sword:     { maxStack: 1, attack: 8 },
   iron_ingot:     {},
-  iron_helmet:     { maxStack: 1, armor: 2 },
-  iron_chestplate: { maxStack: 1, armor: 4 },
-  iron_leggings:   { maxStack: 1, armor: 3 },
-  iron_boots:      { maxStack: 1, armor: 1 },
+  iron_helmet:     { maxStack: 1, armor: 2, slot: 0 },
+  iron_chestplate: { maxStack: 1, armor: 4, slot: 1 },
+  iron_leggings:   { maxStack: 1, armor: 3, slot: 2 },
+  iron_boots:      { maxStack: 1, armor: 1, slot: 3 },
   raw_meat:       { food: 3 },
   apple:          { food: 2 },
   sapling:        {},
@@ -823,9 +856,7 @@ function isArmor(type) { return !!(ITEM_INFO[type] && ITEM_INFO[type].armor); }
 // no separate armor slots), each reducing incoming damage by its value.
 function totalArmorReduction() {
   let total = 0;
-  for (const s of inventory) {
-    if (s && isArmor(s.type)) total += ITEM_INFO[s.type].armor;
-  }
+  for (const a of armorSlots) if (a && isArmor(a.type)) total += ITEM_INFO[a.type].armor;   // only EQUIPPED armor counts
   return Math.min(0.8, total * 0.04); // each armor point ~4% reduction, capped at 80%
 }
 function isSword(type) { return type === 'wood_sword' || type === 'stone_sword' || type === 'iron_sword'; }
@@ -881,7 +912,7 @@ ITEM_STYLE.trapdoor = { g: 'trapdoor', bg: '#a9773f', x: '#d9a866', s: '#f0d98a'
 // Hand-drawn 16x16 grids; letters index a per-item palette (a=light, b=mid,
 // c=dark, h/H=handle dark/light, l=leaf). Items render as outlined flat
 // sprites (like Minecraft) instead of a cube with a backing tile.
-const SPRITE_GRIDS = {"sword": [".............ooo", "............obao", "...........obabo", "..........obabo.", ".........obabo..", "........obabo...", "..oo...ocabo....", "..oCo.ocaco.....", "...oCocbco......", "...oCCCco.......", "....oCoo........", "...CBoooo.......", "..CAo.oooo......", "ooBo....oo......", "oCo.............", "ooo............."], "pickaxe": ["................", "................", ".....oooooooooo.", ".....oaaaaabbbo.", ".....obbbbbccco.", ".....ooooooobco.", ".........oBoabo.", "........oBooabo.", ".......oAo.oabo.", "......oBo..oabo.", ".....oAo...oabo.", "....oBo....oooo.", "...oAo..........", "..oBo...........", "..oo............", "................"], "axe": ["................", ".........oooo...", "........oaaabo..", "....ooooaabbbbo.", "...oaaaabbbbbbco", "...oaabbbbbbbcco", "....obbbbbbbcco.", ".....obbbbbccoo.", ".....oABoocco...", "....oABo........", "...oABo.........", "..oABo..........", ".oABo...........", "oABo............", "oBo.............", "ooo............."], "shovel": ["............aa..", "..........aaaaa.", ".........aaabbac", ".........aabbbcc", "........aabbbcc.", "........abbbccc.", "........bhbccc..", "........hbcc....", ".......hH.......", "......hH........", ".....hH.........", "....hH..........", "...hH...........", "..hH............", ".hH.............", "................"], "stick": ["................", "................", ".............hH.", "............hH..", "...........hH...", "..........hH....", ".........hH.....", "........hH......", ".......hH.......", "......hH........", ".....hH.........", "....hH..........", "...hH...........", "..hH............", "................", "................"], "ingot": ["................", "................", "................", "......aaaaaaaa..", "....aaaaaaaaab..", "...abbbbbbbbbb..", "...abbbbbbbbc...", "...abbbbbbbcc...", "...acccccccc....", "................", "................", "................", "................", "................", "................", "................"], "coal": ["................", "................", "................", ".......aa.......", ".....aaabbb.....", "....aaaabbbb....", "...aaabbbbbbb...", "...aabbbbbbbb...", "...abbbbbbbbc...", "...bbbbbbbbcc...", "...bbbbbbbccc...", "....bbbbbccc....", ".....bbbccc.....", ".......cc.......", "................", "................"], "apple": ["................", "................", "................", ".........lll....", "........h.l.....", "........h.......", ".....aabcbbb....", "....aaabbbbbb...", "....aaabbbbbb...", "....bbbbbbbbb...", "....bbbbbbbbb...", "....bbbbbbccc...", "....bbbbbbccc...", ".....bbbbbcc....", "................", "................"]};
+const SPRITE_GRIDS = {"sword": [".............ooo", "............obao", "...........obabo", "..........obabo.", ".........obabo..", "........obabo...", "..oo...ocabo....", "..oCo.ocaco.....", "...oCocbco......", "...oCCCco.......", "....oCoo........", "...CBoooo.......", "..CAo.oooo......", "ooBo....oo......", "oCo.............", "ooo............."], "pickaxe": ["................", "................", ".....oooooooooo.", ".....oaaaaabbbo.", ".....obbbbbccco.", ".....ooooooobco.", ".........oBoabo.", "........oBooabo.", ".......oAo.oabo.", "......oBo..oabo.", ".....oAo...oabo.", "....oBo....oooo.", "...oAo..........", "..oBo...........", "..oo............", "................"], "axe": ["..........oo....", "..........oo....", ".......ooobboo..", "......obbbbboo..", "....oobbbbbboob.", "....oobbbbbboob.", "....oobbbbbcbbo.", "......ooooobccbo", ".......occbobbbo", ".......occbobbbo", "......CBBBo.ooo.", "....CCBCBB......", "...CBBoB........", "...CBBoB........", "..CAoo..........", "CCBo............"], "shovel": ["............aa..", "..........aaaaa.", ".........aaabbac", ".........aabbbcc", "........aabbbcc.", "........abbbccc.", "........bhbccc..", "........hbcc....", ".......hH.......", "......hH........", ".....hH.........", "....hH..........", "...hH...........", "..hH............", ".hH.............", "................"], "stick": ["................", "................", ".............hH.", "............hH..", "...........hH...", "..........hH....", ".........hH.....", "........hH......", ".......hH.......", "......hH........", ".....hH.........", "....hH..........", "...hH...........", "..hH............", "................", "................"], "ingot": ["................", "................", "..........oo....", ".......ooobbn...", "....ooobddddbn..", ".ooobddddddddbn.", "owddddddddddwwdn", "obwddddddwwwdnbe", "obbwddwwwdmnnmbe", "obbbwwdmnnnnbbbe", "ombbdmnnnnbbmee.", ".ombdmnnmmeee...", "..ombmoeee......", "...ooee.........", "................", "................"], "coal": ["................", "................", "................", ".......aa.......", ".....aaabbb.....", "....aaaabbbb....", "...aaabbbbbbb...", "...aabbbbbbbb...", "...abbbbbbbbc...", "...bbbbbbbbcc...", "...bbbbbbbccc...", "....bbbbbccc....", ".....bbbccc.....", ".......cc.......", "................", "................"], "apple": ["................", "................", "................", ".........lll....", "........h.l.....", "........h.......", ".....aabcbbb....", "....aaabbbbbb...", "....aaabbbbbb...", "....bbbbbbbbb...", "....bbbbbbbbb...", "....bbbbbbccc...", "....bbbbbbccc...", ".....bbbbbcc....", "................", "................"]};
 const SPRITE_MAT = {
   wood:  { a:'#a07a30', b:'#82622a', c:'#5e4820' },
   stone: { a:'#bdbdbd', b:'#909090', c:'#666666' },
@@ -891,7 +922,7 @@ const SPRITE_MAT = {
 const SPRITE_HANDLE = { h:'#6a4e1f', H:'#8f6b2a', o:'#20180a', A:'#a07a30', B:'#82622a', C:'#5e4820' };
 const SPRITE_PAL = {
   stick:      { h:'#7a4f24', H:'#b98850' },
-  iron_ingot: SPRITE_MAT.iron,
+  iron_ingot: { w:'#ffffff', d:'#d9d9d9', b:'#a8a8a8', m:'#838383', n:'#737373', o:'#5e5e5e', e:'#363636' },
   coal:       { a:'#5c5c5c', b:'#2e2e2e', c:'#141414' },
   apple:      { a:'#ff7a6b', b:'#d8322a', c:'#8f1d1d', h:'#6b4423', l:'#4fae3c' },
   raw_meat:   { a:'#f29aa2', b:'#c94450', c:'#84232e', h:'#f4ead6' },
@@ -900,7 +931,7 @@ const SPRITE_PAL = {
 const SPRITE_GLYPH_ITEMS = { iron_helmet:'helmet', iron_chestplate:'chest', iron_leggings:'legs', iron_boots:'boots', raw_meat:'meat', cooked_meat:'meat' };
 function _spriteGridFor(type) {
   const m = /^(wood|stone|iron)_(pickaxe|axe|shovel|sword)$/.exec(type);
-  if (m) return { rows: SPRITE_GRIDS[m[2]], pal: { ...SPRITE_MAT[m[1]], ...SPRITE_HANDLE } };
+  if (m) return { rows: SPRITE_GRIDS[m[2]], pal: { ...SPRITE_MAT[m[1]], ...SPRITE_HANDLE, ...(m[1] === 'iron' ? { o: '#262b30' } : {}) } };
   if (type === 'stick' || type === 'coal' || type === 'apple') return { rows: SPRITE_GRIDS[type], pal: SPRITE_PAL[type] };
   if (type === 'iron_ingot') return { rows: SPRITE_GRIDS.ingot, pal: SPRITE_PAL.iron_ingot };
   const gl = SPRITE_GLYPH_ITEMS[type];
@@ -1296,7 +1327,7 @@ function glassFaceMask(x, y, z, f) {
 }
 
 const CHUNK_SIZE = 16;
-const Y_MIN = -20, Y_MAX = 60;
+const Y_MIN = -40, Y_MAX = 60;   // must sit below the world floor (WORLD_BOTTOM = -28) or deep blocks are never drawn
 const chunks = new Map();       // "cx,cz" -> { mesh, dirty }
 const dirtyChunkKeys = new Set();
 
@@ -1359,6 +1390,14 @@ function shadeFromLevel(level) {
 }
 // Flood-fills one torch's light through non-opaque cells. Opaque blocks get lit
 // on the surface facing the torch but don't pass it on.
+let lightVersion = 0, floodCacheVersion = -1;
+const floodCache = new Map();
+function floodTorchCached(k, tx, ty, tz, into) {
+  if (floodCacheVersion !== lightVersion) { floodCache.clear(); floodCacheVersion = lightVersion; }
+  let f = floodCache.get(k);
+  if (!f) { f = new Map(); floodTorchLight(tx, ty, tz, f); floodCache.set(k, f); }
+  f.forEach((v, kk) => { if ((into.get(kk) || 0) < v) into.set(kk, v); });
+}
 function floodTorchLight(tx, ty, tz, field) {
   const seen = new Set();
   let queue = [[tx, ty, tz]];
@@ -1660,7 +1699,7 @@ function rebuildChunk(cx, cz) {
     const [tx, ty, tz] = k.split(',').map(Number);
     if (tx >= x0 - TORCH_LIGHT_RADIUS && tx <= x1 + TORCH_LIGHT_RADIUS &&
         tz >= z0 - TORCH_LIGHT_RADIUS && tz <= z1 + TORCH_LIGHT_RADIUS) {
-      floodTorchLight(tx, ty, tz, torchField);
+      floodTorchCached(k, tx, ty, tz, torchField);
     }
   });
 
@@ -1679,10 +1718,17 @@ function rebuildChunk(cx, cz) {
 
   const _yr = chunkYRange.get(ck);
   const yLo = _yr ? Math.max(Y_MIN, _yr[0]) : Y_MAX + 1, yHi = _yr ? Math.min(Y_MAX, _yr[1]) : Y_MAX;
+  const GW = CHUNK_SIZE + 2, GY = yHi - yLo + 3;
+  const grid = new Array(GW*GW*GY);
+  for (let gx=0; gx<GW; gx++) for (let gz=0; gz<GW; gz++) {
+    const base = (gx*GW+gz)*GY;
+    for (let gy=0; gy<GY; gy++) grid[base+gy] = world.get(key(x0-1+gx, yLo-1+gy, z0-1+gz));
+  }
   for (let x=x0; x<=x1; x++){
     for (let z=z0; z<=z1; z++){
       for (let y=yLo; y<=yHi; y++){
-        const b = world.get(key(x,y,z));
+        const gi = ((x-x0+1)*GW + (z-z0+1))*GY + (y-yLo+1);
+        const b = grid[gi];
         if (!b) continue;
         // Cross-model blocks (torch, sapling) are flat crossed sprites, not
         // cubes — always drawn in full, no per-neighbor face culling.
@@ -1706,7 +1752,7 @@ function rebuildChunk(cx, cz) {
         let visibleMask = 0;
         for (let f=0; f<6; f++){
           const d = FACES[f].dir;
-          const nb = world.get(key(x+d[0], y+d[1], z+d[2]));
+          const nb = grid[gi + (d[0]*GW + d[2])*GY + d[1]];
           if (shouldRenderFace(b.type, nb ? nb.type : null)) visibleMask |= (1 << f);
         }
         if (!visibleMask) continue;
@@ -1840,8 +1886,8 @@ const blockLights = new Map(); // "x,y,z" -> THREE.PointLight
 // cast one would tank the framerate the moment someone builds a torch-lit
 // base. Capped this low still reads as "torches make shadows" without the
 // perf cliff.
-let MAX_SHADOW_TORCHES = 4; // live-adjustable — Settings > Graphics > Torch shadows can drop this to 0
-const MAX_SHADOW_TORCHES_DEFAULT = 4; // restored when the torch-shadows setting is switched back on
+let MAX_SHADOW_TORCHES = 0; // live-adjustable — Settings > Graphics > Torch shadows can drop this to 0
+const MAX_SHADOW_TORCHES_DEFAULT = 0; // real-time torch shadows re-render the scene 6x each — off for performance // restored when the torch-shadows setting is switched back on
 // Every torch's glow is ALSO baked into the terrain's vertex colors
 // (computeShade in rebuildChunk), so a torch still looks lit even with no
 // real THREE light on it at all. That means the live PointLight only needs
@@ -1852,52 +1898,29 @@ const MAX_SHADOW_TORCHES_DEFAULT = 4; // restored when the torch-shadows setting
 // frame, AND adding/toggling a light forces a shader recompile for every
 // material in the scene, so the game got measurably (and permanently)
 // laggier with every torch placed, however far away it ended up.
-const MAX_ACTIVE_TORCH_LIGHTS = 12;
+const MAX_ACTIVE_TORCH_LIGHTS = 3;   // size of the real-light pool; every torch's glow is also baked into the terrain
 const TORCH_BASE_INTENSITY = 2.2;
+// Fixed pool of real PointLights that hop to whichever torches are nearest the
+// player. The number of lights in the scene NEVER changes (changing it forces
+// every material to recompile = the big lag spike), and each torch itself is
+// just a cheap marker in blockLights.
+const torchPool = [];
+for (let i = 0; i < MAX_ACTIVE_TORCH_LIGHTS; i++) {
+  const l = new THREE.PointLight(0xffaa55, 0, TORCH_LIGHT_RADIUS, 2);
+  l.position.set(0, -1000, 0);
+  l.shadow.mapSize.set(256, 256); l.shadow.camera.near = 0.15; l.shadow.camera.far = TORCH_LIGHT_RADIUS; l.shadow.bias = -0.003;
+  l.userData = { target: 0, tpos: new THREE.Vector3(0, -1000, 0) };
+  scene.add(l); torchPool.push(l);
+}
 function syncBlockLight(x,y,z,type,deferRerank) {
   const k = key(x,y,z);
-  const existing = blockLights.get(k);
   if (type === 'torch') {
-    if (!existing) {
-      const light = new THREE.PointLight(0xffaa55, 0, TORCH_LIGHT_RADIUS, 2);
-      light.position.set(x+0.5, y+0.6, z+0.5);
-      // Shadows are toggled on/off dynamically per-light in
-      // updateTorchShadows(), but the shadow camera/map still needs to be
-      // configured up front so it's ready the moment castShadow flips on.
-      // 256px (down from 512px) — half the shadow-map fill cost per torch,
-      // still reads fine at the short distance torches actually light.
-      light.shadow.mapSize.set(256, 256);
-      light.shadow.camera.near = 0.15;
-      light.shadow.camera.far = TORCH_LIGHT_RADIUS;
-      light.shadow.bias = -0.003;
-      light.visible = false; // fades in via updateTorchLights() if it's close enough to matter
-      light.userData.targetIntensity = 0;
-      scene.add(light);
-      blockLights.set(k, light);
-      // Re-rank so a freshly-placed nearby torch starts fading up right
-      // away — but NOT during a bulk load/generation pass (deferRerank=
-      // true), where calling this once per torch would mean re-sorting the
-      // entire, ever-growing torch list once per torch — an O(n²) blowup
-      // that made joining a world with many torches in it freeze for a
-      // long time. Bulk callers rank once at the end instead.
-      //
-      // Pushed to the *next* animation frame (instead of running inline,
-      // right here) so it doesn't stack on top of the chunk mesh rebuild
-      // and network push that placing/mining a torch also triggers in this
-      // same synchronous call — bundling a light re-sort + possible
-      // shadow-casting toggle onto the very frame that's already rebuilding
-      // geometry is what caused the placement/mining hitch. Splitting it
-      // across two frames keeps each one cheap. scheduleTorchRerank() also
-      // collapses multiple pending requests into one, so rapid-fire torch
-      // placement doesn't queue up a rerank per torch either.
+    if (!blockLights.has(k)) {
+      blockLights.set(k, { position: new THREE.Vector3(x+0.5, y+0.6, z+0.5) });
       if (!deferRerank) scheduleTorchRerank();
     }
-  } else if (existing) {
-    scene.remove(existing);
+  } else if (blockLights.has(k)) {
     blockLights.delete(k);
-    // A shadow-casting torch might have just been removed — let a lower-
-    // ranked torch take its slot. Deferred for the same reason as above:
-    // avoid piling a re-rank onto this same synchronous mining frame.
     scheduleTorchRerank();
   }
 }
@@ -1906,22 +1929,15 @@ function syncBlockLight(x,y,z,type,deferRerank) {
 // accumulated timer) since it sorts every torch in the map — cheap for a
 // handful of them, but no need to do it every frame.
 function updateTorchShadows() {
-  if (blockLights.size === 0) return;
-  const lights = Array.from(blockLights.values());
-  lights.sort((a, b) => a.position.distanceToSquared(player.pos) - b.position.distanceToSquared(player.pos));
-  lights.forEach((light, i) => {
-    // Distant torches stay dark as real lights (their glow is already baked
-    // into the terrain mesh's vertex colors), so the number of lights the
-    // renderer actually has to loop over each frame stays capped no matter
-    // how many torches exist in the world. Rather than snapping visible/
-    // dark instantly (which popped noticeably as you walked around a
-    // torch-lit base), this just sets a target intensity that
-    // updateTorchLightFades() eases toward every frame.
-    const wantVisible = i < MAX_ACTIVE_TORCH_LIGHTS;
-    light.userData.targetIntensity = wantVisible ? TORCH_BASE_INTENSITY : 0;
-    if (wantVisible) light.visible = true; // start rendering immediately so the fade-in is visible
-    const wantShadow = wantVisible && i < MAX_SHADOW_TORCHES;
-    if (light.castShadow !== wantShadow) light.castShadow = wantShadow;
+  const near = Array.from(blockLights.values());
+  near.sort((a, b) => a.position.distanceToSquared(player.pos) - b.position.distanceToSquared(player.pos));
+  torchPool.forEach((l, i) => {
+    const t = near[i];
+    if (t && t.position.distanceToSquared(player.pos) < 24 * 24) {
+      l.userData.tpos.copy(t.position); l.userData.target = TORCH_BASE_INTENSITY;
+    } else l.userData.target = 0;
+    const wantShadow = i < MAX_SHADOW_TORCHES && l.userData.target > 0;
+    if (l.castShadow !== wantShadow) l.castShadow = wantShadow;
   });
 }
 // Coalesces however many torches get placed/mined within one frame into a
@@ -1940,13 +1956,13 @@ function scheduleTorchRerank() {
 // fading out — keeps the light count the renderer loops over bounded while
 // looking like a smooth crossfade rather than a pop.
 function updateTorchLightFades(dt) {
-  if (blockLights.size === 0) return;
-  const rate = 6; // per-second ease speed
-  blockLights.forEach(light => {
-    const target = light.userData.targetIntensity || 0;
-    if (Math.abs(light.intensity - target) < 0.005) { light.intensity = target; }
-    else light.intensity += (target - light.intensity) * Math.min(1, dt * rate);
-    if (light.intensity <= 0.01 && target === 0) { light.intensity = 0; light.visible = false; }
+  const k = Math.min(1, dt * 6);
+  torchPool.forEach(l => {
+    const u = l.userData;
+    if (l.intensity < 0.05) l.position.copy(u.tpos);          // idle light: jump straight to its new torch
+    else l.position.lerp(u.tpos, Math.min(1, dt * 10));
+    l.intensity += (u.target - l.intensity) * k;
+    if (Math.abs(l.intensity - u.target) < 0.005) l.intensity = u.target;
   });
 }
 
@@ -1956,6 +1972,7 @@ function addBlock(x,y,z,type,skipMark,meta) {
   if (world.has(k)) return false;
   if (removedDiffs.has(k)) return false; // a player explicitly mined this spot — don't regrow it
   world.set(k, { type, x, y, z, meta: meta == null ? 0 : meta });
+  lightVersion++;
   syncBlockLight(x,y,z,type,skipMark);
   syncSaplingGrowth(x,y,z,type);
   if (!skipMark) { markChunkDirty(x,z); markLightArea(x,y,z, type === 'torch'); }
@@ -1967,6 +1984,7 @@ function removeBlock(x,y,z,skipMark) {
   if (!world.has(k)) return false;
   const removedType = world.get(k).type;
   world.delete(k);
+  lightVersion++;
   syncBlockLight(x,y,z,null);
   syncSaplingGrowth(x,y,z,null);
   if (!skipMark) { markChunkDirty(x,z); markLightArea(x,y,z, removedType === 'torch'); }
@@ -2065,22 +2083,33 @@ function addTree(x,z) {
 // unbounded while startup and frame time stay cheap — only chunks near a
 // player actually get generated (and meshed).
 const CHUNKS_PER_TICK = 3;      // cap on newly-generated chunks per streaming pass (avoids hitches)
-let RENDER_CHUNKS = 6;          // chunk radius kept generated + meshed around the player — live-adjustable via Settings > Graphics > Render distance
+let RENDER_CHUNKS = 5;          // chunk radius kept generated + meshed around the player — live-adjustable via Settings > Graphics > Render distance
 let UNLOAD_CHUNKS = 9;          // chunk radius beyond which a chunk's mesh (not its data) is freed — kept a few chunks past RENDER_CHUNKS so meshes aren't churned right at the edge
 const generatedChunks = new Set(); // "cx,cz" chunks whose terrain has been generated at least once
 
+const WORLD_BOTTOM = -28;   // world now reaches much deeper (was -6)
+// Deterministic 3D "noise" (pure function of x,y,z so every client carves identical caves).
+function caveNoise(x, y, z) {
+  return Math.sin(x*0.13 + Math.sin(z*0.11)*2) * Math.cos(y*0.17 + Math.sin(x*0.07)) +
+         Math.sin(z*0.15 + y*0.12) * Math.cos(x*0.09 - y*0.05) +
+         0.5 * Math.sin((x+z)*0.21) * Math.sin(y*0.31);
+}
+function caveThreshold(depth) { return Math.max(0.95, 1.3 - depth*0.012); } // bigger caverns the deeper you go
 function generateChunkColumns(cx, cz) {
   const x0 = cx*CHUNK_SIZE, x1 = x0+CHUNK_SIZE-1;
   const z0 = cz*CHUNK_SIZE, z1 = z0+CHUNK_SIZE-1;
   for (let x=x0; x<=x1; x++) {
     for (let z=z0; z<=z1; z++) {
       const h = noise2D(x,z);
-      for (let y = -6; y <= h; y++) {
+      // a few sparse cave mouths open onto the surface (never near the spawn area)
+      const entr = (Math.abs(x) > 20 || Math.abs(z) > 20) && h > WATER_LEVEL + 1 && Math.sin(x*0.31)*Math.sin(z*0.27) > 0.94;
+      for (let y = WORLD_BOTTOM; y <= h; y++) {
+        if (y > WORLD_BOTTOM + 1 && y <= (entr ? h : h - 4) && caveNoise(x,y,z) > caveThreshold(h - y)) continue; // carved cave
         let type = 'stone';
         if (y === h) type = (h <= WATER_LEVEL) ? 'sand' : 'grass';
         else if (y > h - 3) type = 'dirt';
         else if (hashRandom(x,y,z,101) < 0.05) type = 'coal_ore'; // ~5% of deep stone
-        else if (y < h - 4 && hashRandom(x,y,z,102) < 0.03) type = 'iron_ore'; // ~3%, lower down
+        else if (y < h - 4 && hashRandom(x,y,z,102) < (y < -12 ? 0.05 : 0.03)) type = 'iron_ore'; // ~3%, richer when deep
         addBlock(x,y,z,type,true);
       }
       for (let y = h+1; y <= WATER_LEVEL; y++) {
@@ -2149,7 +2178,7 @@ function updateChunkStreaming(dt) {
       c.mesh = null;
     }
   });
-  flushDirtyChunks();
+  flushDirtyChunks(false);
 }
 
 // ---------- Sapling growth ----------
@@ -2216,6 +2245,8 @@ function snapshotSave() {
   return {
     playerPos: [player.pos.x, player.pos.y, player.pos.z],
     inventory,
+    armorSlots,
+    offhand,
     currentSlot,
     hp: player.hp,
     name: MY_NAME,
@@ -2230,6 +2261,8 @@ function saveLocalPlayer() {
 function applySaveData(data) {
   if (data.playerPos) player.pos.set(data.playerPos[0], data.playerPos[1], data.playerPos[2]);
   if (Array.isArray(data.inventory)) inventory = data.inventory;
+  if (Array.isArray(data.armorSlots)) armorSlots = [0,1,2,3].map(i => data.armorSlots[i] || null);
+  offhand = data.offhand || null;
   if (Number.isInteger(data.currentSlot)) currentSlot = data.currentSlot;
   if (typeof data.hp === 'number') player.hp = Math.max(1, Math.min(player.maxHp, data.hp));
   if (data.respawnPoint && typeof data.respawnPoint.x === 'number') respawnPoint = data.respawnPoint;
@@ -2331,7 +2364,7 @@ function subscribeWorldChanges() {
     .on('postgres_changes', { event: '*', schema: 'public', table: 'world_blocks' }, payload => {
       if (!payload.new) return;
       applyBlockDiff(payload.new, false);
-      flushDirtyChunks();
+      flushDirtyChunks(false);   // staged: one chunk now, the rest one per frame
     })
     .subscribe();
 }
@@ -2342,6 +2375,8 @@ function subscribeWorldChanges() {
 // array the bottom hotbar HUD and the full inventory screen both read from.
 const HOTBAR_SIZE = 9, MAIN_SIZE = 27, INV_SIZE = HOTBAR_SIZE + MAIN_SIZE;
 let inventory = new Array(INV_SIZE).fill(null);
+let armorSlots = [null, null, null, null]; // helmet, chestplate, leggings, boots
+let offhand = null;                        // off-hand item, used with right-click
 let currentSlot = 1; // index into hotbar (0-8); starts on the dirt-ish slot once picked up
 
 function currentItem() { return inventory[currentSlot]; }
@@ -2388,6 +2423,12 @@ function renderHotbar() {
     div.title = s ? displayName(s.type) : '';
     div.addEventListener('click', () => selectSlot(i));
     hotbar.appendChild(div);
+  }
+  const oh = document.getElementById('offhandHud');
+  if (oh) {
+    oh.className = 'slot' + (offhand ? '' : ' empty');
+    oh.innerHTML = `<span class="num">R</span>${offhand ? iconFor(offhand.type) : ''}${offhand && offhand.count > 1 ? `<span class="count">${offhand.count}</span>` : ''}`;
+    oh.title = offhand ? displayName(offhand.type) + ' (off hand — right-click)' : 'Off hand (right-click)';
   }
 }
 function selectSlot(i) {
@@ -2484,6 +2525,8 @@ function stashFurnace(item) {
 function getZoneItem(z) {
   switch (z.k) {
     case 'inv': return inventory[z.i];
+    case 'armor': return armorSlots[z.i];
+    case 'off': return offhand;
     case 'craft': return craftSlots[z.i];
     case 'chest': return chestSlots && chestSlots[z.i];
     case 'fin': return furnaceSlots.input;
@@ -2495,6 +2538,8 @@ function getZoneItem(z) {
 function setZoneItem(z, v) {
   switch (z.k) {
     case 'inv': inventory[z.i] = v; break;
+    case 'armor': armorSlots[z.i] = v; break;
+    case 'off': offhand = v; break;
     case 'craft': craftSlots[z.i] = v; break;
     case 'chest': chestSlots[z.i] = v; break;
     case 'fin': furnaceSlots.input = v; break;
@@ -2527,6 +2572,11 @@ function quickMove(zone) {
   } else {
     const src = getZoneItem(zone);
     if (!src) return;
+    if (zone.k === 'inv' && !chestOpen && !furnaceOpen && isArmor(src.type) && !armorSlots[ITEM_INFO[src.type].slot]) {
+      armorSlots[ITEM_INFO[src.type].slot] = { type: src.type, count: 1 };
+      src.count--; if (src.count <= 0) setZoneItem(zone, null);
+      renderInventoryPanel(); renderHotbar(); saveLocalPlayer(); return;
+    }
     const item = { type: src.type, count: src.count };
     if (zone.k === 'inv') {
       if (chestOpen && chestSlots) stashInto(chestSlots, 0, CHEST_SIZE, item);
@@ -2610,6 +2660,25 @@ function clickCraftOutput() {
   saveLocalPlayer();
 }
 
+function equipClick(idx, right) {
+  if (idx >= 0) {
+    if (cursorItem && !(isArmor(cursorItem.type) && ITEM_INFO[cursorItem.type].slot === idx)) return; // wrong armor type
+    clickSlot(() => armorSlots[idx], v => armorSlots[idx] = v, false);
+  } else clickSlot(() => offhand, v => offhand = v, right);
+}
+function renderEquip() {
+  const ac = document.getElementById('armorCol'), oc = document.getElementById('offCol'), f = document.getElementById('playerFig');
+  if (!ac || !oc) return;
+  ac.innerHTML = ''; oc.innerHTML = '';
+  ['Head','Chest','Legs','Feet'].forEach((nm, i) => {
+    const el = makeSlotEl(() => armorSlots[i], () => equipClick(i), () => equipClick(i), null, { k: 'armor', i });
+    el.classList.add('ph'); el.dataset.ph = nm; ac.appendChild(el);
+    f.classList.toggle('a' + i, !!armorSlots[i]);
+  });
+  const o = makeSlotEl(() => offhand, () => equipClick(-1, false), () => equipClick(-1, true), null, { k: 'off' });
+  o.classList.add('ph'); o.dataset.ph = 'Off'; if (!offhand) o.title = 'Off hand — right-click in game to use'; oc.appendChild(o);
+  f.querySelector('.pf-shirt').style.background = colorForId(MY_ID).getStyle();
+}
 function renderInventoryPanel() {
   // main inventory (slots 9..35)
   mainGridEl.innerHTML = '';
@@ -2652,6 +2721,7 @@ function renderInventoryPanel() {
   const outItem = recipe ? { type: recipe.out, count: recipe.outCount } : null;
   const outEl = makeSlotEl(() => outItem, clickCraftOutput, clickCraftOutput, 'output', { k: 'cout' });
   craftOutputWrap.appendChild(outEl);
+  renderEquip();
 
   cursorItemEl.style.display = cursorItem ? 'block' : 'none';
   if (cursorItem) cursorItemEl.innerHTML = iconHtml(cursorItem);
@@ -2679,8 +2749,8 @@ function renderStatsBoard() {
   for (const it of inventory) {
     if (!it) continue;
     usedSlots++; itemCount += it.count;
-    if (isArmor(it.type)) armorPts += ITEM_INFO[it.type].armor;
   }
+  for (const a of armorSlots) if (a && isArmor(a.type)) armorPts += ITEM_INFO[a.type].armor;
   const hpPct = Math.max(0, Math.min(100, player.hp / player.maxHp * 100));
   const sun = Math.sin(worldTime * Math.PI * 2);
   const timeTxt = sun > 0.15 ? 'Day' : (sun > -0.15 ? 'Dusk / Dawn' : 'Night');
@@ -3266,11 +3336,11 @@ function setRespawnPoint(x, y, z) {
   addChatLine('System', 'Respawn point set!', true);
 }
 function eatCurrentFood() {
-  const it = currentItem();
+  const it = eating.fromOff ? offhand : currentItem();
   if (!it || !isFood(it.type)) return;
   if (player.hp >= player.maxHp) return;
   healPlayer(ITEM_INFO[it.type].food);
-  removeFromCurrentSlot(1);
+  if (eating.fromOff) { offhand.count--; if (offhand.count <= 0) offhand = null; } else removeFromCurrentSlot(1);
   renderHotbar();
   if (typeof inventoryOpen !== 'undefined' && inventoryOpen) renderInventoryPanel();
 }
@@ -3280,10 +3350,11 @@ function eatCurrentFood() {
 // it's actually consumed, during which the arm animates raising the food
 // to the mouth. Releasing early, switching items, or running out of food
 // cancels it.
-const eating = { active: false, progress: 0, duration: 1.3, type: null };
+const eating = { active: false, progress: 0, duration: 1.3, type: null, fromOff: false };
+let blockFromOff = false;
 let isBlocking = false; // true while holding right-click with a sword equipped
-function startEating() {
-  const it = currentItem();
+function startEating(fromOff) {
+  const it = fromOff ? offhand : currentItem();
   if (!it || !isFood(it.type) || player.hp >= player.maxHp) return false;
   mining.active = false;
   mining.progress = 0;
@@ -3291,6 +3362,7 @@ function startEating() {
   eating.active = true;
   eating.progress = 0;
   eating.type = it.type;
+  eating.fromOff = !!fromOff;
   return true;
 }
 function cancelEating() {
@@ -3301,7 +3373,7 @@ function cancelEating() {
 }
 function updateEating(dt) {
   if (!eating.active) return;
-  const it = currentItem();
+  const it = eating.fromOff ? offhand : currentItem();
   if (!it || it.type !== eating.type || !isFood(it.type)) { cancelEating(); return; }
   eating.progress += dt;
   mineProgressWrap.style.display = 'block';
@@ -3366,6 +3438,7 @@ function updateMyModel(dt, isMoving) {
   myModel.group.rotation.y = player.yaw;
   const held = currentItem();
   setHeldVisual(myModel.heldState, myModel.handAnchor, held ? held.type : null);
+  setArmorVisual(myModel.armor, armorMask());
   if (isMoving && player.onGround) myWalkCycle += dt * 8;
   const walkSwing = (isMoving && player.onGround) ? Math.sin(myWalkCycle) * 0.6 : 0;
   myModel.legL.rotation.x = walkSwing;
@@ -3488,6 +3561,11 @@ function flashRed(group) {
 
 // Shared limbed humanoid builder — used for both the local player's
 // (optional third-person) model and every other connected player.
+function setArmorVisual(armor, mask) {
+  if (!armor) return;
+  for (let i = 0; i < 4; i++) for (const m of armor[i]) m.visible = !!((mask >> i) & 1);
+}
+function armorMask() { return armorSlots.reduce((m, a, i) => m | (a ? (1 << i) : 0), 0); }
 function buildHumanoid(color) {
   const group = new THREE.Group();
   const skin = color.clone().offsetHSL(0, 0, 0.15);
@@ -3535,8 +3613,21 @@ function buildHumanoid(color) {
   handAnchor.position.set(0, -0.62, 0.14);
   armR.add(handAnchor);
 
+  // Iron armor pieces (hidden until worn): slot 0 helmet, 1 chestplate, 2 leggings, 3 boots.
+  const armor = [[], [], [], []];
+  const am = new THREE.MeshLambertMaterial({ color: 0xc9d0d5 });
+  const piece = (parent, slot, w, h, d, x, y, z) => {
+    const m = new THREE.Mesh(new THREE.BoxGeometry(w, h, d), am);
+    m.position.set(x, y, z); m.visible = false; parent.add(m); armor[slot].push(m);
+  };
+  piece(head, 0, 0.52, 0.52, 0.52, 0, 0.02, 0);
+  piece(torso, 1, 0.66, 0.8, 0.41, 0, 0, 0);
+  piece(armL, 1, 0.27, 0.34, 0.27, 0, -0.15, 0);
+  piece(armR, 1, 0.27, 0.34, 0.27, 0, -0.15, 0);
+  for (const leg of [legL, legR]) { piece(leg, 2, 0.28, 0.42, 0.31, 0, -0.2, 0); piece(leg, 3, 0.28, 0.22, 0.31, 0, -0.64, 0); }
+
   group.add(torso, head, legL, legR, armL, armR, shield);
-  return { group, head, legL, legR, armL, armR, handAnchor, shield };
+  return { group, head, legL, legR, armL, armR, handAnchor, shield, armor };
 }
 
 // ---------- Held item visuals ----------
@@ -3726,7 +3817,7 @@ function updateAnimals(dt) {
     a.vel.y -= 20*dt;
     const onGround = moveEntity(a.pos, a.vel, dt, a.radius, a.height);
     if (onGround) a.vel.y = 0;
-    if (a.pos.y < -30) { a.alive = false; scene.remove(a.group); return; } // fell into the void
+    if (a.pos.y < -60) { a.alive = false; scene.remove(a.group); return; } // fell into the void
     a.group.position.copy(a.pos);
     a.group.rotation.y = a.facing;
   });
@@ -3871,7 +3962,7 @@ function updateDroppedItems(dt) {
     it.sprite.position.set(it.pos.x, it.pos.y + 0.15 + Math.sin(it.bobPhase)*0.05, it.pos.z);
 
     // Fell into the void — despawn.
-    if (it.pos.y < -30) { scene.remove(it.sprite); droppedItems.splice(i,1); continue; }
+    if (it.pos.y < -60) { scene.remove(it.sprite); droppedItems.splice(i,1); continue; }
 
     // Pickup: only after a short delay (so freshly popped/thrown items don't
     // insta-return), and only within reach of the player.
@@ -3958,7 +4049,7 @@ function createOtherPlayer(id, name) {
   scene.add(model.group);
   const entry = {
     group: model.group, head: model.head, legL: model.legL, legR: model.legR, armL: model.armL, armR: model.armR,
-    handAnchor: model.handAnchor, heldState: { heldType: undefined, heldMesh: null },
+    handAnchor: model.handAnchor, armor: model.armor, heldState: { heldType: undefined, heldMesh: null },
     target: { x: model.group.position.x, y: model.group.position.y, z: model.group.position.z, yaw: 0 },
     name, walkCycle: 0, lastPos: { x: 0, y: 0, z: 0 },
     shield: model.shield, swing: { active: false, t: 0 }, blocking: false, mining: false, mineCycle: 0, shieldPulse: 0
@@ -3999,6 +4090,7 @@ playersChannel
     if (!entry) entry = createOtherPlayer(payload.id, payload.name || 'Player');
     entry.target.x = payload.x; entry.target.y = payload.y; entry.target.z = payload.z; entry.target.yaw = payload.yaw;
     setHeldVisual(entry.heldState, entry.handAnchor, payload.heldType || null);
+    setArmorVisual(entry.armor, payload.armor | 0);
     entry.blocking = !!payload.blocking;
     entry.mining = !!payload.mining;
   })
@@ -4084,7 +4176,7 @@ function broadcastMyPosition(dt) {
     type: 'broadcast', event: 'pos',
     payload: {
       id: MY_ID, name: MY_NAME, x: player.pos.x, y: player.pos.y, z: player.pos.z, yaw: player.yaw,
-      heldType: currentItem() ? currentItem().type : null,
+      heldType: currentItem() ? currentItem().type : null, armor: armorMask(),
       blocking: isBlocking, mining: mining.active
     }
   });
@@ -4643,7 +4735,7 @@ canvas.addEventListener('mouseup', e => {
     mineProgressWrap.style.display = 'none';
   } else if (e.button === 2) {
     if (eating.active) cancelEating();
-    isBlocking = false;
+    isBlocking = false; blockFromOff = false;
   }
 });
 document.addEventListener('pointerlockchange', () => {
@@ -4654,6 +4746,36 @@ document.addEventListener('pointerlockchange', () => {
     mineProgressWrap.style.display = 'none';
     isBlocking = false;
   }
+});
+
+// Right-click is a game control: never show the browser's context menu (inspect etc.) anywhere except in text inputs.
+document.addEventListener('contextmenu', e => {
+  if (e.target && e.target.closest && e.target.closest('input, textarea')) return;
+  e.preventDefault();
+}, true);
+// ---- Off hand: right-click uses the off-hand item (food, sword-block, or placing a block) ----
+let offSwap = null;
+canvas.addEventListener('mousedown', e => {
+  if (e.button !== 2 || !pointerLocked) return;
+  blockFromOff = false;
+  const mainHeld = currentItem();   // food in your main (right) hand: right-click eats it, even with an off-hand item
+  if (mainHeld && isFood(mainHeld.type) && player.hp < player.maxHp) {
+    if (!tryIgniteLookedTnt()) startEating(false);
+    e.stopImmediatePropagation(); return;
+  }
+  if (!offhand) {
+    const h = currentItem();   // right-click armor in hand = equip it (swaps out any worn piece)
+    if (h && isArmor(h.type)) {
+      const sl = ITEM_INFO[h.type].slot, old = armorSlots[sl];
+      armorSlots[sl] = { type: h.type, count: 1 }; inventory[currentSlot] = old;
+      renderHotbar(); saveLocalPlayer(); e.stopImmediatePropagation();
+    }
+    return;
+  }
+  if (isFood(offhand.type)) { if (!tryIgniteLookedTnt()) startEating(true); e.stopImmediatePropagation(); return; }
+  if (isSword(offhand.type)) { isBlocking = true; blockFromOff = true; e.stopImmediatePropagation(); return; }
+  offSwap = { main: inventory[currentSlot] };   // temporarily treat off hand as the item in use
+  inventory[currentSlot] = offhand;
 });
 
 canvas.addEventListener('mousedown', e => {
@@ -4809,6 +4931,13 @@ canvas.addEventListener('mousedown', e => {
       }
     }
   }
+});
+
+// Post-step: put the off-hand item back after a right-click placement used it.
+canvas.addEventListener('mousedown', e => {
+  if (!offSwap) return;
+  offhand = inventory[currentSlot]; inventory[currentSlot] = offSwap.main; offSwap = null;
+  renderHotbar(); if (inventoryOpen) renderInventoryPanel();
 });
 canvas.addEventListener('contextmenu', e => e.preventDefault());
 
@@ -5057,7 +5186,7 @@ function updateTnt(dt) {
     t.vel.y -= 20 * dt;
     const og = moveEntity(t.pos, t.vel, dt, 0.48, 0.98);
     if (og) { t.vel.x *= 0.6; t.vel.z *= 0.6; }
-    if (t.pos.y < -30) { scene.remove(t.grp); primedTnts.splice(i, 1); continue; }
+    if (t.pos.y < -60) { scene.remove(t.grp); primedTnts.splice(i, 1); continue; }
     t.grp.position.set(t.pos.x, t.pos.y + 0.49, t.pos.z);
     // fuse visuals: flash white at an accelerating rate, swell slightly right before the blast
     const p = 1 - Math.max(0, t.fuse) / t.total;
@@ -5121,7 +5250,7 @@ function animate() {
   if (torchShadowTimer > 0.3) { updateTorchShadows(); torchShadowTimer = 0; }
   updateTorchLightFades(dt);
   if (isBlocking) {
-    const held = currentItem();
+    const held = blockFromOff ? offhand : currentItem();
     if (!held || !isSword(held.type)) isBlocking = false; // item switched away mid-block
   }
   updateAnimals(dt);
@@ -5199,7 +5328,7 @@ function animate() {
     if (dmg > 0) damagePlayer(dmg);
   }
 
-  if (player.pos.y < -30) {
+  if (player.pos.y < -60) {
     const h = noise2D(0,0);
     player.pos.set(0.5, Math.max(h, WATER_LEVEL) + 5, 0.5);
     player.vel.set(0,0,0);
