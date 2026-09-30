@@ -696,6 +696,16 @@ const TEX = {
     const spots = [[3,3],[9,4],[5,8],[11,10],[7,12]];
     spots.forEach(([x,y]) => { ctx.fillStyle = '#d8ac7c'; ctx.fillRect(x,y,2,2); });
   }),
+  gold_ore: makeTexture(ctx => {
+    speckle(ctx, '#8a8a8a', ['#7d7d7d','#959595','#6f6f6f'], 40);
+    const spots = [[2,4],[8,3],[5,9],[11,11],[6,13],[10,7]];
+    spots.forEach(([x,y]) => { ctx.fillStyle = '#f0d24a'; ctx.fillRect(x,y,2,2); });
+  }),
+  diamond_ore: makeTexture(ctx => {
+    speckle(ctx, '#8a8a8a', ['#7d7d7d','#959595','#6f6f6f'], 40);
+    const spots = [[4,3],[10,5],[6,8],[3,11],[9,12]];
+    spots.forEach(([x,y]) => { ctx.fillStyle = '#5ee8ff'; ctx.fillRect(x,y,2,2); });
+  }),
   wood:  makeTexture(ctx => {
     ctx.fillStyle = '#8a5a2b'; ctx.fillRect(0,0,16,16);
     ctx.strokeStyle = '#6f4420';
@@ -881,6 +891,8 @@ const BLOCK_TYPES = {
   sapling: { transparent: true, hardness: 0.1, tool: null, cross: true },
   coal_ore: { transparent: false, hardness: 1.5, tool: 'pickaxe' },
   iron_ore: { transparent: false, hardness: 2.5, tool: 'pickaxe' },
+  gold_ore: { transparent: false, hardness: 2.0, tool: 'pickaxe' },
+  diamond_ore: { transparent: false, hardness: 3.0, tool: 'pickaxe' },
   torch: { transparent: true, hardness: 0.1, tool: null, cross: true },
   furnace: { transparent: false, hardness: 1.75, tool: 'pickaxe' },
   chest: { transparent: false, hardness: 1.0, tool: 'axe' },
@@ -908,7 +920,17 @@ const ITEM_INFO = {
   iron_axe:       { maxStack: 1 },
   iron_shovel:    { maxStack: 1 },
   iron_sword:     { maxStack: 1, attack: 8 },
+  gold_pickaxe:   { maxStack: 1 },
+  gold_axe:       { maxStack: 1 },
+  gold_shovel:    { maxStack: 1 },
+  gold_sword:     { maxStack: 1, attack: 5 },
+  diamond_pickaxe:{ maxStack: 1 },
+  diamond_axe:    { maxStack: 1 },
+  diamond_shovel: { maxStack: 1 },
+  diamond_sword:  { maxStack: 1, attack: 10 },
   iron_ingot:     {},
+  gold_ingot:     {},
+  diamond:        {},
   iron_helmet:     { maxStack: 1, armor: 2, slot: 0 },
   iron_chestplate: { maxStack: 1, armor: 4, slot: 1 },
   iron_leggings:   { maxStack: 1, armor: 3, slot: 2 },
@@ -931,7 +953,7 @@ function totalArmorReduction() {
   for (const a of armorSlots) if (a && isArmor(a.type)) total += ITEM_INFO[a.type].armor;   // only EQUIPPED armor counts
   return Math.min(0.8, total * 0.04); // each armor point ~4% reduction, capped at 80%
 }
-function isSword(type) { return type === 'wood_sword' || type === 'stone_sword' || type === 'iron_sword'; }
+function isSword(type) { return type === 'wood_sword' || type === 'stone_sword' || type === 'iron_sword' || type === 'gold_sword' || type === 'diamond_sword'; }
 function isFood(type) { return !!(ITEM_INFO[type] && ITEM_INFO[type].food); }
 // ================= Block-style icons =================
 // Every block AND every item (tools, armor, food, materials) is shown as a
@@ -957,10 +979,14 @@ const ITEM_MATS = {
   wood:  { bg: '#7a5530', x: '#e0bb7a', s: '#4a2f14' },
   stone: { bg: '#5f5f5f', x: '#cfcfcf', s: '#4a2f14' },
   iron:  { bg: '#55616b', x: '#eef2f5', s: '#4a2f14' },
+  gold:  { bg: '#8a6a12', x: '#ffe566', s: '#4a2f14' },
+  diamond: { bg: '#1a6b7a', x: '#7ef0ff', s: '#4a2f14' },
 };
 const ITEM_STYLE = {
   stick:       { g: 'stick', bg: '#8a5a2b', x: '#d9b26f', s: '#d9b26f' },
   iron_ingot:  { g: 'ingot', bg: '#55616b', x: '#f2f2f2', s: '#f2f2f2' },
+  gold_ingot:  { g: 'ingot', bg: '#8a6a12', x: '#ffe566', s: '#ffe566' },
+  diamond:     { g: 'lump',  bg: '#1a6b7a', x: '#7ef0ff', s: '#b8ffff' },
   iron_helmet:     { g: 'helmet', ...ITEM_MATS.iron },
   iron_chestplate: { g: 'chest',  ...ITEM_MATS.iron },
   iron_leggings:   { g: 'legs',   ...ITEM_MATS.iron },
@@ -971,7 +997,7 @@ const ITEM_STYLE = {
   coal:        { g: 'lump',  bg: '#4a4a4a', x: '#141414', s: '#6a6a6a' },
   charcoal:    { g: 'lump',  bg: '#3a3228', x: '#1a120c', s: '#6a5a48' },
 };
-for (const m of ['wood', 'stone', 'iron'])
+for (const m of ['wood', 'stone', 'iron', 'gold', 'diamond'])
   for (const t of ['pickaxe', 'axe', 'shovel', 'sword'])
     ITEM_STYLE[m + '_' + t] = { g: t, ...ITEM_MATS[m] };
 ITEM_GLYPHS.stairs   = ['........','........','......xx','......xx','....xxxx','....xxxx','..xxxxxx','xxxxxxxx'];
@@ -990,12 +1016,16 @@ const SPRITE_MAT = {
   wood:  { a:'#a07a30', b:'#82622a', c:'#5e4820' },
   stone: { a:'#bdbdbd', b:'#909090', c:'#666666' },
   iron:  { a:'#f4f7f9', b:'#c9d0d5', c:'#8a949b' },
+  gold:  { a:'#ffe566', b:'#e6c200', c:'#a88a10' },
+  diamond: { a:'#b8ffff', b:'#4fd0e8', c:'#1a8aa0' },
 };
 // 'o' = built-in pixel outline (sword / pickaxe grids); A/B/C = wooden handle & guard
 const SPRITE_HANDLE = { h:'#6a4e1f', H:'#8f6b2a', o:'#20180a', A:'#a07a30', B:'#82622a', C:'#5e4820' };
 const SPRITE_PAL = {
   stick:      { h:'#7a4f24', H:'#b98850' },
   iron_ingot: { w:'#ffffff', d:'#d9d9d9', b:'#a8a8a8', m:'#838383', n:'#737373', o:'#5e5e5e', e:'#363636' },
+  gold_ingot: { w:'#fff8d0', d:'#ffe566', b:'#e6c200', m:'#c9a820', n:'#a88a10', o:'#5a4810', e:'#3a3010' },
+  diamond:    { a:'#e8ffff', b:'#4fd0e8', c:'#1a8aa0' },
   coal:       { a:'#5c5c5c', b:'#2e2e2e', c:'#141414' },
   apple:      { a:'#ff7a6b', b:'#d8322a', c:'#8f1d1d', h:'#6b4423', l:'#4fae3c' },
   raw_meat:   { a:'#f29aa2', b:'#c94450', c:'#84232e', h:'#f4ead6' },
@@ -1003,10 +1033,12 @@ const SPRITE_PAL = {
 };
 const SPRITE_GLYPH_ITEMS = { iron_helmet:'helmet', iron_chestplate:'chest', iron_leggings:'legs', iron_boots:'boots', raw_meat:'meat', cooked_meat:'meat' };
 function _spriteGridFor(type) {
-  const m = /^(wood|stone|iron)_(pickaxe|axe|shovel|sword)$/.exec(type);
+  const m = /^(wood|stone|iron|gold|diamond)_(pickaxe|axe|shovel|sword)$/.exec(type);
   if (m) return { rows: SPRITE_GRIDS[m[2]], pal: { ...SPRITE_MAT[m[1]], ...SPRITE_HANDLE, ...(m[1] === 'iron' ? { o: '#262b30' } : {}) } };
   if (type === 'stick' || type === 'coal' || type === 'apple') return { rows: SPRITE_GRIDS[type], pal: SPRITE_PAL[type] };
   if (type === 'iron_ingot') return { rows: SPRITE_GRIDS.ingot, pal: SPRITE_PAL.iron_ingot };
+  if (type === 'gold_ingot') return { rows: SPRITE_GRIDS.ingot, pal: SPRITE_PAL.gold_ingot };
+  if (type === 'diamond') return { rows: SPRITE_GRIDS.coal, pal: SPRITE_PAL.diamond };
   const gl = SPRITE_GLYPH_ITEMS[type];
   if (gl) {                                    // upscale the old 8x8 glyph 2x with edge shading
     const src = ITEM_GLYPHS[gl], on = (x, y) => y >= 0 && y < 8 && x >= 0 && x < 8 && src[y][x] !== '.';
@@ -1182,9 +1214,11 @@ function miningTimeFor(blockType) {
   let speedMult = 1; // bare hands
   if (toolKind && toolMatches(toolKind, def.tool)) {
     // stone/iron tools are progressively faster than wood tools
-    let tier = 2.5;
+    let tier = 2.5; // wood
     if (heldType.startsWith('stone_')) tier = 4;
     else if (heldType.startsWith('iron_')) tier = 6;
+    else if (heldType.startsWith('diamond_')) tier = 8; // faster than iron, slower than gold
+    else if (heldType.startsWith('gold_')) tier = 10; // fastest dig (weaker combat)
     speedMult = tier;
   } else if (toolKind) {
     speedMult = 1; // wrong tool, no bonus (same as hand)
@@ -1244,6 +1278,16 @@ const RECIPES = [
   { shape: [['iron_ingot',null,'iron_ingot'],['iron_ingot','iron_ingot','iron_ingot'],['iron_ingot','iron_ingot','iron_ingot']], out: 'iron_chestplate', outCount: 1, needsTable: true },
   { shape: [['iron_ingot','iron_ingot','iron_ingot'],['iron_ingot',null,'iron_ingot'],['iron_ingot',null,'iron_ingot']], out: 'iron_leggings', outCount: 1, needsTable: true },
   { shape: [['iron_ingot',null,'iron_ingot'],['iron_ingot',null,'iron_ingot']], out: 'iron_boots', outCount: 1, needsTable: true },
+
+  { shape: [['gold_ingot','gold_ingot','gold_ingot'],[null,'stick',null],[null,'stick',null]], out: 'gold_pickaxe', outCount: 1, needsTable: true },
+  { shape: [['gold_ingot','gold_ingot'],['gold_ingot','stick'],[null,'stick']], out: 'gold_axe', outCount: 1, needsTable: true },
+  { shape: [['gold_ingot'],['stick'],['stick']], out: 'gold_shovel', outCount: 1, needsTable: true },
+  { shape: [['gold_ingot'],['gold_ingot'],['stick']], out: 'gold_sword', outCount: 1, needsTable: true },
+
+  { shape: [['diamond','diamond','diamond'],[null,'stick',null],[null,'stick',null]], out: 'diamond_pickaxe', outCount: 1, needsTable: true },
+  { shape: [['diamond','diamond'],['diamond','stick'],[null,'stick']], out: 'diamond_axe', outCount: 1, needsTable: true },
+  { shape: [['diamond'],['stick'],['stick']], out: 'diamond_shovel', outCount: 1, needsTable: true },
+  { shape: [['diamond'],['diamond'],['stick']], out: 'diamond_sword', outCount: 1, needsTable: true },
 ];
 // Trim a sparse w x h grid (row-major array of type|null) down to the
 // bounding box of its non-null cells. Returns {rows, w, h} or null if empty.
@@ -1302,6 +1346,8 @@ const MI = {
   dirt:      regMat(TEX.dirt),
   stone:     regMat(TEX.stone),
   iron_ore:  regMat(TEX.iron_ore),
+  gold_ore:  regMat(TEX.gold_ore),
+  diamond_ore: regMat(TEX.diamond_ore),
   wood:      regMat(TEX.wood),
   woodTop:   regMat(TEX.woodTop),
   leaves:    regMat(TEX.leaves),
@@ -2308,6 +2354,8 @@ function generateChunkColumns(cx, cz) {
         else if (y > h - 3) type = 'dirt';
         else if (hashRandom(x,y,z,101) < 0.05) type = 'coal_ore'; // ~5% of deep stone
         else if (y < h - 4 && hashRandom(x,y,z,102) < (y < -12 ? 0.05 : 0.03)) type = 'iron_ore'; // ~3%, richer when deep
+        else if (y < -8 && hashRandom(x,y,z,103) < (y < -20 ? 0.018 : 0.008)) type = 'gold_ore'; // uncommon, deeper
+        else if (y < -18 && hashRandom(x,y,z,104) < (y < -28 ? 0.006 : 0.0025)) type = 'diamond_ore'; // rare, very deep
         addBlock(x,y,z,type,true);
       }
       for (let y = h+1; y <= WATER_LEVEL; y++) {
@@ -3022,6 +3070,7 @@ const SMELT_RECIPES = {
   sand:      { out: 'glass',       time: 4 },
   raw_meat:  { out: 'cooked_meat', time: 5 },
   iron_ore:  { out: 'iron_ingot',  time: 5 },
+  gold_ore:  { out: 'gold_ingot',  time: 5 },
   wood:      { out: 'charcoal',    time: 5 },
 };
 const FUEL_VALUES = { coal: 16, charcoal: 16, wood: 8, planks: 6, stick: 2.5, sapling: 1 };
@@ -4579,20 +4628,34 @@ async function applyAuthUser(user) {
     const meta = user.user_metadata || {};
     const googleName = String(meta.full_name || meta.name || (user.email || '').split('@')[0] || '').trim().slice(0, 16);
     SAVE_KEY = GUEST_SAVE_KEY + '_' + user.id;
-    let local = null, cloud = null;
+    let local = null, cloud = null, guest = null;
     try { const raw = localStorage.getItem(SAVE_KEY); if (raw) local = JSON.parse(raw); } catch(e) {}
     try {
       const { data, error } = await sb.from('voltex_saves').select('data').eq('user_id', user.id).maybeSingle();
       if (error) { cloudSaveOk = false; } else if (data && data.data) cloud = data.data;
     } catch (e) { cloudSaveOk = false; }
-    const best = (cloud && (!local || (cloud.ts || 0) > (local.ts || 0))) ? cloud : local;
+    // Prefer newest of account-local / cloud / guest. Migrating guest progress
+    // prevents the wipe where loadLocalPlayer() filled inventory from the guest
+    // key, then sign-in switched SAVE_KEY and found an empty account slot.
+    try { const raw = localStorage.getItem(GUEST_SAVE_KEY); if (raw) guest = JSON.parse(raw); } catch(e) {}
+    function pickBestSave(...cands) {
+      let best = null;
+      for (const c of cands) {
+        if (!c) continue;
+        if (!best || (c.ts || 0) > (best.ts || 0)) best = c;
+      }
+      return best;
+    }
+    const best = pickBestSave(local, cloud, guest);
     if (best) applySaveData(best);
-    else {                                   // brand-new account: clean slate (don't inherit a guest's stuff)
+    else if (!(Array.isArray(inventory) && inventory.some(s => s))) {
+      // Truly brand-new only: never wipe items already loaded into memory
       inventory = new Array(INV_SIZE).fill(null); currentSlot = 1; respawnPoint = null; respawnPlayer();
     }
     MY_NAME = ((best && best.name) || googleName || MY_NAME).slice(0, 16);
     nameInput.value = MY_NAME;
     renderHotbar(); updateHpUI();
+    try { saveLocalPlayer(); } catch(e) {}
   }
   const meta = user.user_metadata || {};
   const av = document.getElementById('authAvatar');
@@ -4900,7 +4963,11 @@ function updateMining(dt) {
       let canDrop = !requiresPickaxe || toolKind === 'pickaxe';
       // Iron ore needs at least a stone pickaxe (wood/bare hands just break it).
       if (canDrop && b.type === 'iron_ore') {
-        canDrop = toolKind === 'pickaxe' && (heldType.startsWith('stone_') || heldType.startsWith('iron_'));
+        canDrop = toolKind === 'pickaxe' && (heldType.startsWith('stone_') || heldType.startsWith('iron_') || heldType.startsWith('gold_') || heldType.startsWith('diamond_'));
+      }
+      // Gold / diamond ore need at least an iron pickaxe (or better: gold/diamond).
+      if (canDrop && (b.type === 'gold_ore' || b.type === 'diamond_ore')) {
+        canDrop = toolKind === 'pickaxe' && (heldType.startsWith('iron_') || heldType.startsWith('gold_') || heldType.startsWith('diamond_'));
       }
       // Blocks are centered ON their integer coordinate (they span ±0.5 in
       // every axis around it — see FACES/solidAt), so the block's center is
@@ -4921,7 +4988,9 @@ function updateMining(dt) {
           else if (roll < 0.20) spawnDroppedItem('stick', 1, popPos);
           // otherwise: nothing drops
         } else {
-          const drop = b.type === 'grass' ? 'dirt' : (b.type === 'coal_ore' ? 'coal' : b.type);
+          const drop = b.type === 'grass' ? 'dirt'
+            : (b.type === 'coal_ore' ? 'coal'
+            : (b.type === 'diamond_ore' ? 'diamond' : b.type));
           spawnDroppedItem(drop, 1, popPos);
         }
       }
@@ -5503,7 +5572,7 @@ function explodeTnt(t) {
         delete chestData[k]; saveChestData();
       }
     } else if (b.type !== 'leaves' && b.type !== 'glass' && b.type !== 'torch' && b.type !== 'sapling' && drops < 30 && Math.random() < 0.22) {
-      const drop = b.type === 'grass' ? 'dirt' : (b.type === 'coal_ore' ? 'coal' : b.type);
+      const drop = b.type === 'grass' ? 'dirt' : (b.type === 'coal_ore' ? 'coal' : (b.type === 'diamond_ore' ? 'diamond' : b.type));
       spawnDroppedItem(drop, 1, new THREE.Vector3(x, y, z));
       drops++;
     }
