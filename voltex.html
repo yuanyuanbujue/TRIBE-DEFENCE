@@ -345,6 +345,34 @@
   #chestMainGrid { display: grid; grid-template-columns: repeat(9, 52px); gap: 5px; margin-bottom: 12px; }
   #chestHotbarGrid { display: grid; grid-template-columns: repeat(9, 52px); gap: 5px; margin-top: 6px; padding-top: 10px; border-top: 2px solid rgba(255,255,255,0.25); }
   #chestHint { font-size: 12px; opacity: 0.8; margin-top: 6px; max-width: 480px; }
+
+  #signPanel {
+    position: fixed; inset: 0; z-index: 60; display: none;
+    background: rgba(0,0,0,0.6); color: white; align-items: center; justify-content: center;
+    flex-direction: column; text-align: center;
+  }
+  #signPanelBox {
+    background: rgba(40,32,24,0.95); border: 3px solid rgba(255,255,255,0.4); border-radius: 10px;
+    padding: 18px 22px; display: flex; flex-direction: column; align-items: center; gap: 10px;
+    min-width: 280px; max-width: 420px;
+  }
+  #signPanel h2 { text-shadow: 2px 2px 0 rgba(0,0,0,0.5); margin: 0; font-size: 16px; }
+  #signText {
+    width: 100%; min-height: 90px; box-sizing: border-box; padding: 10px 12px;
+    border-radius: 6px; border: 1px solid rgba(255,255,255,0.35);
+    background: rgba(0,0,0,0.45); color: #fff; font-size: 14px; font-family: monospace;
+    resize: vertical; outline: none; line-height: 1.4;
+  }
+  #signText:focus { border-color: #7ee8fa; }
+  #signActions { display: flex; gap: 10px; }
+  #signCancelBtn, #signSaveBtn {
+    padding: 9px 18px; border-radius: 8px; font-size: 13px; font-weight: 700; cursor: pointer; border: none;
+  }
+  #signCancelBtn { background: rgba(255,255,255,0.1); color: #fff; }
+  #signCancelBtn:hover { background: rgba(255,255,255,0.18); }
+  #signSaveBtn { background: linear-gradient(180deg, #6ee7a4, #34c774); color: #0d1224; }
+  #signSaveBtn:hover { filter: brightness(1.05); }
+  #signHint { font-size: 12px; opacity: 0.75; margin: 0; }
 </style>
 </head>
 <body>
@@ -439,7 +467,7 @@
     </div>
     <div id="furnaceMainGrid"></div>
     <div id="furnaceHotbarGrid"></div>
-    <p id="furnaceHint">Put fuel (coal, wood, planks, sticks) below, ore/food above · smelts sand → glass, raw meat → cooked meat, iron ore → iron ingot · Press E to close</p>
+    <p id="furnaceHint">Put fuel (coal, charcoal, wood, planks, sticks) below, ore/food/logs above · smelts sand → glass, log → charcoal, raw meat → cooked meat, iron ore → iron ingot · Press E to close</p>
   </div>
 </div>
 
@@ -454,6 +482,18 @@
   </div>
 </div>
 
+<div id="signPanel">
+  <div id="signPanelBox">
+    <h2>Edit Sign</h2>
+    <textarea id="signText" maxlength="120" rows="4" placeholder="Write a message..."></textarea>
+    <div id="signActions">
+      <button id="signCancelBtn">Cancel</button>
+      <button id="signSaveBtn">Save</button>
+    </div>
+    <p id="signHint">Up to 4 lines · max 120 characters · Press Esc to cancel</p>
+  </div>
+</div>
+
 <div id="crosshair"></div>
 <div id="mineProgressWrap"><div id="mineProgressBar"></div></div>
 <div id="hpBarWrap"><div id="hpBarFill"></div></div>
@@ -461,7 +501,7 @@
 <div id="chatLog"></div>
 <div id="chatInputWrap"><input id="chatInput" type="text" maxlength="200" placeholder="Say something... (Enter to send, Esc to cancel)"></div>
 <div id="damageFlash"></div>
-<div id="hud">Mine blocks to collect materials · place them from your inventory.<br>Press <b>E</b> for inventory · <b>F5</b> for third-person · <b>F</b> to eat food · <b>Q</b> to throw item · <b>Right-click</b> uses your off-hand item · <b>T</b> to chat. Right-click a crafting table/furnace/chest to use it, right-click <b>TNT</b> to light it, or a bed to set your respawn point. World auto-saves as you play.</div>
+<div id="hud">Mine blocks to collect materials · place them from your inventory.<br>Press <b>E</b> for inventory · <b>F5</b> for third-person · <b>F</b> to eat food · <b>Q</b> to throw item · <b>Right-click</b> uses your off-hand item · <b>T</b> to chat. Right-click a crafting table/furnace/chest to use it, a <b>sign</b> to edit its text, <b>TNT</b> to light it, or a bed to set your respawn point. Smelt logs in a furnace for <b>charcoal</b>. World auto-saves as you play.</div>
 <div id="fps">FPS: --<br><span id="playerCount">Players online: 1</span></div>
 <div id="coordsDisplay">XYZ: 0, 0, 0</div>
 <button id="settingsBtn" title="Settings">⚙️</button>
@@ -684,6 +724,7 @@ const TEX = {
     ctx.strokeRect(0,8,8,4); ctx.strokeRect(8,8,8,4);
     ctx.strokeRect(-4,12,8,4); ctx.strokeRect(4,12,8,4); ctx.strokeRect(12,12,8,4);
   }),
+  craftSide: makeTexture(ctx => { ctx.fillStyle = '#b98a4e'; ctx.fillRect(0,0,16,16); }),
   craftTop: makeTexture(ctx => {
     ctx.fillStyle = '#a97b45'; ctx.fillRect(0,0,16,16);
     ctx.strokeStyle = '#6f4420'; ctx.strokeRect(0,0,16,16);
@@ -794,7 +835,35 @@ const TEX = {
     for (let i = 4; i < 16; i += 4) { ctx.fillRect(i,1,1,14); ctx.fillRect(1,i,14,1); }
     ctx.fillStyle = '#f0d98a'; ctx.fillRect(7,13,2,2);
   }),
+  sign: makeTexture(ctx => {
+    ctx.fillStyle = '#b98a4e'; ctx.fillRect(0,0,16,16);
+    ctx.strokeStyle = '#6f4420'; ctx.lineWidth = 1; ctx.strokeRect(0.5,0.5,15,15);
+    ctx.fillStyle = '#d4b07a'; ctx.fillRect(2,2,12,10);
+    ctx.fillStyle = '#5a3417';
+    ctx.fillRect(3,4,10,1); ctx.fillRect(3,7,8,1); ctx.fillRect(3,10,9,1);
+  }),
 };
+
+
+// ================= Golden Age texture pack (embedded) =================
+const PACK_TEX = {"grassTop": "data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAABAAAAAQCAYAAAAf8/9hAAADH0lEQVR4nD2ST2/bdACGH/9iu7GLE6epmyVN07L1H1VZp65I2xBiAnFBQhyQOPIpuPBFOPIpuHBHaKKwUiEoLW2TJu2SNKFO/HNiJ45tDpN6eE/v4X1e6VG+/fHzVAhBHMdIKQEwDIPBYIBlWSwsLBCGIb7vE8cxQgjCMMR1XVZWVlAVRWE8HlOzHpAzswghuLhrYRgG4/EYKSUHjx4TG4u0/C53d3fMz8+j6zpJkqA+mFtgaWWJyWTCq9PXaJpGNpu9j6qq9GOPorBYL9b4w/fp9XoYhsHz7acoX3+/m+bzeTRNw7IsptMp2WyW6+vrtwuqiqqqmKaJaZqEYchsNiOTyeC6LmJ3d5ckSXi/ukW/32djcZXVXBlHzfPhzgd8dvAxnuchpaRiLLLprCGlZDqdYts2ync/fZmmaUqj0eDZ1j7HzRMcxyFNU+zUpCk75HI5pJREUcRoNMK2bXRdR9d1lG9+OEi3Sw8xDIMrr40QguFwyNzcHKPRCE3TyGQyPNvaJwgC/u1fsZav8CboI4YzRKFQ4MprE4YhURSRJAmTyYRKpYKmaRSLRZ6s7vDq9DWH58f3fafToVKpoHqex3qxRrlcxvKte4KisBCFKiWnRBAERFFEoVBASomMJWmacnh+jLq0tMRFr0W1WuX0tk6aprxrLxPHMWe9BldeG9M0sW2bUqnEbDZjrbaG1wrxPA+hqiqbzhp/t895WKi+lapW46zXYOWdEp/uf0Sn08FxHM7OzlAUhcPzY4IgIJfLIbrdLvl8Htd1SZIEx3H4+a9f7wX6/fJPyuUyNzc3hGHIYDAgCIL7W+Ll3gsawzdEUcTFXQshBJZlIaVkOBxydHREmqYkSYIQgp3yOk9Wd5jNZkRRhBrHMcumQ31Ux/d9pJRkMhkUReGrT77g8vKSjY0Nms0m3YJLoMXUO3Webz9F13XUfr9PkiQUi0U8z+Pl3gvCMKQ+uOGXk9/o9XrcRgMAPM9jd3mTuZzC6W2d1VwZ8U/3kt5sSJqmjEYj2uF/tPwuAHu197Btm4NHj2m320ynU46bJ3SnLnEc42tT/gfh5ps64Zf2UgAAAABJRU5ErkJggg==", "grassSide": "data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAABAAAAAQCAYAAAAf8/9hAAACHElEQVR4nG2Sv2sTYRjHP/cSamOTmrsa7qpcSa8iOOVoNyFw0KUUOjq4FWcHhy7+DyLq4KKI/4MOLoVCZkvzB6RNPdvc2TZ3NiG9Ctc4PS8X9Jkenh/v98fzGjtfNydKKfI8ZzgcAlAul0nTlGq1imVZZFnGaDQiz3OUUmRZRpIkuK6LMgyD8XiMPWNy/3Ydt2Lz6/VPyuUy4/GY4+Nj3IrNw3qDSqVClmXMzc1h2zY3Nzco55bFxds+lmURjmJOr84BmJ2d5erDb+r1Ouf5JUopHiwskX285OzsjOvrawbvIoynrUeTheY6F51dAJydJaJXP5CYeVbhz6cRd1/c4/zNKQ3HpBclADQcE+P9881JGKe4do2VRYvP377Tai4TximAHgZYaK5Tjfdx7RrtzhENx6QUxim9KMG1a3T7AxqO+c+irnV2qTomYZzScEwC30MFvgdAGKeEccr86pYe2N5YY3tjDYDA93Tu2jUAuv0BJUGQh7onbe7YNcI4Ze/gENeu0YsSuv2BZiSSAUrSkOFiU2S0mst6UUJ7IJTanaOpZlF7cVGYCqAqGhX4HoHvaf1CX+qiu9sfaK9UEUGage+xd3CoTyf1IrvL/S/0ogTj5ZPHk16U6NuL/pVFSz/yvxBGSkwSFu3OEWGc0u0PpswMfE+bGvieZqXEeRmSrxrG6ZSZRTbFvCTJ9sbaFOr86hatk7YelM8lfQH9C0nNJ23PrajuAAAAAElFTkSuQmCC", "dirt": "data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAABAAAAAQCAYAAAAf8/9hAAABe0lEQVR4nKWTsW6CYBDHfxpmC+0AHUiQbl0kujUxIeniwtitg6/RB+h7+A4udmhiwqzRDt1QEmKAoUB8ATvofQXSqb3pcnf/u//9v/s6b6/Pp9lihWMZAPSGAcf1HADfcwFYbnYN3zZ1krzCNnU0AMcyVEF0CLm6FEhxnJVEaYGYgAE0SbQ7A8RZCcB40FdAsXC7x7GMMwPb1Am3+0ZSmLWB7VW6kpA1fM/FsQymk5GiL3GAKC2I0oLeMCDJq3MDmSBJ33NZbnYA3AweVbzO7rieE2clnZenh1OclYwH/cb+d7fXqslvJoy6IpKwCLd7krwiSouGmL7nKlF9z1WsuqK8FDmWQZyVJHnVELPOpu5r4kwno8bU3jBgfAhVYZJXOJah8jJUvcJfTTGYLVZMJyOWmx1xVuKs53xkpboF0ULMNvXzHYjysmd8Admmri5Q9BGr+/9+Rq0uShtsmzqfuNyzUzUyTNh2ZR8BClgmfG3fVRx+PlZvGOBYBt8N/vHHDz8hPwAAAABJRU5ErkJggg==", "stone": "data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAABAAAAAQCAYAAAAf8/9hAAACUklEQVR4nD2T224jOQwFS5RE9cVuw57dP9357CATx27dWtI+dDDPByQOWEXz+7/fQydFjAAwxsBay9fXF845xhgs60JvDdVALpmggY+PD+ZlxmlQUkzEuHO73WitYYwwzzO1VkIIpJT5/n6ybTdg0FpjXVd67whj4JwjhInjaLz3He89YoUYI713rAjzNNNbI+4RZx0iQikFcd5Ta8UYgzHgrKUeFTDcbjdCCNRawYAVi1g5c2NYLyuSS6a19rOxYoygPtB7Q1VJKZ1VjTAY9NaZwsToHSsWV0vFubOSamBZZnLOGBGezyfHcTBNE601YHB/3DnqgTGGXDJOVck5k3NCrGXfOzlnvFfWdaH3QSmFGCOqHmMMMWY0eFQVF2Ok1MK2bRgMMJimmZgi1lpSTow+8Kqs60prjWWZiTHCAFFV7vc78zSjqohYvPcc9TgxauByvbBtV67Xjd47qkophd47rrVGeRU+0gePx4OjHRz1YL2sMKD3To6J5/c3j8cDEeH1enG5XDBikBACqh6vntf7xfPrybZtqFfivmOtRUNgWRbe7zfP55Pr9YKqctSKOO8AQ9DA9XJlmib2fUdE8OqZ5/nEKML9cSeEwL7HM/eK9H5evfVGjBHnHN57Wmvc7w9qraSUTjN/BkM4PVmWBSm5YJ1l0sAYneOoWGsxxrDvOyklwhQQY7DOUWtBRMD8qNx6ZwzYY8T7k8jnnz/kkhkMANrRSClTS+HXP//y+fn5t7U4a+mtYa3Qeuf13rmsK6OPU1Xn/r65+UtgZYzO6IP/AVFzYRyFq5vPAAAAAElFTkSuQmCC", "iron_ore": "data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAABAAAAAQCAYAAAAf8/9hAAAB40lEQVR4nFWTMWsUURSFv5EphDuwrwjMkhGMhSySJmlsJIU2MWCnhdZabCWp/RP5A1qnsTedxWIZWRAikxTZIhMYieRK3t1YCGsxe18mU87c8+453zuT7e3tLVQVgBACqoqZASAimBkxRoqiSO9CCPiTu9hFbdsyGo3SgB/q32KMtG1LWZaYGbmLY4zEGHm1OeTgpEFEaNsWIG0vy5I3Gyuc/frN5HyBiJCHEJIlVeXHfIDIAoDd7XV+np4x/XM3OdmfXhBCwKzpIjRNt82duBuAj9+MqqoAxedCCPQ1d/pQRIQYIx9eP2N3ex0RSVDfv3jM1mpG0zTEGDEzQgjkDg/g7dN15pcrHNdHAGwM/jLLhgAc10dc2TUikraragfRYX36ekMegGxAXdcAfG4dpsdaXmNVVeys5YlsvwseZ37Zsj+9wMxSLGeRd2R9q1LXNWVZpls4/H64jANTbpdIRMjG4/HCSyEibK1mHJzEdBNFUSTLHsfnAXLf5mAm54tbGV1YFEXqxSwLKWpqIpC2us2maXj35D4vNzsOAI8e3INluczspomqyvOHBVd2zXTZfRHhy+wfa6cdBxe5WxHpILqDybkQwhDnpKqoKrMwXIbpDu7/rXk/v4t8qKqqdEiffD/mf7pEJvfRgDiMAAAAAElFTkSuQmCC", "coalOre": "data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAABAAAAAQCAYAAAAf8/9hAAABmklEQVR4nF2TIbLzMAyEv77JlNjALCAHyPQAJUWPh5TnMDlCT5EjlAeVFBV5AgoNwgRsEtIfdKTx+4USWyutduXD7Xb7iAgAIQREhFIKAM45SinknPHe21kIAY1GwQrato2+7y1Bi+pdzplt22jbllIKjYJzzuSciTHivcc5x7ZtANa9bVuWZbFv5xxNCMEoiQh931vHGCOlFIZhMCa/v7+EEEgpfUdIKeGcszGUDcD5fKbrOkQEzVOwYn5qUZxz5Jx5v9/EGHHOmaiv14tlWUgpkXOmlEIIgUbFA3g8Huz7bv/3+51xHAHY951SCs456y4iXxFVrMvlYsprrOsKwOl0wntPKYWu6+z+p+s6YozEGP/YllJiXVcbp21bG1NFTilxmKbpUwNrj5/PJ/WI6oaGiNAoQJXVPcg5G22lvK7rnwYATU0NMJ/rWNcV773txTiOxtg2ETD/tUBKiefzyfF4NHecc8zzzDAM31XWTRQRm7lmdb1emefZNFAr9f4wTdOnfn3/i1Qzql+q5jf1/DVI/RYRO6tzteg/L6AptXJKDUIAAAAASUVORK5CYII=", "planks": "data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAABAAAAAQCAYAAAAf8/9hAAABYUlEQVR4nHWTMU/DMBCFvyKDTGlYSMSUgaVSpUpIZaJbJZbOMDOwMfNn+CddkNg6MlWq1IXBE7K7NGlkdSkDOuOk6Zt8uTvfveeXzsf7y944S4w8zQDw3mPLIsRNGGc5kYasl7BYObJegvce4yy2LEKhcTZ8996HS5QcbFkw7KehKeslAHx+fTMdD8JGzW06r093ewm63bPWVQGqaleLpVY9PtxyTAPjLHmahfxi5ZiMbkKd1hrVlvTeo7UOZ6EzGSWBIgBlgZJpeZrVGmNtZMB0PCBv5Dtvz/f7No5NTY5qIArHmM2XDPtpzQ8xb4Fx9l+DGNPxAO99MJJAaMQ9Srg3J9TE4s8Xk1FSE9WWBWo2X1JVu8Ap5lr3hWvNt2rQ9v7Dfho2iXVQwlP4ATW7yn8iK9uygMjuSmsd3lYmNv2utcY4ezAdIh8AnKtT1pstAFeXF6w32wMvmJ+C/DoJGvwCQ7TNj8DqiJAAAAAASUVORK5CYII=", "leaves": "data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAABAAAAAQCAYAAAAf8/9hAAAC4UlEQVR4nFWT32tTZxzGP+c95ySNzeEoSdOAUnfhLsaqK5vTwsDaOem6ORgUdrFrFZ0iYxvixfBCvBhs/8IG3opOQZrSKZstuEnHistaVxrdqD9qkq7JSc5p0/PrzS5emuL37n153+d9nofPq40WB9rFkysM3s7TbDZZ/CEgGo/YnNylmOpFnZdmBJiEA5M5hOM4ANhpm0TdIhqPkEdl52z1ns7G0AYAh6b6GJreTRAEANz/rozx5HwIwL+/L7N4zmXb4DYGLmzHPePy18cur51IkU73MLfDQ0pJfWGdxC8J3vl5J2EYIjZfWjznArB+fx0pJd5jJWxZFtFzHcdxkFLSarUAiOOY8JlQAv030rz+Y3fHtrHaTfWayh081XBdl+TdJL8eWUYI9Waz5OM4jhKwbZtmyQfAP+xTLpeJelSRpe89LMsCQHtf49Hna5jHTB5+VicIArT81/n2vrEe5k/XCIYDurq6kBOSvTctTNNk9sOaKvkTm8bVBgDRkYhkMomu6xgDZ7eTzdrMU+Pgl73Yts00T7Asi9rfawC8VciQ3ZGlUKuh31HR4kJMaiyFyOVyPJ/9T1msdrEy16S72d0pEWBjqc3SH+XO5WOX+3n7yi48z0MszZQpXl8B4M9rVXzfx73nous6C2cbMALzp2sYhtGBqO7W8TwPJkHb882edutm6yXQjDcNZK9ETkj2T2QRQjAzUgVAjAr2jfXw4HhFrd84YwMweDvP0PRuVdJshJxQNBqGQfBUAxS6u4Z1HhyvEL4bKvFKUaFsmiaNRYXswZ96OTTVp3A9WmYT90qlQiqV2gIpDDHUxga/ffuCVz9IKxZ8n5W5ZidSqeBhYpJeyzB7/QWH77xCHMfMjFQRy1NtZXs8olTwSHyUYPWhxz9fbPWSyWQIhgM0TSN5N4lhGLiPAsSoQPR9uvXzovGI4FZANptVNt+LOTCZo/9UGiEEc6dWVZSiw8KtBoNf5fkfx5BBdWcp0uQAAAAASUVORK5CYII=", "brick": "data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAABAAAAAQCAYAAAAf8/9hAAACnUlEQVR4nDWSTW8bVRiFn/fOnfFn7MSRE/pBUI2QUAsSsGDLmi0/jl+ExLoCUZWqBFXFjZvYjseemft9WTg9u1d6Fue858ivPy7yXRbmWhBAgFfrju8fjzE2koBlbXlxNaPeNQB4F9iIZq4zenXw1EoRckI4yiThemPIIeFSZmUio7sW01oAcoauUoTGo8/PBnxWlkTvue6ExUQx94lE5t3es5hUXAk0JnFxNuBdm7kaKkQpfNToujbY0IKA9EdUzvNhb/Ehc98FYpFZ20DI8H4TOJ2c8HFz5ENK6HsXWR4MZBhOK65d5N9Ny2zYI2TY+EwdYNUY2hCZTid8aB17FxBAn1+cYvuGq0l1zCfCSVA8nQ+BTBZhYCPPL6aohyctRucsa8+jSYXu7Q+ca8Wp6Uj5CIyS5zIVWBPJQN04Fl/M+Hi7J8aEiDDTBWdti/5r5ymHFXvv+aQ6KV5tLQcb6SvBZuHlzYH24MgPVTOusCT0z1+egsDOJt4a4YeJHIkMf6w7vns0JrrIvQ1M5wNeHzLfnBWossC1Hv33qqGLGUEwZQ/Twsv1cTBbD88mjj9vDuScaX3kcjblt39qAPYuI788ucifrJf9AdG0pIexKF0iyRPT0VICBsMBtu1AhATonz6fsrSRxaRHTBlkwJut46tZnxAzTedobOTxfEQMARCc6XMXE08HBXpbdzglbLYB4xNIpjGZVfbsugAimASXrsfr/+4ZVwWCoEZ9brcNeq17hJC59glHwVCB7iv2hWKnPeOepifCm13E9ga0ShiXBeISrQP9dR9yghjhhpJnOmJioiyFty7x7XnJurbYHDFFpHd2QtVZsoZYavTvNw1aHZuLFay8Iabj7ZUmLGtuW48g2Jx5oh232wYEtC75H+mFgcugv38xAAAAAElFTkSuQmCC", "tnt": "data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAABAAAAAQCAYAAAAf8/9hAAACSElEQVR4nE2SzU4cVxSEvzq3G4RNxkQxNngUyRKJ8TqbZJMlL5gnYJ93sKM8BVaMbEVM98zYBDKA56fn3sqiO5JXZ3OqpPqq9PuvJ15sO959/sLP4wMkmN8tWUdidrPkpxdPEHC9XHN5u+SX4wOKTPuw5uPNmrhZbXhodoGECkwWS1aLmu5zYmtRhZjer1jNdsECifn9hjLfJQliY4NMNkQSANiEgggoNimJggkJMEhAACYqBRgqge3+AQNluCCDHJSSqRAUIxshAvdPIYFFHUFEwk4kFZKhZCGZQvQxMIEpBk2njW0wImRKKdgiQtgFKYCMLVIExcYKKGaxWEDbtgYsYYSvrq58evrK+/v7nk4bN83EkjyZTPps6jM2TeOLiwuHgNm0xYZp21JVCRDL5ReOj8dIgW0izHTagGE2awEYjZ4QVsEDrB5HRgIpODs74+3bNz3IwQigOBPRl1HZ+p/jUE9FKWZvb4/z83PG4/FgbqCv2aVX26Z6/9f7QSsE2PkrATRty/HR0SDuDS4vL7ELr358jf78441/ODkBgg8fP5BzR6gCYFs6qqj6RZRMqmqgUDoTdSJ3W/TbyxO39S2Z4PTxPg//mHms2dQdu2Fe7oxY3IlPOwuKg9ejR9x/qvi7vqOKjth52nG0+ZYgeHaQqA87ntU1z/OIbRaH31XsPe14sT4gZA5HO6TnK77ffsPWQYQMGhqQQFCkYek9CwmyMxgKhgF8hYgCJAspM7vuCAKXfq6dYP7vmlyMJAri+naDCAR0hv8A0PpQtF+t+hYAAAAASUVORK5CYII=", "tntTop": "data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAABAAAAAQCAYAAAAf8/9hAAADCElEQVR4nF2R0W9TBRyFv9+9d23X0rUbXTth3DEd080ZuIAZw0IYRPQBY3x0Dz6Z+JcQffXRGBONC0uMkThjdJHogI4tZFujsBccwWlJXXsbWNtxR3vv/fnQSKLn7byc5PuOfPbmSVVVKpUKhmEwuq8LgI20jeu6BCi5XI7x2h8A3K97qCrp3AAAhqoyu7CG7/sEQQCAiPDltz/zw9Jv/Lh0hy++ucb/M7uwjoggs+fH1DAMPrq2wdnTR7leb6OqPJ+KE4vFQE08z+O726ugygd5h4WbRS5fGEdVsWq1GmEYkj/1Cj/d+pX+16YwTZODuT5M0yQMBIDTVgTTNFm4foM3zjhUq6UOwqHeFHZfmruNFsOvOtxZWmbAEj79ep662WYn0s1OpJvhocMUbtxk8OwZPikUsXuT2L1JrH+ZgyBgZGSEF4YPM/vVVV4aO0A0GqWwvI7jOMzNzTEzM0OI/seFXH77vK6urvL00Ci2bdPoigKwvnYXAJWQVqtFfnKMK1fmeT/vsLu7y3LxHu+9cwGrWq0iIiQSiWerxWIR6HrWI5EIlmUxPm7T19dxA1CtVjFMEQwguS+OEBIznjB14kVUAEMAAzC4vX6PiWN5tpP9PM4MItB5ob+/n62tLcrlMolEgvlflpiYsIEUqh3eIAg4eeI4qorv+2xvbwOQzWYxjuyUePfIAF69STIW5+KlS/y+9QgNfSxT8HZrTE0eRVVpNBpslUosFpb58NwoLz8uYfi+j+d5xONxNjY2WFlZYXp6mkQigeM4iAiu69JsNikUClQqFXLZ/bRaLfb29pCPT42oiHDrYY16vY45OISI0HPAJhaL0WW02dzcJE5HXPvP+6TTaSaf24+IYPX09LC4uE738EFyuRw78SSqSqlcRkQweYqqkkqnME2T3ngX7XabtbVNpqePY4mGPGmBEwPDb3JOfBD4vuEShiEigqryVqZz61/eDplMhqttEA2Rz18/pgDlqouIMNoTRUR4kMjiui6qSjabZajxNyJC6VGdTCZDy4ygqvwD4MNGbACDyboAAAAASUVORK5CYII=", "craftTop": "data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAABAAAAAQCAYAAAAf8/9hAAABYUlEQVR4nHWTMU/DMBCFvyKDTGlYSMSUgaVSpUpIZaJbJZbOMDOwMfNn+CddkNg6MlWq1IXBE7K7NGlkdSkDOuOk6Zt8uTvfveeXzsf7y944S4w8zQDw3mPLIsRNGGc5kYasl7BYObJegvce4yy2LEKhcTZ8996HS5QcbFkw7KehKeslAHx+fTMdD8JGzW06r093ewm63bPWVQGqaleLpVY9PtxyTAPjLHmahfxi5ZiMbkKd1hrVlvTeo7UOZ6EzGSWBIgBlgZJpeZrVGmNtZMB0PCBv5Dtvz/f7No5NTY5qIArHmM2XDPtpzQ8xb4Fx9l+DGNPxAO99MJJAaMQ9Srg3J9TE4s8Xk1FSE9WWBWo2X1JVu8Ap5lr3hWvNt2rQ9v7Dfho2iXVQwlP4ATW7yn8iK9uygMjuSmsd3lYmNv2utcY4ezAdIh8AnKtT1pstAFeXF6w32wMvmJ+C/DoJGvwCQ7TNj8DqiJAAAAAASUVORK5CYII=", "craftSide": "data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAABAAAAAQCAYAAAAf8/9hAAACC0lEQVR4nGWSv2sTYRzGPzminPWui/fiD3pDl9JAQelQIS4NZAl0c3ZycIyL7ZIxOuhf4CCC0A7SgEvbJUMEU1FwqA2kTQmipzV6lyWXvF5TTB3i++aOfqe79/u8z/d5nu+buu5YZ08e5ojX8xcfuHNtioNeBMD8tEm9IymvrSRw90qvMQBcRyAsm0YrQFg2pWKeekdqYL0jeXD/NlEU4QU+URTpnqE+/H7IwpyD3w/x+yGlYp6jwZCjwZDy2gquI1DDTNPUBGmASnUPgKmpizGBAQN5CsDObhMphwn5CpsGWLp1I9FU0w4+fQFgYc4BoNEKyC3OatzG9v7EQqMV8OrlW4Rl8/jZJgBdOaIrRwjLRlg2ucVZbdHvhxMFriNwHcFW7TOmafLz9G9Ckd8PabQCCtkMbsy/JlAec0vzzCyvkqvuUanu4Q3+aHVSDnVW5zIoZDMAzCyv8r32lGJ5nfebj/jW/AGQ8B3fwMb2/pjAC3wATtptfgc+J+02wrLpypG2oJQUshmN1wqEZQNwdrQ+3oBXwft/SdU4RJsoijReE2y9O9Se4vs+7Pb0ZAjO9TXB3fzNxKEX+LiO0BnA5C0Iy9Y5vKkdTjJQ/mDykFQGKkS9/5i9dPyCCkf9qzJNEy/wE9M1gWGk2NltAnApfYFub8BHjrkyfZmvoSTel/IY71eIe3UcomGk+AcZ3e3Q/DXd1AAAAABJRU5ErkJggg==", "sapling": "data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAABAAAAAQCAYAAAAf8/9hAAABCUlEQVR4nL2SMWqFQBCGv02CB8gRBGHLLWw8guQIthYpchwLC1uPEN4RbCwsAw88Qg4gPCaFb2R3XV5SZcBi4P8/Z/5Z+M+q50L+JEoJ67kQWvbPq6cU5NJfQ1iLXMqrAeiwgTYA1HMhb/3z3txNCmvKTA6zN8VL/OfXJQMXTtRhwcG0rHvvLB98nQEMmJGNhkwqlzOVq1TkwG4e3QYD5ru/CSAMmHRQOnJrJQ41DjMktDu1a+1h0FEBmiVjnDejujPgDumwTMtK5fIDEqf/+X5DL3NaoSkzifumzMRfUdcwvllPpoGqWCca5+28ctD49AdB+nXOwCsN0z9hrEk+5WQlzL8C9OU9qh/8m5ls+7/WCgAAAABJRU5ErkJggg==", "wood": "data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAABAAAAAQCAYAAAAf8/9hAAACtElEQVR42lWSS28bVRTHf/fO9cz4ndRJ7Di1E7V5mAZaaCSk7ljxBfhCfBEkYM0CqbBmT5EaEJQ2KYImabGbhDh+jefOfbBwM4IjndV5/39HfPpo19/dqBIEAQ+21/j6+5/5sNem16nzzQ/H7HTqSCnx3rO6VOV6llIvRVyOphz02sg0TTHGEAQBX3z7E1JK9rdu5cUHvTa//XGOEIJuq8qfr68AOB2MSdMUlWUZaQZ+OqVYLLK3uYwQAmstQgi897mf9Mf815RSyIP9Dn9fzvKklXqF08EEACFEniyE4PZametxwla7zmxuOB1MUNZajDHvpqu84P5uiyzLePbqijAMkVIipQTAOYfWGgAppaTTrAHgvafbqnJxPUFrTRAEWGvJsgzvPdPpFCEEJ/0xSinOh2OkMYZus85fb4aEYYi1Fq01Ukp+Oeqzu1HFe0+jVubH5xekaZpvEUURMggCuq0qo8kc7z1KKY5Pr3m4t06hUCCOY5xzAIxnmgd76//TRzrn8N4jhKBQKCzQKMXToz7eew6PB8RxTHM5ZDiaEYYhV5MEgFoxRAIEQUAURSRJwouzEZ99ss2LV1fcu7OCEIIkSZBSEoYh3nvubS7ngqqXZyMatfI70Wr5/fP5HK01RydDdjbXKJVK3Gx7Q2W9ES8+8YaAtZY4jlFKEccxH+93clzOOay1SCkxxpCm6aKRtZZuq4rWGu89xhgAZrMZh8cDoigiKpDHnXM8eXaGUgprLcF2Z+VzhKBcjCgVowV3A6Mko7FUptmooLXm7TDhYpjQbFS4f3eVh+9t8OXjp4sTtNY8en+dX1++JQiC/BsPn79hp12hUCjw0W4L5xxZltH/J+Wr7w75YKeJ3O6uIoTg9fkM5xxpmnI5mnJ7rYKUkt9PhjlWYwxSSi5HU3pbt1hdqvIvQZpn6J8IM/UAAAAASUVORK5CYII=", "woodTop": "data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAABAAAAAQCAYAAAAf8/9hAAACFklEQVR42mWSzW4TQRCEv54fe+3YcURARvxckAIEySgCDhxQXgDlBg8BT8edA3ckLiQBiQBBREJxEsDEsr3Z2ZnhsOw4Jn3anZ6urqkqefn8UYwxsr03ZLDWByCEwO6XY+oarPUREd5/OuTBvRs459BaIyLIi2cP49Mnd/Deo7Xm/yqKAq116llrERGKouDVmx3M9t6Qrc11hqd/KkQR8jwnyzLKsqTT6ZDPpgugWmtW20tYazGDtT4hBBqNBpeXOlhrL7AosxbGGLz3GGP4fnxE/WxzMBwTY6QoCuyKJc9zrLU45xY25nmOMYYY44I2ZnQ6RUQWGj9+/8IYg4gsAF3pdBERyrJMZ+b8lhACSilCCPSXe4hIon5wUrkSY8SYamx7b4gCEBEAer1eAlFKcXZ2xmQyIcaY/uthgMcbt1CDtT4xRrrdLuPxODVDCOlbRPDe02w2AZKYk8mkYqC1ZjQaJYrOOZRSZFlGlmUopRLL2upaB+O9T2FxziEiWGvTm89XbbFSaq7Hh68nbG2upwtlWdJfrrSIMabNdcUYE5D3vnKhvqS1pt1uUxQFzWZzYVhrjfeeEELFNGvxcf/n3MaiKPg2PLwQIuccjUYj2WeMwVqL977SYGW5DcD1S6vzbe0lptMqYI1OF4DZbEYra/1Lj50n8Wa/y+u3+7zbPWDj7jW898QY2fl8xP3bVxcSWofnfJT/Ag8nAiT43dphAAAAAElFTkSuQmCC", "sand": "data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAABAAAAAQCAYAAAAf8/9hAAADD0lEQVR42gXB3U4jVQDA8f85pzPTM512hn6yFBpwWRY3mtXL3TsT40P4PN4afQCvvTC+wSZuvDCYaERBQdddECiF0pZpO7Sdj3aOv584+OFL095oY4whzWeUigEPizFxHGPbNq5bIssysiTDsTSr5Yr27sccH77Cr1SQrUd15ukUkys8u8E/p2+J45g8z8nSDNQjtPJ5+vxTViJFSsnFu59prLUI1gLE5cl3xvM8Sp7Hu4sTpBDkGCzLAkAIgW07FHIXKSWTaMQ8maIKBfa2P0T8evCVcR2NlArLsYimEX5QYTqZ4rkBxyeH7D15glIFtOtiK40xhmgect29Rq631kEYAq9JEi9Yr3XQKqDhtykVK2xvPWYRJyRpQiF3CYcT/j07pR5s4Loust+/RWvNzfCC9z/6nMG4i3Ay4jxiNptja8Xu411c1+W8e0q8ivB9n+G4R5ImyDAMIdMsF5K3J98zHI5I4gVpkjLLRmDgutfFs2u8fPEZ5XKZhr+JUgVaax3Emz+/McvlksBtMo2HKKWYz+bU6w2azQaXV1dEowTbM6yWK7yyh1hqKo33iMdXSNuy0WoNxyni6waW8ZBSonJN93xIPEt5/vIFg7sBWrssZguyNCXsnzLL7hE/vvrCtJotPKfKLL3HYLDwiGYh0jIUi0WkUABUa1WGwwG2KLOIH6g1fWSn06Goyvz0y2s8p0Z4HxL4AY5bQKuAVrVDo1HDLbnc3vQAaO99glEp48kY8dvB16ZV7YAd0z0bUN/wSeIY23ZYZimW42Byw3KV8XR/n+OjIwBMbrjrD5Db7T3ifMr9KGTv2Q5SCpbLFbZl0bvpcXfbB4BccPT7H1R0g1p5A2Ny2u0NxNnf35qi1PRG/3HTu6GztYWQAoFgZ3Of4WhEs15nPJmQmIhCQRJFDwRuizAMkYW8wDSKKBU1m5ttyrqOWmm0qxlFPW6Hl/TDLn+9OWSxmKNWJWZhRj+8pOR5yIf4nlJQwAiYTiN2PniG6ysGgwGeXaNaC6hW1mk2GxRViSSdETRdHMehNzjnf834ZQOuT/taAAAAAElFTkSuQmCC", "water": "data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAABAAAAAQCAYAAAAf8/9hAAABRUlEQVR42n2TwVLEQAhEH8zMqlse/Vg/w6+1dpMAHiDJRKvkkAMMTXdD5PPLYnkAQATggAECKEirPCACOqDf4P4BtzdQGmibmp0zNGsimY8AVggDW48nx/caCk1ANKdCgjjgDqo1ADmLB9ieGycDaRN4JHAEdP6J1vJhA6KBRZEVCAdfdvLrX/qHgRMzkWKlYA72hE5kkrgaKCXDrWRMVrnD9sjnnciiSGLMseuWls278xFg3wVgW62xHA6bAHrWdIAXfRGIJSWgoBFJ6bJKLRtasVDQslv1lAbQWdNht1PCYda8OT+3Pc/rDPB1usQdBNhqii8QWwFZNddJ97qLS3NEefKss62dxwQ+GsgAlXYe3hGekraltFoxLARtoDcYF5l6BQgDW4qJnQyFvE7p0O9lavyazvRn+j69/hEd0F7g9T1BfgAgsJVtvqluYwAAAABJRU5ErkJggg==", "glass": "data:image/png;base64,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", "torch": "data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAABAAAAAQCAYAAAAf8/9hAAAAbElEQVR42mNgGAWDHPy/wfD/fz/Df/IN+D/9/////8k3oCbJ7r+PrRpeA5jwSYoLsjF8+PSNgWwDmJiYGNjY2Mg3gIuLi+Hfv3/kG/Djxw+GP3/+kG/AhdsvGRgZGck3wFBNgjIvnL/1gqAXABx0KGKm/f0OAAAAAElFTkSuQmCC", "furnace": "data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAABAAAAAQCAYAAAAf8/9hAAACr0lEQVR42nWTS0tyXxTGf/tcFTWTqJOZWk1q0iAKtKBJ0byPUp8m6MM4yJKkQReCyGwiYdkhyQt5OWfv/Q5C4f/nfZ/hujxrsZ5niWKxqKWUACilkFKitUYpBcBgMMDzPKSUSCkZDoeMx2OSySRhGGIBFAoF2u02ruvSbDaZnZ0lk8kAUKvVmJ+fxzRNpJT8/PzQbrdJpVLU63WMTqdDs9kkl8vR7/fJZDIUi0Wy2SyRSIR0Os339zcrKyvkcjkikQjb29uMx2OUUliWZaGU4u3tjaWlJbTWnJ2dkUgk0FrT6XRwHIe7uztWV1dZX19nbm6OdDrN8/MzViwWY21tDcdxeHx8pNVqUavV+BsWFhb4/Pwkm83iui5BEGD0ej3e399xHIfX11dubm74F6rVKsfHxzQaDa6vrwGwXNclEokghJgWJhIJDMPANE2UUpimiWEY+L6PaZrk83lGoxEXFxdYUkqCIKBeryOl5PT0lKOjI/r9PlprhBCEYYjWmkqlgmEYPDw8MBqN8DzvV8aPjw92dnbY2Njg5eWF8/NztNbE43GUUoRhSBAEhGFIPB7Hsizy+TytVgtreXmZw8NDCoUCAAcHB5imiW3bAPT7feLxOEEQMDHc5B6WZf1u4Ps+vu9Pk7e3t5TLZQCCIMC2bfb399na2uLr64tYLIbv+3Q6nV8Cx3EYDofc399TqVQIw5Crq6v/KBAEAaVSid3dXTY3N5FSYhjGLwHA09MTl5eX08n/xyRu2zZ7e3tEo1GCIMDSWjMYDKhWq5TLZVKpFK7rThuFECilMAyD4XBIqVTi5OSEbreLbdtYpmkSjUYBSKVSeJ438fj0QydIJpMIIbBtm5mZmV8ndrtdGo0GvV6PxcVFhBCYponWeuoDpRRCCIQQeJ5Hu92m0Whg2zZ/AMaITa3m6hp0AAAAAElFTkSuQmCC", "chest": "data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAABAAAAAQCAYAAAAf8/9hAAACEElEQVR42mWTu3LUMBSGP1myHXtJZkNmcyFhoKEJKZhUVKkYhmehTkvJ09BQ7GMwQLlNioVlGDZhUDZe3yVRyHF2k9NIHun8Pv9F4u3ZqWuMYbVCKQFwztFa23/fr7/6BgXw/sxSVTWyLTFqA4DLIn/QMEpSLoucUZISxxEfPpUeYK2hyfvL03lJFIU830sAqKqa/TBAxVEPqqy1FIucnSAilG1/MP294N35mMlkwsX4nCePUwAsimaRE8qWQIAKgoCLzHVtnuvu5iOuXcFyuWQ6nfL1l+Fl5NhRAivjbtIYIZaoxhjG3yRSAEJ0QCV5UXPy8ydaayZ/Nvix8GyNbfops7xEhVLy5mQAQNtalAoAmP8TXF1dAXCw1fLqmSSI4jVRx19qlLOGwySjtRJWztuo5PvnjwCcHkbsbRrgzpmsBucsSgSSg910DbldLhAbjtfHe736txV3DsxvBNYVXoOZ1msAR8Mho6qmquq1POyHAcQRM63ReehtDKVklKQP/nA/SKMkxQCmqhklKcJIoPEa2KrtM1BUfr2fC9rSu2e8G7ZxPgcikCRbdxMoYKY1R8PhA2p+EoVsS+LBACEqlHOOmdY+ooOtXoNVPW5FvCzynprOMxwOJYQgkttMrjO4XvZJ9JdCIimAmPlNxna8SRip7sUKBBpx/OLpbY4JAIvo9q7buxUCAmNB+qxRlBX/AaYR8J8BygUwAAAAAElFTkSuQmCC", "chestTop": "data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAABAAAAAQCAYAAAAf8/9hAAAB5ElEQVR42m2TS5baMBBFr37YxsAx6U8YkJNRZ5CMeiFZazaSBWQBDHLIoE2bj2VbqgwEhu6kJraP9KRXt57Vty+fJc8n3JY1GgARIUQZv9/XrjliZ2XO9+ecme3RwRNNBsCLb2+2BgCWWc6Lb1lmOfvB8eNnxAIsp0IXGoIB6AB4upsCkGVXd953fMwDtjRsG0luYxT8oeV+OsGZ4XrpkBwM52cfLAARS/96JLRglMZqrdjFHhV7iEm7rioANnXNuqrY1DXQsXKaYPN0UG9QOmCHkFS3i953o3XvOx6K6Ujiz+kIQO0dQzBYazSP8wJbCuFGeKmLYOU0tlywPq9PjMIaj5UYCacDp8SEk79yWLnr+PqQeh/n0oJEjVVaY4qCYi5XfodXfveR9aIa29CJ4eiwUYogp8Rg2+zpQj8esK4qHnyH993Ywugom7Cpa+qjA84MlpnjvnBvbrgVAjwUUwIQzlBVMECfGMReMIN/w+BO/z8XYx56wSgSg6zMsGWKsP1n/rxzYjFDS1aWKO2xIsK22fNBB2y5eBOky7v33djWmIPjHhGLVUrhzJxfuwZ2BwAe57PzJsfEKCBj2+xZZnPcJLXgjEKpFvX16ZPMpimBGggoAAxCQKG4jldQhAiXvzuK8BecYe+k3/qWlgAAAABJRU5ErkJggg==", "doorLower": "data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAABAAAAAQCAYAAAAf8/9hAAACTElEQVR42mWTzW4TMRSFv9geZ5JpmE7IT2lUiQ1Sn4BFd30NXqIPwnvwEGxhBUukSiCBaKqozV8naZrMj8cOi1CHCK/se61zjs49t3Z1dbU9LT6RTtck3QiAMNAAdAYtvn0d8uo04d/TO0uY3KZ8v75DXZ4PubnW9E8kQShJui0AjDEYY0i6EXEvBCAIAowxOFd5MPV8Ka2lXFvW6zkAWkqvZjnJAXBuzXSxod9u7QFmvyeMJkvmixwlawdSXyYN5mkGQGW3vl5VDqUE86JCdV73mC8zROX+8yDuhQyvZ9Tj3Xu5KugeN+mdHTO5XWCmGaLMNwCkmUFLiZYS56xnc875eve4SWktxhhKa1lbi9BhkzDQDOImAEJIhJAeIK8spbVMFxuEkISBpl5vEAaaSEpUOpoxflhROccLAVv27E+LHBEqokhTD6TvjW9nTB42DDcFKhl06C/NgXnjhxVxq04NSb/dwuR70Gd1/XaLxf0Tqsw35KYkna79p6YOyNIc3ZGM7x99Pc0Mg7jpTQVQ7z888O6tJFSSuBN5htyUJCcR4/tHkm6ElpK+T+JuCgDq4uKCu/uPLFcFpapRVc6jR5EmzQxiVRxkoCbgbva0y8Hl+ZAbF3MknojbR549DDRHxyFJIyBu1T2AlhKlJYNezDYtUFtbkZuSXGx5c3a4NEWR8eo0oTPY74c3evSI3TpUTapd8low/DU+SOKzktloRW5KtNxnJAw0siZQXz7/4OfNX0OokdndyBpSkllLIIVnNdaRVVsaarczgRT8AeCIDRbjagLTAAAAAElFTkSuQmCC", "doorUpper": "data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAABAAAAAQCAYAAAAf8/9hAAACRUlEQVR42m2Su2/TUBSHv9iO47pNk6h5VI1gYWOAFVViZGDsjPgTmFgRYmZiQKo6IMaunZBgYEEMTIBUgUpEaFLSNM7DcZ049rWvzWAaGpqzHN3fufc8vnsyB7s7ifA9LptumAAkMiIMxfz8vx19baEBdJsOcSzpjz0qRRMYIaS88kBXVYSU6KqKoqi0GsM0AUDv7HzBG5pKobyKO5rNE8zimK7rc/NGda5pg2OLjuUwnAhevf2VuVzx5eM7Scfx2HvTXNBfPNpIrJHHMIhQ9t4LlCimsqZfaXmtaFAvXJ2/Ui9SKZpcN3Mo29vblCqr2LNwKag4jq9oYRgipGQqJZmD3Z2k9a07D5breRQlRRMEM3qdlEmtvs5k7LNRKwFgndj8PrLQ7M6A3silN/j7lT9682S1ssnQTiE222MimcBhj42igaYptL0ArVQvU3NCjDjD0/3DBVj7z+8njc8nS3XrxGZ8NkERvocfCjwRLpk/WqoHwQw/FAAoumGiqyqGpi6Ftcyy2Sy6mt7PvH5yN/neGKBpClubeSLxbwM1XeX0zGVrMz/XLuKn1oRW5zxlUHfSSheEg2BGLrdCEMwoTAVrRWOhut13qVcLJHaAlsgIPxQ022OcwWSh1VxBJ3AEx7YFgB+l1UuVVQBkEqNlVA0jq1NayZIrpNtoZFNfqBq0nQGl6jp+KPjQKNHv97E+nvLwlomaUVB/WvlnNXPKyA3IqiruVOBOA4SQKHFCs3tOTEwgJO8+tbhd9Xhw7xpfjkdMZMwfA7IhZzl/M8YAAAAASUVORK5CYII=", "trapdoor": "data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAABAAAAAQCAYAAAAf8/9hAAAB+UlEQVR42p2Tz2sTQRTHPzszO7tJG7Zp2oa60KsgiuC5By89+Bf0vxHBS/Gv8FKKB/8VvZRgBUUaS8imaTYmafbX7HpoM3WrKPguM7z3nTfvvc+Mc7gfVgAKh6UxADSkZGkMrhSsLDcly6KioRwAG1MdT/Hw0S5JnlmxltLuhbjbl6VhFF/T3WwBcNYboMZpwUU0ZRwnKOlYcafdsMLelwiAwlQ3a1GilGCcFqi9pken3UAUJUfvz2yGt6+fV58/jQhaHmHQ5OXJqY0dHx1UUT8mHy0Ri9u+J8uc+7a90cR3NWVZ1vx5npMZw8IY1JqU+K4mDJq/JciMYRpfUxam5ve8Br6bsCYlzuF+WD173GU6S3nydM+K0nTJNEpI8gzf1WyFLfL8rsrhxQ8+nA5vKPiuxt/URP0JgD00vJrZQUb9uEbFdzUdTyH4i21vNPmXqdWNk9HCOn0l0VuSzBjGl3NEUdpBh0ETL9D1BFpKfCV59a5XwziNEjptmIwWNcQrjABinBYMLucMZkmttHmcMLya/RHx6CJmcDm/e0jhTsC6mNdE6xs+3dvX3W649b61JNwJqCYpylQlSZ6RiIqTNy+qXzEmecZ0lrL7oM3x0UF1H6OpSpR0BL6roQXnX4cW0Wo2K4zfv43RUtYwSkegzq9Tzj/2+d8v/RMTA/isUn7tUgAAAABJRU5ErkJggg==", "bedTop": "data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAABAAAAAQCAYAAAAf8/9hAAACfklEQVR42gXB6W4cRRSA0e/equrpngXbE7MYLLFJKOIteDSeiB+8DgoRmRAF2+1Zenqp7XKO/N61Vsi04ri9f6BIZrpOLNeFfhr47c8/SLFy8+aO3arj039PvLy+oLmyv9/jf3l4ZJjO9M9X2qaBEBj7C1ILwQv3d4+sbwJfffMtt92O7sPftH855mmkH8743XcPtMsdE//ww9tfGYcTrhrv3n9kzAY+8tP3b9mtt+Dgx8efsSny/sM75JzR8XolxYlQFL/2qCqpBoLCCkfrPKvVCgRKNoSJ+4evabsbsjr8ZVmIl4GcJnI1BIjpTBQwKm67xgVPtYLGzDJEttqy32zpncM/Px/wKeAl0DSew+GJp2EhVaFg+LoizVe0OmZL4IRMot22bPY7vK8NLhghF9puQ2TE50iNGQMgsSyVoJWYDRCiNdQieN2gBqQUmHLm/OkzyzQhPlAqZAUNK6pWMiAiINCESHIFk4gahrmMUFhOA9UEqwVCwFWwHHFO8FQUQyxTMlCVMhvqMYpBwmHOWFnGK2ARA0rOkJS5KGQQHN7AEwmholkVnwulViqV2HicdAQtCHA5nTi+nKhpJlkmm3CcZ07nkXkp6DDPRArHeWYeZyQJTgvVeRKQUKLN9P2A18RwOTK+HHg9XSg1o8V7khimUEvi9os911QhORoHThTLFVPhOEzEZSGzwokDEbRD8BZYm0PMuA49SAadkAKb3YoQPNSJ8+uRY5pZd2u+vN+z3jb4epkpYiwGL4ePjLkwjwtVNgSuqFTOlzOvrxeG8QiuQ99U1t2G/uTxguDV8GJ8Po94bxTLFPEUlH8PRxZb8BLpl5mdZvrnhYoRrOF/ci2JcHcPnwIAAAAASUVORK5CYII=", "bedSide": "data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAABAAAAAQCAYAAAAf8/9hAAABTklEQVR42u3RTWqTURSA4fece7+bfHZgB0LFQqVQJ9KCgrvQjbgORw7dhlPBNRRaxJkgNrEp/sQ0KU3b5Pu59xz3kKH4LuCZvPC/fyB5c792WRXu3NiqlN2DA36Ox3iGX03Hy48feLjzCE+ON5npfEFSI+eIdT0xVfcI28rq6pKjw2cslysG9ZCmE6RZEzAe7+8hAfoS2H9SEIfxxTnTiymaXFmWnjY71zd3jGbfKZIYhiGOkl05O59Ak0m5Rwy6picWQArx63xGkIAFODn7ghdQX5PdiQACi9mUycBobx03Z7b4g6iiKPL29XNXN1KsAcdiILpgOVPcMCtUqjRFqFOkFSNhmAunn34QR9+uuO46dmKkd+GyzTyoIxAJkumLAUpwgWB0xTl68RRbr8gOssm69+9e+e/RnOPPE3QTYFBVuDnbYbAZ0DY3BAAKfwFPRqyCkv/Q8QAAAABJRU5ErkJggg==", "sign": "data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAABAAAAAQCAYAAAAf8/9hAAABSUlEQVR42sWRvUvDUBTFTz5NglVRWmmttAUpdnKwi26Ci6Po7O7sP+Hi7K6Lg84OOuuig6VQDAgFi7YkoUpi8/HyEofCa7JJOniWx+HB7557Lnd8uBlrmozRKMBf3rOLRw4JiZXyPNZW8whDApcQmEMXtdISFEGA4dho6yb2thvwPA+GY+PkaCtOQkRCKF67A/A8B1kSEIZj3/u02eSb+xcAYD6VoFycgyrJcMnkQ5VklJZzzOdnczAcm/nz6+cJYGD+IKI25BkREY3BCxwC34b17Sf2/0j1kEoAAPVqASQM4RECa+iiXi1AEUTWwcHuBuugrZtpQBBQvPUsRDSCJAkgZOy7719s6u1DJ3WNlC5P92NMIf6p1cdOs5YZwjuOA0pp9gSqqmK9upgd0NL7aDZWsgMURcHVXSc7wPd9THWFSnEBmiLi3/QL6tSsr3SlTi0AAAAASUVORK5CYII="};
+function applyTexturePack() {
+  Object.keys(PACK_TEX).forEach(k => {
+    const img = new Image();
+    img.onload = () => {
+      const t = TEX[k]; if (!t) return;
+      const cv = t.image, cx = cv.getContext('2d');
+      cx.imageSmoothingEnabled = false;
+      cx.clearRect(0, 0, cv.width, cv.height);
+      cx.drawImage(img, 0, 0, cv.width, cv.height);
+      t.needsUpdate = true;
+      for (const key in _tileCache) delete _tileCache[key]; // rebuild inventory icons
+    };
+    img.src = PACK_TEX[k];
+  });
+}
+
+applyTexturePack();
 
 // ================= Block types =================
 const BLOCK_TYPES = {
@@ -822,6 +891,7 @@ const BLOCK_TYPES = {
   stairs:   { transparent: true, hardness: 1.0, tool: 'axe', shape: 'stairs' },
   door:     { transparent: true, hardness: 0.8, tool: 'axe', shape: 'door' },
   trapdoor: { transparent: true, hardness: 0.8, tool: 'axe', shape: 'trapdoor' },
+  sign:     { transparent: true, hardness: 0.5, tool: 'axe', shape: 'sign' },
 };
 // Non-block items: sticks, tools, and food. Tools don't stack (max 1 per slot).
 const ITEM_INFO = {
@@ -847,6 +917,8 @@ const ITEM_INFO = {
   apple:          { food: 2 },
   sapling:        {},
   coal:           {},
+  charcoal:       {},
+  sign:           {},
   cooked_meat:    { food: 6 },
 };
 const ARMOR_TYPES = ['iron_helmet', 'iron_chestplate', 'iron_leggings', 'iron_boots'];
@@ -897,6 +969,7 @@ const ITEM_STYLE = {
   cooked_meat: { g: 'meat',  bg: '#5a3418', x: '#c47a3a', s: '#f2e6d0' },
   apple:       { g: 'apple', bg: '#2e6b2e', x: '#e03a3a', s: '#6f4420' },
   coal:        { g: 'lump',  bg: '#4a4a4a', x: '#141414', s: '#6a6a6a' },
+  charcoal:    { g: 'lump',  bg: '#3a3228', x: '#1a120c', s: '#6a5a48' },
 };
 for (const m of ['wood', 'stone', 'iron'])
   for (const t of ['pickaxe', 'axe', 'shovel', 'sword'])
@@ -1035,6 +1108,20 @@ function blockFaceCanvases(type) {            // -> { top, side } source canvase
   const t = itemTiles(type); return { top: t.top, side: t.side };
 }
 const _iconCanvasCache = {};
+// Item sprites from the pack (only the apple exists in the pack's items folder that the game uses)
+const PACK_ITEMS = { apple: "data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAABAAAAAQCAYAAAAf8/9hAAABCklEQVR4nL2STUoDQRCFvw6DkpCIjSYwEELAA8SF4AVcu/IAuYUriZKL5ACuXHuBKK4UBDfKoAT8YfLnhEwSKgtx7GFmtFHwLetVf6+6uuE/dLhTkiwvZ3P46jnM9H8EAJx7U2XTF5PWWs42arJddmSvtpp5hQT5ptEQ6Y1RbpHj9zsAmn6ZbhgA0B69qkzAdWVLlFtMTXp49AHohkEMYrUDgHpVU6/qRD0CfJduanelwFFpM9qJ9QSmbudfz/orgKkIcL+Y/Q2w/+ZZfZZO0Od0Mox6HdO88F6o5D5K5sYHT0N8WaQCE6kH+TVpFtYBOHF6ALTmbmp6YgLgs0EALiczBdDJ98XwYloCVg1WWG8S5iYAAAAASUVORK5CYII=" , charcoal: "data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAABAAAAAQCAYAAAAf8/9hAAABgklEQVR42q2TS28TMRSFv3k4dqI82swkGmkELEACgbqgEqzaJf9/QyWCAAVSQUmBQjPMy55xF1GjTjNBlcrd2NLx+XyvdQz3LOdfopLCXu/zQjt3Bnieh/BdG03HeK6DEIL54qwV4u4yT8M9wv0hD+MpWmviKGh01ArwPI8wDAHoKsmg3yXLCo5fvwBohWx1IKUEwBjD0avnhOMhJ+8XTMYjhBBbkC3A8vs3G0cBcRSw+HqO7AjGe32q2pJmOT8vVkyC0Qbi3p79zfFLtKnIcs27D6d8+nLGyewzxhiKQgOQ/M13jzA/XQIwCUb0eorLJAXYrIN+t/0Rhe/aOAoA6HUVs48L0nR9U5LmFIXm8OAJAFle7O7g4NkjtNY8ffyA819/KLVZB8Z1eDubb85pUzuNICkp7CQYoXWFUh08dy2V2rBKMuq6xvd9Sm0wxqBN7VRV1UziNQRglWSNmcvSYK3lMkk35tYoKymskh0AhoMeyx+/G/pN886/cDMotw3/va4AGJytBqZp1KgAAAAASUVORK5CYII=", sign: "data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAABAAAAAQCAYAAAAf8/9hAAAAl0lEQVR42mNgGGjACGPMb/H9T4rGUxeeMUxfc5aRCVlwwcqDWBU3Td0Hl0NXg2LAozd/GZqm7sPQBJNbsPIgw6M3f2noBWQnLlh5EMUFuLzAgu5XZCfDNCA7m+peYEEWIAfADbjx4B1lCQkbSPLV+c/AwMBw//lXhv1n7mNVy4TPAClRIYIuYKI0L1BsAAs+yaOXHhM0AAA31VKGTW05XgAAAABJRU5ErkJggg=="};
+Object.keys(PACK_ITEMS).forEach(k => {
+  const img = new Image();
+  img.onload = () => {
+    const c = document.createElement('canvas'); c.width = c.height = 16;
+    const g = c.getContext('2d'); g.imageSmoothingEnabled = false; g.drawImage(img, 0, 0, 16, 16);
+    _sprite16Cache[k] = c;
+    if (typeof _iconCanvasCache !== 'undefined') for (const key in _iconCanvasCache) delete _iconCanvasCache[key];
+    try { if (typeof renderHotbar === 'function') renderHotbar(); } catch (e) {}
+  };
+  img.src = PACK_ITEMS[k];
+});
+
 function iconCanvas(type, N = 64) {
   const key = type + N;
   if (_iconCanvasCache[key]) return _iconCanvasCache[key];
@@ -1131,6 +1218,7 @@ const RECIPES = [
   { shape: [['stone'],['stick'],['stick']], out: 'stone_shovel', outCount: 1, needsTable: true },
 
   { shape: [['coal'],['stick']], out: 'torch', outCount: 4, needsTable: false },
+  { shape: [['charcoal'],['stick']], out: 'torch', outCount: 4, needsTable: false },
   { shape: [['stone','stone','stone'],['stone',null,'stone'],['stone','stone','stone']], out: 'furnace', outCount: 1, needsTable: true },
   { shape: [['planks','planks','planks'],['planks',null,'planks'],['planks','planks','planks']], out: 'chest', outCount: 1, needsTable: true },
   // No wool block in Voltex, so leaves stand in for the blanket row.
@@ -1142,6 +1230,7 @@ const RECIPES = [
   { shape: [[null,null,'planks'],[null,'planks','planks'],['planks','planks','planks']], out: 'stairs', outCount: 4, needsTable: true },
   { shape: [['planks','planks'],['planks','planks'],['planks','planks']], out: 'door', outCount: 3, needsTable: true },
   { shape: [['planks','planks','planks'],['planks','planks','planks']], out: 'trapdoor', outCount: 2, needsTable: true },
+  { shape: [['planks','planks','planks'],['planks','planks','planks'],[null,'stick',null]], out: 'sign', outCount: 3, needsTable: true },
 
   { shape: [['planks'],['planks'],['stick']], out: 'wood_sword', outCount: 1, needsTable: true },
   { shape: [['stone'],['stone'],['stick']], out: 'stone_sword', outCount: 1, needsTable: true },
@@ -1222,6 +1311,7 @@ const MI = {
   glass:     regMat(TEX.glass, true),   // variant 15 = outline on all four edges (icons / held item)
   water:     regMat(TEX.water, true),
   craftTop:  regMat(TEX.craftTop),
+  craftSide: regMat(TEX.craftSide),
   sapling:   regMat(TEX.sapling, true),
   coal_ore:  regMat(TEX.coalOre),
   torch:     regMat(TEX.torch, true),
@@ -1236,6 +1326,7 @@ const MI = {
 MI.doorLower = regMat(TEX.doorLower);
 MI.doorUpper = regMat(TEX.doorUpper);
 MI.trapdoor  = regMat(TEX.trapdoor);
+MI.sign      = regMat(TEX.sign);
 MI.door      = MI.doorLower;   // held / icon material
 MI.stairs    = MI.planks;
 MI.glassV = GLASS_TEX.map((t, m) => m === 15 ? MI.glass : regMat(t, true));
@@ -1263,7 +1354,7 @@ function faceMatIndex(type, faceIdx) {
   switch (type) {
     case 'grass': return faceIdx===2 ? MI.grassTop : (faceIdx===3 ? MI.dirt : MI.grassSide);
     case 'wood':  return (faceIdx===2 || faceIdx===3) ? MI.woodTop : MI.wood;
-    case 'crafting_table': return (faceIdx===2 || faceIdx===3) ? MI.craftTop : MI.planks;
+    case 'crafting_table': return (faceIdx===2 || faceIdx===3) ? MI.craftTop : MI.craftSide;
     case 'chest': return (faceIdx===2 || faceIdx===3) ? MI.chestTop : MI.chest;
     case 'bed':   return (faceIdx===2 || faceIdx===3) ? MI.bedTop : MI.bedSide;
     case 'tnt':   return (faceIdx===2 || faceIdx===3) ? MI.tntTop : MI.tnt;
@@ -1378,6 +1469,10 @@ function markLightArea(x, y, z, force) {
 //   11 blocks. Solid blocks stop it (flood fill), so walls really cast light shadows.
 // * final level = clamp(max(sky, 0) + torch, 0, 11)
 const LIGHT_DARK = 0, LIGHT_NORMAL = 6, LIGHT_MAX = 11;
+// Torchlight is warm: cellShade() records how much of a cell's light came from a
+// torch in _warm, and pushCol() turns that into an orange tint on the vertex colours.
+var _warm = 0;
+function pushCol(col, s) { const w = _warm; col.push(s * (1 + 0.10 * w), s * (1 - 0.22 * w), s * (1 - 0.58 * w)); }
 const LIGHT_FLOOR = 0.03;           // shade at level 0 (near-black, not a hard 0)
 const SHADOW_PER_BLOCK = 2;         // negative light per block of cover above
 const SKY_BLEED_PENALTY = 2;        // levels lost bleeding in sideways from an open neighbour column
@@ -1434,7 +1529,7 @@ function addFace(buffers, mi, x,y,z, faceIdx, shade) {
     const c = f.corners[i];
     buf.pos.push(x+c[0], y+c[1], z+c[2]);
     buf.norm.push(f.normal[0], f.normal[1], f.normal[2]);
-    buf.col.push(shade, shade, shade);
+    pushCol(buf.col, shade);
   }
   for (let i=0;i<4;i++) buf.uv.push(f.uvs[i][0], f.uvs[i][1]);
   buf.idx.push(start,start+1,start+2, start,start+2,start+3);
@@ -1477,6 +1572,15 @@ function blockBoxes(b) {
     r = [edgeBox((m & 4) ? doorOpenEdge(m) : dir, -0.5, 0.5)];
   } else if (shape === 'trapdoor') {
     r = [(m & 4) ? edgeBox(dir, -0.5, 0.5) : [-0.5, 0.5, -0.5, -0.5 + SHAPE_T, -0.5, 0.5]];
+  } else if (shape === 'sign') {
+    // floor post: thin board on a stick; wall: thin board flush to face
+    const wall = (m & 8) !== 0;
+    if (wall) {
+      r = [edgeBox(dir, -0.25, 0.45)];
+    } else {
+      // standing sign: post + board
+      r = [[-0.06, 0.06, -0.5, 0.1, -0.06, 0.06], [-0.4, 0.4, 0.1, 0.5, -0.06, 0.06]];
+    }
   } else r = [[-0.5, 0.5, -0.5, 0.5, -0.5, 0.5]];
   _boxCache.set(ck, r);
   return r;
@@ -1498,6 +1602,7 @@ function cardinalFromYaw(yaw) {
 function shapeMat(b) {
   if (b.type === 'door') return ((b.meta | 0) & 8) ? MI.doorUpper : MI.doorLower;
   if (b.type === 'trapdoor') return MI.trapdoor;
+  if (b.type === 'sign') return MI.sign;
   return MI.planks;
 }
 function addShapedBlock(buffers, b, x, y, z, cellShade) {
@@ -1524,7 +1629,7 @@ function addShapedBlock(buffers, b, x, y, z, cellShade) {
         const pz = c[2] > 0 ? bx[5] : bx[4];
         buf.pos.push(x + px, y + py, z + pz);
         buf.norm.push(F.normal[0], F.normal[1], F.normal[2]);
-        buf.col.push(shade, shade, shade);
+        pushCol(buf.col, shade);
         if (axis === 0) buf.uv.push(pz + 0.5, py + 0.5);
         else if (axis === 1) buf.uv.push(px + 0.5, pz + 0.5);
         else buf.uv.push(px + 0.5, py + 0.5);
@@ -1582,7 +1687,7 @@ function addCrossQuads(buffers, mi, x, y, z, shade) {
       const c = quad.corners[i];
       buf.pos.push(x+c[0], y+c[1], z+c[2]);
       buf.norm.push(quad.normal[0], quad.normal[1], quad.normal[2]);
-      buf.col.push(shade, shade, shade);
+      pushCol(buf.col, shade);
     }
     for (let i=0;i<4;i++) buf.uv.push(CROSS_UVS[i][0], CROSS_UVS[i][1]);
     buf.idx.push(start,start+1,start+2, start,start+2,start+3);
@@ -1626,7 +1731,7 @@ function addTorchQuads(buffers, mi, x, y, z, shade, wallDir) {
       }
       buf.pos.push(x+cx, y+cy, z+cz);
       buf.norm.push(quad.normal[0], quad.normal[1], quad.normal[2]);
-      buf.col.push(shade, shade, shade);
+      pushCol(buf.col, shade);
     }
     for (let i=0;i<4;i++) buf.uv.push(CROSS_UVS[i][0], CROSS_UVS[i][1]);
     buf.idx.push(start,start+1,start+2, start,start+2,start+3);
@@ -1712,8 +1817,12 @@ function rebuildChunk(cx, cz) {
       const lvl = skyLevelAt(y, topAt(x+nOff[i][0], z+nOff[i][1])) - SKY_BLEED_PENALTY;
       if (lvl > sky) sky = lvl;
     }
-    const torch = torchField.get(key(x, y, z)) || 0;
-    return shadeFromLevel(Math.min(LIGHT_MAX, Math.max(sky, 0) + torch));
+    const torchRaw = torchField.get(key(x, y, z)) || 0;
+    // steeper falloff than linear: bright pool of light near the flame, fading softly
+    const torch = torchRaw > 0 ? LIGHT_MAX * Math.pow(torchRaw / TORCH_LIGHT_LEVEL, 1.5) : 0;
+    const skyL = Math.max(sky, 0);
+    _warm = torch > 0 ? torch / (torch + skyL * 1.2 + 1) : 0;
+    return shadeFromLevel(Math.min(LIGHT_MAX, skyL + torch));
   }
 
   const _yr = chunkYRange.get(ck);
@@ -1736,7 +1845,7 @@ function rebuildChunk(cx, cz) {
         if (BLOCK_TYPES[b.type].cross) {
           if (b.type === 'torch') {
             // a torch is its own light source: always full level 11
-            addTorchQuads(buffers, MI[b.type], x, y, z, shadeFromLevel(TORCH_LIGHT_LEVEL), torchWallDir(x, y, z));
+            _warm = 0.35; addTorchQuads(buffers, MI[b.type], x, y, z, shadeFromLevel(TORCH_LIGHT_LEVEL), torchWallDir(x, y, z));
           } else {
             addCrossQuads(buffers, MI[b.type], x, y, z, cellShade(x, y, z));
           }
@@ -1931,6 +2040,7 @@ function syncBlockLight(x,y,z,type,deferRerank) {
 function updateTorchShadows() {
   const near = Array.from(blockLights.values());
   near.sort((a, b) => a.position.distanceToSquared(player.pos) - b.position.distanceToSquared(player.pos));
+  fxTorchList = near.filter(t => t.position.distanceToSquared(player.pos) < 34 * 34).slice(0, GLOW_POOL);
   torchPool.forEach((l, i) => {
     const t = near[i];
     if (t && t.position.distanceToSquared(player.pos) < 24 * 24) {
@@ -1955,15 +2065,99 @@ function scheduleTorchRerank() {
 // of an instant on/off), and only fully hides a light once it's finished
 // fading out — keeps the light count the renderer loops over bounded while
 // looking like a smooth crossfade rather than a pop.
+function torchFlicker(t, ph) {
+  const gust = Math.pow(Math.max(0, Math.sin(t * 1.7 + ph * 3.1)), 14);   // rare stronger dip, like a draught
+  return 1 + 0.08 * Math.sin(t * 11 + ph) + 0.06 * Math.sin(t * 23.7 + ph * 1.7)
+           + 0.05 * Math.sin(t * 41.3 + ph * 2.9) - 0.16 * gust;
+}
 function updateTorchLightFades(dt) {
-  const k = Math.min(1, dt * 6);
-  torchPool.forEach(l => {
+  const k = Math.min(1, dt * 6), t = performance.now() / 1000;
+  torchPool.forEach((l, i) => {
     const u = l.userData;
-    if (l.intensity < 0.05) l.position.copy(u.tpos);          // idle light: jump straight to its new torch
+    if (u.cur === undefined) { u.cur = 0; u.ph = i * 2.1; }
+    if (u.cur < 0.05) l.position.copy(u.tpos);          // idle light: jump straight to its new torch
     else l.position.lerp(u.tpos, Math.min(1, dt * 10));
-    l.intensity += (u.target - l.intensity) * k;
-    if (Math.abs(l.intensity - u.target) < 0.005) l.intensity = u.target;
+    u.cur += (u.target - u.cur) * k;
+    if (Math.abs(u.cur - u.target) < 0.005) u.cur = u.target;
+    l.intensity = u.cur * (u.cur > 0.05 ? torchFlicker(t, u.ph) : 1);
+    l.color.setRGB(1, 0.58 + 0.05 * Math.sin(t * 9 + u.ph), 0.25);
   });
+  updateTorchFx(dt, t);
+}
+
+// ---------- Torch flame visuals: soft glow sprites + rising embers ----------
+var fxTorchList = [];
+var dayBrightness = 1;
+const GLOW_POOL = 20, EMBER_TORCHES = 8, EMBERS_PER = 3;
+function makeGlowTexture() {
+  const c = document.createElement('canvas'); c.width = c.height = 64;
+  const g = c.getContext('2d'), gr = g.createRadialGradient(32, 32, 0, 32, 32, 32);
+  gr.addColorStop(0.00, 'rgba(255,235,180,1)');
+  gr.addColorStop(0.18, 'rgba(255,170,70,0.65)');
+  gr.addColorStop(0.50, 'rgba(255,100,25,0.16)');
+  gr.addColorStop(1.00, 'rgba(255,60,0,0)');
+  g.fillStyle = gr; g.fillRect(0, 0, 64, 64);
+  return new THREE.CanvasTexture(c);
+}
+const glowTex = makeGlowTexture();
+const glowCores = [], glowHalos = [];
+for (let i = 0; i < GLOW_POOL; i++) {
+  const mk = col => new THREE.Sprite(new THREE.SpriteMaterial({ map: glowTex, color: col, transparent: true,
+    blending: THREE.AdditiveBlending, depthWrite: false }));
+  const core = mk(0xffc27a), halo = mk(0xff8a3a);
+  core.visible = halo.visible = false; core.renderOrder = halo.renderOrder = 5;
+  scene.add(halo); scene.add(core); glowCores.push(core); glowHalos.push(halo);
+}
+const EMBER_N = EMBER_TORCHES * EMBERS_PER;
+const emberGeo = new THREE.BufferGeometry();
+emberGeo.setAttribute('position', new THREE.BufferAttribute(new Float32Array(EMBER_N * 3), 3));
+emberGeo.setAttribute('color', new THREE.BufferAttribute(new Float32Array(EMBER_N * 3), 3));
+const emberPts = new THREE.Points(emberGeo, new THREE.PointsMaterial({ map: glowTex, size: 0.13, vertexColors: true,
+  transparent: true, blending: THREE.AdditiveBlending, depthWrite: false, sizeAttenuation: true }));
+emberPts.frustumCulled = false; scene.add(emberPts);
+const embers = [];
+for (let i = 0; i < EMBER_N; i++) embers.push({ life: Math.random(), dur: 0.9 + Math.random() * 1.1,
+  dx: (Math.random() - 0.5) * 0.35, dz: (Math.random() - 0.5) * 0.35, rise: 0.5 + Math.random() * 0.5, ph: Math.random() * 6.28 });
+function torchFlamePos(t) {
+  if (!t.flame) {
+    const x = Math.floor(t.position.x), y = Math.round(t.position.y - 0.6), z = Math.floor(t.position.z);
+    const wd = torchWallDir(x, y, z);
+    t.flame = new THREE.Vector3(x + 0.5 + (wd ? wd.x * 0.03 : 0), y + 0.3, z + 0.5 + (wd ? wd.z * 0.03 : 0));
+  }
+  return t.flame;
+}
+function updateTorchFx(dt, t) {
+  const night = 1 - dayBrightness;
+  for (let i = 0; i < GLOW_POOL; i++) {
+    const tor = fxTorchList[i], core = glowCores[i], halo = glowHalos[i];
+    if (!tor) { core.visible = halo.visible = false; continue; }
+    const fp = torchFlamePos(tor), ph = i * 2.1 + fp.x * 1.3 + fp.z * 0.7;
+    const fl = torchFlicker(t, ph);
+    core.visible = halo.visible = true;
+    core.position.copy(fp); halo.position.copy(fp);
+    core.scale.setScalar(0.34 * fl);
+    halo.scale.setScalar(2.3 * (0.94 + 0.06 * fl));
+    core.material.opacity = 0.9;
+    halo.material.opacity = (0.09 + 0.16 * night) * fl;
+  }
+  // embers
+  const pos = emberGeo.attributes.position.array, col = emberGeo.attributes.color.array;
+  for (let i = 0; i < EMBER_N; i++) {
+    const e = embers[i], tor = fxTorchList[(i / EMBERS_PER) | 0];
+    e.life += dt / e.dur;
+    if (e.life >= 1) { e.life -= 1; e.dur = 0.9 + Math.random() * 1.1; e.dx = (Math.random() - 0.5) * 0.35; e.dz = (Math.random() - 0.5) * 0.35; e.rise = 0.5 + Math.random() * 0.5; }
+    if (!tor) { col[i * 3] = col[i * 3 + 1] = col[i * 3 + 2] = 0; continue; }
+    const fp = torchFlamePos(tor), l = e.life;
+    pos[i * 3]     = fp.x + e.dx * l + Math.sin(t * 5 + e.ph) * 0.03 * l;
+    pos[i * 3 + 1] = fp.y + 0.05 + e.rise * l;
+    pos[i * 3 + 2] = fp.z + e.dz * l + Math.cos(t * 4 + e.ph) * 0.03 * l;
+    const a = Math.sin(l * Math.PI) * 0.9;            // fade in and out
+    col[i * 3] = a; col[i * 3 + 1] = a * (0.75 - 0.35 * l); col[i * 3 + 2] = a * 0.25;
+  }
+  emberGeo.attributes.position.needsUpdate = true; emberGeo.attributes.color.needsUpdate = true;
+  // the torch block's own emissive glow flickers too
+  const tm = MAT_LIST[MI.torch];
+  if (tm) tm.emissiveIntensity = 0.9 * torchFlicker(t, 1.3);
 }
 
 function addBlock(x,y,z,type,skipMark,meta) {
@@ -1984,6 +2178,10 @@ function removeBlock(x,y,z,skipMark) {
   if (!world.has(k)) return false;
   const removedType = world.get(k).type;
   world.delete(k);
+  if (removedType === 'sign') {
+    if (signData[k]) { delete signData[k]; saveSignData(); broadcastSign(k, ''); }
+    if (signLabelEls[k]) { signLabelEls[k].remove(); delete signLabelEls[k]; }
+  }
   lightVersion++;
   syncBlockLight(x,y,z,null);
   syncSaplingGrowth(x,y,z,null);
@@ -2786,7 +2984,7 @@ function openInventory(atTable) {
 // allow pointer lock from a user gesture); if the browser refuses, the
 // normal "Click to resume" overlay appears as a fallback.
 function resumeGameplay() {
-  if (!gameStarted || inventoryOpen || furnaceOpen || chestOpen || chatOpen || settingsOpen) return;
+  if (!gameStarted || inventoryOpen || furnaceOpen || chestOpen || chatOpen || settingsOpen || signOpen) return;
   if (pointerLocked) return;
   pauseOverlay.style.display = 'none';
   try {
@@ -2795,7 +2993,7 @@ function resumeGameplay() {
   } catch (e) { pauseOverlay.style.display = 'flex'; }
 }
 document.addEventListener('pointerlockerror', () => {
-  if (gameStarted && !pointerLocked && !inventoryOpen && !furnaceOpen && !chestOpen && !chatOpen && !settingsOpen) pauseOverlay.style.display = 'flex';
+  if (gameStarted && !pointerLocked && !inventoryOpen && !furnaceOpen && !chestOpen && !chatOpen && !settingsOpen && !signOpen && !signOpen) pauseOverlay.style.display = 'flex';
 });
 function closeInventory() {
   inventoryOpen = false;
@@ -2824,8 +3022,9 @@ const SMELT_RECIPES = {
   sand:      { out: 'glass',       time: 4 },
   raw_meat:  { out: 'cooked_meat', time: 5 },
   iron_ore:  { out: 'iron_ingot',  time: 5 },
+  wood:      { out: 'charcoal',    time: 5 },
 };
-const FUEL_VALUES = { coal: 16, wood: 8, planks: 6, stick: 2.5, sapling: 1 };
+const FUEL_VALUES = { coal: 16, charcoal: 16, wood: 8, planks: 6, stick: 2.5, sapling: 1 };
 
 const furnacePanel = document.getElementById('furnacePanel');
 const furnaceInputWrap = document.getElementById('furnaceInputWrap');
@@ -3264,6 +3463,7 @@ function updateDayNight(dt) {
   // caves, overhangs, the underside of a roof) now drop close to black
   // instead of the old 0.15-0.2 floor, so a torch actually matters.
   const brightness = Math.max(0.12, sunHeight * 0.5 + 0.5); // sky-lit areas now stay noticeably brighter at night too, not near-black
+  dayBrightness = brightness;
   sun.intensity = 0.08 + brightness * 0.9;
   ambient.intensity = 0.08 + brightness * 0.4;
   hemi.intensity = 0.12 + brightness * 0.35;
@@ -4149,11 +4349,15 @@ playersChannel
     if (!payload || payload.from === MY_ID) return;
     applyRemoteChestRemove(payload.key);
   })
+  .on('broadcast', { event: 'sign' }, ({ payload }) => {
+    if (!payload || payload.from === MY_ID) return;
+    applySignPayload(payload);
+  })
   // A player who just joined asks for the current chests + items lying around.
   .on('broadcast', { event: 'sync_req' }, ({ payload }) => {
     if (!payload || payload.id === MY_ID) return;
     playersChannel.send({ type: 'broadcast', event: 'sync_state', payload: {
-      to: payload.id, from: MY_ID, chests: chestData, stamps: chestStamps,
+      to: payload.id, from: MY_ID, chests: chestData, stamps: chestStamps, signs: signData,
       drops: droppedItems.slice(0, 60).map(d => ({ id: d.id, type: d.type, count: d.count, x: d.pos.x, y: d.pos.y, z: d.pos.z }))
     } });
   })
@@ -4161,6 +4365,9 @@ playersChannel
     if (!payload || payload.to !== MY_ID) return;
     const ch = payload.chests || {}, st = payload.stamps || {};
     Object.keys(ch).forEach(k => applyRemoteChest(k, ch[k], st[k] || 0));
+    const sg = payload.signs || {};
+    Object.keys(sg).forEach(k => { if (sg[k]) { signData[k] = String(sg[k]).slice(0,120); } });
+    if (Object.keys(sg).length) saveSignData();
     (payload.drops || []).forEach(d => {
       if (!BLOCK_TYPES[d.type] && !ITEM_INFO[d.type]) return;
       spawnDroppedItem(d.type, d.count, new THREE.Vector3(d.x, d.y, d.z), new THREE.Vector3(0, 0, 0), { id: d.id, remote: true });
@@ -4274,14 +4481,16 @@ let isSprinting = false;
 document.addEventListener('keydown', e => {
   if (!gameStarted || chatOpen) return;
   if (e.code === 'Escape') {
-    if (settingsOpen) closeSettings();
+    if (signOpen) closeSignEditor(false);
+    else if (settingsOpen) closeSettings();
     else if (furnaceOpen) closeFurnace();
     else if (chestOpen) closeChest();
     else if (inventoryOpen) closeInventory();
     else document.exitPointerLock();
     return;
   }
-  if (e.code === 'KeyE') { if (furnaceOpen) closeFurnace(); else if (chestOpen) closeChest(); else if (!settingsOpen) toggleInventory(); return; }
+  if (signOpen) return;
+  if (e.code === 'KeyE') { if (signOpen) { closeSignEditor(true); return; } if (furnaceOpen) closeFurnace(); else if (chestOpen) closeChest(); else if (!settingsOpen) toggleInventory(); return; }
   if (e.code === 'F5') { thirdPerson = !thirdPerson; myModel.group.visible = thirdPerson; e.preventDefault(); return; }
   if (e.code === 'KeyF') { startEating(); return; }
   if (e.code === 'KeyQ') { throwCurrentItem(); return; }
@@ -4424,17 +4633,17 @@ confirmOverlay.addEventListener('click', e => {
   if (e.target === confirmOverlay) confirmOverlay.style.display = 'none';
 });
 canvas.addEventListener('click', () => {
-  if (!pointerLocked && gameStarted && !inventoryOpen && !furnaceOpen && !chestOpen && !chatOpen && !settingsOpen) canvas.requestPointerLock();
+  if (!pointerLocked && gameStarted && !inventoryOpen && !furnaceOpen && !chestOpen && !chatOpen && !settingsOpen && !signOpen) canvas.requestPointerLock();
 });
 // The pause overlay sits on top of (and fully covers) the canvas while
 // showing, so clicks on it never reached the canvas's own click listener
 // above — "Click to resume" did nothing. Handle it directly here instead.
 pauseOverlay.addEventListener('click', () => {
-  if (gameStarted && !inventoryOpen && !furnaceOpen && !chestOpen && !chatOpen && !settingsOpen) canvas.requestPointerLock();
+  if (gameStarted && !inventoryOpen && !furnaceOpen && !chestOpen && !chatOpen && !settingsOpen && !signOpen) canvas.requestPointerLock();
 });
 document.addEventListener('pointerlockchange', () => {
   pointerLocked = document.pointerLockElement === canvas;
-  pauseOverlay.style.display = (!pointerLocked && gameStarted && !inventoryOpen && !furnaceOpen && !chestOpen && !chatOpen && !settingsOpen) ? 'flex' : 'none';
+  pauseOverlay.style.display = (!pointerLocked && gameStarted && !inventoryOpen && !furnaceOpen && !chestOpen && !chatOpen && !settingsOpen && !signOpen) ? 'flex' : 'none';
 });
 
 // ================= Settings (persisted locally) =================
@@ -4838,6 +5047,10 @@ canvas.addEventListener('mousedown', e => {
       setRespawnPoint(hit.x, hit.y, hit.z);
       return;
     }
+    if (targeted && targeted.type === 'sign') {
+      openSignEditor(hit.x, hit.y, hit.z);
+      return;
+    }
     const type = currentBlockType();
     if (!type) return;
     const nx = hit.px, ny = hit.py, nz = hit.pz;
@@ -4871,7 +5084,34 @@ canvas.addEventListener('mousedown', e => {
       // (immediately for you, or after a fresh page/world load for anyone).
       removedDiffs.delete(key(nx, ny, nz));
       const facing = cardinalFromYaw(player.yaw);
-      if (type === 'door') {
+      if (type === 'sign') {
+        // Floor if placing on top face (hit normal up), else wall against the hit face.
+        const nX = hit.x - hit.px, nY = hit.y - hit.py, nZ = hit.z - hit.pz;
+        let wall = 0, face = facing;
+        if (Math.abs(nY) > 0.5 && nY < 0) {
+          // clicked underside of a block above — treat as wall-ish reject if no support
+          wall = 0; face = facing;
+        } else if (Math.abs(nY) > 0.5 && nY > 0) {
+          wall = 0; face = facing; // floor / top of block
+        } else {
+          wall = 8;
+          if (Math.abs(nX) > Math.abs(nZ)) face = nX > 0 ? 1 : 0; // attach to +x face -> face toward -x? store attach dir
+          else face = nZ > 0 ? 3 : 2;
+          // face = direction the board faces outward (away from wall)
+          if (Math.abs(nX) > Math.abs(nZ)) face = nX > 0 ? 0 : 1;
+          else face = nZ > 0 ? 2 : 3;
+        }
+        const below = world.get(key(nx, ny - 1, nz));
+        const supportOk = wall ? true : (below && below.type !== 'water' && !BLOCK_TYPES[below.type].transparent);
+        if (canPlace && supportOk && !world.has(key(nx, ny, nz)) && addBlock(nx, ny, nz, 'sign', false, face | wall)) {
+          removeFromCurrentSlot(1);
+          flushDirtyChunks(false);
+          renderHotbar();
+          if (inventoryOpen) renderInventoryPanel();
+          pushBlockDiff(nx, ny, nz, 'sign', face | wall);
+          openSignEditor(nx, ny, nz);
+        }
+      } else if (type === 'door') {
         // Doors are two blocks tall and need something under them.
         const below = world.get(key(nx, ny - 1, nz));
         if (canPlace && below && below.type !== 'water' && !world.has(key(nx, ny, nz)) &&
@@ -4996,6 +5236,111 @@ setLoadProgress(10, 'Connecting to server…');
 
 let saveTimer = 0;
 let torchShadowTimer = 0;
+
+
+
+// ================= Signs =================
+// Floor or wall-mounted boards. Text is stored client-side + broadcast so
+// other players see the same message. Meta: bits0-1 = facing, bit3 = wall.
+const SIGN_SAVE_KEY = 'voltex_signs_v1';
+let signData = {}; // "x,y,z" -> string
+let signOpen = false;
+let signEditKey = null;
+const signPanel = document.getElementById('signPanel');
+const signTextEl = document.getElementById('signText');
+try { const raw = localStorage.getItem(SIGN_SAVE_KEY); if (raw) signData = JSON.parse(raw) || {}; } catch(e) { signData = {}; }
+function saveSignData() { try { localStorage.setItem(SIGN_SAVE_KEY, JSON.stringify(signData)); } catch(e) {} }
+function broadcastSign(k, text) {
+  try {
+    playersChannel.send({ type: 'broadcast', event: 'sign', payload: { from: MY_ID, key: k, text: text || '' } });
+  } catch(e) {}
+}
+function applySignPayload(p) {
+  if (!p || !p.key) return;
+  if (p.text) signData[p.key] = String(p.text).slice(0, 120);
+  else delete signData[p.key];
+  saveSignData();
+  refreshSignLabel(p.key);
+}
+function openSignEditor(x, y, z) {
+  const k = key(x, y, z);
+  signEditKey = k;
+  signOpen = true;
+  signTextEl.value = signData[k] || '';
+  signPanel.style.display = 'flex';
+  document.exitPointerLock();
+  setTimeout(() => { try { signTextEl.focus(); } catch(e) {} }, 50);
+}
+function closeSignEditor(save) {
+  if (save && signEditKey) {
+    const t = (signTextEl.value || '').replace(/\r/g,'').slice(0, 120);
+    if (t.trim()) signData[signEditKey] = t; else delete signData[signEditKey];
+    saveSignData();
+    broadcastSign(signEditKey, signData[signEditKey] || '');
+    refreshSignLabel(signEditKey);
+  }
+  signOpen = false; signEditKey = null;
+  signPanel.style.display = 'none';
+  if (gameStarted) canvas.requestPointerLock();
+}
+document.getElementById('signSaveBtn').addEventListener('click', () => closeSignEditor(true));
+document.getElementById('signCancelBtn').addEventListener('click', () => closeSignEditor(false));
+signTextEl.addEventListener('keydown', e => {
+  if (e.code === 'Escape') { e.preventDefault(); closeSignEditor(false); }
+  if (e.code === 'Enter' && (e.ctrlKey || e.metaKey)) { e.preventDefault(); closeSignEditor(true); }
+});
+
+// Floating text labels above signs (CSS2D-like sprites via THREE sprites would be heavy;
+// use simple DOM overlays updated each frame for nearby signs).
+const signLabelRoot = document.createElement('div');
+signLabelRoot.id = 'signLabels';
+signLabelRoot.style.cssText = 'position:fixed;inset:0;pointer-events:none;z-index:9;overflow:hidden;';
+document.body.appendChild(signLabelRoot);
+const signLabelEls = {}; // key -> div
+function refreshSignLabel(k) {
+  const el = signLabelEls[k];
+  if (!el) return;
+  const t = signData[k] || '';
+  el.textContent = t;
+  el.style.display = t ? 'block' : 'none';
+}
+function updateSignLabels() {
+  if (!camera || !gameStarted) return;
+  const near = [];
+  for (const k of Object.keys(signData)) {
+    if (!signData[k]) continue;
+    const parts = k.split(',').map(Number);
+    if (parts.length < 3) continue;
+    const [x,y,z] = parts;
+    const dx = x - player.pos.x, dy = y - player.pos.y, dz = z - player.pos.z;
+    if (dx*dx + dy*dy + dz*dz > 18*18) continue;
+    near.push([k, x, y, z]);
+  }
+  const keep = new Set(near.map(n => n[0]));
+  for (const k of Object.keys(signLabelEls)) {
+    if (!keep.has(k)) { signLabelEls[k].remove(); delete signLabelEls[k]; }
+  }
+  const v = new THREE.Vector3();
+  for (const [k, x, y, z] of near) {
+    let el = signLabelEls[k];
+    if (!el) {
+      el = document.createElement('div');
+      el.className = 'signLabel';
+      el.style.cssText = 'position:absolute;transform:translate(-50%,-100%);background:rgba(0,0,0,0.55);color:#fff;padding:4px 8px;border-radius:4px;font-size:12px;white-space:pre-wrap;max-width:160px;text-align:center;text-shadow:1px 1px 2px #000;line-height:1.25;';
+      el.textContent = signData[k];
+      signLabelRoot.appendChild(el);
+      signLabelEls[k] = el;
+    }
+    v.set(x, y + 0.55, z);
+    v.project(camera);
+    if (v.z > 1) { el.style.display = 'none'; continue; }
+    const sx = (v.x * 0.5 + 0.5) * window.innerWidth;
+    const sy = (-v.y * 0.5 + 0.5) * window.innerHeight;
+    el.style.left = sx + 'px';
+    el.style.top = sy + 'px';
+    el.style.display = 'block';
+  }
+}
 
 
 // ================= TNT =================
@@ -5416,6 +5761,7 @@ function animate() {
   fpShield.visible = !thirdPerson && blockAmt > 0.02;
   if (fpShield.visible) fpShield.material.opacity = (0.16 + Math.min(0.4, myShieldPulse) * 1.6) * blockAmt;
 
+  updateSignLabels();
   updateTnt(dt);
   if (tntShake > 0.001) {
     camera.position.x += (Math.random()-0.5) * tntShake;
