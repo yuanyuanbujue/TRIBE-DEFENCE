@@ -234,6 +234,8 @@
     background: rgba(255,255,255,0.1); color: #fff; border: 1px solid rgba(255,255,255,0.25);
     border-radius: 5px; padding: 3px 6px; font-size: 12.5px; cursor: pointer;
   }
+  .settingRow.mobileOnly { display: none; }
+  body.touch-mode .settingRow.mobileOnly { display: flex; }
   .settingRow input[type=range] { width: 110px; vertical-align: middle; accent-color: #7ec8ff; }
   .settingRow input[type=checkbox]:disabled { opacity: 0.4; cursor: not-allowed; }
   .keybindRow {
@@ -255,6 +257,22 @@
     flex-direction: column; text-align:center;
   }
   #pauseOverlay h2 { text-shadow: 2px 2px 0 rgba(0,0,0,0.5); }
+
+  /* ===== Panel close (X) button — lets touch players close bag / furnace / chest ===== */
+  .panelClose {
+    position: fixed; top: max(10px, env(safe-area-inset-top)); right: max(10px, env(safe-area-inset-right));
+    width: 46px; height: 46px; border-radius: 50%; z-index: 80; cursor: pointer;
+    background: rgba(200,50,50,0.9); border: 2px solid #fff; color: #fff;
+    font-size: 24px; font-weight: 700; line-height: 1; padding: 0;
+    display: flex; align-items: center; justify-content: center;
+    box-shadow: 0 3px 10px rgba(0,0,0,0.5); touch-action: manipulation;
+    -webkit-tap-highlight-color: transparent;
+  }
+  .panelClose:active { transform: scale(0.92); background: rgba(230,70,70,1); }
+  #invPanel, #furnacePanel, #chestPanel { overflow-y: auto; -webkit-overflow-scrolling: touch; }
+  #invPanelBox, #furnacePanelBox, #chestPanelBox { margin: auto; }
+  body.touch-mode #invPanel, body.touch-mode #furnacePanel, body.touch-mode #chestPanel { justify-content: flex-start; }
+  body.touch-mode #invHint, body.touch-mode #furnaceHint, body.touch-mode #chestHint { display: none; }
 
   /* ===== Minecraft-style inventory / crafting panel ===== */
   #invPanel {
@@ -420,6 +438,7 @@
     position: absolute; left: max(10px, env(safe-area-inset-left));
     bottom: max(88px, calc(78px + env(safe-area-inset-bottom)));
     width: 150px; height: 150px; pointer-events: auto; touch-action: none;
+    transform: scale(var(--btn-scale, 1)); transform-origin: bottom left;
   }
   #dpad .mBtn {
     position: absolute; width: 52px; height: 52px; border-radius: 14px;
@@ -435,6 +454,7 @@
     bottom: max(100px, calc(90px + env(safe-area-inset-bottom)));
     display: flex; flex-direction: column; gap: 12px;
     pointer-events: auto; align-items: flex-end;
+    transform: scale(var(--btn-scale, 1)); transform-origin: bottom right;
   }
   .mBtn {
     width: 64px; height: 64px; border-radius: 50%;
@@ -453,7 +473,7 @@
   #mBtnSneak.on { background: rgba(255,170,60,0.85); border-color: #fff; }
   #mobileTopBtns {
     position: absolute; top: max(8px, env(safe-area-inset-top));
-    left: 50%; transform: translateX(-50%);
+    left: 50%; transform: translateX(-50%) scale(var(--btn-scale, 1)); transform-origin: top center;
     display: flex; gap: 10px; pointer-events: auto;
   }
   #mobileTopBtns .mBtn {
@@ -526,6 +546,7 @@
 <div id="pauseOverlay"><h2>Paused</h2><p>Click to resume</p></div>
 
 <div id="invPanel">
+  <button class="panelClose" id="invCloseBtn" aria-label="Close inventory">✕</button>
   <div id="statsBoard"></div>
   <div id="invPanelBox">
     <h2 id="craftTitle">Crafting</h2>
@@ -563,6 +584,7 @@
 <div id="cursorItem"></div>
 
 <div id="furnacePanel">
+  <button class="panelClose" id="furnaceCloseBtn" aria-label="Close furnace">✕</button>
   <div id="furnacePanelBox">
     <h2>Furnace</h2>
     <div id="furnaceSection">
@@ -583,6 +605,7 @@
 </div>
 
 <div id="chestPanel">
+  <button class="panelClose" id="chestCloseBtn" aria-label="Close chest">✕</button>
   <div id="chestPanelBox">
     <h2>Chest</h2>
     <div id="chestGrid"></div>
@@ -643,6 +666,19 @@
 <div id="settingsOverlay">
   <div id="settingsBox">
     <h3>⚙️ Settings</h3>
+    <h4>Controls</h4>
+    <div class="settingRow">
+      <label for="sensitivitySlider">Look sensitivity</label>
+      <span><input type="range" id="sensitivitySlider" min="0.2" max="3" step="0.05"> <span id="sensitivityValue">1.00x</span></span>
+    </div>
+    <div class="settingRow mobileOnly">
+      <label for="btnSizeSlider">Button size</label>
+      <span><input type="range" id="btnSizeSlider" min="0.6" max="1.6" step="0.05"> <span id="btnSizeValue">100%</span></span>
+    </div>
+    <div class="settingRow">
+      <label for="fullscreenBtn">Fullscreen</label>
+      <button id="fullscreenBtn" style="background:rgba(255,255,255,0.12);color:#fff;border:1px solid rgba(255,255,255,0.3);border-radius:6px;padding:5px 12px;font-size:12.5px;cursor:pointer">Toggle</button>
+    </div>
     <h4>Gameplay</h4>
     <label class="settingRow" for="coordsToggle">
       Show coordinates
@@ -5689,8 +5725,8 @@ function initMobileControls() {
       mobile.lookLastY = t.clientY;
       // Always allow look while finger is down (after small movement or during drag)
       if (mobile.moved || mobile.longActive === false) {
-        player.yaw -= dx * LOOK_SENS;
-        player.pitch -= dy * LOOK_SENS;
+        player.yaw -= dx * LOOK_SENS * settings.sensitivity;
+        player.pitch -= dy * LOOK_SENS * settings.sensitivity;
         player.pitch = Math.max(-1.5, Math.min(1.5, player.pitch));
       }
     }
@@ -5730,11 +5766,46 @@ const savedName = (typeof loadSavedName === 'function') ? loadSavedName() : null
 if (savedName) MY_NAME = savedName;
 if (nameInput) nameInput.value = MY_NAME;
 
+// ---------- Fullscreen (auto on mobile join; also a button in Settings) ----------
+function isFullscreen() {
+  return !!(document.fullscreenElement || document.webkitFullscreenElement);
+}
+function enterFullscreen() {
+  const el = document.documentElement;
+  try {
+    const req = el.requestFullscreen || el.webkitRequestFullscreen || el.msRequestFullscreen;
+    if (req) {
+      const r = req.call(el, { navigationUI: 'hide' });
+      const lockLandscape = () => {
+        try { if (screen.orientation && screen.orientation.lock) screen.orientation.lock('landscape').catch(() => {}); } catch (e) {}
+      };
+      if (r && r.then) r.then(lockLandscape).catch(() => {}); else lockLandscape();
+    }
+  } catch (e) {}
+}
+function exitFullscreen() {
+  try { (document.exitFullscreen || document.webkitExitFullscreen || (() => {})).call(document); } catch (e) {}
+}
+function toggleFullscreen() { if (isFullscreen()) exitFullscreen(); else enterFullscreen(); }
+
+// Close (X) buttons on the bag / furnace / chest panels
+(function wirePanelClose() {
+  const bind = (id, fn) => {
+    const b = document.getElementById(id);
+    if (!b) return;
+    b.addEventListener('click', e => { e.preventDefault(); e.stopPropagation(); fn(); });
+  };
+  bind('invCloseBtn', () => { if (inventoryOpen) closeInventory(); });
+  bind('furnaceCloseBtn', () => { if (furnaceOpen) closeFurnace(); });
+  bind('chestCloseBtn', () => { if (chestOpen) closeChest(); });
+})();
+
 function startGame() {
   MY_NAME = (nameInput.value || MY_NAME).trim().slice(0, 16) || MY_NAME;
   startScreen.style.display = 'none';
   gameStarted = true;
   if (touchMode) {
+    enterFullscreen(); // must run inside the Start tap (user gesture)
     setMobileVisible(true);
     // No pointer lock on mobile — touch controls take over.
   } else {
@@ -5884,14 +5955,45 @@ let settings = {
   shadows: true,
   torchShadows: true,
   quality: 'medium', // 'low' | 'medium' | 'high' — caps devicePixelRatio
+  sensitivity: 1,    // look sensitivity multiplier (mouse + touch)
+  btnSize: 1,        // mobile on-screen button scale
 };
 try {
   const raw = localStorage.getItem(SETTINGS_KEY);
   if (raw) Object.assign(settings, JSON.parse(raw));
 } catch(e) {}
+// sanitize in case of bad saved values
+settings.sensitivity = Math.max(0.2, Math.min(3, Number(settings.sensitivity) || 1));
+settings.btnSize = Math.max(0.6, Math.min(1.6, Number(settings.btnSize) || 1));
 function saveSettings() {
   try { localStorage.setItem(SETTINGS_KEY, JSON.stringify(settings)); } catch(e) {}
 }
+// ---------- Controls settings (sensitivity + mobile button size) ----------
+const sensitivitySlider = document.getElementById('sensitivitySlider');
+const sensitivityValue = document.getElementById('sensitivityValue');
+sensitivitySlider.value = settings.sensitivity;
+sensitivityValue.textContent = settings.sensitivity.toFixed(2) + 'x';
+sensitivitySlider.addEventListener('input', () => {
+  settings.sensitivity = parseFloat(sensitivitySlider.value);
+  sensitivityValue.textContent = settings.sensitivity.toFixed(2) + 'x';
+  saveSettings();
+});
+const btnSizeSlider = document.getElementById('btnSizeSlider');
+const btnSizeValue = document.getElementById('btnSizeValue');
+function applyBtnSize(v) {
+  document.documentElement.style.setProperty('--btn-scale', v);
+  btnSizeValue.textContent = Math.round(v * 100) + '%';
+}
+btnSizeSlider.value = settings.btnSize;
+applyBtnSize(settings.btnSize);
+btnSizeSlider.addEventListener('input', () => {
+  settings.btnSize = parseFloat(btnSizeSlider.value);
+  applyBtnSize(settings.btnSize);
+  saveSettings();
+});
+
+document.getElementById('fullscreenBtn').addEventListener('click', () => toggleFullscreen());
+
 const coordsDisplay = document.getElementById('coordsDisplay');
 const settingsOverlay = document.getElementById('settingsOverlay');
 const settingsBtn = document.getElementById('settingsBtn');
@@ -6035,8 +6137,8 @@ document.addEventListener('wheel', e => {
 
 document.addEventListener('mousemove', e => {
   if (!pointerLocked) return;
-  player.yaw -= e.movementX * 0.0022;
-  player.pitch -= e.movementY * 0.0022;
+  player.yaw -= e.movementX * 0.0022 * settings.sensitivity;
+  player.pitch -= e.movementY * 0.0022 * settings.sensitivity;
   player.pitch = Math.max(-Math.PI/2+0.05, Math.min(Math.PI/2-0.05, player.pitch));
 });
 
