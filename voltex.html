@@ -18,6 +18,17 @@
   }
   #crosshair::before { left: 9px; top: 0; width: 2px; height: 20px; }
   #crosshair::after { top: 9px; left: 0; width: 20px; height: 2px; }
+  #crosshair.hot::before, #crosshair.hot::after { background: rgba(255,92,72,0.95); }
+
+  /* Java-edition attack cooldown indicator, right under the crosshair */
+  #atkCd {
+    position: fixed; top: calc(50% + 17px); left: 50%; transform: translateX(-50%);
+    width: 44px; height: 6px; box-sizing: border-box; padding: 1px;
+    background: rgba(0,0,0,0.55); border: 1px solid rgba(0,0,0,0.85);
+    z-index: 10; pointer-events: none; display: none;
+  }
+  #atkCdFill { height: 100%; width: 0%; background: rgba(255,255,255,0.92); }
+  #atkCd.ready #atkCdFill { background: #b6ff7a; }
 
   #mineProgressWrap {
     position: fixed; top: calc(50% + 22px); left: 50%; transform: translateX(-50%);
@@ -703,6 +714,7 @@
 </div>
 <div id="mobileHint">Tap block/mob: place or attack · Hold on a block: mine · Double-tap ▲: sprint</div>
 <div id="crosshair"></div>
+<div id="atkCd"><div id="atkCdFill"></div></div>
 <div id="mineProgressWrap"><div id="mineProgressBar"></div></div>
 <div id="statusBars">
   <div id="heartsBar" aria-label="Health"></div>
@@ -3518,7 +3530,8 @@ const statsBoardEl = document.getElementById('statsBoard');
 function renderStatsBoard() {
   if (!statsBoardEl) return;
   const held = currentItem();
-  const atk = (held && ITEM_INFO[held.type] && ITEM_INFO[held.type].attack) || 2;
+  const _js = jcStats(held);
+  const atk = _js.dmg + ' dmg · ' + (20 / _js.ticks).toFixed(1) + '/s';
   let armorPts = 0, itemCount = 0, usedSlots = 0;
   for (const it of inventory) {
     if (!it) continue;
@@ -5025,10 +5038,10 @@ function updateAnimalSpawning(dt) {
   }
 }
 
-function damageAnimal(animal, dmg, fromPos) {
+function damageAnimal(animal, dmg, fromPos, kbMul) {
   animal.hp -= dmg;
   flashRed(animal.group);
-  knockbackEntity(animal, fromPos || player.pos, animal.kind === 'zombie' ? 9.5 : 7.5);
+  knockbackEntity(animal, fromPos || player.pos, (animal.kind === 'zombie' ? 9.5 : 7.5) * (kbMul == null ? 1 : kbMul));
   if (animal.hp <= 0) killAnimal(animal);
 }
 function killAnimal(animal) {
@@ -5182,6 +5195,208 @@ function findTargetAnimal() {
   return best;
 }
 let attackCooldown = 0;
+
+// ================= Java-edition combat (1.9+ attack cooldown) =================
+// Every weapon has an attack speed. After a swing the "charge" refills over
+// that many ticks (20 ticks = 1 second). Hitting early deals reduced damage:
+//     damage *= 0.2 + strength^2 * 0.8          (strength = 0..1)
+// A full-strength hit (> 90%) unlocks:
+//     - critical hit  : falling (not on ground, not sprinting)  -> x1.5 damage
+//     - sprint hit    : sprinting                               -> extra knockback
+//     - sweep attack  : sword, standing on ground               -> 2 dmg to nearby mobs
+// Missing, mining a block, or switching to a different item resets the charge.
+// Targets get 0.5s of hurt-immunity: a hit in that window only deals the
+// extra damage over the previous one.
+const JC_DMG = {
+  sword:   { wood: 4,   stone: 5,   iron: 6,   gold: 4,   diamond: 7 },
+  axe:     { wood: 7,   stone: 9,   iron: 9,   gold: 7,   diamond: 9 },
+  pickaxe: { wood: 2,   stone: 3,   iron: 4,   gold: 2,   diamond: 5 },
+  shovel:  { wood: 2.5, stone: 3.5, iron: 4.5, gold: 2.5, diamond: 5.5 },
+};
+const JC_TICKS = {   // ticks to recharge fully (20 ticks = 1s)
+  sword: 12, pickaxe: 18, shovel: 20,
+  axe: { wood: 25, stone: 25, iron: 22, gold: 20, diamond: 20 },
+};
+const JC_HAND = { dmg: 1, ticks: 5, kind: 'hand' };
+const JC_SWEEP_DMG = 2, JC_SWEEP_RADIUS = 2.0, JC_IFRAME_MS = 500;
+function jcStats(item) {
+  const m = item && /^(wood|stone|iron|gold|diamond)_(sword|axe|pickaxe|shovel)$/.exec(item.type);
+  if (!m) return JC_HAND;
+  const mat = m[1], kind = m[2];
+  const t = JC_TICKS[kind];
+  return { dmg: JC_DMG[kind][mat], ticks: typeof t === 'object' ? t[mat] : t, kind };
+}
+let atkTicks = 99;          // ticks since the last swing (float)
+let jcLastHeld = '';
+let jcSprinting = false;    // set every frame from the movement code
+let jcTargetTimer = 0, jcHasTarget = false;
+const atkCdEl = document.getElementById('atkCd'), atkCdFill = document.getElementById('atkCdFill');
+const crosshairEl = document.getElementById('crosshair');
+function jcStrength(ticks) { return Math.max(0, Math.min(1, (atkTicks + 0.5) / ticks)); }
+function jcResetCd() { atkTicks = 0; }
+
+// Works out damage + special-attack flags for the swing that is happening right now.
+function jcRoll() {
+  const st = jcStats(currentItem());
+  const s = jcStrength(st.ticks);
+  const charged = s > 0.9;
+  let dmg = st.dmg * (0.2 + s * s * 0.8);
+  const wet = (typeof isInWater === 'function') && isInWater(player.pos);
+  const crit = charged && !player.onGround && player.vel.y < -1.5 && !wet && !jcSprinting;
+  if (crit) dmg *= 1.5;
+  const sprint = charged && jcSprinting;
+  const sweep = charged && st.kind === 'sword' && player.onGround && !jcSprinting && !crit;
+  return { st, s, charged, dmg, crit, sprint, sweep, kb: (charged ? 1 : 0.6) * (sprint ? 1.9 : 1) };
+}
+// Hurt-immunity: returns the damage that actually goes through.
+function jcIframe(ref, dmg) {
+  const now = performance.now();
+  if (now < (ref.jcUntil || 0)) {
+    if (dmg <= (ref.jcLast || 0)) return 0;
+    const extra = dmg - ref.jcLast; ref.jcLast = dmg; return extra;
+  }
+  ref.jcLast = dmg; ref.jcUntil = now + JC_IFRAME_MS;
+  return dmg;
+}
+
+// ---- tiny particle effects (crit stars, sweep arc) ----
+const jcParts = [];
+const jcTexCache = {};
+function jcTex(kind) {
+  if (jcTexCache[kind]) return jcTexCache[kind];
+  const c = document.createElement('canvas'); c.width = c.height = 32;
+  const g = c.getContext('2d');
+  if (kind === 'crit') {            // 4-point sparkle
+    g.fillStyle = '#ffe56b';
+    g.beginPath();
+    g.moveTo(16, 1); g.lineTo(20, 12); g.lineTo(31, 16); g.lineTo(20, 20);
+    g.lineTo(16, 31); g.lineTo(12, 20); g.lineTo(1, 16); g.lineTo(12, 12); g.closePath(); g.fill();
+    g.fillStyle = '#fff'; g.beginPath(); g.arc(16, 16, 4, 0, 7); g.fill();
+  } else {                          // soft white streak for the sweep arc
+    const gr = g.createRadialGradient(16, 16, 1, 16, 16, 15);
+    gr.addColorStop(0, 'rgba(255,255,255,1)'); gr.addColorStop(1, 'rgba(255,255,255,0)');
+    g.fillStyle = gr; g.fillRect(0, 0, 32, 32);
+  }
+  const t = new THREE.CanvasTexture(c); t.magFilter = THREE.NearestFilter;
+  return (jcTexCache[kind] = t);
+}
+function jcSpawn(kind, x, y, z, vx, vy, vz, size, life) {
+  const mat = new THREE.SpriteMaterial({ map: jcTex(kind), transparent: true, depthWrite: false });
+  const sp = new THREE.Sprite(mat);
+  sp.position.set(x, y, z); sp.scale.set(size, size, size);
+  scene.add(sp);
+  jcParts.push({ sp, mat, vx, vy, vz, size, life, age: 0 });
+}
+function jcCritFx(pos, h) {
+  for (let i = 0; i < 12; i++) {
+    const a = Math.random() * Math.PI * 2, up = 0.5 + Math.random() * 2;
+    jcSpawn('crit', pos.x, pos.y + h, pos.z, Math.cos(a) * 2.4, up, Math.sin(a) * 2.4, 0.3 + Math.random() * 0.15, 0.45);
+  }
+}
+function jcSweepFx() {
+  const fx = -Math.sin(player.yaw), fz = -Math.cos(player.yaw);
+  for (let i = 0; i < 9; i++) {
+    const ang = (-55 + i * 13.75) * Math.PI / 180;
+    const dx = fx * Math.cos(ang) - fz * Math.sin(ang), dz = fx * Math.sin(ang) + fz * Math.cos(ang);
+    jcSpawn('arc', player.pos.x + dx * 1.7, player.pos.y + 1.1, player.pos.z + dz * 1.7, dx * 1.2, 0, dz * 1.2, 0.55, 0.28);
+  }
+}
+function jcUpdateParts(dt) {
+  for (let i = jcParts.length - 1; i >= 0; i--) {
+    const p = jcParts[i];
+    p.age += dt;
+    if (p.age >= p.life) { scene.remove(p.sp); p.mat.dispose(); jcParts.splice(i, 1); continue; }
+    const k = p.age / p.life;
+    p.sp.position.x += p.vx * dt; p.sp.position.y += p.vy * dt; p.sp.position.z += p.vz * dt;
+    p.vy -= 4 * dt;
+    p.mat.opacity = 1 - k;
+    const s = p.size * (1 - k * 0.5); p.sp.scale.set(s, s, s);
+  }
+}
+
+function jcAfterHit(r, tx, ty, tz, h) {
+  if (r.crit) jcCritFx({ x: tx, y: ty, z: tz }, h);
+  if (r.sprint) {   // sprint-hit knocks the target back harder and costs you your sprint
+    isSprinting = false; mobile.sprint = false;
+    const rb = document.getElementById('mBtnRun'); if (rb) rb.classList.remove('on');
+  }
+}
+function jcSweep(r, primary) {
+  if (!r.sweep) return;
+  jcSweepFx();
+  const px = primary.x, pz = primary.z, py = primary.y;
+  animals.forEach(a => {
+    if (!a.alive || a === primary.ref) return;
+    if (Math.hypot(a.pos.x - px, a.pos.z - pz) > JC_SWEEP_RADIUS || Math.abs(a.pos.y - py) > 1.5) return;
+    const d = jcIframe(a, JC_SWEEP_DMG);
+    if (d > 0) damageAnimal(a, d, player.pos, 0.6);
+  });
+  otherPlayers.forEach((entry, id) => {
+    if (id === primary.id) return;
+    const g = entry.group.position;
+    if (Math.hypot(g.x - px, g.z - pz) > JC_SWEEP_RADIUS || Math.abs(g.y - py) > 1.5) return;
+    const d = jcIframe(entry, JC_SWEEP_DMG);
+    if (d <= 0) return;
+    playersChannel.send({ type: 'broadcast', event: 'hit',
+      payload: { targetId: id, amount: d, attackerId: MY_ID, kx: g.x - player.pos.x, kz: g.z - player.pos.z, knock: 6 } });
+    flashRed(entry.group);
+  });
+}
+function jcAttackAnimal(a) {
+  const r = jcRoll(); jcResetCd();
+  const d = jcIframe(a, r.dmg);
+  if (d > 0) {
+    const ax = a.pos.x, ay = a.pos.y, az = a.pos.z, h = a.height ? a.height * 0.6 : 0.8;
+    damageAnimal(a, d, player.pos, r.kb);
+    jcAfterHit(r, ax, ay, az, h);
+    jcSweep(r, { x: ax, y: ay, z: az, ref: a });
+  }
+  return true;
+}
+function jcAttackPlayer(pt) {
+  const r = jcRoll(); jcResetCd();
+  const entry = pt.entry;
+  const d = jcIframe(entry, r.dmg);
+  if (d > 0) {
+    const g = entry.group.position;
+    playersChannel.send({
+      type: 'broadcast', event: 'hit',
+      payload: { targetId: pt.id, amount: d, attackerId: MY_ID, kx: g.x - player.pos.x, kz: g.z - player.pos.z, knock: 8.8 * r.kb }
+    });
+    flashRed(entry.group);
+    if (entry.blocking) entry.shieldPulse = 0.25;
+    jcAfterHit(r, g.x, g.y, g.z, 1.1);
+    jcSweep(r, { x: g.x, y: g.y, z: g.z, id: pt.id });
+  }
+  return true;
+}
+
+// Per-frame: recharge, item-switch reset, particles, and the centre indicator.
+function jcUpdate(dt) {
+  const held = currentItem();
+  const key = held ? held.type : '';
+  if (key !== jcLastHeld) { jcLastHeld = key; atkTicks = 0; }   // swapping weapons restarts the cooldown
+  const st = jcStats(held);
+  if (mining.active && isPlaying()) atkTicks = 0;                // breaking blocks keeps it empty
+  else atkTicks = Math.min(atkTicks + dt * 20, st.ticks + 2);
+  jcUpdateParts(dt);
+
+  if (!isPlaying() || player.hp <= 0 || mining.active) {
+    atkCdEl.style.display = 'none'; crosshairEl.classList.remove('hot'); return;
+  }
+  jcTargetTimer += dt;
+  if (jcTargetTimer > 0.05) { jcTargetTimer = 0; jcHasTarget = !!(findTargetPlayer() || findTargetAnimal()); }
+  const s = jcStrength(st.ticks);
+  const ready = s > 0.9;
+  crosshairEl.classList.toggle('hot', ready && jcHasTarget);
+  if (s < 1 || (ready && jcHasTarget)) {
+    atkCdEl.style.display = 'block';
+    atkCdFill.style.width = (s * 100).toFixed(1) + '%';
+    atkCdEl.classList.toggle('ready', ready);
+  } else {
+    atkCdEl.style.display = 'none';
+  }
+}
 
 // Finds the closest other player within melee range and looking angle —
 // mirrors findTargetAnimal() above, so PvP punches use the same feel as
@@ -5665,29 +5880,11 @@ function mobileFindTargetAlongAim(maxDist) {
   return best ? { kind: bestKind, ref: best } : null;
 }
 function mobileTryAttack() {
-  if (!isPlaying() || attackCooldown > 0) return false;
+  if (!isPlaying()) return false;
   if (typeof startSwing === 'function') startSwing();
-  const held = currentItem();
-  const dmg = (held && ITEM_INFO[held.type] && ITEM_INFO[held.type].attack) || 2;
   const found = mobileFindTargetAlongAim(4.5);
-  if (found && found.kind === 'player') {
-    const playerTarget = found.ref;
-    const kx = playerTarget.entry.group.position.x - player.pos.x;
-    const kz = playerTarget.entry.group.position.z - player.pos.z;
-    playersChannel.send({
-      type: 'broadcast', event: 'hit',
-      payload: { targetId: playerTarget.id, amount: dmg, attackerId: MY_ID, kx, kz, knock: 8.8 }
-    });
-    flashRed(playerTarget.entry.group);
-    attackCooldown = 0.4;
-    return true;
-  }
-  if (found && found.kind === 'animal') {
-    const target = found.ref;
-    damageAnimal(target, held && isSword(held.type) ? dmg : (target.kind === 'zombie' ? 2 : 3), player.pos);
-    attackCooldown = 0.4;
-    return true;
-  }
+  if (found && found.kind === 'player') return jcAttackPlayer(found.ref);
+  if (found && found.kind === 'animal') return jcAttackAnimal(found.ref);
   return false;
 }
 
@@ -6541,29 +6738,12 @@ canvas.addEventListener('mousedown', e => {
   if (e.button === 0) {
     if (eating.active) cancelEating();
     startSwing(); // arm swing animation, visible to you and to other players
-    if (attackCooldown <= 0) {
-      const held = currentItem();
-      const dmg = (held && ITEM_INFO[held.type] && ITEM_INFO[held.type].attack) || 2;
-      const playerTarget = findTargetPlayer();
-      if (playerTarget) {
-        const kx = playerTarget.entry.group.position.x - player.pos.x;
-        const kz = playerTarget.entry.group.position.z - player.pos.z;
-        playersChannel.send({
-          type: 'broadcast', event: 'hit',
-          payload: { targetId: playerTarget.id, amount: dmg, attackerId: MY_ID, kx, kz, knock: 8.8 }
-        });
-        flashRed(playerTarget.entry.group); // instant local feedback; target also flashes when they apply the hit
-        if (playerTarget.entry.blocking) playerTarget.entry.shieldPulse = 0.25;
-        attackCooldown = 0.4;
-        return; // hitting a player takes priority over mining that click
-      }
-      const target = findTargetAnimal();
-      if (target) {
-        damageAnimal(target, held && isSword(held.type) ? dmg : (target.kind === 'zombie' ? 2 : 3), player.pos);
-        attackCooldown = 0.4;
-        return; // hitting an animal takes priority over mining that click
-      }
-    }
+    // Java combat: you can always swing; damage scales with how charged the weapon is.
+    const playerTarget = findTargetPlayer();
+    if (playerTarget) { jcAttackPlayer(playerTarget); return; }   // hitting a player takes priority over mining
+    const target = findTargetAnimal();
+    if (target) { jcAttackAnimal(target); return; }               // hitting an animal takes priority over mining
+    jcResetCd();                                                  // a swing that hits nothing empties the charge
     mining.active = true;
     mining.progress = 0;
     mining.target = null; // resolved fresh each frame in updateMining()
@@ -7159,6 +7339,7 @@ function animate() {
   updateAnimalSpawning(dt);
   updateDroppedItems(dt);
   if (attackCooldown > 0) attackCooldown -= dt;
+  jcUpdate(dt);
 
   let isMoving = false;
   let swimMoveDir = null;
@@ -7179,6 +7360,7 @@ function animate() {
     player.crouched = false; player.height = STAND_HEIGHT;
   }
   const sprinting = isPlaying() && canSprint && !player.crouched && (isSprinting || mobile.sprint) && wantForward && !wantBack;
+  jcSprinting = sprinting;
   if (!canSprint) { isSprinting = false; mobile.sprint = false; }
   const baseSpeed = sprinting ? 6 : 4.2;   // was 8 / 5 -- tweak these two numbers to taste
   let speed = inWater ? baseSpeed*0.5 : baseSpeed;
