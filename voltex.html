@@ -75,6 +75,24 @@
     border: 1px solid rgba(255,255,255,0.5); background: rgba(0,0,0,0.6); color: #fff;
     font-size: 13px; outline: none;
   }
+  .chatBtn { display: none; }
+  body.touch-mode #chatInputWrap {
+    /* top of screen so the on-screen keyboard never covers it */
+    top: max(8px, env(safe-area-inset-top)); bottom: auto;
+    left: max(8px, env(safe-area-inset-left)); right: max(8px, env(safe-area-inset-right));
+    width: auto; z-index: 120; gap: 6px; align-items: center;
+  }
+  body.touch-mode #chatInputWrap.open { display: flex !important; }
+  body.touch-mode #chatInput { flex: 1; min-width: 0; font-size: 16px; padding: 10px 12px; }
+  body.touch-mode .chatBtn {
+    display: flex; align-items: center; justify-content: center; flex-shrink: 0;
+    height: 42px; min-width: 56px; padding: 0 12px; border-radius: 8px; border: 2px solid #fff;
+    color: #fff; font-size: 14px; font-weight: 700; cursor: pointer; touch-action: manipulation;
+    -webkit-tap-highlight-color: transparent;
+  }
+  #chatSendBtn { background: #2f9e5a; }
+  #chatCancelBtn { background: rgba(200,50,50,0.9); min-width: 44px; font-size: 20px; }
+  .chatBtn:active { transform: scale(0.94); filter: brightness(1.2); }
   .chatBubble {
     position: absolute; top: -0.55em; left: 50%; transform: translateX(-50%);
     background: rgba(0,0,0,0.6); color: #fff; padding: 4px 8px; border-radius: 6px;
@@ -480,6 +498,35 @@
     width: 48px; height: 40px; border-radius: 10px; font-size: 12px;
   }
   #lookPad { display: none; }
+  /* ===== Control style 2: PC-style (joystick + click buttons) ===== */
+  #joyBase, #pcBtns { display: none; }
+  body.ctrl-joy #dpad, body.ctrl-joy #mobileBtns { display: none; }
+  body.ctrl-joy #joyBase {
+    display: block; position: absolute; left: max(24px, env(safe-area-inset-left));
+    bottom: max(100px, calc(90px + env(safe-area-inset-bottom)));
+    width: 130px; height: 130px; border-radius: 50%;
+    background: rgba(0,0,0,0.32); border: 2px solid rgba(255,255,255,0.45);
+    pointer-events: auto; touch-action: none;
+    transform: scale(var(--btn-scale, 1)); transform-origin: bottom left;
+  }
+  #joyKnob {
+    position: absolute; left: 50%; top: 50%; width: 56px; height: 56px; margin: -28px 0 0 -28px;
+    border-radius: 50%; background: rgba(255,255,255,0.45); border: 2px solid #fff;
+    pointer-events: none;
+  }
+  body.ctrl-joy #pcBtns {
+    display: grid; position: absolute; right: max(12px, env(safe-area-inset-right));
+    bottom: max(100px, calc(90px + env(safe-area-inset-bottom)));
+    grid-template-columns: 64px 64px 64px; gap: 10px; pointer-events: auto;
+    transform: scale(var(--btn-scale, 1)); transform-origin: bottom right;
+  }
+  #mBtnLClick { background: rgba(255,90,90,0.4); grid-column: 2; grid-row: 1; }
+  #mBtnRClick { background: rgba(90,200,120,0.4); grid-column: 3; grid-row: 1; }
+  #mBtnRun { grid-column: 1; grid-row: 2; }
+  #mBtnRun.on { background: rgba(255,230,80,0.8); border-color: #fff; }
+  #mBtnCrouch { background: rgba(255,170,60,0.35); grid-column: 2; grid-row: 2; }
+  #mBtnCrouch.on { background: rgba(255,170,60,0.85); border-color: #fff; }
+  #mBtnJump2 { background: rgba(80,160,255,0.4); grid-column: 3; grid-row: 2; }
   body.touch-mode #mobileHint {
     display: block; position: fixed; top: max(52px, calc(44px + env(safe-area-inset-top)));
     left: 50%; transform: translateX(-50%); z-index: 41; pointer-events: none;
@@ -637,6 +684,14 @@
     <div class="mBtn" id="mBtnRight">▶</div>
     <div class="mBtn" id="mBtnBack">▼</div>
   </div>
+  <div id="joyBase"><div id="joyKnob"></div></div>
+  <div id="pcBtns">
+    <div class="mBtn" id="mBtnLClick">Left<br>click</div>
+    <div class="mBtn" id="mBtnRClick">Right<br>click</div>
+    <div class="mBtn" id="mBtnRun">Run</div>
+    <div class="mBtn" id="mBtnCrouch">Crouch</div>
+    <div class="mBtn" id="mBtnJump2">Jump</div>
+  </div>
   <div id="mobileBtns">
     <div class="mBtn" id="mBtnSneak">Sneak</div>
     <div class="mBtn" id="mBtnJump">Jump</div>
@@ -654,7 +709,7 @@
   <div id="hungerBar" aria-label="Hunger"></div>
 </div>
 <div id="chatLog"></div>
-<div id="chatInputWrap"><input id="chatInput" type="text" maxlength="200" placeholder="Say something... (Enter to send, Esc to cancel)"></div>
+<div id="chatInputWrap"><input id="chatInput" type="text" maxlength="200" enterkeyhint="send" autocomplete="off" autocorrect="off" placeholder="Say something... (Enter to send, Esc to cancel)"><button type="button" class="chatBtn" id="chatSendBtn">Send</button><button type="button" class="chatBtn" id="chatCancelBtn" aria-label="Cancel chat">✕</button></div>
 <div id="damageFlash"></div>
 <div id="hud">Mine blocks to collect materials · place them from your inventory.<br>Press <b>E</b> for inventory · <b>F5</b> for third-person · <b>F</b> to eat food · <b>Q</b> to throw item · <b>Right-click</b> uses your off-hand item · <b>T</b> to chat. Right-click a crafting table/furnace/chest to use it, a <b>sign</b> to edit its text, <b>TNT</b> to light it, or a bed to set your respawn point. Smelt logs in a furnace for <b>charcoal</b>. World auto-saves as you play.</div>
 <div id="fps">FPS: --<br><span id="playerCount">Players online: 1</span></div>
@@ -672,8 +727,15 @@
       <span><input type="range" id="sensitivitySlider" min="0.2" max="3" step="0.05"> <span id="sensitivityValue">1.00x</span></span>
     </div>
     <div class="settingRow mobileOnly">
+      <label for="ctrlSchemeSelect">Control style</label>
+      <select id="ctrlSchemeSelect">
+        <option value="classic">1 · Classic (D-pad, tap/hold screen)</option>
+        <option value="joy">2 · PC style (joystick + click buttons)</option>
+      </select>
+    </div>
+    <div class="settingRow mobileOnly">
       <label for="btnSizeSlider">Button size</label>
-      <span><input type="range" id="btnSizeSlider" min="0.6" max="1.6" step="0.05"> <span id="btnSizeValue">100%</span></span>
+      <span><input type="range" id="btnSizeSlider" min="0.4" max="3" step="0.05"> <span id="btnSizeValue">100%</span></span>
     </div>
     <div class="settingRow">
       <label for="fullscreenBtn">Fullscreen</label>
@@ -1854,8 +1916,8 @@ function markChunkDirty(x,z){
 }
 // A block change near a torch changes how far/where its light reaches, which
 // can span neighbouring chunks — re-mesh every chunk within torch range.
-function markLightArea(x, y, z, force) {
-  const R = TORCH_LIGHT_RADIUS;
+function markLightArea(x, y, z, force, extra) {
+  const R = TORCH_LIGHT_RADIUS + (extra || 0);
   let near = !!force;
   if (!near) {
     for (const k of blockLights.keys()) {
@@ -2168,11 +2230,16 @@ function torchWallDir(x, y, z) {
   return null; // unsupported — falls back to the old upright look
 }
 function columnSkyTop(x, z) {
+  const sk = skyKey(x, z);
+  const c = skyTopCache.get(sk);
+  if (c !== undefined) return c;
+  let res = Y_MIN - 1; // nothing solid in this column at all
   for (let y = Math.min(Y_MAX, worldMaxY); y >= Y_MIN; y--) {
     const b = world.get(key(x, y, z));
-    if (b && !BLOCK_TYPES[b.type].transparent) return y;
+    if (b && !BLOCK_TYPES[b.type].transparent) { res = y; break; }
   }
-  return Y_MIN - 1; // nothing solid in this column at all
+  skyTopCache.set(sk, res);
+  return res;
 }
 function skyLevelAt(y, topY) {
   // open sky = 6; each block of cover overhead adds another -SHADOW_PER_BLOCK (can go negative)
@@ -2232,7 +2299,7 @@ function rebuildChunk(cx, cz) {
       const lvl = skyLevelAt(y, topAt(x+nOff[i][0], z+nOff[i][1])) - SKY_BLEED_PENALTY;
       if (lvl > sky) sky = lvl;
     }
-    const torchRaw = torchField.get(key(x, y, z)) || 0;
+    const torchRaw = torchField.size ? (torchField.get(key(x, y, z)) || 0) : 0;
     // steeper falloff than linear: bright pool of light near the flame, fading softly
     const torch = torchRaw > 0 ? LIGHT_MAX * Math.pow(torchRaw / TORCH_LIGHT_LEVEL, 1.5) : 0;
     const skyL = Math.max(sky, 0);
@@ -2381,7 +2448,24 @@ const world = new Map(); // key "x,y,z" -> {type,x,y,z}
 let worldMaxY = Y_MIN;
 const chunkYRange = new Map(); // "cx,cz" -> [minY, maxY]
 const _worldSetOrig = world.set.bind(world);
+const _worldDeleteOrig = world.delete.bind(world);
+// Cached "highest opaque block" per column. columnSkyTop() used to walk the whole
+// column with string-keyed Map lookups, ~400 columns per chunk rebuild.
+const skyTopCache = new Map();
+function skyKey(x, z) { return (x + 100000) * 200003 + (z + 100000); }
+world.delete = function (k) {
+  const b = world.get(k);
+  if (b) skyTopCache.delete(skyKey(b.x, b.z));
+  return _worldDeleteOrig(k);
+};
 world.set = function (k, v) {
+  if (v && typeof v.x === 'number') {
+    const sk = skyKey(v.x, v.z), t = skyTopCache.get(sk);
+    if (t !== undefined && v.y >= t) {
+      if (v.y > t && BLOCK_TYPES[v.type] && !BLOCK_TYPES[v.type].transparent) skyTopCache.set(sk, v.y);
+      else skyTopCache.delete(sk);
+    }
+  }
   if (v && typeof v.y === 'number') {
     if (v.y > worldMaxY) worldMaxY = v.y;
     const ck = Math.floor(v.x / CHUNK_SIZE) + ',' + Math.floor(v.z / CHUNK_SIZE);
@@ -4964,13 +5048,18 @@ function killAnimal(animal) {
 // When a block is mined (or an item is thrown with Q), it pops out into the
 // world as a small floating icon instead of going straight into the
 // inventory. Walk over it to pick it up.
+const _itemSpriteMats = new Map();
 function makeItemSprite(type) {
-  const src = iconCanvas(type, 64);
-  const c = document.createElement('canvas'); c.width = c.height = 64;
-  c.getContext('2d').drawImage(src, 0, 0);
-  const tex = new THREE.CanvasTexture(c);
-  tex.magFilter = THREE.NearestFilter;
-  const mat = new THREE.SpriteMaterial({ map: tex, depthTest: true });
+  let mat = _itemSpriteMats.get(type);
+  if (!mat) {
+    const src = iconCanvas(type, 64);
+    const c = document.createElement('canvas'); c.width = c.height = 64;
+    c.getContext('2d').drawImage(src, 0, 0);
+    const tex = new THREE.CanvasTexture(c);
+    tex.magFilter = THREE.NearestFilter;
+    mat = new THREE.SpriteMaterial({ map: tex, depthTest: true });
+    _itemSpriteMats.set(type, mat);
+  }
   const sprite = new THREE.Sprite(mat);
   sprite.scale.set(0.42, 0.42, 1);
   return sprite;
@@ -5329,13 +5418,15 @@ function showChatBubbleOn(target, text) {
 function openChat() {
   if (chatOpen || !gameStarted) return;
   chatOpen = true;
-  chatInputWrap.style.display = 'block';
+  chatInputWrap.classList.add('open');
+  chatInputWrap.style.display = touchMode ? 'flex' : 'block';
   chatInput.value = '';
   chatInput.focus();
   if (pointerLocked) document.exitPointerLock();
 }
 function closeChat() {
   chatOpen = false;
+  chatInputWrap.classList.remove('open');
   chatInputWrap.style.display = 'none';
   chatInput.blur();
   resumeGameplay();
@@ -5350,9 +5441,22 @@ function sendChatMessage() {
 }
 chatInput.addEventListener('keydown', e => {
   e.stopPropagation(); // don't let WASD/etc leak through to game controls while typing
-  if (e.code === 'Enter') sendChatMessage();
-  else if (e.code === 'Escape') closeChat();
+  // e.code is often empty on Android virtual keyboards, so also check e.key / keyCode
+  if (e.code === 'Enter' || e.key === 'Enter' || e.keyCode === 13) { e.preventDefault(); sendChatMessage(); }
+  else if (e.code === 'Escape' || e.key === 'Escape') closeChat();
 });
+// On-screen Send / Cancel buttons (touch players have no Enter / Esc keys).
+// pointerdown + preventDefault keeps the keyboard/input from blurring first and eating the tap.
+(function wireChatButtons() {
+  const bind = (id, fn) => {
+    const b = document.getElementById(id);
+    if (!b) return;
+    b.addEventListener('pointerdown', e => { e.preventDefault(); e.stopPropagation(); fn(); });
+    b.addEventListener('click', e => { e.preventDefault(); e.stopPropagation(); }); // swallow
+  };
+  bind('chatSendBtn', () => { if (chatOpen) sendChatMessage(); });
+  bind('chatCancelBtn', () => { if (chatOpen) closeChat(); });
+})();
 
 const keys = {};
 let lastWTapTime = 0;
@@ -5624,6 +5728,7 @@ function mobileLongPressEnd() {
 
 function initMobileControls() {
   if (!touchMode) return;
+  chatInput.placeholder = 'Say something...';
   setMobileVisible(false);
 
   // D-pad direction buttons
@@ -5668,12 +5773,69 @@ function initMobileControls() {
     if (chatOpen) closeChat(); else if (!menusOpen()) openChat();
   }, { passive: false });
 
+  // ---- Control style 2: joystick + Left/Right click, Run, Crouch, Jump ----
+  (function initJoyScheme() {
+    const base = document.getElementById('joyBase'), knob = document.getElementById('joyKnob');
+    let joyId = null;
+    function joyMove(t) {
+      const r = base.getBoundingClientRect();
+      const rad = r.width / 2;
+      let dx = t.clientX - (r.left + rad), dy = t.clientY - (r.top + rad);
+      const len = Math.hypot(dx, dy), lim = rad * 0.9;
+      if (len > lim) { dx *= lim / len; dy *= lim / len; }
+      knob.style.transform = 'translate(' + (dx / r.width * base.offsetWidth) + 'px,' + (dy / r.height * base.offsetHeight) + 'px)';
+      const nx = dx / lim, ny = dy / lim, dz = 0.28;
+      mobile.fwd = ny < -dz; mobile.back = ny > dz; mobile.left = nx < -dz; mobile.right = nx > dz;
+    }
+    function joyEnd() {
+      joyId = null; knob.style.transform = '';
+      mobile.fwd = mobile.back = mobile.left = mobile.right = false;
+    }
+    base.addEventListener('touchstart', e => {
+      e.preventDefault(); e.stopPropagation();
+      if (joyId != null) return;
+      const t = e.changedTouches[0]; joyId = t.identifier; joyMove(t);
+    }, { passive: false });
+    base.addEventListener('touchmove', e => {
+      e.preventDefault(); e.stopPropagation();
+      for (const t of e.changedTouches) if (t.identifier === joyId) joyMove(t);
+    }, { passive: false });
+    const end = e => { e.preventDefault(); e.stopPropagation(); for (const t of e.changedTouches) if (t.identifier === joyId) joyEnd(); };
+    base.addEventListener('touchend', end, { passive: false });
+    base.addEventListener('touchcancel', end, { passive: false });
+
+    // Left click: attack what's in the crosshair, hold to mine it
+    bindHoldButton('mBtnLClick', () => {
+      if (!isPlaying()) return;
+      mobile.aimX = null; mobile.aimY = null;
+      if (eating.active) cancelEating();
+      if (mobileTryAttack()) return;
+      mobileLongPressStart();
+    }, () => { mobileLongPressEnd(); });
+    // Right click: place / use / light TNT / eat / block (hold)
+    bindHoldButton('mBtnRClick', () => { if (isPlaying()) tryMobilePlace(); },
+      () => { if (eating.active) cancelEating(); isBlocking = false; });
+    bindHoldButton('mBtnJump2', () => { mobile.jump = true; }, () => { mobile.jump = false; });
+    // Run & Crouch are toggles
+    const runBtn = document.getElementById('mBtnRun'), crBtn = document.getElementById('mBtnCrouch');
+    runBtn.addEventListener('touchstart', e => {
+      e.preventDefault(); e.stopPropagation();
+      mobile.sprint = !mobile.sprint; isSprinting = mobile.sprint;
+      runBtn.classList.toggle('on', mobile.sprint);
+    }, { passive: false });
+    crBtn.addEventListener('touchstart', e => {
+      e.preventDefault(); e.stopPropagation();
+      mobile.sneak = !mobile.sneak;
+      crBtn.classList.toggle('on', mobile.sneak);
+    }, { passive: false });
+  })();
+
   // Screen: drag = look, short tap = place/attack, long press = mine/eat
   const lookTarget = canvas;
   function touchOnUi(x, y) {
     const topEl = document.elementFromPoint(x, y);
     return !!(topEl && topEl.closest && topEl.closest(
-      '#dpad, #mobileBtns, #mobileTopBtns, #hotbar, #offhandHud, #settingsBtn, .slot, button, input, textarea, #invPanel, #furnacePanel, #chestPanel, #signPanel, #chatInputWrap, #startScreen, #pauseOverlay, #settingsOverlay, #mobileHint'
+      '#dpad, #joyBase, #pcBtns, #mobileBtns, #mobileTopBtns, #hotbar, #offhandHud, #settingsBtn, .slot, button, input, textarea, #invPanel, #furnacePanel, #chestPanel, #signPanel, #chatInputWrap, #startScreen, #pauseOverlay, #settingsOverlay, #mobileHint'
     ));
   }
   lookTarget.addEventListener('touchstart', e => {
@@ -5690,6 +5852,7 @@ function initMobileControls() {
       mobile.lookLastY = t.clientY;
       mobile.pressStart = performance.now();
       mobile.moved = false;
+      if (settings.ctrl === 'joy') { mobile.moved = true; mobile.aimX = null; mobile.aimY = null; } // screen = look only; buttons do the clicking
       mobile.longActive = false;
       if (mobile.longTimer) clearTimeout(mobile.longTimer);
       mobile.longTimer = setTimeout(() => {
@@ -5957,6 +6120,7 @@ let settings = {
   quality: 'medium', // 'low' | 'medium' | 'high' — caps devicePixelRatio
   sensitivity: 1,    // look sensitivity multiplier (mouse + touch)
   btnSize: 1,        // mobile on-screen button scale
+  ctrl: 'classic',   // 'classic' (D-pad + tap) | 'joy' (PC style: joystick + click buttons)
 };
 try {
   const raw = localStorage.getItem(SETTINGS_KEY);
@@ -5964,7 +6128,8 @@ try {
 } catch(e) {}
 // sanitize in case of bad saved values
 settings.sensitivity = Math.max(0.2, Math.min(3, Number(settings.sensitivity) || 1));
-settings.btnSize = Math.max(0.6, Math.min(1.6, Number(settings.btnSize) || 1));
+settings.btnSize = Math.max(0.4, Math.min(3, Number(settings.btnSize) || 1));
+if (settings.ctrl !== 'joy') settings.ctrl = 'classic';
 function saveSettings() {
   try { localStorage.setItem(SETTINGS_KEY, JSON.stringify(settings)); } catch(e) {}
 }
@@ -5992,6 +6157,21 @@ btnSizeSlider.addEventListener('input', () => {
   saveSettings();
 });
 
+const ctrlSel = document.getElementById('ctrlSchemeSelect');
+function applyCtrlScheme() {
+  const joy = settings.ctrl === 'joy';
+  document.body.classList.toggle('ctrl-joy', joy);
+  ctrlSel.value = settings.ctrl;
+  const h = document.getElementById('mobileHint');
+  if (h) h.textContent = joy ? 'Joystick: move · Drag screen: look · Left click: mine/attack (hold) · Right click: place/use'
+                             : 'Tap block/mob: place or attack · Hold on a block: mine · Double-tap ▲: sprint';
+  // reset held states when switching style
+  mobile.fwd = mobile.back = mobile.left = mobile.right = mobile.jump = mobile.sneak = mobile.sprint = false;
+  isSprinting = false;
+  ['mBtnSneak','mBtnCrouch','mBtnRun'].forEach(id => { const el = document.getElementById(id); if (el) el.classList.remove('on'); });
+}
+ctrlSel.addEventListener('change', () => { settings.ctrl = ctrlSel.value; applyCtrlScheme(); saveSettings(); });
+applyCtrlScheme();
 document.getElementById('fullscreenBtn').addEventListener('click', () => toggleFullscreen());
 
 const coordsDisplay = document.getElementById('coordsDisplay');
@@ -6732,13 +6912,19 @@ const _fxSphereGeo = new THREE.SphereGeometry(1, 16, 12);
 const tntFx = []; // fireballs / debris
 
 let _tntAudio = null;
+let _tntBufs = null;
 function tntSound(kind) {
   try {
     _tntAudio = _tntAudio || new (window.AudioContext || window.webkitAudioContext)();
     const ac = _tntAudio; if (ac.state === 'suspended') ac.resume();
     const dur = kind === 'boom' ? 1.1 : 0.9;
-    const buf = ac.createBuffer(1, Math.floor(ac.sampleRate * dur), ac.sampleRate), d = buf.getChannelData(0);
-    for (let i = 0; i < d.length; i++) d[i] = (Math.random() * 2 - 1) * Math.pow(1 - i / d.length, kind === 'boom' ? 2.2 : 1.2);
+    _tntBufs = _tntBufs || {};
+    let buf = _tntBufs[kind];
+    if (!buf) {
+      buf = _tntBufs[kind] = ac.createBuffer(1, Math.floor(ac.sampleRate * dur), ac.sampleRate);
+      const d = buf.getChannelData(0);
+      for (let i = 0; i < d.length; i++) d[i] = (Math.random() * 2 - 1) * Math.pow(1 - i / d.length, kind === 'boom' ? 2.2 : 1.2);
+    }
     const src = ac.createBufferSource(); src.buffer = buf;
     const f = ac.createBiquadFilter(); f.type = kind === 'boom' ? 'lowpass' : 'highpass';
     f.frequency.value = kind === 'boom' ? 380 : 3800;
@@ -6805,7 +6991,7 @@ function spawnExplosionFx(c) {
   const core = new THREE.MeshBasicMaterial({ color: 0xfff3b0, transparent: true, opacity: 1, depthWrite: false });
   const cm = new THREE.Mesh(_fxSphereGeo, core); cm.position.copy(c); cm.scale.setScalar(0.3); scene.add(cm);
   tntFx.push({ kind: 'core', mesh: cm, mat: core, t: 0, life: 0.35 });
-  for (let i = 0; i < 26; i++) {
+  for (let i = 0; i < 14; i++) {
     const hot = Math.random() < 0.45;
     const m = new THREE.MeshBasicMaterial({ color: hot ? (Math.random() < 0.5 ? 0xff7a1a : 0xffcf40) : (Math.random() < 0.5 ? 0x3a3a3a : 0x666666), transparent: true, opacity: 1 });
     const mesh = new THREE.Mesh(_fxBoxGeo, m);
@@ -6874,7 +7060,7 @@ function explodeTnt(t) {
         slots.forEach(s => { if (s) spawnDroppedItem(s.type, s.count, new THREE.Vector3(x, y, z)); });
         delete chestData[k]; saveChestData();
       }
-    } else if (!isLeavesType(b.type) && b.type !== 'glass' && b.type !== 'torch' && b.type !== 'sapling' && drops < 30 && Math.random() < 0.22) {
+    } else if (!isLeavesType(b.type) && b.type !== 'glass' && b.type !== 'torch' && b.type !== 'sapling' && drops < 10 && Math.random() < 0.15) {
       const drop = blockDropType(b.type);
       spawnDroppedItem(drop, 1, new THREE.Vector3(x, y, z));
       drops++;
@@ -6887,9 +7073,8 @@ function explodeTnt(t) {
   // mesh + light refresh for everything we touched
   const seen = new Set();
   removed.forEach(p => { const k = p.x + ',' + p.z; if (!seen.has(k)) { seen.add(k); markChunkDirty(p.x, p.z); } });
-  markLightArea(cx, cy, cz, true);
-  flushDirtyChunks(false);
-  if (removed.length) pushBlockDiffsBatch(removed);
+  if (blockLights.size) markLightArea(cx, cy, cz, false, TNT_RADIUS); // only relight if a torch is actually in range
+  if (removed.length) pushBlockDiffsBatch(removed); // chunk meshes are rebuilt one per frame by stepDirtyChunks()
   // chain reaction: neighbours get a short random fuse
   chain.forEach(p => igniteTntAt(p.x, p.y, p.z, 0.35 + Math.random() * 0.9));
   renderHotbar();
