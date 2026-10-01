@@ -449,6 +449,8 @@
     transform: scale(0.96);
   }
   #mBtnJump { background: rgba(80,160,255,0.4); }
+  #mBtnSneak { background: rgba(255,170,60,0.35); }
+  #mBtnSneak.on { background: rgba(255,170,60,0.85); border-color: #fff; }
   #mobileTopBtns {
     position: absolute; top: max(8px, env(safe-area-inset-top));
     left: 50%; transform: translateX(-50%);
@@ -491,7 +493,7 @@
     <h1>⚡ Voltex</h1>
     <div class="tagline">Shared Voxel Sandbox</div>
     <p>A tiny Minecraft-style voxel sandbox with textured blocks, water, trees, and a day/night cycle.</p>
-    <p class="kbd-line"><b>WASD</b> move · <b>Space</b> jump · <b>Mouse</b> look · <b>Click</b> mine/place · <b>E</b> inventory · On phone: <b>▲◀▶▼</b> move · double-tap ▲ sprint · <b>tap</b> place/attack · <b>hold</b> mine</p>
+    <p class="kbd-line"><b>WASD</b> move · <b>Space</b> jump · <b>Shift</b> sneak · <b>Mouse</b> look · <b>Click</b> mine/place · <b>E</b> inventory · On phone: <b>▲◀▶▼</b> move · double-tap ▲ sprint · <b>tap</b> place/attack · <b>hold</b> mine</p>
     <p>🌐 This is one shared multiplayer world — everyone who opens this page joins the same server and sees the same blocks and players in real time.</p>
     <div id="authChoice">
       <button class="authBtn" id="googleBtn"><svg width="18" height="18" viewBox="0 0 48 48"><path fill="#EA4335" d="M24 9.5c3.5 0 6.6 1.2 9.1 3.6l6.8-6.8C35.8 2.4 30.3 0 24 0 14.6 0 6.5 5.4 2.6 13.2l7.9 6.1C12.4 13.6 17.7 9.5 24 9.5z"/><path fill="#4285F4" d="M46.5 24.5c0-1.6-.1-3.1-.4-4.5H24v9h12.7c-.6 3-2.3 5.5-4.8 7.2l7.6 5.9c4.4-4.1 7-10.1 7-17.6z"/><path fill="#FBBC05" d="M10.5 28.7c-.5-1.4-.8-3-.8-4.7s.3-3.2.8-4.7l-7.9-6.1C.9 16.4 0 20.1 0 24s.9 7.6 2.6 10.8l7.9-6.1z"/><path fill="#34A853" d="M24 48c6.5 0 11.9-2.1 15.9-5.8l-7.6-5.9c-2.1 1.4-4.9 2.3-8.3 2.3-6.3 0-11.6-4.1-13.5-9.8l-7.9 6.1C6.5 42.6 14.6 48 24 48z"/></svg>Sign in with Google</button>
@@ -613,6 +615,7 @@
     <div class="mBtn" id="mBtnBack">▼</div>
   </div>
   <div id="mobileBtns">
+    <div class="mBtn" id="mBtnSneak">Sneak</div>
     <div class="mBtn" id="mBtnJump">Jump</div>
   </div>
   <div id="mobileTopBtns">
@@ -3838,13 +3841,20 @@ function collideAndMove(pos, vel, dt) {
   const hv = Math.max(Math.abs(vel.x), Math.abs(vel.z));
   const nh = Math.max(1, Math.ceil(hv * dt / 0.12));
   const sdt = dt / nh;
+  // Sneaking on the ground: never step to a spot with nothing solid within 0.6 below the feet
+  // (the same "safe walk" as Minecraft). You can hang ~0.3 past an edge, which is what makes
+  // bridging possible: look steeply down at the side of the block you stand on and place.
+  const edgeGuard = player.crouched && player.onGround && vel.y <= 0.01 && pos === player.pos;
+  const hasFloor = (x, z) => checkCollision(x, pos.y - 0.6, z, r, 0.5);
   for (let i = 0; i < nh; i++) {
     let newX = pos.x + vel.x*sdt;
-    if (!checkCollision(newX, pos.y, pos.z, r, h)) pos.x = newX;
+    if (edgeGuard && hasFloor(pos.x, pos.z) && !hasFloor(newX, pos.z)) vel.x = 0;
+    else if (!checkCollision(newX, pos.y, pos.z, r, h)) pos.x = newX;
     else if (!tryStepUp(pos, vel, newX, pos.z, r, h)) vel.x = 0;
 
     let newZ = pos.z + vel.z*sdt;
-    if (!checkCollision(pos.x, pos.y, newZ, r, h)) pos.z = newZ;
+    if (edgeGuard && hasFloor(pos.x, pos.z) && !hasFloor(pos.x, newZ)) vel.z = 0;
+    else if (!checkCollision(pos.x, pos.y, newZ, r, h)) pos.z = newZ;
     else if (!tryStepUp(pos, vel, pos.x, newZ, r, h)) vel.z = 0;
   }
 
@@ -3953,7 +3963,10 @@ const player = {
   hunger: 20,
   maxHunger: 20,
   saturation: 5,   // hidden buffer; delays hunger drain (Minecraft-like)
+  crouched: false, // Shift = sneak: slower, shorter, and can't walk off block edges
 };
+const STAND_HEIGHT = 1.7, CROUCH_HEIGHT = 1.5;
+let camEyeH = STAND_HEIGHT;   // smoothed first-person eye height
 // Set by right-clicking a bed; null means "no bed spawn set yet", so
 // respawnPlayer() falls back to the default world spawn near the origin.
 let respawnPoint = null; // { x, y, z } in world space, or null
@@ -4201,27 +4214,47 @@ function startSwing() {
   playersChannel.send({ type: 'broadcast', event: 'swing', payload: { id: MY_ID } });
 }
 // st: { swing (0..1 progress or 0), blocking, eating, eatProg, mining, mineCycle, pulse }
+// Crouch pose: lean the upper body forward and drop the head/shoulders (model faces -z).
+function applySneakPose(m, on) {
+  if (!m || !m.torso) return;
+  m.torso.position.set(0, on ? 1.05 : 1.125, on ? -0.14 : 0);
+  m.torso.rotation.x = on ? -0.35 : 0;
+  m.head.position.set(0, on ? 1.6 : 1.75, on ? -0.32 : 0);
+  m.armL.position.set(-0.4, on ? 1.38 : 1.5, on ? -0.26 : 0);
+  m.armR.position.set( 0.4, on ? 1.38 : 1.5, on ? -0.26 : 0);
+}
+// Arm angles: +x rotation swings the arm FORWARD (the model faces -z).
+// While holding an item the right arm is raised out in front, with the item turned
+// toward the side, so other players can see what you're carrying (it used to hang at the hip).
+const HOLD_ARM_X = 1.1;
+// st: { swing (0..1 progress or 0), blocking, eating, eatProg, mining, mineCycle, pulse, holding }
 function poseArms(m, st, walkSwing) {
+  const rest = st.holding ? HOLD_ARM_X : 0;
   m.armL.rotation.set(-walkSwing, 0, 0);
-  m.armR.rotation.set(walkSwing, 0, 0);
+  m.armR.rotation.set(rest + walkSwing * (st.holding ? 0.15 : 1), 0, 0);
   if (st.swing > 0) {
-    // overhead chop: arm starts raised behind/above and slashes down in front
+    // overhead chop: arm starts raised and slashes down/forward to its resting pose
     const e = 1 - Math.pow(1 - st.swing, 2);
-    m.armR.rotation.x = -2.7 + 2.5 * e;
+    m.armR.rotation.x = 2.7 + (rest - 2.7) * e;
     m.armR.rotation.z = -0.4 * (1 - e);
-    m.armL.rotation.x = 0.3 * (1 - e);
+    m.armL.rotation.x = -0.3 * (1 - e);
   } else if (st.blocking) {
     // Hold the sword up and across the body in a guard stance.
-    m.armR.rotation.x = -1.6;
+    m.armR.rotation.x = 1.6;
     m.armR.rotation.z = -0.5;
-    m.armL.rotation.x = -1.2;
+    m.armL.rotation.x = 1.2;
   } else if (st.eating) {
     // Raise the arm to the mouth and give it a quick "bite" bob.
-    m.armR.rotation.x = -2.1 + Math.sin(st.eatProg * 16) * 0.12;
+    m.armR.rotation.x = 2.1 + Math.sin(st.eatProg * 16) * 0.12;
   } else if (st.mining) {
     // Punch/swing the mining arm forward and back, faster than a walk cycle.
-    m.armR.rotation.x = -1.9 + Math.sin(st.mineCycle) * 0.9;
+    m.armR.rotation.x = 1.9 + Math.sin(st.mineCycle) * 0.9;
   }
+  if (m.handAnchor) {
+    const it = m.handAnchor.children[0];
+    m.handAnchor.rotation.set(st.holding ? -0.5 : 0, (st.holding && it && !it.userData.isTool) ? -0.8 : 0, 0);
+  }
+  applySneakPose(m, !!st.sneak);
   if (m.shield) {
     m.shield.visible = !!st.blocking;
     m.shield.material.opacity = 0.28 + Math.min(0.4, st.pulse || 0) * 2;
@@ -4243,7 +4276,8 @@ function updateMyModel(dt, isMoving) {
   if (myShieldPulse > 0) myShieldPulse -= dt;
   poseArms(myModel, {
     swing: swing.active ? swing.t : 0, blocking: isBlocking, eating: eating.active, eatProg: eating.progress,
-    mining: mining.active, mineCycle: mineSwingCycle, pulse: myShieldPulse
+    mining: mining.active, mineCycle: mineSwingCycle, pulse: myShieldPulse,
+    holding: !!held, sneak: player.crouched
   }, walkSwing);
   myModel.head.rotation.x = player.pitch;
 }
@@ -4408,6 +4442,7 @@ function buildHumanoid(color) {
   // free (mining punches, eating, blocking, walking).
   const handAnchor = new THREE.Group();
   handAnchor.position.set(0, -0.62, 0.14);
+  handAnchor.scale.setScalar(1.5);      // bigger in-hand item so other players can actually see what you hold
   armR.add(handAnchor);
 
   // Iron armor pieces (hidden until worn): slot 0 helmet, 1 chestplate, 2 leggings, 3 boots.
@@ -4426,7 +4461,7 @@ function buildHumanoid(color) {
   for (const leg of [legL, legR]) { piece(leg, 2, 0.28, 0.42, 0.31, 0, -0.2, 0); piece(leg, 3, 0.28, 0.22, 0.31, 0, -0.64, 0); }
 
   group.add(torso, head, legL, legR, armL, armR, shield);
-  return { group, head, legL, legR, armL, armR, handAnchor, shield, armor };
+  return { group, head, torso, legL, legR, armL, armR, handAnchor, shield, armor };
 }
 
 // ---------- Held item visuals ----------
@@ -4510,6 +4545,7 @@ function makeVoxelItemMesh(type) {
   const mesh = new THREE.Mesh(geo, new THREE.MeshBasicMaterial({ vertexColors: true, side: THREE.DoubleSide }));
   mesh.scale.set(-1.15, 1.15, 1.15);          // mirrored: the tip/head tilts LEFT
   mesh.userData.sharedGeo = true;
+  mesh.userData.isTool = /_(sword|pickaxe|axe|shovel)$/.test(type);
   // Tools/weapons: turn so the head points forward, away from the player.
   if (/_(sword|pickaxe|axe|shovel)$/.test(type)) mesh.rotation.y = -1.1;
   mesh.updateMatrix();
@@ -5048,7 +5084,7 @@ function createOtherPlayer(id, name) {
   scene.add(model.group);
   const entry = {
     group: model.group, head: model.head, legL: model.legL, legR: model.legR, armL: model.armL, armR: model.armR,
-    handAnchor: model.handAnchor, armor: model.armor, heldState: { heldType: undefined, heldMesh: null },
+    handAnchor: model.handAnchor, torso: model.torso, armor: model.armor, heldState: { heldType: undefined, heldMesh: null }, sneak: false,
     target: { x: model.group.position.x, y: model.group.position.y, z: model.group.position.z, yaw: 0 },
     name, walkCycle: 0, lastPos: { x: 0, y: 0, z: 0 },
     shield: model.shield, swing: { active: false, t: 0 }, blocking: false, mining: false, mineCycle: 0, shieldPulse: 0
@@ -5092,6 +5128,7 @@ playersChannel
     setArmorVisual(entry.armor, payload.armor | 0);
     entry.blocking = !!payload.blocking;
     entry.mining = !!payload.mining;
+    entry.sneak = !!payload.sneak;
   })
   .on('broadcast', { event: 'chat' }, ({ payload }) => {
     if (!payload || payload.id === MY_ID) return;
@@ -5189,7 +5226,7 @@ function broadcastMyPosition(dt) {
     payload: {
       id: MY_ID, name: MY_NAME, x: player.pos.x, y: player.pos.y, z: player.pos.z, yaw: player.yaw,
       heldType: currentItem() ? currentItem().type : null, armor: armorMask(),
-      blocking: isBlocking, mining: mining.active
+      blocking: isBlocking, mining: mining.active, sneak: !!player.crouched
     }
   });
 }
@@ -5215,7 +5252,8 @@ function updateOtherPlayerVisuals(dt) {
     if (entry.shieldPulse > 0) entry.shieldPulse -= dt;
     poseArms(entry, {
       swing: entry.swing.active ? entry.swing.t : 0, blocking: entry.blocking,
-      mining: entry.mining, mineCycle: entry.mineCycle, pulse: entry.shieldPulse
+      mining: entry.mining, mineCycle: entry.mineCycle, pulse: entry.shieldPulse,
+      holding: !!entry.heldState.heldType, sneak: entry.sneak
     }, walkAmt);
   });
 }
@@ -5309,6 +5347,7 @@ document.addEventListener('keydown', e => {
   const num = parseInt(e.key);
   if (num >= 1 && num <= HOTBAR_SIZE) selectSlot(num-1);
 });
+window.addEventListener('blur', () => { keys['ShiftLeft'] = false; keys['ShiftRight'] = false; });
 document.addEventListener('keyup', e => {
   keys[e.code] = false;
   // Sprint stops the moment you let go of forward (or move some other way),
@@ -5361,6 +5400,7 @@ function isPlaying() {
 const mobile = {
   fwd: false, back: false, left: false, right: false,
   jump: false,
+  sneak: false,
   sprint: false,
   mining: false,
   lookId: null,
@@ -5576,6 +5616,11 @@ function initMobileControls() {
   bindDir('mBtnRight', 'right');
   bindHoldButton('mBtnJump', () => { mobile.jump = true; }, () => { mobile.jump = false; });
 
+  document.getElementById('mBtnSneak').addEventListener('touchstart', e => {   // toggle: tap to crouch, tap again to stand
+    e.preventDefault(); e.stopPropagation();
+    mobile.sneak = !mobile.sneak;
+    e.currentTarget.classList.toggle('on', mobile.sneak);
+  }, { passive: false });
   document.getElementById('mBtnInv').addEventListener('touchstart', e => {
     e.preventDefault(); e.stopPropagation();
     if (!gameStarted) return;
@@ -5944,7 +5989,8 @@ qualitySelect.addEventListener('change', () => {
 // Read-only reference of the game's current controls, shown in Settings.
 const KEYBINDS = [
   ['Move', 'W A S D'],
-  ['Sprint', 'Double-tap W / Shift'],
+  ['Sprint', 'Double-tap W'],
+  ['Sneak / bridge (no falling off edges)', 'Hold Shift'],
   ['Jump / swim up', 'Space'],
   ['Look around', 'Mouse'],
   ['Mine / attack', 'Left click (hold)'],
@@ -6838,10 +6884,18 @@ function animate() {
   const canSprint = player.hunger > 6;
   const wantForward = keys['KeyW'] || (touchMode && mobile.fwd);
   const wantBack = keys['KeyS'] || (touchMode && mobile.back);
-  const sprinting = isPlaying() && canSprint && (isSprinting || keys['ShiftLeft'] || mobile.sprint) && wantForward && !wantBack;
+  // Shift (or the phone Sneak button) = crouch. Standing back up needs headroom.
+  const wantSneak = isPlaying() && !inWater && (keys['ShiftLeft'] || keys['ShiftRight'] || (touchMode && mobile.sneak));
+  if (wantSneak && !player.crouched) { player.crouched = true; player.height = CROUCH_HEIGHT; isSprinting = false; mobile.sprint = false; }
+  else if (!wantSneak && player.crouched &&
+           !checkCollision(player.pos.x, player.pos.y, player.pos.z, player.radius, STAND_HEIGHT)) {
+    player.crouched = false; player.height = STAND_HEIGHT;
+  }
+  const sprinting = isPlaying() && canSprint && !player.crouched && (isSprinting || mobile.sprint) && wantForward && !wantBack;
   if (!canSprint) { isSprinting = false; mobile.sprint = false; }
   const baseSpeed = sprinting ? 6 : 4.2;   // was 8 / 5 -- tweak these two numbers to taste
   let speed = inWater ? baseSpeed*0.5 : baseSpeed;
+  if (player.crouched) speed *= 0.3;   // sneaking is slow
   if (isBlocking) speed *= 0.35; // raising a sword to block plants your feet, like a shield
 
   if (isPlaying()) {
@@ -6945,7 +6999,8 @@ function animate() {
     camera.rotation.x = player.pitch;
     camera.rotation.z = 0;
   } else {
-    camera.position.set(player.pos.x, player.pos.y + player.height, player.pos.z);
+    camEyeH += (player.height - camEyeH) * Math.min(1, dt * 14);   // smooth stand <-> crouch eye drop
+    camera.position.set(player.pos.x, player.pos.y + camEyeH, player.pos.z);
     camera.rotation.order = 'YXZ';
     camera.rotation.y = player.yaw;
     camera.rotation.x = player.pitch;
