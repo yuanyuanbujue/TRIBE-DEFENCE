@@ -1200,6 +1200,10 @@ const ORE_COAL = {
   pal: { h: '#5a5a64', b: '#18181c', l: '#050507' },
   clusters: [[3,3,'S1'],[10,2,'S3'],[7,7,'S2'],[12,9,'S1'],[3,11,'S3'],[9,13,'S2']],
 };
+const ORE_REDSTONE = {
+  pal: { h: '#ff9a9a', b: '#e01818', l: '#7d0606' },
+  clusters: [[3,2,'G1'],[9,3,'G2'],[5,7,'G3'],[11,9,'G1'],[2,11,'G2'],[8,12,'G1']],
+};
 const ORE_DIAMOND = {
   pal: { h: '#e9ffff', b: '#36d8e8', l: '#0f8aa3' },
   clusters: [[3,3,'G2'],[10,2,'G3'],[6,8,'G1'],[11,10,'G2'],[2,11,'G3']],
@@ -1221,6 +1225,7 @@ function paintOreTex(tex, def, stoneImg) {
 }
 TEX.coalOre = makeTexture(ctx => { speckle(ctx, '#8a8a8a', ['#7d7d7d','#959595','#6f6f6f'], 40); drawOrePixels(ctx, ORE_COAL); });
 TEX.diamond_ore = makeTexture(ctx => { speckle(ctx, '#8a8a8a', ['#7d7d7d','#959595','#6f6f6f'], 40); drawOrePixels(ctx, ORE_DIAMOND); });
+TEX.redstone_ore = makeTexture(ctx => { speckle(ctx, '#8a8a8a', ['#7d7d7d','#959595','#6f6f6f'], 40); drawOrePixels(ctx, ORE_REDSTONE); });
 
 // ---- Birch ----
 TEX.birchWood = makeTexture(ctx => {
@@ -1301,6 +1306,7 @@ applyTexturePack();
   im.onload = () => {
     paintOreTex(TEX.coalOre, ORE_COAL, im);
     paintOreTex(TEX.diamond_ore, ORE_DIAMOND, im);
+    paintOreTex(TEX.redstone_ore, ORE_REDSTONE, im);
     for (const k in _tileCache) delete _tileCache[k];
     for (const k in _iconCanvasCache) delete _iconCanvasCache[k];
     for (const k in _iconUrlCache) delete _iconUrlCache[k];
@@ -1330,6 +1336,7 @@ const BLOCK_TYPES = {
   iron_ore: { transparent: false, hardness: 2.5, tool: 'pickaxe' },
   gold_ore: { transparent: false, hardness: 2.0, tool: 'pickaxe' },
   diamond_ore: { transparent: false, hardness: 3.0, tool: 'pickaxe' },
+  redstone_ore: { transparent: false, hardness: 3.0, tool: 'pickaxe' },
   torch: { transparent: true, hardness: 0.1, tool: null, cross: true },
   furnace: { transparent: false, hardness: 1.75, tool: 'pickaxe' },
   chest: { transparent: false, hardness: 1.0, tool: 'axe' },
@@ -1374,6 +1381,7 @@ const ITEM_INFO = {
   iron_ingot:     {},
   gold_ingot:     {},
   diamond:        {},
+  redstone:       {},
   iron_helmet:     { maxStack: 1, armor: 2, slot: 0 },
   iron_chestplate: { maxStack: 1, armor: 4, slot: 1 },
   iron_leggings:   { maxStack: 1, armor: 3, slot: 2 },
@@ -1453,6 +1461,7 @@ const ITEM_STYLE = {
   iron_ingot:  { g: 'ingot', bg: '#55616b', x: '#f2f2f2', s: '#f2f2f2' },
   gold_ingot:  { g: 'ingot', bg: '#8a6a12', x: '#ffe566', s: '#ffe566' },
   diamond:     { g: 'lump',  bg: '#1a6b7a', x: '#7ef0ff', s: '#b8ffff' },
+  redstone:    { g: 'lump',  bg: '#4a0808', x: '#ff2a2a', s: '#ffb0b0' },
   iron_helmet:     { g: 'helmet', ...ITEM_MATS.iron },
   iron_chestplate: { g: 'chest',  ...ITEM_MATS.iron },
   iron_leggings:   { g: 'legs',   ...ITEM_MATS.iron },
@@ -1624,6 +1633,7 @@ function blockFaceCanvases(type) {            // -> { top, side } source canvase
     case 'iron_ore': return { top: T('iron_ore'), side: T('iron_ore') };
     case 'gold_ore': return { top: T('gold_ore'), side: T('gold_ore') };
     case 'diamond_ore': return { top: T('diamond_ore'), side: T('diamond_ore') };
+    case 'redstone_ore': return { top: T('redstone_ore'), side: T('redstone_ore') };
   }
   const b = BLOCK_TYPES[type];
   if (b && !b.cross && !['glass', 'water'].includes(type) && TEX[type]) return { top: T(type), side: T(type) };
@@ -1688,6 +1698,7 @@ function blockDropType(t) {
   if (t === 'stone') return 'cobblestone';
   if (t === 'coal_ore') return 'coal';
   if (t === 'diamond_ore') return 'diamond';
+  if (t === 'redstone_ore') return 'redstone';
   return t;
 }
 function isPlaceable(type) { return !!BLOCK_TYPES[type] && type !== 'water'; }
@@ -1875,6 +1886,7 @@ const MI = {
   iron_ore:  regMat(TEX.iron_ore),
   gold_ore:  regMat(TEX.gold_ore),
   diamond_ore: regMat(TEX.diamond_ore),
+  redstone_ore: regMat(TEX.redstone_ore),
   wood:      regMat(TEX.wood),
   woodTop:   regMat(TEX.woodTop),
   leaves:    regMat(TEX.leaves),
@@ -2584,6 +2596,12 @@ function skyKey(x, z) { return (x + 100000) * 200003 + (z + 100000); }
 world.delete = function (k) {
   const b = world.get(k);
   if (b) skyTopCache.delete(skyKey(b.x, b.z));
+  if (b && b.type === 'sign') {
+    try {
+      if (typeof signData !== 'undefined' && signData[k]) { delete signData[k]; if (typeof saveSignData === 'function') saveSignData(); }
+      if (typeof signLabelEls !== 'undefined' && signLabelEls[k]) { signLabelEls[k].remove(); delete signLabelEls[k]; }
+    } catch (e) {}
+  }
   return _worldDeleteOrig(k);
 };
 world.set = function (k, v) {
@@ -2836,14 +2854,106 @@ function getBlock(x,y,z){
 }
 
 // ---------- Terrain generation ----------
-function noise2D(x, z) {
-  return Math.floor(
-    3.2 * Math.sin(x*0.22) * Math.cos(z*0.22) +
-    2.2 * Math.sin(x*0.09 + z*0.15) +
-    1.6 * Math.cos(x*0.05 - z*0.07) +
-    1.0
-  );
+// ================= Multi-noise biome source =================
+// Like Minecraft's MultiNoiseBiomeSource: five independent smooth noise fields
+// (temperature, humidity, continentalness, erosion, weirdness) are sampled per
+// column. The biome is whichever entry of BIOME_POINTS is closest to that
+// 5-D climate point, and terrain height is shaped by the same parameters
+// (continentalness = ocean/land, erosion = flat/rugged, weirdness = peaks).
+// Everything is a pure function of (x,z) so every client generates identical terrain.
+const WORLD_SEED = 1337;
+function _lat(ix, iz, seed) { return hashRandom(ix, iz, seed, 9001) * 2 - 1; }
+function valueNoise2(x, z, seed) {
+  const x0 = Math.floor(x), z0 = Math.floor(z);
+  let fx = x - x0, fz = z - z0;
+  fx = fx*fx*(3-2*fx); fz = fz*fz*(3-2*fz);
+  const a = _lat(x0, z0, seed), b = _lat(x0+1, z0, seed);
+  const c = _lat(x0, z0+1, seed), d = _lat(x0+1, z0+1, seed);
+  return (a + (b-a)*fx) + ((c + (d-c)*fx) - (a + (b-a)*fx)) * fz;
 }
+function fbm2(x, z, seed, octaves) {
+  let amp = 1, freq = 1, sum = 0, norm = 0;
+  for (let i = 0; i < octaves; i++) {
+    sum += valueNoise2(x*freq, z*freq, seed + i*31) * amp;
+    norm += amp; amp *= 0.5; freq *= 2;
+  }
+  return sum / norm;
+}
+const NP_SCALE = { temp: 1/230, humid: 1/200, cont: 1/340, eros: 1/210, weird: 1/170 };
+function climateAt(x, z) {
+  const t  = Math.max(-1, Math.min(1, fbm2(x*NP_SCALE.temp,  z*NP_SCALE.temp,  11, 3) * 1.7));
+  const hu = Math.max(-1, Math.min(1, fbm2(x*NP_SCALE.humid, z*NP_SCALE.humid, 23, 3) * 1.7));
+  let c    = Math.max(-1, Math.min(1, fbm2(x*NP_SCALE.cont,  z*NP_SCALE.cont,  37, 4) * 1.8 + 0.3));
+  const e  = Math.max(-1, Math.min(1, fbm2(x*NP_SCALE.eros,  z*NP_SCALE.eros,  53, 3) * 1.7));
+  const w  = Math.max(-1, Math.min(1, fbm2(x*NP_SCALE.weird, z*NP_SCALE.weird, 71, 3) * 1.7));
+  // keep the spawn area dry land so you never start in the ocean
+  const sd = Math.sqrt(x*x + z*z);
+  if (sd < 110) { const k = 1 - sd/110; c = Math.max(c, 0.37 * k + c * (1 - k)); }
+  return { t, h: hu, c, e, w };
+}
+// [name, temperature, humidity, continentalness, erosion, weirdness]
+const BIOME_POINTS = [
+  ['deep_ocean',    0.0,  0.0, -0.95,  0.0,  0.0],
+  ['ocean',         0.0,  0.0, -0.55,  0.0,  0.0],
+  ['beach',         0.0,  0.0, -0.12,  0.4,  0.0],
+  ['plains',        0.0, -0.1,  0.30,  0.3,  0.0],
+  ['forest',        0.1,  0.6,  0.35,  0.2,  0.0],
+  ['birch_forest', -0.3,  0.35, 0.35,  0.1,  0.5],
+  ['desert',        0.9, -0.8,  0.40,  0.3,  0.0],
+  ['mountains',    -0.2,  0.0,  0.85, -0.7,  0.4],
+];
+function biomeFromClimate(cl, landOnly) {
+  let best = null, bd = Infinity;
+  for (let i = 0; i < BIOME_POINTS.length; i++) {
+    const b = BIOME_POINTS[i];
+    if (landOnly && (b[0] === 'ocean' || b[0] === 'deep_ocean' || b[0] === 'beach')) continue;
+    const dt = cl.t - b[1], dh = cl.h - b[2], dc = cl.c - b[3], de = cl.e - b[4], dw = cl.w - b[5];
+    const d = dt*dt + dh*dh + 3.0*dc*dc + de*de + 0.5*dw*dw;
+    if (d < bd) { bd = d; best = b[0]; }
+  }
+  return best;
+}
+function heightFromClimate(cl, x, z) {
+  const c = cl.c;
+  let base;
+  if (c < -0.45)      base = -14;
+  else if (c < -0.18) base = -14 + (c + 0.45) / 0.27 * 11;   // continental slope up to the shore
+  else if (c < 0.0)   base = -3 + (c + 0.18) / 0.18 * 3;
+  else if (c < 0.35)  base = 0 + c / 0.35 * 4;
+  else                base = 4 + Math.min(1, (c - 0.35) / 0.65) * 9;
+  const rugged = (1 - cl.e) * 0.5;                            // 0 flat .. 1 very rugged
+  const landF = Math.max(0, Math.min(1, (c + 0.1) / 0.25));   // fade detail out over the sea
+  const hill = fbm2(x/26, z/26, 91, 3) * (2 + rugged * 9) + fbm2(x/8, z/8, 97, 2) * (0.6 + rugged * 1.4);
+  let peaks = 0;
+  if (c > 0.3 && cl.e < 0.0) peaks = Math.min(1, Math.sqrt(x*x+z*z)/110) * Math.max(0, cl.w + 0.2) * (0.0 - cl.e + 0.3) * 20 * Math.min(1, (c - 0.3) / 0.3);
+  const seaDetail = fbm2(x/18, z/18, 103, 2) * 1.5;
+  return Math.floor(base + hill * landF + seaDetail * (1 - landF) + peaks + 1);
+}
+const _colCache = new Map();
+function columnInfo(x, z) {
+  const k = (x + 1048576) * 2097152 + (z + 1048576);
+  let v = _colCache.get(k);
+  if (v) return v;
+  const cl = climateAt(x, z);
+  const h = heightFromClimate(cl, x, z);
+  let biome = biomeFromClimate(cl);
+  if (h > 1 && (biome === 'ocean' || biome === 'deep_ocean' || biome === 'beach')) biome = biomeFromClimate(cl, true); // dry land can't be sea/beach
+  // shoreline: low land right next to the water becomes beach, regardless of climate
+  if (h >= 0 && h <= 1 && cl.c < 0.08 && biome !== 'ocean' && biome !== 'deep_ocean') biome = 'beach';
+  if (h <= -1) biome = h < -8 ? 'deep_ocean' : 'ocean';
+  v = { h, biome, cl };
+  if (_colCache.size > 300000) _colCache.clear();
+  _colCache.set(k, v);
+  return v;
+}
+function noise2D(x, z) { return columnInfo(x, z).h; }
+function biomeAt(x, z) { return columnInfo(x, z).biome; }
+// per-biome tree chance for each TREE_GRID cell, and birch share
+const BIOME_TREE = {
+  plains: { d: 0.10, birch: 0.05 }, forest: { d: 0.75, birch: 0.15 }, birch_forest: { d: 0.65, birch: 0.92 },
+  mountains: { d: 0.10, birch: 0.10 }, desert: { d: 0, birch: 0 }, beach: { d: 0, birch: 0 },
+  ocean: { d: 0, birch: 0 }, deep_ocean: { d: 0, birch: 0 },
+};
 const WATER_LEVEL = -1;
 // The world is now effectively open-ended — terrain streams in around the
 // player instead of being capped to a fixed size (see chunk streaming below).
@@ -2879,19 +2989,22 @@ function hashRandom(a, b, c, salt) {
 // chunk can check for trees near it regardless of generation order.
 const TREE_GRID = 10;
 function treeSpotAt(gx, gz) {
-  if (hashRandom(gx, gz, 0, 103) > 0.35) return null;
   const ox = Math.floor(hashRandom(gx, gz, 1, 104) * TREE_GRID);
   const oz = Math.floor(hashRandom(gx, gz, 2, 105) * TREE_GRID);
   const x = gx*TREE_GRID + ox, z = gz*TREE_GRID + oz;
-  if (noise2D(x,z) <= WATER_LEVEL) return null;
+  const col = columnInfo(x, z);
+  const bt = BIOME_TREE[col.biome];
+  if (!bt || bt.d <= 0) return null;
+  if (hashRandom(gx, gz, 0, 103) > bt.d * 0.5) return null;   // 0.5 ~ original density scale
+  if (col.h <= WATER_LEVEL) return null;
+  if (col.biome === 'mountains' && col.h > 17) return null;   // bare peaks
   return { x, z };
 }
 // Birch trees grow in groves (a slow low-frequency pattern), with the odd lone
 // birch elsewhere. Pure function of position, so every client agrees.
 function isBirchSpot(x, z) {
-  const g = Math.sin(x*0.018 + 0.9) + Math.cos(z*0.021 + 1.9) + Math.sin((x+z)*0.011);
-  const r = hashRandom(x, z, 0, 121);
-  return g > 0.75 ? r < 0.85 : r < 0.06;
+  const bt = BIOME_TREE[biomeAt(x, z)] || { birch: 0.05 };
+  return hashRandom(x, z, 0, 121) < bt.birch;
 }
 function addBirchTree(x, z) {
   const baseY = noise2D(x,z) + 1;
@@ -2976,6 +3089,7 @@ function scatterOreVeins(cx, cz) {
     ['iron_ore',    10, WORLD_BOTTOM + 2,  -4,   4, 10, 502], // mid/deep
     ['gold_ore',     6, WORLD_BOTTOM + 2, -10,   3,  7, 503], // deeper
     ['diamond_ore',  4, WORLD_BOTTOM + 2, -18,   2,  5, 504], // rare, very deep
+    ['redstone_ore', 8, WORLD_BOTTOM + 2, -12,   3,  7, 505], // deep, a bit more common than diamond
   ];
   for (const [ore, attempts, minY, maxYAbs, szMin, szMax, salt] of configs) {
     for (let a = 0; a < attempts; a++) {
@@ -2997,14 +3111,17 @@ function generateChunkColumns(cx, cz) {
   const z0 = cz*CHUNK_SIZE, z1 = z0+CHUNK_SIZE-1;
   for (let x=x0; x<=x1; x++) {
     for (let z=z0; z<=z1; z++) {
-      const h = noise2D(x,z);
+      const col = columnInfo(x, z), h = col.h, biome = col.biome;
+      let biomeTop = 'grass', biomeFiller = 'dirt';
+      if (biome === 'desert' || biome === 'beach') { biomeTop = 'sand'; biomeFiller = 'sand'; }
+      else if (biome === 'mountains' && h > 17) { biomeTop = 'stone'; biomeFiller = 'stone'; }
       // a few sparse cave mouths open onto the surface (never near the spawn area)
       const entr = (Math.abs(x) > 20 || Math.abs(z) > 20) && h > WATER_LEVEL + 1 && Math.sin(x*0.31)*Math.sin(z*0.27) > 0.94;
       for (let y = WORLD_BOTTOM; y <= h; y++) {
         if (y > WORLD_BOTTOM + 1 && y <= (entr ? h : h - 4) && caveNoise(x,y,z) > caveThreshold(h - y)) continue; // carved cave
         let type = 'stone';
-        if (y === h) type = (h <= WATER_LEVEL) ? 'sand' : 'grass';
-        else if (y > h - 3) type = 'dirt';
+        if (y === h) type = (h <= WATER_LEVEL) ? 'sand' : biomeTop;
+        else if (y > h - (biome === 'desert' || biome === 'beach' ? 4 : 3)) type = (h <= WATER_LEVEL) ? 'sand' : biomeFiller;
         addBlock(x,y,z,type,true);
       }
       for (let y = h+1; y <= WATER_LEVEL; y++) {
@@ -3043,17 +3160,20 @@ function ensureChunksNear(px, pz, radius, maxNew) {
   }
   candidates.sort((a,b) => a[0]-b[0]);
   let generated = 0;
+  const _t0 = performance.now();
   for (const [, cx, cz] of candidates) {
     const ck = cx+','+cz;
     if (!generatedChunks.has(ck)) {
       if (generated >= maxNew) continue;
+      // frame budget: after the first chunk, stop once ~6ms is spent so a pass never stalls a frame
+      if (maxNew !== Infinity && generated > 0 && performance.now() - _t0 > 6) break;
       generatedChunks.add(ck);
       generateChunkColumns(cx,cz);
       markOne(cx,cz);
       generated++;
     } else {
       const c = chunks.get(ck);
-      if (c && !c.mesh) markOne(cx,cz); // was unloaded for distance — bring it back
+      if (!c || !c.mesh) markOne(cx,cz); // was unloaded for distance (or generated unmeshed for a remote player) — bring it back
     }
   }
 }
@@ -3062,7 +3182,7 @@ let streamTimer = 0;
 function updateChunkStreaming(dt) {
   streamTimer -= dt;
   if (streamTimer > 0) return;
-  streamTimer = 0.25; // throttle: a few times a second is plenty
+  streamTimer = 0.1; // throttle: a few times a second is plenty
   ensureChunksNear(player.pos.x, player.pos.z, RENDER_CHUNKS, CHUNKS_PER_TICK);
   const pcx = Math.floor(player.pos.x/CHUNK_SIZE), pcz = Math.floor(player.pos.z/CHUNK_SIZE);
   chunks.forEach((c, ck) => {
@@ -4180,9 +4300,15 @@ const DAY_LENGTH = 180;
 // Sun height matches updateDayNight(): 1 = noon, -1 = midnight. Night = sun below the horizon.
 function isNightTime() { return -Math.cos(worldTime * Math.PI * 2) < -0.05; }
 
+// Everyone derives the time of day from the same shared clock (wall clock + a
+// small offset), so all players always see the same sun position. Sleeping or a
+// new player's join adjusts the offset and it's broadcast to everybody.
+let timeOffset = 0;   // seconds added to Date.now()/1000
+function sharedClock() { return Date.now() / 1000 + timeOffset; }
+function clockToWorldTime(c) { return (((c / DAY_LENGTH) + 0.25) % 1 + 1) % 1; }
+function adoptSharedClock(c) { if (typeof c === 'number' && isFinite(c)) timeOffset = c - Date.now() / 1000; }
 function updateDayNight(dt) {
-  worldTime += dt / DAY_LENGTH;
-  if (worldTime > 1) worldTime -= 1;
+  worldTime = clockToWorldTime(sharedClock());
   const angle = worldTime * Math.PI * 2;
   const sunHeight = Math.sin(angle - Math.PI/2);
   // Keep the sun (and its shadow frustum) offset from the player rather
@@ -4336,9 +4462,12 @@ function useBed(x, y, z) {
   }
   fade.style.opacity = '1';
   setTimeout(() => {
-    worldTime = 0.27;                                   // just after sunrise
+    // jump the shared clock forward to just after sunrise, for everyone
+    { const f = sharedClock() / DAY_LENGTH, k = Math.ceil(f - 0.02 - 1e-9);
+      timeOffset += ((k + 0.02) - f) * DAY_LENGTH;
+      try { playersChannel.send({ type: 'broadcast', event: 'time_sync', payload: { from: MY_ID, t: sharedClock() } }); } catch (e) {} }
     updateDayNight(0);
-    for (const a of animals) if (a.alive && a.kind === 'zombie') { a.alive = false; scene.remove(a.group); }   // night mobs vanish with the dawn
+    if (isMobHost()) for (const a of animals) if (a.alive && a.kind === 'zombie') { a.alive = false; scene.remove(a.group); }   // night mobs vanish with the dawn
     addChatLine('System', 'Good morning! The night has passed.', true);
     fade.style.opacity = '0';
     setTimeout(() => { sleeping = false; }, 800);
@@ -4960,24 +5089,34 @@ const ANIMAL_DEFS = {
 };
 const PASSIVE_KINDS = ['pig', 'cow', 'sheep'];
 const animals = [];
-function spawnAnimal(x, z, surfaceY, kind) {
-  kind = kind || 'pig';
-  const h = surfaceY != null ? surfaceY : noise2D(x, z);
-  if (h <= WATER_LEVEL) return false;
+let mobSeq = 0;
+function createMob(kind, px, py, pz, id, remote) {
   const isZ = kind === 'zombie';
   const def = ANIMAL_DEFS[kind] || ANIMAL_DEFS.pig;
   const group = isZ ? buildZombie() : def.build();
   scene.add(group);
-  const pos = new THREE.Vector3(x + 0.5, h + (isZ ? 1.1 : def.drop), z + 0.5);
+  const pos = new THREE.Vector3(px, py, pz);
   group.position.copy(pos);
-  animals.push({
+  const e = {
+    id: id || (MY_ID + '_m' + (mobSeq++)), remote: !!remote,
     kind,
     group, pos, vel: new THREE.Vector3(0,0,0),
     hp: isZ ? 20 : def.hp, maxHp: isZ ? 20 : def.hp, alive: true,
     radius: isZ ? 0.32 : def.radius, height: isZ ? 1.7 : def.height,
     wanderTimer: Math.random()*2, facing: 0,
     attackCd: 0,
-  });
+    target: remote ? { x: px, y: py, z: pz, f: 0 } : null,
+  };
+  animals.push(e);
+  return e;
+}
+function spawnAnimal(x, z, surfaceY, kind) {
+  kind = kind || 'pig';
+  const h = surfaceY != null ? surfaceY : noise2D(x, z);
+  if (h <= WATER_LEVEL) return false;
+  const isZ = kind === 'zombie';
+  const def = ANIMAL_DEFS[kind] || ANIMAL_DEFS.pig;
+  createMob(kind, x + 0.5, h + (isZ ? 1.1 : def.drop), z + 0.5, null, false);
   return true;
 }
 function spawnAnimals(count, centerX, centerZ, radius) {
@@ -5010,13 +5149,119 @@ function moveEntity(pos, vel, dt, r, h) {
   return onGround;
 }
 
+
+// ================= Shared mobs (host-authoritative) =================
+// The player with the lowest id is the "mob host": only their client spawns,
+// moves and fights mobs. Everyone else just renders what the host streams
+// (piggybacked on the 10 Hz position broadcast) and sends their hits to the host.
+function mobHostId() {
+  let min = MY_ID;
+  otherPlayers.forEach((e, id) => { if (id < min) min = id; });
+  return min;
+}
+function isMobHost() { return mobHostId() === MY_ID; }
+function nearestPlayerTarget(p) {
+  let best = { x: player.pos.x, y: player.pos.y, z: player.pos.z, local: true, id: MY_ID, alive: player.hp > 0 };
+  let bd = (best.x - p.x) * (best.x - p.x) + (best.z - p.z) * (best.z - p.z);
+  otherPlayers.forEach((e, id) => {
+    const t = e.target, d = (t.x - p.x) * (t.x - p.x) + (t.z - p.z) * (t.z - p.z);
+    if (d < bd) { bd = d; best = { x: t.x, y: t.y, z: t.z, local: false, id, alive: true }; }
+  });
+  return best;
+}
+function mobAnchors() {
+  const arr = [{ x: player.pos.x, z: player.pos.z, local: true }];
+  otherPlayers.forEach(e => arr.push({ x: e.target.x, z: e.target.z, local: false }));
+  return arr;
+}
+function buildMobSnapshot() {
+  const out = [];
+  for (const a of animals) {
+    if (!a.alive || a.remote) continue;
+    out.push([a.id, a.kind, +a.pos.x.toFixed(2), +a.pos.y.toFixed(2), +a.pos.z.toFixed(2), +a.facing.toFixed(2), a.hp]);
+    if (out.length >= 90) break;
+  }
+  return out;
+}
+function applyMobSnapshot(fromId, list) {
+  if (!Array.isArray(list) || fromId !== mobHostId() || isMobHost()) return;
+  const byId = new Map();
+  for (const a of animals) if (a.id) byId.set(a.id, a);
+  const seen = new Set();
+  for (const m of list) {
+    const id = m[0], kind = m[1];
+    if (!ANIMAL_DEFS[kind] && kind !== 'zombie') continue;
+    seen.add(id);
+    let a = byId.get(id);
+    if (!a) a = createMob(kind, m[2], m[3], m[4], id, true);
+    if (!a.remote) { a.remote = true; a.target = { x: a.pos.x, y: a.pos.y, z: a.pos.z, f: a.facing }; }
+    if (m[6] < a.hp) flashRed(a.group);
+    a.hp = m[6];
+    a.target.x = m[2]; a.target.y = m[3]; a.target.z = m[4]; a.target.f = m[5];
+  }
+  for (let i = animals.length - 1; i >= 0; i--) {
+    const a = animals[i];
+    if (!seen.has(a.id)) { a.alive = false; scene.remove(a.group); animals.splice(i, 1); }
+  }
+}
+function giveMobLoot(kind) {
+  jcAddXp(JC_XP[kind] || 2);
+  if (kind === 'zombie') {
+    if (Math.random() < 0.08) addItemToInventory('iron_ingot', 1);
+  } else {
+    const dropCount = (kind === 'cow' ? 2 : 1) + Math.floor(Math.random()*2);   // cows drop a bit more
+    addItemToInventory('raw_meat', dropCount);
+    if (kind === 'sheep') addItemToInventory('wool', 1 + Math.floor(Math.random()*2));   // 1-2 wool (3 wool + 3 planks = bed)
+  }
+  renderHotbar();
+  if (inventoryOpen) renderInventoryPanel();
+}
+let remoteGenTimer = 0;
+// Generate terrain (no meshing) around a remote player so host-simulated mobs there have ground to stand on.
+function generateChunksNoMesh(px, pz, radius, maxNew) {
+  const pcx = Math.floor(px / CHUNK_SIZE), pcz = Math.floor(pz / CHUNK_SIZE);
+  let n = 0;
+  for (let dx = -radius; dx <= radius && n < maxNew; dx++) for (let dz = -radius; dz <= radius && n < maxNew; dz++) {
+    const ck = (pcx + dx) + ',' + (pcz + dz);
+    if (generatedChunks.has(ck)) continue;
+    generatedChunks.add(ck); generateChunkColumns(pcx + dx, pcz + dz); n++;
+  }
+}
+
 function updateAnimals(dt) {
+  const iAmHost = isMobHost();
   animals.forEach(a => {
     if (!a.alive) return;
+    // host changed (someone joined with a lower id / the old host left)
+    if (iAmHost && a.remote) { a.remote = false; a.target = null; a.vel.set(0, 0, 0); a.wanderTimer = 1; }
+    else if (!iAmHost && !a.remote) { a.remote = true; a.target = { x: a.pos.x, y: a.pos.y, z: a.pos.z, f: a.facing }; }
+    if (a.remote) {   // just follow the host's stream
+      const t = a.target, k = Math.min(1, dt * 10);
+      const dx = t.x - a.pos.x, dz = t.z - a.pos.z;
+      if (dx*dx + dz*dz > 64 || Math.abs(t.y - a.pos.y) > 6) a.pos.set(t.x, t.y, t.z);
+      else { a.pos.x += dx * k; a.pos.z += dz * k; a.pos.y += (t.y - a.pos.y) * k; }
+      let df = t.f - a.facing; df = Math.atan2(Math.sin(df), Math.cos(df)); a.facing += df * k;
+      const spd = Math.hypot(dx, dz) * 5;
+      if (a.kind === 'zombie' && a.group.userData.legs) {
+        const sw = spd > 0.15 ? Math.sin(performance.now() * 0.008) * 0.35 : 0;
+        a.group.userData.legs[0].rotation.x = sw; a.group.userData.legs[1].rotation.x = -sw;
+      } else if (a.group.userData.legs4) {
+        const L = a.group.userData.legs4;
+        a.walk = (a.walk || 0) + dt * (2 + spd * 7);
+        const sw = spd > 0.15 ? Math.sin(a.walk) * 0.55 : 0;
+        L[0].rotation.x = sw; L[3].rotation.x = sw; L[1].rotation.x = -sw; L[2].rotation.x = -sw;
+      }
+      a.group.position.copy(a.pos);
+      a.group.rotation.y = a.facing;
+      return;
+    }
+    // no ground generated under this mob yet (far from the host): freeze instead of falling
+    if (!generatedChunks.has(Math.floor(a.pos.x / CHUNK_SIZE) + ',' + Math.floor(a.pos.z / CHUNK_SIZE))) return;
     if (a.kind === 'zombie') {
-      const toP = new THREE.Vector3(player.pos.x - a.pos.x, 0, player.pos.z - a.pos.z);
+      const tgt = nearestPlayerTarget(a.pos);
+      const toP = new THREE.Vector3(tgt.x - a.pos.x, 0, tgt.z - a.pos.z);
       const dist = toP.length();
-      if (dist < 18 && player.hp > 0) {
+      if (dist < 18 && tgt.alive) {
         if (dist > 1.15) {
           toP.normalize();
           const speed = 1.55;
@@ -5030,7 +5275,7 @@ function updateAnimals(dt) {
             const aheadZ = a.pos.z + toP.z * 0.7;
             const blocked = checkCollision(aheadX, a.pos.y, aheadZ, a.radius, a.height);
             const spaceAbove = !checkCollision(aheadX, a.pos.y + 1.05, aheadZ, a.radius, a.height * 0.85);
-            const playerHigher = player.pos.y > a.pos.y + 0.45;
+            const playerHigher = tgt.y > a.pos.y + 0.45;
             // On ground flag set after move; use vel.y ~ 0 as standing
             const grounded = Math.abs(a.vel.y) < 0.2;
             if (grounded && ((blocked && spaceAbove) || (playerHigher && dist < 6))) {
@@ -5044,11 +5289,12 @@ function updateAnimals(dt) {
         a.attackCd = (a.attackCd || 0) - dt;
         // Horizontal distance alone let zombies hit you through floors/ceilings and from the
         // bottom of a tall pillar. Also require the two bodies to overlap vertically.
-        const dyP = player.pos.y - a.pos.y;
-        if (dist < 1.35 && dyP > -1.3 && dyP < 1.3 && a.attackCd <= 0 && player.hp > 0) {
+        const dyP = tgt.y - a.pos.y;
+        if (dist < 1.35 && dyP > -1.3 && dyP < 1.3 && a.attackCd <= 0 && tgt.alive) {
           a.attackCd = 1.1;
-          const kdir = new THREE.Vector3(player.pos.x - a.pos.x, 0, player.pos.z - a.pos.z);
-          damagePlayer(3, kdir, 8.5);
+          const kdir = new THREE.Vector3(tgt.x - a.pos.x, 0, tgt.z - a.pos.z);
+          if (tgt.local) damagePlayer(3, kdir, 8.5);
+          else playersChannel.send({ type: 'broadcast', event: 'mob_dmg', payload: { to: tgt.id, dmg: 3, kx: kdir.x, kz: kdir.z, kb: 8.5 } });
         }
       } else {
         a.wanderTimer -= dt;
@@ -5115,20 +5361,33 @@ function findGrassSurface(x, z) {   // real top grass block (respects mined/buil
   }
   return null;
 }
+let spawnAnchorIdx = 0;
 function updateAnimalSpawning(dt) {
-  // drop dead entries and animals we've left far behind
+  // drop dead entries (everyone) ...
+  for (let i = animals.length - 1; i >= 0; i--) if (!animals[i].alive) animals.splice(i, 1);
+  if (!isMobHost()) return;   // ... but only the host spawns / despawns
+  const anchors = mobAnchors();
+  // despawn mobs that are far from EVERY player
   for (let i = animals.length - 1; i >= 0; i--) {
     const a = animals[i];
-    if (!a.alive) { animals.splice(i, 1); continue; }
-    const dx = a.pos.x - player.pos.x, dz = a.pos.z - player.pos.z;
-    if (dx*dx + dz*dz > ANIMAL_DESPAWN * ANIMAL_DESPAWN) { a.alive = false; scene.remove(a.group); animals.splice(i, 1); }
+    let near = false;
+    for (const p of anchors) { const dx = a.pos.x - p.x, dz = a.pos.z - p.z; if (dx*dx + dz*dz <= ANIMAL_DESPAWN * ANIMAL_DESPAWN) { near = true; break; } }
+    if (!near) { a.alive = false; scene.remove(a.group); animals.splice(i, 1); }
+  }
+  // keep terrain generated (unmeshed) around remote players so their mobs have ground
+  remoteGenTimer -= dt;
+  if (remoteGenTimer <= 0) {
+    remoteGenTimer = 0.4;
+    for (const p of anchors) if (!p.local) generateChunksNoMesh(p.x, p.z, 3, 1);
   }
   animalSpawnTimer -= dt;
   if (animalSpawnTimer > 0) return;
-  animalSpawnTimer = 3 + Math.random() * 4;
+  animalSpawnTimer = (3 + Math.random() * 4) / anchors.length;
+  spawnAnchorIdx = (spawnAnchorIdx + 1) % anchors.length;
+  const P = anchors[spawnAnchorIdx];
   let near = 0, nearZ = 0;
   for (const a of animals) {
-    const dx = a.pos.x - player.pos.x, dz = a.pos.z - player.pos.z;
+    const dx = a.pos.x - P.x, dz = a.pos.z - P.z;
     if (dx*dx + dz*dz < ANIMAL_NEAR * ANIMAL_NEAR) {
       near++;
       if (a.kind === 'zombie') nearZ++;
@@ -5143,8 +5402,9 @@ function updateAnimalSpawning(dt) {
   const camDir = new THREE.Vector3(); camera.getWorldDirection(camDir);
   for (let tries = 0; tries < 12; tries++) {
     const ang = Math.random() * Math.PI * 2, dist = 24 + Math.random() * 36;
-    const x = Math.floor(player.pos.x + Math.cos(ang) * dist), z = Math.floor(player.pos.z + Math.sin(ang) * dist);
-    if (Math.abs(Math.cos(ang) * camDir.x + Math.sin(ang) * camDir.z) > 0.8 && dist < 34) continue;
+    const x = Math.floor(P.x + Math.cos(ang) * dist), z = Math.floor(P.z + Math.sin(ang) * dist);
+    if (P.local && Math.abs(Math.cos(ang) * camDir.x + Math.sin(ang) * camDir.z) > 0.8 && dist < 34) continue;
+    if (!generatedChunks.has(Math.floor(x / CHUNK_SIZE) + ',' + Math.floor(z / CHUNK_SIZE))) continue;
     const y = findGrassSurface(x, z);
     if (y == null) continue;
     if (wantZombie) {
@@ -5164,24 +5424,25 @@ function updateAnimalSpawning(dt) {
 }
 
 function damageAnimal(animal, dmg, fromPos, kbMul) {
+  if (animal.remote) {
+    // the host owns this mob: show feedback locally and ask the host to apply the hit
+    flashRed(animal.group);
+    const fp = fromPos || player.pos;
+    playersChannel.send({ type: 'broadcast', event: 'mob_hit', payload: {
+      id: animal.id, dmg, kx: fp.x - animal.pos.x, kz: fp.z - animal.pos.z, kb: kbMul == null ? 1 : kbMul, by: MY_ID } });
+    return;
+  }
   animal.hp -= dmg;
   flashRed(animal.group);
   knockbackEntity(animal, fromPos || player.pos, (animal.kind === 'zombie' ? 9.5 : 7.5) * (kbMul == null ? 1 : kbMul));
-  if (animal.hp <= 0) killAnimal(animal);
+  if (animal.hp <= 0) killAnimal(animal, MY_ID);
 }
-function killAnimal(animal) {
+// `by` = id of the player who landed the killing blow (gets the loot / xp)
+function killAnimal(animal, by) {
   animal.alive = false;
-  jcAddXp(JC_XP[animal.kind] || 2);
   scene.remove(animal.group);
-  if (animal.kind === 'zombie') {
-    if (Math.random() < 0.08) addItemToInventory('iron_ingot', 1);
-  } else {
-    const dropCount = (animal.kind === 'cow' ? 2 : 1) + Math.floor(Math.random()*2);   // cows drop a bit more
-    addItemToInventory('raw_meat', dropCount);
-    if (animal.kind === 'sheep') addItemToInventory('wool', 1 + Math.floor(Math.random()*2));   // 1-2 wool (3 wool + 3 planks = bed)
-  }
-  renderHotbar();
-  if (inventoryOpen) renderInventoryPanel();
+  if (!by || by === MY_ID) giveMobLoot(animal.kind);
+  else playersChannel.send({ type: 'broadcast', event: 'mob_dead', payload: { to: by, kind: animal.kind, id: animal.id } });
 }
 // ================= Dropped items =================
 // When a block is mined (or an item is thrown with Q), it pops out into the
@@ -5781,6 +6042,27 @@ playersChannel
     entry.blocking = !!payload.blocking;
     entry.mining = !!payload.mining;
     entry.sneak = !!payload.sneak;
+    if (payload.mobs) applyMobSnapshot(payload.id, payload.mobs);
+  })
+  .on('broadcast', { event: 'mob_hit' }, ({ payload }) => {
+    if (!payload || !isMobHost()) return;
+    const a = animals.find(q => q.id === payload.id && q.alive && !q.remote);
+    if (!a) return;
+    a.hp -= payload.dmg; flashRed(a.group);
+    knockbackEntity(a, new THREE.Vector3(a.pos.x - payload.kx, a.pos.y, a.pos.z - payload.kz), (a.kind === 'zombie' ? 9.5 : 7.5) * (payload.kb == null ? 1 : payload.kb));
+    if (a.hp <= 0) killAnimal(a, payload.by);
+  })
+  .on('broadcast', { event: 'mob_dmg' }, ({ payload }) => {
+    if (!payload || payload.to !== MY_ID || player.hp <= 0) return;
+    damagePlayer(payload.dmg, new THREE.Vector3(payload.kx, 0, payload.kz), payload.kb || 8.5);
+  })
+  .on('broadcast', { event: 'mob_dead' }, ({ payload }) => {
+    if (payload && payload.to === MY_ID) giveMobLoot(payload.kind);
+  })
+  .on('broadcast', { event: 'time_sync' }, ({ payload }) => {
+    if (!payload || payload.from === MY_ID) return;
+    adoptSharedClock(payload.t);
+    if (isMobHost()) for (const a of animals) if (a.alive && a.kind === 'zombie') { a.alive = false; scene.remove(a.group); }
   })
   .on('broadcast', { event: 'chat' }, ({ payload }) => {
     if (!payload || payload.id === MY_ID) return;
@@ -5851,12 +6133,13 @@ playersChannel
   .on('broadcast', { event: 'sync_req' }, ({ payload }) => {
     if (!payload || payload.id === MY_ID) return;
     playersChannel.send({ type: 'broadcast', event: 'sync_state', payload: {
-      to: payload.id, from: MY_ID, chests: chestData, stamps: chestStamps, signs: signData,
+      to: payload.id, from: MY_ID, t: sharedClock(), chests: chestData, stamps: chestStamps, signs: signData,
       drops: droppedItems.slice(0, 60).map(d => ({ id: d.id, type: d.type, count: d.count, x: d.pos.x, y: d.pos.y, z: d.pos.z }))
     } });
   })
   .on('broadcast', { event: 'sync_state' }, ({ payload }) => {
     if (!payload || payload.to !== MY_ID) return;
+    adoptSharedClock(payload.t);
     const ch = payload.chests || {}, st = payload.stamps || {};
     Object.keys(ch).forEach(k => applyRemoteChest(k, ch[k], st[k] || 0));
     const sg = payload.signs || {};
@@ -5878,10 +6161,12 @@ function broadcastMyPosition(dt) {
     payload: {
       id: MY_ID, name: MY_NAME, x: player.pos.x, y: player.pos.y, z: player.pos.z, yaw: player.yaw,
       heldType: currentItem() ? currentItem().type : null, armor: armorMask(),
-      blocking: isBlocking, mining: mining.active, sneak: !!player.crouched
+      blocking: isBlocking, mining: mining.active, sneak: !!player.crouched,
+      mobs: (isMobHost() && (mobSnapTick = (mobSnapTick + 1) % 2) === 0) ? buildMobSnapshot() : undefined
     }
   });
 }
+let mobSnapTick = 0;
 function updateOtherPlayerVisuals(dt) {
   const lerpT = Math.min(1, dt * 10);
   otherPlayers.forEach(entry => {
@@ -5958,10 +6243,62 @@ function closeChat() {
   chatInput.blur();
   resumeGameplay();
 }
+
+// ---------- Chat commands ----------
+function teleportPlayerTo(x, y, z) {
+  player.pos.set(x, y, z);
+  player.vel.set(0, 0, 0);
+  if (typeof ensureChunksNear === 'function') { ensureChunksNear(x, z, 2, Infinity); flushDirtyChunks(true); }
+}
+function parseCoord(tok, cur) {
+  if (tok === undefined) return NaN;
+  if (tok[0] === '~') { const off = tok.length > 1 ? parseFloat(tok.slice(1)) : 0; return cur + off; }
+  return parseFloat(tok);
+}
+function findPlayerByName(name) {
+  const q = name.toLowerCase();
+  let exact = null, partial = null;
+  otherPlayers.forEach(e => {
+    const n = (e.name || '').toLowerCase();
+    if (n === q) exact = e; else if (!partial && n.startsWith(q)) partial = e;
+  });
+  return exact || partial;
+}
+function runChatCommand(text) {
+  const parts = text.slice(1).trim().split(/\s+/);
+  const cmd = (parts.shift() || '').toLowerCase();
+  const sys = msg => addChatLine('System', msg, true);
+  if (cmd === 'tp' || cmd === 'teleport') {
+    let args = parts;
+    if (args[0] === '@s' || args[0] === '@p') args = args.slice(1);
+    else if (args[0] && args[0][0] === '@') { sys('Only @s (yourself) is supported.'); return; }
+    if (args.length === 0) { sys('Usage: /tp @s <x> <y> <z>  or  /tp @s <player>'); return; }
+    if (args.length === 1 && !/^[~\-\d.]/.test(args[0])) {
+      const e = findPlayerByName(args[0]);
+      if (!e) { sys('No player found: ' + args[0]); return; }
+      const t = e.target || e.group.position;
+      teleportPlayerTo(t.x, t.y, t.z);
+      sys('Teleported to ' + e.name + '.');
+      return;
+    }
+    if (args.length < 3) { sys('Usage: /tp @s <x> <y> <z>  (use ~ for relative)'); return; }
+    const x = parseCoord(args[0], player.pos.x), y = parseCoord(args[1], player.pos.y), z = parseCoord(args[2], player.pos.z);
+    if (![x, y, z].every(Number.isFinite)) { sys('Invalid coordinates.'); return; }
+    if (Math.abs(x) > 3e7 || Math.abs(z) > 3e7 || y < -200 || y > 2000) { sys('Coordinates out of range.'); return; }
+    teleportPlayerTo(x, y, z);
+    sys('Teleported to ' + x.toFixed(1) + ', ' + y.toFixed(1) + ', ' + z.toFixed(1));
+    return;
+  }
+  if (cmd === 'biome') { sys('Biome: ' + biomeAt(Math.floor(player.pos.x), Math.floor(player.pos.z))); return; }
+  if (cmd === 'help') { sys('/tp @s <x> <y> <z> | /tp @s <player> | /biome'); return; }
+  sys('Unknown command: /' + cmd + ' (try /help)');
+}
+
 function sendChatMessage() {
   const text = chatInput.value.trim().slice(0, 200);
   closeChat();
   if (!text) return;
+  if (text[0] === '/') { runChatCommand(text); return; }
   addChatLine(MY_NAME, text, true);
   showChatBubbleOn(myModel, text);
   playersChannel.send({ type: 'broadcast', event: 'chat', payload: { id: MY_ID, name: MY_NAME, text } });
@@ -6937,7 +7274,7 @@ function updateMining(dt) {
         canDrop = toolKind === 'pickaxe' && (heldType.startsWith('stone_') || heldType.startsWith('iron_') || heldType.startsWith('gold_') || heldType.startsWith('diamond_'));
       }
       // Gold / diamond ore need at least an iron pickaxe (or better: gold/diamond).
-      if (canDrop && (b.type === 'gold_ore' || b.type === 'diamond_ore')) {
+      if (canDrop && (b.type === 'gold_ore' || b.type === 'diamond_ore' || b.type === 'redstone_ore')) {
         canDrop = toolKind === 'pickaxe' && (heldType.startsWith('iron_') || heldType.startsWith('gold_') || heldType.startsWith('diamond_'));
       }
       // Blocks are centered ON their integer coordinate (they span ±0.5 in
@@ -6960,7 +7297,7 @@ function updateMining(dt) {
           // otherwise: nothing drops
         } else {
           const drop = blockDropType(b.type);
-          spawnDroppedItem(drop, 1, popPos);
+          spawnDroppedItem(drop, b.type === 'redstone_ore' ? 4 + Math.floor(Math.random() * 2) : 1, popPos);   // redstone drops 4-5 dust
         }
       }
       flushDirtyChunks(false);
@@ -7339,6 +7676,8 @@ function updateSignLabels() {
     const [x,y,z] = parts;
     const dx = x - player.pos.x, dy = y - player.pos.y, dz = z - player.pos.z;
     if (dx*dx + dy*dy + dz*dz > 18*18) continue;
+    const sb = world.get(k);
+    if (!sb || sb.type !== 'sign') continue;   // sign gone -> no floating text
     near.push([k, x, y, z]);
   }
   const keep = new Set(near.map(n => n[0]));
@@ -7501,7 +7840,7 @@ function explodeTnt(t) {
     }
   }
   animals.forEach(a => {
-    if (!a.alive) return;
+    if (!a.alive || a.remote) return;   // remote mobs are damaged by the host's own copy of this explosion
     const ac = new THREE.Vector3(a.pos.x, a.pos.y + 0.4, a.pos.z);
     const d = ac.distanceTo(c);
     if (d >= reach) return;
@@ -7727,7 +8066,7 @@ function animate() {
   }
 
   saveTimer += dt;
-  if (saveTimer > 5) { saveLocalPlayer(); saveTimer = 0; }
+  if (saveTimer > 15) { saveLocalPlayer(); saveTimer = 0; }
 
   if (isPlaying()) {
     // Widen FOV slightly while sprinting for speed feedback, ease back otherwise.
