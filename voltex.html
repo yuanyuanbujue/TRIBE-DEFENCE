@@ -51,6 +51,11 @@
     display: flex; gap: 1px; height: 20px; align-items: center;
   }
   #heartsBar { margin-right: auto; padding-left: 0; }
+  #heartsCol { display: flex; flex-direction: column; align-items: flex-start; gap: 2px; margin-right: auto; }
+  #absorbBar { display: none; height: 20px; align-items: center; gap: 1px; }
+  #absorbBar .fxTag { font: 700 11px 'Segoe UI', Arial, sans-serif; color: #ffe566; margin-left: 6px; text-shadow: 1px 1px 0 #000; }
+  #heartsBar.regen .mcIcon img { animation: regenPulse 0.9s ease-in-out infinite; }
+  @keyframes regenPulse { 50% { transform: translateY(-2px); } }
   #hungerBar { margin-left: auto; flex-direction: row-reverse; } /* fills right-to-left */
   .mcIcon {
     width: 20px; height: 20px; display: inline-block; flex-shrink: 0;
@@ -829,7 +834,7 @@
 <div id="atkCd"><div id="atkCdFill"></div></div>
 <div id="mineProgressWrap"><div id="mineProgressBar"></div></div>
 <div id="statusBars">
-  <div id="heartsBar" aria-label="Health"></div>
+  <div id="heartsCol"><div id="absorbBar" aria-label="Absorption"></div><div id="heartsBar" aria-label="Health"></div></div>
   <div id="hungerBar" aria-label="Hunger"></div>
 </div>
 <div id="xpWrap"><span id="xpLvl">0</span><div id="xpTrack"><div id="xpFill"></div></div></div>
@@ -1450,6 +1455,7 @@ const ITEM_INFO = {
   diamond_boots:      { maxStack: 1, armor: 2, slot: 3 },
   raw_meat:       { food: 3 },
   apple:          { food: 2 },
+  golden_apple:   { food: 4, golden: true },   // always edible: Regeneration + 2 gold hearts
   sapling:        {},
   coal:           {},
   charcoal:       {},
@@ -1481,6 +1487,16 @@ function isLeavesType(t) { return t === 'leaves' || t === 'birch_leaves'; }
 // armor tier: 0 = iron, 1 = gold, 2 = diamond (drives the worn-armor colour)
 function armorTier(type) { return type.startsWith('gold_') ? 1 : (type.startsWith('diamond_') ? 2 : 0); }
 const ARMOR_TIER_COLOR = [0xc9d0d5, 0xf2c830, 0x4fe0f0];
+// Worn-armor textures from the Golden Age pack (classic 64x32 armor layout, drawn on a 64x64 canvas): iron, gold, diamond
+const ARMOR_TEX = ["data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAEAAAAAgCAYAAACinX6EAAAEEUlEQVR42u1ZTWuzTBQ9KUKFEVwYCEx2um9/gV10lf5ilwXzD7proO4UBF0IDigEfFdnuFrTptB8NM97ISSjx2Tunftx7s0C30iapoMxBgCglLLXee3l5WWBPyzOMaDNZgMAKIoCANC2LQCgLEv8dXGOBb6+viIIArt2XRe3IN8awBiDoigQBAHqurbXpTH+CQ+grNdr+5kh8Zfl7hgQY16K53mjpHizBqCSrutat/c8b1QJbj4EyrKELIW3kP0pizRNB3maPHFjzKyLH+IE8rnp/enzEntpHuEAQBzHKIpiFOtd16FpGhhjsNlssNvt0HUdfN8HANR1jb7voZSC1npUFj3Pg9Ya2+0W/H4mzaqqLPYaPMlhmauqypa5IAiwXC5tlt9utzDGIAxD5HluFe/7HsYYRFH06fnpab+9vVnDTavJxT1Abt5xHDRNY5VXSuHp6WkBAMMwDHmeW7dNkmSgckopOI6D/X4/4gs0sLxGD7uGJOoopdA0Dfq+BwA8Pz8vvmKDUubil0ZpmgZKKRhjUFXVJ/K0XC7RNM3lk+Cpf4DNFPMES+jHx8dVJMGz/XiSJMM1Zf//5ZAHSF6glILv+6Ps/vj4eNGT4/5+y5NmqXAcxwjDEMaYEQW+FonjGFEU/UovcjfH1Ha7HbIss6TGdd2rqdssq+/v76frBag8s/VX1PgSQlLF0v0rvcB3/cDcva/WJE9zsftT/E/38ZNqc0cgOT4TH9cA4Ps+tNb2i+U9mTN4P4qikQJJkgyr1epLfJIkQ5qmQ5qmQ5IkQxzHVrnNZoMoiuz+Hh4ebH+hlLL3qTxzxNG9wFzvz7UxBtw86fFqtYLW2jZLRVGg6zprda31iBWymZIxTDwAi2cz5nmedXPZRFFBxj/XEssQqev6qJB1eOLS3aQySim7pkFoJNJdUl3pfm3bIgxDeJ43Un6Kn5s6sTeZUmmutdaoqsqu9/s9giCwa9/3EQTBUSM7R554URRWAfl5qrA8vanH8Fli+O667qyHTfHsGNfrtW2X6WmUaQ/R9/3o2hT/bQhkWWbdkBsKw9BOgnzfR5ZlI4PQQPSYuq7hOA6MMWjb9uDYfIrn6Uu8LLmnpsx3HGhIhcIwRJZlI5cmMaLyWutROEzJUtd1o9fUY+TMQOLyPEee52drlxdpmg7MAXQjWVr4mUlPVgEZJseWJ/l+aLQmFT+1BzhzisxlT2kcYoiL4xi73c7GrByByeRWlqUtU5JtEj995hwjM8cYg/v7e6xWKxvnbIAYo+zluSHimSOoDE+PZUuWToaMUupo/Fn+F1BKYb1ej/7oWC6Xo0QkBxkST4WYRLlu2xZFUXxShgpPk25VVbP4s+SA6aBiGvuSJM2RprlNUoFjy9EhvJxHnkr+A1i3cyfqaHzUAAAAAElFTkSuQmCC", "data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAEAAAAAgCAYAAACinX6EAAAE3UlEQVR42u1Zv0/jSBT+PIrQySuLJkQpbBIoAkI5iaOCJsVqBZX3D2CLrbPtFdtuezrRZqtt+QOgygqlyBVJw3JSUERSJOZwsVq2iUYYlMK+wp7nGRMgSEACd6+BsZ/tee99870f0XCHOHurAXcZAMAwfbourv364ZuGZyypcZSK5UMEqCFAFQDABi4A4LTexnOXsRwQoIbL6nvo+YX4YtbCS5A7HcBdhgBV6PkFeE6fruvAf8MBSdHXS7FzaifP3gFsLKXozMviz5oKKb5YBJCRWYtg78+aSiZ48UfgtN5GnArbANr3AdBUi+bsrQZyNEXEuctGQvymmkB+Lnk/+bysO+k6IgUA8/YOAlTVs/79DKddDu4yFMuHwOAd8P0MKIS3PaePXi8Dw/RRfP1KSYv+rAkNW/hn/3eI94fptArWaZDuNNQRKZHmWKdBaU7PL8Bf2gCvHYQb3f8tdMT2MrxmPTI8TVH07Y0Rz6vR1jqfoEWOg9NXssnEESBv/nyYBrqcjDdMH/m3f2sA4Jf/DIA6wbZVWQsAoP35IDI0jbmZn/CcPhGmcPClVEMIhE0DiaYM04+gnrmztr+svlfWo3SFU4whh2GGDmCdBiGDjsnSBozu18mT4GN/QDRTgidECj3b/zoVJPhkH29V1oJpYv//5SYEyHWBYfrIFQyF3bXlvyYaObG/h0LSSBqet3dQ3F4OWTprqW3wFEjOPoJlbz5IL5IaValpgy/wmnUAGfizJhgAPWuFhdCEhbsMPj7iqroLIP04vcDx7gmADLH1baXxJKT9+YD292C9wF39wKh7t61F8TTq7N5X/777uE+2YQAwN/MTuYJBL8oVDFoDQK5goPj6Fb04VzCwuPjjGmeI+5a9qRjQqqwFudLKrfqtylrg7K0Gzt5q0KqsBfP2DhlXLB/CsjdpfyvlN8jZR7QW94m4I44YuxeYW7ze+4vWl7sMKFnqBKgUzgaMIadSV4v4gbsMDH/AsoFWhQXCAAzeKaWxJvGJhi2slOPBiz9rQut8iqtGfATrNMjAq+ouftmSot0pqWzeKeHK6VO/cisCDNNXWJ67LCS7qFY3TJ/WCgeQk3wqdWX4sYGL4vYyVspvFOOT+iLKcicqehPD9JVSWqz1/AJYp0FrkabFWqTscXqNlGwMr52QAV7Sg1kL6LZjh8giIYYiFumIv8haIxEm2mQZEZ7oFqN2WbTlImufdrny+V4vA2MYX4v1xzwCXrOuoEDeAHcZUECUFtOKDpAmxMhrNnBvHJsn9Sn6kr4u/f/YJXNKHAERce4y5LZL8Jp1cDdDUdPXS+C7IUI8px9CrHahzgvlyNyAkqQ+HTnFseND+MHqAD2/AHR5aGCzrpwpbybs78kZEloM05dmhiyxltJT7QSGmZwxRvqR40KOiFDVu3i6gchx7ULNqwn2lM8YdxmO3VBfGDRv70AbfKERV84+op/SZHI7rYccIvTDgisemdHY7Al/ektxl2Fx8Qf09RKOI4iLBuh8GDpC9PJiQ0JfRDIundNUqrJOIx6BSZA2TJ/0RbRpVgjQ5Oip+o8wDa6XlB86/KUNdWYnDTJkfWGQIFFKcwMXntNXjFeOVIJ0RdpL6j8FB2jJQUUyn8pnXb4mPyOqwl4vEyNGSkfJ++Pqnw/T10rkh5Z/AYSTIjzb6acPAAAAAElFTkSuQmCC", "data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAEAAAAAgCAYAAACinX6EAAAE60lEQVR42u1Zz08bRxT+9gcW8o4TV1akysSWrKihqLJsX5AqLKz0ktIoveYvaA9R/4BE6hHRS6Te+B96RbLIiQhkVLUXm+TQAgIU26xEkIuLxz4Q1tuD9w2z0wWMBMbQvkvydt6u5828H9/30HCOZCtLrsM5AMBgTDynZ+/y32q4wWL2Y/R26ilsfES523N6sdMGAKxubeKmS18HYOMjHr/fRjJyctmpUBi3Qc49AIdzlLscyYiGass9WYh0/hsHoEohZon/17w6cJNF78eIcl6WydERX1G8tRFATqZCYRH2k6MjiOkh0QlufQqsbm0KZ23GsIrbI1q2suTKfZ1u3OE8MMRPwwTye+q6+r5se904wgSAYiaPcpf7cn3nqAO7tguHc7ydeoofeB07RyeVv9pyodU3YDCGxMS4ry3OhC3kdIYnayXQ9wGg3OWYb+4L22HAESa1ufnmvmhzyYiGZ3fu4hVfBwDk1t7A4RzTmRyWG21o9Q2YjMHxbvHZnbv45fBv8f7OUQfPo/7b/u6vHXFwVbR93eTaI0B23mzasJsQzhuMoZL9SgOA1+6Ru9zYFmGbLi24APDqt99hMAYTwHE0jmrLxTz2fTjChyG8QxqGImoajMGu7ULzNlM5Iycfv9/26UH5S4diMwaDMTi8F10qhpgcHcHPQ9BGr7wAEZmiOkEt9Md3laEoggP78XRpwR2m6v+/nBYBMi4IwgRUEK9LaH+XFUmBXKCYyWM6k4PDOSh/j6PxoYG+5cwjzKazl8JF9CCkNsf3sNxoizaYCoVRiFlDQX4czlHsHuBF7cPVcYGVtbIvN4gLDAv7e/lrCRoA5zK5wHl8IGjtLF2tFfLvXNT+ovu4SLfR4aG3eGJMfCieGBM6AMQTY0hMjIsPxxNjcO8//FfNoPXZdNbnQLq04E49+OxM+3Rpwc1WltxsZclNlxbcYiYvnHs99TVm01mxv5++zKOceSR0db2YyQu9Ly6AaAD399Ccw7nQaQJEswFaL3e5IEoO53iifwKks3jpoUIiUzI0lolVTu85RWRsJmwJ7iCTKLrdF7UPsD/VhU62sl5tuTD7SFnTYAxxadjpcL8zBmNCJ2hLh2B7zwjqyuG32GljOpPDTNjyOa/aB02diJuYCpSm308mNHw/GhWbrihOVQB801h37WafRVC+YXJAPUHZYfn21IgBgGL3QNjMe/+mQuHACKMbVql2IWZh1XOAaDmJXds91zH1nTNTYLnR9o285Q3QR5YbbV/LqLZcmFLEyPpip33q2Fy1p9uX7VOxswlXP9IvYBMpIIdc4YHV4/1SRBRiFlbqPb3acpGMaKjVlZrQ9NPdoChR7eWUo4OlmcQggJe41GREg93shbgMghzucflIRxyGHC0GY76ZYZCuppe6TiHtcC4uoTbIgUjtj3Vf7zRh+8FCfUPkq8O5sKd3ipk85vieGHFRiyp2D3zFbXVrU7SpOb6HlbWyb2RG9WCQf3ozHc7h3n+IqZiFlbWywAHVlguz2TsI4vK0IbKnmyTobEpQlSq3GtIGYyf2UhsNsh+E6AZjKMQszIRPsP7z6D3f9CYVCmMmbImQJXtyiIoo6Yuddm/2pzhDKaUWXWp7qv0gaoCmDirUfi/nuvyM3jk+PASSn3sV7M+eA19MiFYUtC7rmq4jMTEeaG827Sun3/8Amwdmipj7rw4AAAAASUVORK5CYII="].map(uri => {
+  const cv = document.createElement('canvas'); cv.width = 64; cv.height = 64;
+  const tex = new THREE.CanvasTexture(cv);
+  tex.magFilter = THREE.NearestFilter; tex.minFilter = THREE.NearestFilter; tex.generateMipmaps = false;
+  const img = new Image();
+  img.onload = () => { cv.getContext('2d').drawImage(img, 0, 0); tex.needsUpdate = true; };
+  img.src = uri;
+  return tex;
+});
 // ================= Block-style icons =================
 // Every block AND every item (tools, armor, food, materials) is shown as a
 // small isometric textured cube — no emoji. Blocks reuse their real world
@@ -1694,7 +1710,7 @@ function blockFaceCanvases(type) {            // -> { top, side } source canvase
 }
 const _iconCanvasCache = {};
 // Item sprites from the pack (only the apple exists in the pack's items folder that the game uses)
-const PACK_ITEMS = { apple: "data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAABAAAAAQCAYAAAAf8/9hAAABCklEQVR4nL2STUoDQRCFvw6DkpCIjSYwEELAA8SF4AVcu/IAuYUriZKL5ACuXHuBKK4UBDfKoAT8YfLnhEwSKgtx7GFmtFHwLetVf6+6uuE/dLhTkiwvZ3P46jnM9H8EAJx7U2XTF5PWWs42arJddmSvtpp5hQT5ptEQ6Y1RbpHj9zsAmn6ZbhgA0B69qkzAdWVLlFtMTXp49AHohkEMYrUDgHpVU6/qRD0CfJduanelwFFpM9qJ9QSmbudfz/orgKkIcL+Y/Q2w/+ZZfZZO0Od0Mox6HdO88F6o5D5K5sYHT0N8WaQCE6kH+TVpFtYBOHF6ALTmbmp6YgLgs0EALiczBdDJ98XwYloCVg1WWG8S5iYAAAAASUVORK5CYII=" , charcoal: "data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAABAAAAAQCAYAAAAf8/9hAAABgklEQVR42q2TS28TMRSFv3k4dqI82swkGmkELEACgbqgEqzaJf9/QyWCAAVSQUmBQjPMy55xF1GjTjNBlcrd2NLx+XyvdQz3LOdfopLCXu/zQjt3Bnieh/BdG03HeK6DEIL54qwV4u4yT8M9wv0hD+MpWmviKGh01ArwPI8wDAHoKsmg3yXLCo5fvwBohWx1IKUEwBjD0avnhOMhJ+8XTMYjhBBbkC3A8vs3G0cBcRSw+HqO7AjGe32q2pJmOT8vVkyC0Qbi3p79zfFLtKnIcs27D6d8+nLGyewzxhiKQgOQ/M13jzA/XQIwCUb0eorLJAXYrIN+t/0Rhe/aOAoA6HUVs48L0nR9U5LmFIXm8OAJAFle7O7g4NkjtNY8ffyA819/KLVZB8Z1eDubb85pUzuNICkp7CQYoXWFUh08dy2V2rBKMuq6xvd9Sm0wxqBN7VRV1UziNQRglWSNmcvSYK3lMkk35tYoKymskh0AhoMeyx+/G/pN886/cDMotw3/va4AGJytBqZp1KgAAAAASUVORK5CYII=", sign: "data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAABAAAAAQCAYAAAAf8/9hAAAAl0lEQVR42mNgGGjACGPMb/H9T4rGUxeeMUxfc5aRCVlwwcqDWBU3Td0Hl0NXg2LAozd/GZqm7sPQBJNbsPIgw6M3f2noBWQnLlh5EMUFuLzAgu5XZCfDNCA7m+peYEEWIAfADbjx4B1lCQkbSPLV+c/AwMBw//lXhv1n7mNVy4TPAClRIYIuYKI0L1BsAAs+yaOXHhM0AAA31VKGTW05XgAAAABJRU5ErkJggg=="};
+const PACK_ITEMS = { golden_apple: "data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAABAAAAAQCAYAAAAf8/9hAAAAy0lEQVR42mNgoAeQlJT8j0uOiRLNFNvOwMDAwEhIo/if1wwvWUQZnj9/zkiUFyQlJf9LSkr+v3jVjsGa+wODCj8rw6HOX3BxvC6AaUQGH7fsYeD3cWH4uGUPAwMDA4NdORuKa7AGoqjgCgZRwRUMDAwMDPw+Lig0Ti/AbIdpfP0+AqsGmHeIjkZCgAVdAJfNZCck5MDEa8Dz588Z9bUPYVWILIYeCyyk2EZ00r29SPj/7UXC/03FWf+birPC+UTnC/RUhysVMjAwMAAAprVV3jDXbi4AAAAASUVORK5CYII=", iron_helmet: "data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAABAAAAAQCAYAAAAf8/9hAAAAmUlEQVR42tVSsQ3EIBAzUXoWQZRsxErU7IIooAOxCBPcVx8BfyTfxg06bHMnc8DrIdYLYwzdGXLOYksaY4iIqJSyPdcGYjSnlFBrvcje+08TKSWstdckx0g+mQEgxjjV51horVFrRe8drbVJqJRiHzzXCb5m7/0kTCkhhIDHAJ1zxP3Ejt9mwIHjjzWDO3C84BZotyz/aF6ID1hucr6ph8znAAAAAElFTkSuQmCC", iron_chestplate: "data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAABAAAAAQCAYAAAAf8/9hAAAApElEQVR42uWRsQ0DIQxFTXTzUPomYiUoaNgFUeAOxCJM4FScyMlESJcuv8ESz98fDPBQahSIyKMmIiXBSwYRmZm5lMIzJBncuWNc1lohpQTeezDGiCY5Z3DOrZ3nCdJprWVE/Eig5rcRkUJEzjlDrRV679eQ1hqEEC5m8C8p6r35m0QDrfX2GpcJdnVIe9daQ4xx2TTzv0kg/YG4712D8zzhj/QG31uCnOHNTkwAAAAASUVORK5CYII=", iron_leggings: "data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAABAAAAAQCAYAAAAf8/9hAAAAmklEQVR42t1SsQ0DIQw8UHo2oTQTsRe7IBp3oF/EE5AKCR5ISBXp3RiD73w+Afw7VDsQUf0FyMxquCCiWmutOeevuR/26klKKVMWEcQYAQAxRlzXNQzWfWGtHR5TShPgHnqloIFDCAghwBhzRtAUNDAzK2ZW3vstyaRARJaN9/WOPNitd+TBSsHKUH3S9Il8+AfOua0C7z0eGm9y6Ww84LNpjAAAAABJRU5ErkJggg==", iron_boots: "data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAABAAAAAQCAYAAAAf8/9hAAAAdUlEQVR42u2RwRXAEBBEl5d6HCl1D+pxGEedqCA5bUKyRAHmhP+MsUO0ZWThvT9bkHM27X7EbXsIgGKMw9c03hmUUiilNDTQeGfgnJv+V+OfBDNp3MqAAFCtdSkBgHuoh1xm5t/KJAEzEwAKIZzmXc9qjVuPLl6YPuT3JjzIAAAAAElFTkSuQmCC", gold_helmet: "data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAABAAAAAQCAYAAAAf8/9hAAAAqUlEQVR42mNgGPKAEV3AXpf/Pz4NBy9/ZMQpaa/L///f/73//9+wxUmjW8CIrHn/pXUMjDcb4JIPb33GsERejZfBIfQS3CVMKKYR0MzAwMCwbtEbFD4LMue/egMD480Ghoe3PjOcPfETRaGxBTtWA1nQXQDTPGnzMxSF+1vXMTzaXMxAMADXVmn+xxYTuORxhgHWOMciz4QeBvgANnlGbAkIV2IhRs0QBADA52nbNkQ7ygAAAABJRU5ErkJggg==", gold_chestplate: "data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAABAAAAAQCAYAAAAf8/9hAAAAt0lEQVR42mNgoBAwwhj2uvz/YeyDlz8yYlOMU429Lv//f//3/v9/w/Y/siJsBqCrY4E75WYDw7pFbxgOrNZjcAi9hNWQ/ZfWMayvzsFtMrIN2Oi1VZr/7XX5UVzAiOy3g5c/Mtrr8v/ff2kdA+PNBoaHtz7DLTl74ifDpM3P4Gpg6pmwhiyaZnwAqwH/1RuIjkacLiAWsGCL9//qDQwMt4pxakJWTx0XYAuDs4tyyDfAUS+IYQQBAI/zecgZL271AAAAAElFTkSuQmCC", gold_leggings: "data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAABAAAAAQCAYAAAAf8/9hAAAAsElEQVR42mNgGGjACGPY6/L/J0XjwcsfGVEE7HX5///7v/f//xu2BGlky1BccGC1HoZND299RuGfPfGTYdLmZ3AXMCFL/ldvQFG8btEbhrMnfuL1CgtKgNxsQNE8afMzBgYGBoYDcXoYLoEBrC6AaT54+SPjwcsfGR1CLzHIq/ESNoDxZgNOm9C9h9cFWOP7ZgNxLsAF/qs3YA1QJmIU4TMcJRYc9YJwusAh9BLDMAUAhnRo9pIqym4AAAAASUVORK5CYII=", gold_boots: "data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAABAAAAAQCAYAAAAf8/9hAAAAgklEQVR42mNgGAWMMIa9Lv9/ZImDlz8yIvNxyTMhC+6/tI7hwGo9nLZhk0cxgPFmA8O6RW9wOxeLPIoB/9Ub8PoXmzyGC/AG2E0cBtjr8v/ff2kdw8Nbn4lywf5L6+CBygLTvL46h3CUQV2wvjqHYf+ldQyOekH/GdGjh9hoHAUIAACC9DprCyCQKwAAAABJRU5ErkJggg==", diamond_helmet: "data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAABAAAAAQCAYAAAAf8/9hAAAAqUlEQVR42mNgGPKAEV2A18r0Pz4Nn4+dZsQpyWtl+v/p/1//vd7exEmjW8CIrPnG0aMMqe/uwyWfPX6KYYmUrDTDYd8YuEuYkCUJaWZgYGC4tXkHCp8FmTNbSJEh9d19hmePnzJ8uXAZRSGPgS5WA1nQXQDT/HLWEhSFB48eZfC+eISBYACqLJj4H1tM4JLHGQbYADZ5JvQwwAewyTNiS0C4EgsxaoYgAAAmLW2iExkjdwAAAABJRU5ErkJggg==", diamond_chestplate: "data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAABAAAAAQCAYAAAAf8/9hAAAAtklEQVR42mNgoBAwwhi8Vqb/YezPx04zYlOMUw2vlen/p/9//fd6e/M/siJsBqCrY4FJpr67z3Br8w4G281LGA77xmA15MbRowz2C6fjNhnZBmy0yoKJ/3mtTFFcwIjst8/HTjPyWpn+v3H0KEPqu/sMzx4/hVvy5cJlhpezlsDVwNQzYXMqumZ8AKsBs4UUiY5GnC4gFrBgi/fZQooM3ni8gKyeOi7AFgb2m3eQb4CGtTXDCAIAmiB9DkupwCoAAAAASUVORK5CYII=", diamond_leggings: "data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAABAAAAAQCAYAAAAf8/9hAAAArElEQVR42mNgGGjACGPwWpn+J0Xj52OnGVEEeK1M/z/9/+u/19ubBGlky1BcYLt5CYZNzx4/ReF/uXCZ4eWsJXAXMCFLzhZSRFF8a/MOhi8XLuP1CgsyJ/XdfRTNL2dBXKS2eQmGS2AAqwtgmj8fO834+dhpxsO+MQxSstKEDUh9dx+nTejew+sCbADZe3hdgAvMFlLEGqBMxCjCZzhKLGhYW+N0wWHfGIZhCgAp5mkEv+S6UAAAAABJRU5ErkJggg==", diamond_boots: "data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAABAAAAAQCAYAAAAf8/9hAAAAf0lEQVR42mNgGAWMMAavlel/ZInPx04zIvNxyTMhC944epTBdvMSnLZhk0cxIPXdfYZbm3fgNACbPIoBs4UU8foXmzyGC/ABbPJMsAC6cfQow7PHT4lywY2jR+GBygLTbL9wOsEog7nAfuF0hhtHjzJoWFv/Z0SPHmKjcRQgAAAVgTyY+we4SgAAAABJRU5ErkJggg==", apple: "data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAABAAAAAQCAYAAAAf8/9hAAABCklEQVR4nL2STUoDQRCFvw6DkpCIjSYwEELAA8SF4AVcu/IAuYUriZKL5ACuXHuBKK4UBDfKoAT8YfLnhEwSKgtx7GFmtFHwLetVf6+6uuE/dLhTkiwvZ3P46jnM9H8EAJx7U2XTF5PWWs42arJddmSvtpp5hQT5ptEQ6Y1RbpHj9zsAmn6ZbhgA0B69qkzAdWVLlFtMTXp49AHohkEMYrUDgHpVU6/qRD0CfJduanelwFFpM9qJ9QSmbudfz/orgKkIcL+Y/Q2w/+ZZfZZO0Od0Mox6HdO88F6o5D5K5sYHT0N8WaQCE6kH+TVpFtYBOHF6ALTmbmp6YgLgs0EALiczBdDJ98XwYloCVg1WWG8S5iYAAAAASUVORK5CYII=" , charcoal: "data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAABAAAAAQCAYAAAAf8/9hAAABgklEQVR42q2TS28TMRSFv3k4dqI82swkGmkELEACgbqgEqzaJf9/QyWCAAVSQUmBQjPMy55xF1GjTjNBlcrd2NLx+XyvdQz3LOdfopLCXu/zQjt3Bnieh/BdG03HeK6DEIL54qwV4u4yT8M9wv0hD+MpWmviKGh01ArwPI8wDAHoKsmg3yXLCo5fvwBohWx1IKUEwBjD0avnhOMhJ+8XTMYjhBBbkC3A8vs3G0cBcRSw+HqO7AjGe32q2pJmOT8vVkyC0Qbi3p79zfFLtKnIcs27D6d8+nLGyewzxhiKQgOQ/M13jzA/XQIwCUb0eorLJAXYrIN+t/0Rhe/aOAoA6HUVs48L0nR9U5LmFIXm8OAJAFle7O7g4NkjtNY8ffyA819/KLVZB8Z1eDubb85pUzuNICkp7CQYoXWFUh08dy2V2rBKMuq6xvd9Sm0wxqBN7VRV1UziNQRglWSNmcvSYK3lMkk35tYoKymskh0AhoMeyx+/G/pN886/cDMotw3/va4AGJytBqZp1KgAAAAASUVORK5CYII=", sign: "data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAABAAAAAQCAYAAAAf8/9hAAAAl0lEQVR42mNgGGjACGPMb/H9T4rGUxeeMUxfc5aRCVlwwcqDWBU3Td0Hl0NXg2LAozd/GZqm7sPQBJNbsPIgw6M3f2noBWQnLlh5EMUFuLzAgu5XZCfDNCA7m+peYEEWIAfADbjx4B1lCQkbSPLV+c/AwMBw//lXhv1n7mNVy4TPAClRIYIuYKI0L1BsAAs+yaOXHhM0AAA31VKGTW05XgAAAABJRU5ErkJggg=="};
 Object.keys(PACK_ITEMS).forEach(k => {
   const img = new Image();
   img.onload = () => {
@@ -1862,6 +1878,8 @@ const RECIPES = [
   { shape: [['diamond'],['stick'],['stick']], out: 'diamond_shovel', outCount: 1, needsTable: true },
   { shape: [['diamond'],['diamond'],['stick']], out: 'diamond_sword', outCount: 1, needsTable: true },
 ];
+// golden apple: 8 gold ingots around an apple
+RECIPES.push({ shape: [['gold_ingot','gold_ingot','gold_ingot'],['gold_ingot','apple','gold_ingot'],['gold_ingot','gold_ingot','gold_ingot']], out: 'golden_apple', outCount: 1, needsTable: true });
 // gold + diamond armor (same shapes as iron armor)
 for (const [ing, pre] of [['gold_ingot', 'gold'], ['diamond', 'diamond']]) {
   RECIPES.push(
@@ -4600,6 +4618,8 @@ const player = {
   hunger: 20,
   maxHunger: 20,
   saturation: 5,   // hidden buffer; delays hunger drain (Minecraft-like)
+  absorb: 0, absorbT: 0,       // golden-heart shield (max 4 pts = 2 gold hearts) and its remaining seconds
+  regenT: 0, regenTick: 0,     // Regeneration effect: seconds left / tick timer
   crouched: false, // Shift = sneak: slower, shorter, and can't walk off block edges
 };
 const STAND_HEIGHT = 1.7, CROUCH_HEIGHT = 1.5;
@@ -4621,6 +4641,25 @@ const ICON_HUNGER_FULL  = 'data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAABIAAAA
 const ICON_HUNGER_HALF  = 'data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAABIAAAASCAYAAABWzo5XAAAAxElEQVR4nMWRLQvCYBCAn8mwaFkYDsRu1h8gCBZB0wSHIDaLdv+H0WQarIm/ZWhYmsVmc2A5w5jo/OAVNvak4967ex/uNFJ404YAjPpdALTxVkvXfKKkUqTC228H2xaAmmkCYHSuSmaZGelJcLas2MR1ATg6TmxERWlQfjtKCH1PAHarOQCLyTBu+LKr/I3WA0MAmlb1Jd/bnPI10r89LPcXDWDWuglAu17+OSgzo78JfU+Siz5TnFGCRIFIFDzMijfKjTt/liyQ05PdwAAAAABJRU5ErkJggg==';
 const ICON_HUNGER_EMPTY = 'data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAABIAAAASCAYAAABWzo5XAAAAqElEQVR4nMWTIQ7DMAxFX6epJMiopCg89z9IeFFJUFGwR2q1XbNMldLtk0SxZT1/Ox2bFMB7T0nTNHXFwKpHLXhFTxFRAOcc+7PvewDGcbRcrZG1I7KLiACbR/M8XyrUjKhj7T2EAMCyLAAMw3BINK9ijMDZq/YeGUnOGYCU0oHsm2dNPTLpPmBTtL0y7cju8aj2f7T0aNOzzf8p0ScpnMn+T/ReoxnRC9nZKgCdrdW/AAAAAElFTkSuQmCC';
 
+const ICON_HEART_GOLD_FULL = 'data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAABIAAAASCAYAAABWzo5XAAAAyklEQVR42t3SLwvCQBjH8e/+qFUxLPoKNJi02mwm017JzApGX4MmWdi7mAwURMRoUxYEo4LbGfTAHYOVTcRfunvujufDw8GvRVMLd78tPveV7kYDCL2SAPD3r+PB6JF4q+cukpJyZw1AFC4BuKxsAKpWE4BruCNNlpvIlAvZqf6WGNYQgFpjDoC4nRKywN1SyIxMtRAdpwDE56REnY0avbB/5I1NAdDvtRISmZkbAzBZRNp3RKpMJjiIVEnuosw4tiEc2xBZ93T+Nk8eKUfpqS7CzQAAAABJRU5ErkJggg==';
+const ICON_HEART_GOLD_HALF = 'data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAABIAAAASCAYAAABWzo5XAAAA0klEQVR42t2SvQ4BQRRGz/4ElQQR5b6BQkWjEI1OFKrtvYNoFeIxFBKVZ5AIDc3qRSUjEcqVWKNYm5jNimaJOM3MfHPv5ORm4NfQwsFlUZLP52RlrQFULUvJZ7ud0qvHbhSYJMorADwxAeC4tAGod7KRDzhCaLEamcHmLBwAcg8To9AGIGON/DXl359cF4B0/uA3iphnZIYDbzsA4Lb3TerNFyYh9I/9o2nflACNWlGZXat3VermG6l9xyhsFjAce5EmsRu9pWsbsmsb8l2dzt9yBxjoPmEt1e9nAAAAAElFTkSuQmCC';
+const absorbBarEl = document.getElementById('absorbBar');
+const GOLD_APPLE_ABSORB_MAX = 4;   // 2 gold hearts, never more
+let _lastRegenSecs = -1;
+function renderAbsorbBar() {
+  const a = Math.ceil(Math.max(0, Math.min(GOLD_APPLE_ABSORB_MAX, player.absorb)));
+  const regen = player.regenT > 0;
+  heartsBarEl.classList.toggle('regen', regen);
+  if (a <= 0 && !regen) { absorbBarEl.style.display = 'none'; absorbBarEl.innerHTML = ''; return; }
+  let html = '';
+  for (let i = 0; i < GOLD_APPLE_ABSORB_MAX / 2; i++) {
+    const src = a >= (i + 1) * 2 ? ICON_HEART_GOLD_FULL : (a >= i * 2 + 1 ? ICON_HEART_GOLD_HALF : null);
+    if (src) html += '<span class="mcIcon"><img src="' + src + '" alt="" draggable="false"></span>';
+  }
+  if (regen) html += '<span class="fxTag">Regeneration ' + Math.floor(player.regenT / 60) + ':' + String(Math.ceil(player.regenT) % 60).padStart(2, '0') + '</span>';
+  absorbBarEl.innerHTML = html;
+  absorbBarEl.style.display = 'flex';
+}
 function renderIconRow(el, points, maxPoints, fullSrc, halfSrc, emptySrc) {
   // points in half-units: 20 HP => 10 hearts, 20 hunger => 10 drumsticks
   const icons = maxPoints / 2;
@@ -4641,6 +4680,7 @@ function updateHpUI() {
   const hung = Math.max(0, Math.min(player.maxHunger, Math.ceil(player.hunger)));
   renderIconRow(heartsBarEl, hp, player.maxHp, ICON_HEART_FULL, ICON_HEART_HALF, ICON_HEART_EMPTY);
   renderIconRow(hungerBarEl, hung, player.maxHunger, ICON_HUNGER_FULL, ICON_HUNGER_HALF, ICON_HUNGER_EMPTY);
+  renderAbsorbBar();
 }
 function flashDamage() {
   damageFlash.style.opacity = '1';
@@ -4650,6 +4690,7 @@ function damagePlayer(amount, knockDir, knockStrength) {
   if (amount <= 0 || player.hp <= 0) return;
   let applied = isBlocking ? amount * 0.5 : amount; // sword block halves incoming damage
   applied *= (1 - totalArmorReduction()); // iron armor in inventory reduces damage taken
+  if (player.absorb > 0) { const soak = Math.min(player.absorb, applied); player.absorb -= soak; applied -= soak; }   // gold hearts go first
   player.hp = Math.max(0, player.hp - applied);
   // Light knockback away from the attacker (blocked hits push less).
   if (knockDir && knockStrength > 0) {
@@ -4693,6 +4734,7 @@ function respawnPlayer() {
   player.hp = player.maxHp;
   player.hunger = player.maxHunger;
   player.saturation = 5;
+  player.absorb = 0; player.absorbT = 0; player.regenT = 0; player.regenTick = 0;
   updateHpUI();
 }
 // Right-click a bed: always sets your spawn point; at night it also sleeps through to morning.
@@ -4731,17 +4773,27 @@ function setRespawnPoint(x, y, z) {
   saveLocalPlayer();
   addChatLine('System', 'Respawn point set!', true);
 }
+function isGoldenFood(type) { return !!(ITEM_INFO[type] && ITEM_INFO[type].golden); }
+// Golden apple: Regeneration (1 HP every 1.25 s for 10 s) + 2 gold hearts (the shield never stacks above 2 hearts).
+function applyGoldenAppleEffects() {
+  player.absorb = GOLD_APPLE_ABSORB_MAX;
+  player.absorbT = 120;
+  player.regenT = 10; player.regenTick = 0;
+  _lastRegenSecs = -1;
+}
 function eatCurrentFood() {
   const it = eating.fromOff ? offhand : currentItem();
   if (!it || !isFood(it.type)) return;
-  if (player.hunger >= player.maxHunger) return;
+  const golden = isGoldenFood(it.type);
+  if (player.hunger >= player.maxHunger && !golden) return;   // golden apples can be eaten any time
   const food = ITEM_INFO[it.type].food || 0;
   // Restore hunger first (Minecraft-style); leftover helps HP a little if already full hunger
   const before = player.hunger;
   player.hunger = Math.min(player.maxHunger, player.hunger + food);
   player.saturation = Math.min(player.hunger, player.saturation + food * 0.6);
   const overflow = Math.max(0, (before + food) - player.maxHunger);
-  if (overflow > 0 && player.hp < player.maxHp) healPlayer(Math.ceil(overflow * 0.5));
+  if (overflow > 0 && !golden && player.hp < player.maxHp) healPlayer(Math.ceil(overflow * 0.5));
+  if (golden) applyGoldenAppleEffects();
   if (eating.fromOff) { offhand.count--; if (offhand.count <= 0) offhand = null; } else removeFromCurrentSlot(1);
   updateHpUI();
   renderHotbar();
@@ -4768,6 +4820,14 @@ function updateHunger(dt, isMoving, sprinting) {
   if (player.hp <= 0) return;
   // Exhaustion from activity
   // Slowed drain so hunger lasts much longer (about 1/4 previous rate).
+  // Golden apple effects
+  if (player.regenT > 0) {
+    player.regenT = Math.max(0, player.regenT - dt);
+    player.regenTick += dt;
+    while (player.regenTick >= 1.25) { player.regenTick -= 1.25; if (player.hp < player.maxHp) healPlayer(1); }
+  }
+  if (player.absorb > 0) { player.absorbT -= dt; if (player.absorbT <= 0) { player.absorb = 0; updateHpUI(); } }
+  { const secs = Math.ceil(player.regenT); if (secs !== _lastRegenSecs) { _lastRegenSecs = secs; updateHpUI(); } }
   if (sprinting && isMoving) addExhaustion(0.04 * dt * 20);       // was 0.15
   else if (isMoving) addExhaustion(0.0025 * dt * 20);             // was 0.01
   // Peaceful-ish regen: when hunger >= 18, heal slowly
@@ -4803,7 +4863,7 @@ let blockFromOff = false;
 let isBlocking = false; // true while holding right-click with a sword equipped
 function startEating(fromOff) {
   const it = fromOff ? offhand : currentItem();
-  if (!it || !isFood(it.type) || player.hunger >= player.maxHunger) return false;
+  if (!it || !isFood(it.type) || (player.hunger >= player.maxHunger && !isGoldenFood(it.type))) return false;
   mining.active = false;
   mining.progress = 0;
   mining.target = null;
@@ -5241,10 +5301,32 @@ function flashRed(group) {
 function setArmorVisual(armor, mask) {
   if (!armor) return;
   for (let i = 0; i < 4; i++) for (const m of armor[i]) m.visible = !!((mask >> i) & 1);
-  if (armor.mats) for (let i = 0; i < 4; i++) armor.mats[i].color.setHex(ARMOR_TIER_COLOR[(mask >> (4 + 2 * i)) & 3] || 0xc9d0d5);
+  if (armor.mats) for (let i = 0; i < 4; i++) { const tx = ARMOR_TEX[(mask >> (4 + 2 * i)) & 3] || ARMOR_TEX[0]; if (armor.mats[i].map !== tx) armor.mats[i].map = tx; }
 }
 // bits 0-3: which slots are worn; bits 4-11: 2-bit tier (iron/gold/diamond) per slot
 function armorMask() { return armorSlots.reduce((m, a, i) => m | (a ? ((1 << i) | (armorTier(a.type) << (4 + 2 * i))) : 0), 0); }
+// Like setSkinBoxUV, but the side faces show only rows [r0, r0+rn) of the box (so leggings and boots can share the leg area).
+function armorBoxUV(geo, u, v, w, h, d, r0, rn) {
+  geo.computeBoundingBox();
+  const bb = geo.boundingBox, pos = geo.attributes.position, uv = geo.attributes.uv;
+  for (let i = 0; i < pos.count; i++) {
+    const nx = (pos.getX(i) - bb.min.x) / ((bb.max.x - bb.min.x) || 1);
+    const ny = (pos.getY(i) - bb.min.y) / ((bb.max.y - bb.min.y) || 1);
+    const nz = (pos.getZ(i) - bb.min.z) / ((bb.max.z - bb.min.z) || 1);
+    const sy = v + d + r0 + (1 - ny) * rn;
+    let px, py;
+    switch (Math.floor(i / 4)) {
+      case 0: px = u + (1 - nz) * d;         py = sy; break;
+      case 1: px = u + d + w + nz * d;       py = sy; break;
+      case 2: px = u + d + (1 - nx) * w;     py = v + (1 - nz) * d; break;
+      case 3: px = u + d + w + (1 - nx) * w; py = v + nz * d; break;
+      case 4: px = u + w + 2 * d + nx * w;   py = sy; break;
+      default: px = u + d + (1 - nx) * w;    py = sy;
+    }
+    uv.setXY(i, px / 64, 1 - py / 64);
+  }
+  uv.needsUpdate = true;
+}
 function buildHumanoid(color) {
   const group = new THREE.Group();
   const skin = color.clone().offsetHSL(0, 0, 0.15);
@@ -5295,18 +5377,24 @@ function buildHumanoid(color) {
 
   // Iron armor pieces (hidden until worn): slot 0 helmet, 1 chestplate, 2 leggings, 3 boots.
   const armor = [[], [], [], []];
-  const am = [0, 1, 2, 3].map(() => new THREE.MeshLambertMaterial({ color: 0xc9d0d5 }));   // one per slot so the tier colour can change
+  const am = [0, 1, 2, 3].map(() => new THREE.MeshLambertMaterial({ map: ARMOR_TEX[0], transparent: true, alphaTest: 0.5 }));   // one per slot so the tier texture can change
   armor.mats = am;
-  const piece = (parent, slot, w, h, d, x, y, z) => {
-    const m = new THREE.Mesh(new THREE.BoxGeometry(w, h, d), am[slot]);
+  // uv = [u, v, boxW, boxH, boxD, firstRow, rowCount]: which part of the pack's armor sheet this piece shows
+  const piece = (parent, slot, w, h, d, x, y, z, uv) => {
+    const geo = new THREE.BoxGeometry(w, h, d);
+    armorBoxUV(geo, uv[0], uv[1], uv[2], uv[3], uv[4], uv[5], uv[6]);
+    const m = new THREE.Mesh(geo, am[slot]);
     m.userData.noFlash = true;
     m.position.set(x, y, z); m.visible = false; parent.add(m); armor[slot].push(m);
   };
-  piece(head, 0, 0.57, 0.57, 0.57, 0, 0.0, 0);
-  piece(torso, 1, 0.56, 0.81, 0.31, 0, 0, 0);
-  piece(armL, 1, 0.31, 0.4, 0.31, 0, -0.18, 0);
-  piece(armR, 1, 0.31, 0.4, 0.31, 0, -0.18, 0);
-  for (const leg of [legL, legR]) { piece(leg, 2, 0.31, 0.5, 0.31, 0, -0.25, 0); piece(leg, 3, 0.31, 0.25, 0.31, 0, -0.63, 0); }
+  piece(head, 0, 0.58, 0.58, 0.58, 0, 0.0, 0, [0, 0, 8, 8, 8, 0, 8]);
+  piece(torso, 1, 0.56, 0.81, 0.31, 0, 0, 0, [16, 16, 8, 12, 4, 0, 12]);
+  piece(armL, 1, 0.31, 0.8, 0.31, 0, -0.37, 0, [40, 16, 4, 12, 4, 0, 12]);
+  piece(armR, 1, 0.31, 0.8, 0.31, 0, -0.37, 0, [40, 16, 4, 12, 4, 0, 12]);
+  for (const leg of [legL, legR]) {
+    piece(leg, 2, 0.31, 0.5, 0.31, 0, -0.25, 0, [0, 16, 4, 12, 4, 0, 8]);      // leggings: upper 8 px of the leg
+    piece(leg, 3, 0.32, 0.25, 0.32, 0, -0.625, 0, [0, 16, 4, 12, 4, 8, 4]);   // boots: lower 4 px
+  }
 
   group.add(torso, head, legL, legR, armL, armR, shield);
   return { group, head, torso, legL, legR, armL, armR, handAnchor, shield, armor, baseColor: color.clone() };
@@ -6026,6 +6114,12 @@ function throwCurrentItem() {
   if (inventoryOpen) renderInventoryPanel();
 }
 
+const PLAYER_HIT_RANGE = 2.5;   // how far (in blocks, eye -> nearest part of the body) you can hit mobs and players
+function bodyReach(from, px, py, pz, height, radius) {
+  const cy = Math.max(py, Math.min(py + height, from.y));
+  const dx = px - from.x, dy = cy - from.y, dz = pz - from.z;
+  return Math.max(0, Math.sqrt(dx * dx + dy * dy + dz * dz) - radius);
+}
 function findTargetAnimal() {
   const dir = new THREE.Vector3();
   camera.getWorldDirection(dir);
@@ -6035,7 +6129,7 @@ function findTargetAnimal() {
     const center = new THREE.Vector3(a.pos.x, a.pos.y + (a.kind === 'zombie' ? 0.4 : a.height * 0.5), a.pos.z);
     const toA = center.clone().sub(camera.position);
     const dist = toA.length();
-    if (dist > 4.5) return;
+    if (bodyReach(camera.position, a.pos.x, a.pos.y, a.pos.z, a.height || (a.kind === 'zombie' ? 1.8 : 1.0), a.radius || 0.45) > PLAYER_HIT_RANGE) return;
     toA.normalize();
     const angle = dir.angleTo(toA);
     if (angle < 0.4 && dist < bestDist) { best = a; bestDist = dist; }
@@ -6237,13 +6331,13 @@ function jcPickTarget(ray, reach, pad) {
       if (miss < minMiss) minMiss = miss;
       if (dist < minDist) minDist = dist;
     }
-    if (minDist > reach) return;
+    if (minDist - radius > reach) return;
     const mx = px - o.x, my = py + height * 0.5 - o.y, mz = pz - o.z;
     const md = Math.sqrt(mx * mx + my * my + mz * mz) || 1;
     const fwd = (mx * d.x + my * d.y + mz * d.z) / md;
     if (fwd < -0.3) return;                                   // behind you
     const ang = Math.acos(Math.max(-1, Math.min(1, fwd)));
-    const okCap = minMiss <= radius + pad, okAng = ang < 0.45 && md <= reach;
+    const okCap = minMiss <= radius + pad, okAng = ang < 0.45 && md - radius <= reach;
     if (!okCap && !okAng) return;
     const score = Math.min(minMiss / (radius + pad), ang / 0.45) + minDist * 0.02;
     if (score < bestScore) { bestScore = score; best = { kind, ref }; }
@@ -6477,7 +6571,7 @@ function findTargetPlayer() {
     const center = new THREE.Vector3(entry.group.position.x, entry.group.position.y + 1, entry.group.position.z);
     const toP = center.clone().sub(camera.position);
     const dist = toP.length();
-    if (dist > 4.5) return;
+    if (bodyReach(camera.position, entry.group.position.x, entry.group.position.y, entry.group.position.z, 1.8, 0.3) > PLAYER_HIT_RANGE) return;
     toP.normalize();
     const angle = dir.angleTo(toP);
     if (angle < 0.4 && dist < bestDist) { best = entry; bestId = id; bestDist = dist; }
@@ -7060,7 +7154,7 @@ function tryMobilePlace() {
 // Mobile target picking: generous capsule around each mob/player (see jcPickTarget),
 // so a tap anywhere on or near the body counts.
 function mobileFindTargetAlongAim(maxDist) {
-  return jcPickTarget(getAimRay(), Math.max(maxDist || 4.5, 5), 0.7);
+  return jcPickTarget(getAimRay(), PLAYER_HIT_RANGE, 0.7);
 }
 function mobileTryAttack() {
   if (!isPlaying()) return false;
