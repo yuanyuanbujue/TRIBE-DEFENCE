@@ -601,15 +601,22 @@
   #statusBars { bottom: 84px; }
   #chatLog { bottom: 112px; }
 
-  /* ===== Enchanted item glint ===== */
+  /* ===== Enchanted item glint (MC-style purple/white sweep) ===== */
   .slot.enchanted, .invSlot.enchanted { position: relative; }
   .enchanted::after {
     content: ''; position: absolute; inset: 0; border-radius: 4px; pointer-events: none;
-    background: linear-gradient(115deg, rgba(255,255,255,0) 30%, rgba(196,130,255,0.65) 50%, rgba(255,255,255,0) 70%);
-    background-size: 250% 100%; animation: enchGlint 2.2s linear infinite;
-    box-shadow: inset 0 0 7px rgba(176,96,255,0.85);
+    background:
+      linear-gradient(125deg,
+        rgba(255,255,255,0) 20%,
+        rgba(255,255,255,0.85) 38%,
+        rgba(200,140,255,0.9) 48%,
+        rgba(255,255,255,0.85) 58%,
+        rgba(255,255,255,0) 75%);
+    background-size: 280% 100%;
+    animation: enchGlint 1.6s linear infinite;
+    mix-blend-mode: screen;
   }
-  @keyframes enchGlint { 0% { background-position: 150% 0; } 100% { background-position: -50% 0; } }
+  @keyframes enchGlint { 0% { background-position: 160% 0; } 100% { background-position: -60% 0; } }
 
   /* ===== Enchanting table panel ===== */
   #enchantPanel {
@@ -4857,6 +4864,85 @@ function findAndConsumeTotem() {
   }
   return null;
 }
+// Totem activation FX: rising totem ghost + particle burst (seen by everyone)
+const totemFx = [];
+function spawnTotemPopFx(pos, kind, opts) {
+  opts = opts || {};
+  const isNull = kind === 'null_totem';
+  const col = isNull ? 0xc48cff : 0xffe566;
+  const col2 = isNull ? 0xffffff : 0x7dff6a;
+  // Floating totem icon
+  try {
+    const spr = makeItemSprite(isNull ? 'null_totem' : 'totem_of_undying');
+    spr.position.set(pos.x, pos.y + 1.1, pos.z);
+    spr.scale.set(0.7, 0.7, 0.7);
+    if (spr.material) { spr.material = spr.material.clone(); spr.material.transparent = true; spr.material.depthWrite = false; }
+    scene.add(spr);
+    totemFx.push({ kind: 'totem', mesh: spr, t: 0, life: 1.4, y0: pos.y + 1.1 });
+  } catch (e) {}
+  // Soft expanding ring / glow spheres
+  for (let i = 0; i < 3; i++) {
+    const mat = new THREE.MeshBasicMaterial({
+      color: i === 1 ? col2 : col, transparent: true, opacity: 0.85, depthWrite: false
+    });
+    const m = new THREE.Mesh(new THREE.SphereGeometry(0.15 + i * 0.05, 12, 10), mat);
+    m.position.set(pos.x, pos.y + 1.0, pos.z);
+    scene.add(m);
+    totemFx.push({ kind: 'glow', mesh: m, mat, t: 0, life: 0.7 + i * 0.15, delay: i * 0.06 });
+  }
+  // Particle burst
+  const n = 22;
+  for (let i = 0; i < n; i++) {
+    const mat = new THREE.MeshBasicMaterial({
+      color: (i % 3 === 0) ? col2 : col, transparent: true, opacity: 1, depthWrite: false
+    });
+    const m = new THREE.Mesh(new THREE.BoxGeometry(0.08, 0.08, 0.08), mat);
+    m.position.set(pos.x, pos.y + 1.0, pos.z);
+    scene.add(m);
+    const ang = Math.random() * Math.PI * 2;
+    const sp = 2.5 + Math.random() * 4;
+    const v = new THREE.Vector3(Math.cos(ang) * sp, 2 + Math.random() * 4, Math.sin(ang) * sp);
+    totemFx.push({ kind: 'bit', mesh: m, mat, v, t: 0, life: 0.7 + Math.random() * 0.5 });
+  }
+  if (!opts.remote && typeof playersChannel !== 'undefined') {
+    try {
+      playersChannel.send({
+        type: 'broadcast', event: 'totem_pop',
+        payload: { from: MY_ID, kind, x: pos.x, y: pos.y, z: pos.z }
+      });
+    } catch (e) {}
+  }
+}
+function updateTotemFx(dt) {
+  for (let i = totemFx.length - 1; i >= 0; i--) {
+    const f = totemFx[i];
+    f.t += dt;
+    const k = f.t / f.life;
+    if (k >= 1) {
+      scene.remove(f.mesh);
+      if (f.mat) try { f.mat.dispose(); } catch (e) {}
+      totemFx.splice(i, 1);
+      continue;
+    }
+    if (f.kind === 'totem') {
+      f.mesh.position.y = f.y0 + k * 1.2;
+      f.mesh.material.opacity = 1 - k;
+      f.mesh.scale.setScalar(0.7 + k * 0.5);
+    } else if (f.kind === 'glow') {
+      const kk = Math.max(0, (f.t - (f.delay || 0)) / f.life);
+      if (kk <= 0) continue;
+      f.mesh.scale.setScalar(1 + kk * 10);
+      f.mat.opacity = 0.7 * (1 - kk);
+    } else if (f.kind === 'bit') {
+      f.v.y -= 10 * dt;
+      f.mesh.position.addScaledVector(f.v, dt);
+      f.mesh.rotation.x += dt * 8;
+      f.mesh.rotation.y += dt * 6;
+      f.mat.opacity = 1 - k;
+      f.mesh.scale.setScalar(Math.max(0.01, 1 - k));
+    }
+  }
+}
 function tryPopTotem() {
   const kind = findAndConsumeTotem();
   if (!kind) return false;
@@ -4867,15 +4953,16 @@ function tryPopTotem() {
   player.regenTick = 0;
   _lastRegenSecs = -1;
   updateHpUI();
-  // Brief golden/purple flash + chat notice
+  // Screen flash + 3D pop effect at the player
   try {
     const flash = document.getElementById('damageFlash');
     if (flash) {
       flash.style.background = kind === 'null_totem' ? 'rgba(180, 100, 255, 0.55)' : 'rgba(255, 220, 80, 0.55)';
       flash.style.opacity = '1';
-      setTimeout(() => { flash.style.opacity = '0'; flash.style.background = 'rgba(255,0,0,0.35)'; }, 280);
+      setTimeout(() => { flash.style.opacity = '0'; flash.style.background = 'rgba(255,0,0,0.35)'; }, 350);
     }
   } catch (e) {}
+  spawnTotemPopFx(new THREE.Vector3(player.pos.x, player.pos.y, player.pos.z), kind);
   if (typeof addChatLine === 'function') {
     if (kind === 'null_totem') addChatLine('System', 'Null Totem activated! (charges remaining on item)', true);
     else addChatLine('System', 'Your Totem of Undying has been activated!', true);
@@ -5791,22 +5878,81 @@ function makeVoxelItemMesh(type) {
 }
 // Swaps the mesh parented to `anchor` only when the held type actually
 // changes, so this is cheap to call every frame.
-// Safe enchant glint: never mutates shared MAT_LIST / vertex-color materials.
-// Wraps the held mesh in a group and adds a translucent purple shell that pulses.
-const _enchGlintMat = new THREE.MeshBasicMaterial({
-  color: 0xc48cff, transparent: true, opacity: 0.42,
-  depthWrite: false, side: THREE.DoubleSide, blending: THREE.AdditiveBlending
-});
+// Minecraft-style enchant glint: scrolling purple/white bands ON the item surface
+// (not a solid purple shade). Uses an animated glint texture + additive overlay.
+function _makeEnchGlintTexture() {
+  const c = document.createElement('canvas');
+  c.width = 64; c.height = 64;
+  const g = c.getContext('2d');
+  // Diagonal white → purple streaks like vanilla glint.png
+  const grd = g.createLinearGradient(0, 0, 64, 64);
+  grd.addColorStop(0.00, 'rgba(255,255,255,0)');
+  grd.addColorStop(0.22, 'rgba(255,255,255,0)');
+  grd.addColorStop(0.32, 'rgba(255,255,255,0.95)');
+  grd.addColorStop(0.40, 'rgba(210,160,255,0.9)');
+  grd.addColorStop(0.48, 'rgba(255,255,255,0.95)');
+  grd.addColorStop(0.58, 'rgba(255,255,255,0)');
+  grd.addColorStop(0.72, 'rgba(190,120,255,0.55)');
+  grd.addColorStop(0.80, 'rgba(255,255,255,0)');
+  grd.addColorStop(1.00, 'rgba(255,255,255,0)');
+  g.fillStyle = grd;
+  g.fillRect(0, 0, 64, 64);
+  // Second thinner band
+  const g2 = g.createLinearGradient(64, 0, 0, 64);
+  g2.addColorStop(0.35, 'rgba(255,255,255,0)');
+  g2.addColorStop(0.45, 'rgba(230,200,255,0.7)');
+  g2.addColorStop(0.52, 'rgba(255,255,255,0.85)');
+  g2.addColorStop(0.60, 'rgba(255,255,255,0)');
+  g.fillStyle = g2;
+  g.fillRect(0, 0, 64, 64);
+  const tex = new THREE.CanvasTexture(c);
+  tex.wrapS = tex.wrapT = THREE.RepeatWrapping;
+  tex.magFilter = THREE.LinearFilter;
+  tex.minFilter = THREE.LinearFilter;
+  tex.repeat.set(0.9, 0.9);
+  return tex;
+}
+const _enchGlintTex = _makeEnchGlintTexture();
+function _makeEnchGlintMat() {
+  return new THREE.MeshBasicMaterial({
+    map: _enchGlintTex,
+    color: 0xffffff,
+    transparent: true,
+    opacity: 0.55,
+    depthWrite: false,
+    side: THREE.DoubleSide,
+    blending: THREE.AdditiveBlending,
+    polygonOffset: true,
+    polygonOffsetFactor: -1,
+    polygonOffsetUnits: -1
+  });
+}
+// Build UVs on a geometry clone so the glint can scroll across the item
+function _glintGeoFrom(srcGeo) {
+  const geo = srcGeo.clone();
+  const pos = geo.attributes.position;
+  let minX = Infinity, minY = Infinity, maxX = -Infinity, maxY = -Infinity;
+  for (let i = 0; i < pos.count; i++) {
+    const x = pos.getX(i), y = pos.getY(i);
+    if (x < minX) minX = x; if (x > maxX) maxX = x;
+    if (y < minY) minY = y; if (y > maxY) maxY = y;
+  }
+  const sx = (maxX - minX) || 1, sy = (maxY - minY) || 1;
+  const uvs = new Float32Array(pos.count * 2);
+  for (let i = 0; i < pos.count; i++) {
+    uvs[i * 2]     = (pos.getX(i) - minX) / sx;
+    uvs[i * 2 + 1] = (pos.getY(i) - minY) / sy;
+  }
+  geo.setAttribute('uv', new THREE.BufferAttribute(uvs, 2));
+  return geo;
+}
 function _disposeHeldRoot(root) {
   if (!root) return;
   root.traverse(o => {
     if (!o.isMesh) return;
-    // Only dispose geometries we created for the glint shell (not shared voxel geos)
-    if (o.userData && o.userData.glintShell && o.geometry && !(o.geometry.userData && o.geometry.userData.sharedGeo)) {
-      try { o.geometry.dispose(); } catch (e) {}
-    }
-    if (o.userData && o.userData.glintShell && o.material && o.material !== _enchGlintMat) {
-      try { o.material.dispose(); } catch (e) {}
+    if (o.userData && o.userData.glintShell) {
+      if (o.geometry) { try { o.geometry.dispose(); } catch (e) {} }
+      if (o.material && o.material.map !== _enchGlintTex) { try { o.material.dispose(); } catch (e) {} }
     }
   });
 }
@@ -5819,7 +5965,6 @@ function setHeldVisual(state, anchor, type, ench) {
   if (state.heldMesh) {
     anchor.remove(state.heldMesh);
     _disposeHeldRoot(state.heldMesh);
-    // Dispose non-shared geometry on the main held mesh only
     const main = state.heldMesh.userData && state.heldMesh.userData.heldMain;
     if (main && main.geometry && !main.userData.sharedGeo) {
       try { main.geometry.dispose(); } catch (e) {}
@@ -5834,35 +5979,37 @@ function setHeldVisual(state, anchor, type, ench) {
     state.heldMesh = mesh;
     return;
   }
-  // Group: original item + purple additive shell (same geo when possible)
+  // Original item + same-shape glint overlay (scrolls purple/white across the surface)
   const root = new THREE.Group();
   root.userData.heldMain = mesh;
   root.userData.enchGlint = true;
   root.add(mesh);
-  const shells = [];
+  const mats = [];
   const addShell = (src) => {
     if (!src || !src.isMesh || !src.geometry) return;
-    const shell = new THREE.Mesh(src.geometry, _enchGlintMat);
+    const ggeo = _glintGeoFrom(src.geometry);
+    const mat = _makeEnchGlintMat();
+    mats.push(mat);
+    const shell = new THREE.Mesh(ggeo, mat);
     shell.userData.glintShell = true;
-    shell.userData.sharedGeo = true; // do not dispose shared / source geo
-    // Slightly larger so the glow reads outside the item silhouette
-    shell.scale.copy(src.scale).multiplyScalar(1.12);
+    // Same pose as source — sits ON the pixels, not a bigger purple shade
+    shell.scale.copy(src.scale);
     shell.position.copy(src.position);
     shell.rotation.copy(src.rotation);
-    shell.renderOrder = 2;
+    shell.renderOrder = 3;
     root.add(shell);
-    shells.push(shell);
   };
   if (mesh.isMesh) addShell(mesh);
   else if (mesh.isGroup || mesh.children) mesh.traverse(o => { if (o.isMesh) addShell(o); });
-  root.userData.glintShells = shells;
+  root.userData.glintMats = mats;
   anchor.add(root);
   state.heldMesh = root;
 }
 function pulseHeldEnchantGlints(t) {
-  // Soft pulse so enchanted gear is obvious in 1st/3rd person
-  const op = 0.28 + 0.22 * (0.5 + 0.5 * Math.sin(t * 4.2));
-  _enchGlintMat.opacity = op;
+  // Scroll the glint texture diagonally (vanilla-like sweep)
+  _enchGlintTex.offset.x = (t * 0.35) % 1;
+  _enchGlintTex.offset.y = (t * 0.22) % 1;
+  _enchGlintTex.needsUpdate = true;
 }
 
 // ================= Animals =================
@@ -7069,6 +7216,10 @@ playersChannel
       const entry = otherPlayers.get(payload.targetId);
       if (entry) { flashRed(entry.group); if (entry.blocking) entry.shieldPulse = 0.25; }
     }
+  })
+  .on('broadcast', { event: 'totem_pop' }, ({ payload }) => {
+    if (!payload || payload.from === MY_ID) return;
+    spawnTotemPopFx(new THREE.Vector3(payload.x, payload.y, payload.z), payload.kind || 'totem_of_undying', { remote: true });
   })
   // Primed TNT lit by another player: show the same fuse + blast here (that player's
   // client is the one that actually removes the blocks; we only add visuals + our own damage).
@@ -9691,6 +9842,7 @@ function animate() {
 
   updateSignLabels();
   updateTnt(dt);
+  updateTotemFx(dt);
   if (tntShake > 0.001) {
     camera.position.x += (Math.random()-0.5) * tntShake;
     camera.position.y += (Math.random()-0.5) * tntShake;
