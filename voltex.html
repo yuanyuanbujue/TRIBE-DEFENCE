@@ -1354,6 +1354,13 @@ const BLOCK_TYPES = {
   birch_leaves:   { transparent: false, hardness: 0.2, tool: null },
   birch_door:     { transparent: true, hardness: 0.8, tool: 'axe', shape: 'door' },
   birch_trapdoor: { transparent: true, hardness: 0.8, tool: 'axe', shape: 'trapdoor' },
+  // Redstone: dust is a flat wire (placed from the 'redstone' item), repeater / comparator are 2/16 slabs,
+  // the pressure plate is a thin plate you walk onto, the redstone torch is a torch variant.
+  redstone_torch: { transparent: true, hardness: 0.1, tool: null, cross: true },
+  redstone_dust:  { transparent: true, hardness: 0.1, tool: null, shape: 'dust', noCollide: true },
+  repeater:       { transparent: true, hardness: 0.1, tool: null, shape: 'repeater' },
+  comparator:     { transparent: true, hardness: 0.1, tool: null, shape: 'comparator' },
+  pressure_plate: { transparent: true, hardness: 0.5, tool: 'axe', shape: 'plate', noCollide: true },
 };
 // Non-block items: sticks, tools, and food. Tools don't stack (max 1 per slot).
 const ITEM_INFO = {
@@ -1558,6 +1565,7 @@ const _sprite16Cache = {};
 function sprite16(type) {                       // -> 16x16 canvas (no outline) or null
   if (type in _sprite16Cache) return _sprite16Cache[type];
   let c = null;
+  { const rsc = rsSprite(type); if (rsc) return (_sprite16Cache[type] = rsc); }
   const sg = _spriteGridFor(type);
   if (sg) {
     c = _mk16(); const g = c.getContext('2d');
@@ -1699,9 +1707,10 @@ function blockDropType(t) {
   if (t === 'coal_ore') return 'coal';
   if (t === 'diamond_ore') return 'diamond';
   if (t === 'redstone_ore') return 'redstone';
+  if (t === 'redstone_dust') return 'redstone';
   return t;
 }
-function isPlaceable(type) { return !!BLOCK_TYPES[type] && type !== 'water'; }
+function isPlaceable(type) { return (!!BLOCK_TYPES[type] && type !== 'water') || type === 'redstone'; }   // 'redstone' places as dust
 
 // ================= Mining time =================
 // Base hardness (seconds with bare hands) comes from BLOCK_TYPES; the right
@@ -1777,6 +1786,11 @@ const RECIPES = [
   { shape: [['planks','planks'],['planks','planks'],['planks','planks']], out: 'door', outCount: 3, needsTable: true },
   { shape: [['planks','planks','planks'],['planks','planks','planks']], out: 'trapdoor', outCount: 2, needsTable: true },
   { shape: [['planks','planks','planks'],['planks','planks','planks'],[null,'stick',null]], out: 'sign', outCount: 3, needsTable: true },
+  // Redstone parts (stone and cobblestone are interchangeable in recipes; no quartz in Voltex, so the comparator takes an iron ingot)
+  { shape: [['redstone'],['stick']], out: 'redstone_torch', outCount: 1, needsTable: false },
+  { shape: [['planks','planks']], out: 'pressure_plate', outCount: 1, needsTable: false },
+  { shape: [['redstone_torch','redstone','redstone_torch'],['cobblestone','cobblestone','cobblestone']], out: 'repeater', outCount: 1, needsTable: true },
+  { shape: [[null,'redstone_torch',null],['redstone_torch','iron_ingot','redstone_torch'],['cobblestone','cobblestone','cobblestone']], out: 'comparator', outCount: 1, needsTable: true },
 
   { shape: [['planks'],['planks'],['stick']], out: 'wood_sword', outCount: 1, needsTable: true },
   { shape: [['cobblestone'],['cobblestone'],['stick']], out: 'stone_sword', outCount: 1, needsTable: true },
@@ -1941,6 +1955,112 @@ MI.birch_door     = MI.birchDoorLower;   // held / icon material
 MI.birch_trapdoor = MI.birchTrapdoor;
 MI.door      = MI.doorLower;   // held / icon material
 MI.stairs    = MI.planks;
+// ================= Redstone: textures + materials =================
+// Dust (16 connection shapes x lit/unlit), repeater (4 facings x 4 delays x on/off),
+// comparator (4 facings x compare/subtract x on/off), pressure plate, redstone torch (on/off).
+const RS = { mi: {} };
+(function rsBuildArt() {
+  const px = (ctx, c, x, y, w, h) => { ctx.fillStyle = c; ctx.fillRect(x, y, w, h); };
+  const cutout = tex => {
+    const i = regMat(tex, true), m = MAT_LIST[i];
+    m.side = THREE.DoubleSide; m.transparent = false; m.opacity = 1; m.alphaTest = 0.5;
+    return i;
+  };
+  const glow = (i, hex) => { MAT_LIST[i].emissive = new THREE.Color(hex); MAT_LIST[i].emissiveIntensity = 1; };
+  const torchDot = (ctx, cx, cy, lit) => {
+    px(ctx, lit ? '#ff4a2c' : '#4e1612', cx - 1, cy - 1, 3, 3);
+    px(ctx, lit ? '#ffc4ac' : '#74302a', cx, cy - 1, 1, 1);
+  };
+  const slabBase = ctx => { px(ctx, '#8a8a8a', 0, 0, 16, 16); px(ctx, '#a8a8a8', 1, 1, 14, 13); };
+  const ANG = [0, Math.PI, -Math.PI / 2, Math.PI / 2];   // flow direction 0:+x 1:-x 2:+z 3:-z (+z is the top of the tile)
+
+  // ---- dust ----
+  RS.mi.dust = [];
+  for (let mask = 0; mask < 16; mask++) {
+    RS.mi.dust[mask] = [0, 1].map(lit => {
+      const tex = makeTexture(ctx => {
+        ctx.clearRect(0, 0, 16, 16);
+        const c1 = lit ? '#ff3a1c' : '#7a1010', c2 = lit ? '#ff9a80' : '#a02a2a';
+        const m = mask === 0 ? 15 : mask;                // unconnected dust draws as a cross, like Minecraft
+        px(ctx, c1, 6, 6, 4, 4);
+        if (m & 1) px(ctx, c1, 10, 7, 6, 2);             // +x
+        if (m & 2) px(ctx, c1, 0, 7, 6, 2);              // -x
+        if (m & 4) px(ctx, c1, 7, 0, 2, 6);              // +z
+        if (m & 8) px(ctx, c1, 7, 10, 2, 6);             // -z
+        px(ctx, c2, 7, 7, 2, 2);
+      });
+      const i = cutout(tex); if (lit) glow(i, 0x6a1006); return i;
+    });
+  }
+  // ---- repeater ----
+  RS.mi.rep = [];
+  for (let d = 0; d < 4; d++) {
+    RS.mi.rep[d] = [];
+    for (let di = 0; di < 4; di++) {
+      RS.mi.rep[d][di] = [0, 1].map(on => {
+        const tex = makeTexture(ctx => {
+          slabBase(ctx);
+          ctx.save(); ctx.translate(8, 8); ctx.rotate(ANG[d]); ctx.translate(-8, -8);
+          px(ctx, '#6d6d6d', 1, 5, 1, 6);                              // back notch
+          px(ctx, on ? '#ff3a1c' : '#5b1212', 3, 7, 10, 2);            // wire between the torches
+          torchDot(ctx, 13, 8, on);                                    // output torch (front)
+          torchDot(ctx, 9 - di * 2, 8, on);                            // delay torch: slides back as the delay grows
+          ctx.restore();
+        });
+        const i = regMat(tex); if (on) glow(i, 0x3a0a04); return i;
+      });
+    }
+  }
+  // ---- comparator ----
+  RS.mi.cmp = [];
+  for (let d = 0; d < 4; d++) {
+    RS.mi.cmp[d] = [0, 1].map(sub => [0, 1].map(on => {
+      const tex = makeTexture(ctx => {
+        slabBase(ctx);
+        ctx.save(); ctx.translate(8, 8); ctx.rotate(ANG[d]); ctx.translate(-8, -8);
+        px(ctx, '#6d6d6d', 1, 5, 1, 6);
+        px(ctx, on ? '#ff3a1c' : '#5b1212', 3, 7, 7, 2);
+        torchDot(ctx, 3, 8, on);                                       // back torch
+        torchDot(ctx, 12, 4, on); torchDot(ctx, 12, 12, on);           // front torches (output)
+        torchDot(ctx, 8, 8, !!sub);                                    // centre torch is lit in subtract mode
+        ctx.restore();
+      });
+      const i = regMat(tex); if (on) glow(i, 0x3a0a04); return i;
+    }));
+  }
+  // ---- pressure plate ----
+  RS.mi.plate = regMat(makeTexture(ctx => {
+    const p = TEX.planks && TEX.planks.image;
+    if (p) ctx.drawImage(p, 0, 0, 16, 16); else px(ctx, '#a9773f', 0, 0, 16, 16);
+    ctx.strokeStyle = '#6b4a24'; ctx.lineWidth = 1; ctx.strokeRect(0.5, 0.5, 15, 15);
+    px(ctx, 'rgba(0,0,0,0.12)', 1, 1, 14, 1);
+  }));
+  // ---- redstone torch (cross sprite, reuses the wall-mount torch geometry) ----
+  const torchTex = lit => makeTexture(ctx => {
+    ctx.clearRect(0, 0, 16, 16);
+    px(ctx, '#6b4a24', 7, 6, 2, 9); px(ctx, '#8a6330', 7, 6, 1, 9);
+    px(ctx, lit ? '#ff3322' : '#5a1a14', 6, 3, 4, 4);
+    px(ctx, lit ? '#ffb0a0' : '#7a2a22', 7, 3, 2, 2);
+  });
+  RS.mi.torchOn = cutout(torchTex(true));  glow(RS.mi.torchOn, 0x7a1408);
+  RS.mi.torchOff = cutout(torchTex(false));
+  MI.redstone_torch = RS.mi.torchOn;
+  MI.redstone_dust = RS.mi.dust[0][0];
+  MI.repeater = RS.mi.rep[0][0][0];
+  MI.comparator = RS.mi.cmp[0][0][0];
+  MI.pressure_plate = RS.mi.plate;
+})();
+// Flat inventory / hand / drop sprites for the new items (drawn from the placed textures).
+const RS_FLAT_ITEMS = { repeater: 1, comparator: 1, pressure_plate: 1 };
+function rsSprite(type) {
+  const mk = () => { const c = document.createElement('canvas'); c.width = c.height = 16; const g = c.getContext('2d'); g.imageSmoothingEnabled = false; return [c, g]; };
+  const img = i => MAT_LIST[i].map.image;
+  if (type === 'redstone_torch') { const [c, g] = mk(); g.drawImage(img(RS.mi.torchOn), 0, 0); return c; }
+  if (type === 'repeater')       { const [c, g] = mk(); g.drawImage(img(RS.mi.rep[0][1][1]), 1, 5, 14, 8); return c; }
+  if (type === 'comparator')     { const [c, g] = mk(); g.drawImage(img(RS.mi.cmp[0][0][1]), 1, 5, 14, 8); return c; }
+  if (type === 'pressure_plate') { const [c, g] = mk(); g.drawImage(img(RS.mi.plate), 2, 6, 12, 6); return c; }
+  return null;
+}
 MI.glassV = GLASS_TEX.map((t, m) => m === 15 ? MI.glass : regMat(t, true));
 // Torches glow on their own regardless of ambient/sun lighting, like a
 // Minecraft light-emitting block.
@@ -2186,6 +2306,12 @@ function blockBoxes(b) {
     r = [edgeBox((m & 4) ? doorOpenEdge(m) : dir, -0.5, 0.5)];
   } else if (shape === 'trapdoor') {
     r = [(m & 4) ? edgeBox(dir, -0.5, 0.5) : [-0.5, 0.5, -0.5, -0.5 + SHAPE_T, -0.5, 0.5]];
+  } else if (shape === 'dust') {
+    r = [[-0.5, 0.5, -0.5, -0.48, -0.5, 0.5]];
+  } else if (shape === 'plate') {
+    r = [[-0.4375, 0.4375, -0.5, (m & 1) ? -0.47 : -0.4375, -0.4375, 0.4375]];   // sinks a little when pressed
+  } else if (shape === 'repeater' || shape === 'comparator') {
+    r = [[-0.5, 0.5, -0.5, -0.375, -0.5, 0.5]];
   } else if (shape === 'sign') {
     // floor post: thin board on a stick; wall: thin board flush to face
     const wall = (m & 8) !== 0;
@@ -2214,6 +2340,7 @@ function cardinalFromYaw(yaw) {
   return fz > 0 ? 2 : 3;
 }
 function shapeMat(b) {
+  if (RS_TYPES[b.type]) { const rm = rsShapeMat(b); if (rm != null) return rm; }
   if (isDoorType(b.type)) {
     const up = ((b.meta | 0) & 8) !== 0;
     return b.type === 'birch_door' ? (up ? MI.birchDoorUpper : MI.birchDoorLower) : (up ? MI.doorUpper : MI.doorLower);
@@ -2468,6 +2595,11 @@ function rebuildChunk(cx, cz) {
           if (b.type === 'torch') {
             // a torch is its own light source: always full level 11
             _warm = 0.35; addTorchQuads(buffers, MI[b.type], x, y, z, shadeFromLevel(TORCH_LIGHT_LEVEL), torchWallDir(x, y, z));
+          } else if (b.type === 'redstone_torch') {
+            const rOff = ((b.meta | 0) & 1) !== 0;
+            let rSh;
+            if (rOff) rSh = cellShade(x, y, z); else { _warm = 0; rSh = shadeFromLevel(7); }
+            addTorchQuads(buffers, rOff ? RS.mi.torchOff : RS.mi.torchOn, x, y, z, rSh, torchWallDir(x, y, z));
           } else {
             addCrossQuads(buffers, MI[b.type], x, y, z, cellShade(x, y, z));
           }
@@ -2587,6 +2719,10 @@ const world = new Map(); // key "x,y,z" -> {type,x,y,z}
 // above the terrain instead of doing ~80 string-keyed Map lookups per column.
 let worldMaxY = Y_MIN;
 const chunkYRange = new Map(); // "cx,cz" -> [minY, maxY]
+// Redstone registry: keys of every redstone-relevant block (kept current by the wrappers below).
+const RS_TYPES = { redstone_dust: 1, repeater: 1, comparator: 1, pressure_plate: 1, redstone_torch: 1, door: 1, birch_door: 1, trapdoor: 1, birch_trapdoor: 1 };
+const RS_FLOOR = { redstone_dust: 1, repeater: 1, comparator: 1, pressure_plate: 1 };   // need a solid block underneath
+const rsKeys = new Set();
 const _worldSetOrig = world.set.bind(world);
 const _worldDeleteOrig = world.delete.bind(world);
 // Cached "highest opaque block" per column. columnSkyTop() used to walk the whole
@@ -2595,6 +2731,7 @@ const skyTopCache = new Map();
 function skyKey(x, z) { return (x + 100000) * 200003 + (z + 100000); }
 world.delete = function (k) {
   const b = world.get(k);
+  if (b && RS_TYPES[b.type]) rsKeys.delete(k);
   if (b) skyTopCache.delete(skyKey(b.x, b.z));
   if (b && b.type === 'sign') {
     try {
@@ -2605,6 +2742,7 @@ world.delete = function (k) {
   return _worldDeleteOrig(k);
 };
 world.set = function (k, v) {
+  if (v && RS_TYPES[v.type]) rsKeys.add(k); else if (rsKeys.size) rsKeys.delete(k);
   if (v && typeof v.x === 'number') {
     const sk = skyKey(v.x, v.z), t = skyTopCache.get(sk);
     if (t !== undefined && v.y >= t) {
@@ -2836,11 +2974,20 @@ function removeBlock(x,y,z,skipMark) {
   for (const [dx,dy,dz] of [[1,0,0],[-1,0,0],[0,0,1],[0,0,-1],[0,1,0]]) {
     const tx = x+dx, ty = y+dy, tz = z+dz;
     const nb = world.get(key(tx,ty,tz));
-    if (nb && nb.type === 'torch' && !torchSupported(tx,ty,tz)) {
+    if (nb && (nb.type === 'torch' || nb.type === 'redstone_torch') && !torchSupported(tx,ty,tz)) {
+      const nbType = nb.type;
       removeBlock(tx,ty,tz,skipMark);
-      spawnDroppedItem('torch', 1, new THREE.Vector3(tx, ty, tz));
+      spawnDroppedItem(nbType, 1, new THREE.Vector3(tx, ty, tz));
       if (typeof pushBlockDiff === 'function') pushBlockDiff(tx,ty,tz,'air');
     }
+  }
+  // dust / repeaters / comparators / pressure plates need a solid block under them
+  const rsUp = world.get(key(x, y + 1, z));
+  if (rsUp && RS_FLOOR[rsUp.type] && !rsFloorSupported(x, y + 1, z)) {
+    const upType = rsUp.type;
+    removeBlock(x, y + 1, z, skipMark);
+    spawnDroppedItem(blockDropType(upType), 1, new THREE.Vector3(x, y + 1, z));
+    if (typeof pushBlockDiff === 'function') pushBlockDiff(x, y + 1, z, 'air');
   }
   return true;
 }
@@ -4867,7 +5014,7 @@ function getHeldCubeMaterials(type) {
 }
 function makeHeldItemMesh(type) {
   if (!type) return null;
-  if (BLOCK_TYPES[type] && !BLOCK_TYPES[type].cross) {
+  if (BLOCK_TYPES[type] && !BLOCK_TYPES[type].cross && !RS_FLAT_ITEMS[type]) {
     const geo = new THREE.BoxGeometry(0.26, 0.26, 0.26);
     // Chunk materials use vertexColors for baked skylight shading, so any
     // geometry sharing them needs a color attribute (white = full brightness).
@@ -6469,6 +6616,7 @@ function tryMobilePlace() {
   if (targeted && targeted.type === 'furnace') { openFurnace(); return; }
   if (targeted && targeted.type === 'chest') { openChest(hit.x, hit.y, hit.z); return; }
   if (targeted && (isDoorType(targeted.type) || isTrapType(targeted.type))) { toggleOpenable(targeted); return; }
+  if (targeted && rsInteract(targeted)) return;
   if (targeted && targeted.type === 'bed') { useBed(hit.x, hit.y, hit.z); return; }
   if (targeted && targeted.type === 'sign') { openSignEditor(hit.x, hit.y, hit.z); return; }
   const type = currentBlockType();
@@ -6484,17 +6632,18 @@ function tryMobilePlace() {
                     blockMaxY > pMinY && blockMinY < pMaxY &&
                     blockMaxZ > pMinZ && blockMinZ < pMaxZ;
   if (overlaps) return;
-  const canPlace = type !== 'torch' || torchWallDir(nx, ny, nz) !== null ||
+  const canPlace = (type !== 'torch' && type !== 'redstone_torch') || torchWallDir(nx, ny, nz) !== null ||
     (world.get(key(nx, ny-1, nz)) && !BLOCK_TYPES[world.get(key(nx, ny-1, nz)).type].transparent);
   removedDiffs.delete(key(nx, ny, nz));
   const facing = cardinalFromYaw(player.yaw);
-  const meta = (type === 'stairs' || isTrapType(type)) ? facing : null;
-  if (canPlace && addBlock(nx, ny, nz, type, false, meta)) {
+  const ptype = rsPlaceType(type);
+  const meta = (ptype === 'stairs' || isTrapType(ptype)) ? facing : rsPlaceMeta(ptype, facing);
+  if (canPlace && rsCanPlace(ptype, nx, ny, nz) && addBlock(nx, ny, nz, ptype, false, meta)) {
     removeFromCurrentSlot(1);
     flushDirtyChunks(false);
     renderHotbar();
     if (inventoryOpen) renderInventoryPanel();
-    pushBlockDiff(nx, ny, nz, type, meta);
+    pushBlockDiff(nx, ny, nz, ptype, meta);
   }
 }
 
@@ -7404,6 +7553,7 @@ canvas.addEventListener('mousedown', e => {
       toggleOpenable(targeted);
       return;
     }
+    if (targeted && rsInteract(targeted)) return;
     if (targeted && targeted.type === 'bed') {
       useBed(hit.x, hit.y, hit.z);
       return;
@@ -7434,7 +7584,7 @@ canvas.addEventListener('mousedown', e => {
       // (Ceiling-only support, i.e. a solid block straight above with
       // nothing else around, isn't a wall or floor mount either, so it's
       // rejected too — matches the "wall and floor" ask, not "ceiling".)
-      const canPlace = type !== 'torch' || torchWallDir(nx, ny, nz) !== null ||
+      const canPlace = (type !== 'torch' && type !== 'redstone_torch') || torchWallDir(nx, ny, nz) !== null ||
         (world.get(key(nx, ny-1, nz)) && !BLOCK_TYPES[world.get(key(nx, ny-1, nz)).type].transparent);
       // A player placing a block is always allowed to build here, even if
       // this spot was previously mined (which marks it in removedDiffs so
@@ -7521,13 +7671,14 @@ canvas.addEventListener('mousedown', e => {
           pushBlockDiff(nx, ny + 1, nz, type, facing | hinge | 8);
         }
       } else {
-        const meta = (type === 'stairs' || isTrapType(type)) ? facing : null;
-        if (canPlace && addBlock(nx, ny, nz, type, false, meta)) {
+        const ptype = rsPlaceType(type);
+        const meta = (ptype === 'stairs' || isTrapType(ptype)) ? facing : rsPlaceMeta(ptype, facing);
+        if (canPlace && rsCanPlace(ptype, nx, ny, nz) && addBlock(nx, ny, nz, ptype, false, meta)) {
           removeFromCurrentSlot(1);
           flushDirtyChunks(false);
           renderHotbar();
           if (inventoryOpen) renderInventoryPanel();
-          pushBlockDiff(nx, ny, nz, type, meta); // tell the server (and everyone else) about the new block
+          pushBlockDiff(nx, ny, nz, ptype, meta); // tell the server (and everyone else) about the new block
         }
       }
     }
@@ -7936,6 +8087,302 @@ function updateTnt(dt) {
 let lastTime = performance.now();
 let frameCount = 0, fpsTimer = 0;
 
+// ================= Redstone: power, repeaters, comparators, plates, doors =================
+// A small, readable redstone sim that runs 10 times a second (one "redstone tick" = 0.1 s).
+//  * Sources:   pressure plate (pressed by you / other players / mobs / dropped items), lit redstone torch.
+//  * Wire:      redstone dust (levels 15 -> 0, -1 per block, climbs/descends single steps).
+//  * Repeater:  re-powers what is in FRONT of it, 1-4 ticks later (right-click to change the delay).
+//  * Comparator:right-click toggles compare / subtract. Also reads how full a chest behind it is.
+//  * Torch:     turns OFF while the block it is attached to is powered (an inverter / NOT gate).
+//  * Doors / trapdoors open while powered and close again when the power goes away.
+// Only placement (facing, delay, mode) is saved/synced; every client simulates the power itself.
+const RS_DIRS = [[1, 0], [-1, 0], [0, 1], [0, -1]];                  // 0:+x 1:-x 2:+z 3:-z (same as door / stair meta)
+const RS_N6 = [[1, 0, 0], [-1, 0, 0], [0, 0, 1], [0, 0, -1], [0, 1, 0], [0, -1, 0]];
+const RS_EMITTERS = { redstone_dust: 1, repeater: 1, comparator: 1, pressure_plate: 1, redstone_torch: 1 };
+const rsRt = new Map();         // key -> runtime state (dust level, repeater queue, comparator output, torch history, plate hold)
+const rsDoorPow = new Map();    // door / trapdoor key -> powered state we saw last
+const rsPts = new Map();        // per-tick cache: which sides a dust block points at
+let rsAcc = 0, rsTickN = 0;
+
+function rsB(x, y, z) { return world.get(key(x, y, z)); }
+function rsSolid(b) { if (!b) return false; const d = BLOCK_TYPES[b.type]; return !!d && !d.transparent; }
+function rsFloorSupported(x, y, z) { return rsSolid(rsB(x, y - 1, z)); }
+function rsRtOf(k) { let r = rsRt.get(k); if (!r) { r = { lvl: 0, out: 0, hold: 0, q: [], hist: [], burn: 0, last: undefined }; rsRt.set(k, r); } return r; }
+function rsDirIdx(dx, dz) { return dx > 0 ? 0 : dx < 0 ? 1 : dz > 0 ? 2 : 3; }
+function rsLevel(b) { const r = rsRt.get(key(b.x, b.y, b.z)); return r ? r.lvl : 0; }
+function rsPlaceType(t) { return t === 'redstone' ? 'redstone_dust' : t; }
+function rsPlaceMeta(t, facing) { return (t === 'repeater' || t === 'comparator') ? facing : null; }
+function rsCanPlace(t, x, y, z) { return !RS_FLOOR[t] || rsFloorSupported(x, y, z); }
+function rsShapeMat(b) {
+  const m = b.meta | 0;
+  switch (b.type) {
+    case 'redstone_dust': return RS.mi.dust[m & 15][(m & 16) ? 1 : 0];
+    case 'repeater': return RS.mi.rep[m & 3][(m >> 2) & 3][(m & 16) ? 1 : 0];
+    case 'comparator': return RS.mi.cmp[m & 3][(m & 4) ? 1 : 0][(m & 16) ? 1 : 0];
+    case 'pressure_plate': return RS.mi.plate;
+  }
+  return null;
+}
+
+// Which block a redstone torch is hanging on (floor torch -> block below, wall torch -> the wall).
+function rsTorchAttach(b) {
+  if (rsSolid(rsB(b.x, b.y - 1, b.z))) return [b.x, b.y - 1, b.z];
+  const wd = torchWallDir(b.x, b.y, b.z);
+  return wd ? [b.x - wd.x, b.y, b.z - wd.z] : null;
+}
+// Does dust at (x,y,z) visually/electrically connect toward horizontal direction d?
+function rsDustDirConn(x, y, z, d) {
+  const nx = x + RS_DIRS[d][0], nz = z + RS_DIRS[d][1];
+  const same = rsB(nx, y, nz);
+  if (same) {
+    const t = same.type;
+    if (t === 'redstone_dust' || t === 'pressure_plate' || t === 'redstone_torch') return true;
+    if (t === 'repeater' || t === 'comparator') return (((same.meta | 0) & 3) >> 1) === (d >> 1);   // only along its axis
+  }
+  const up = rsB(nx, y + 1, nz);
+  if (up && up.type === 'redstone_dust' && !rsSolid(rsB(x, y + 1, z))) return true;   // climb a step
+  const dn = rsB(nx, y - 1, nz);
+  if (dn && dn.type === 'redstone_dust' && !rsSolid(same)) return true;               // step down
+  return false;
+}
+// Sides a piece of dust actually pushes power into (dot = all four, single arm = a straight line).
+function rsPoints(b) {
+  const k = key(b.x, b.y, b.z); let p = rsPts.get(k);
+  if (p) return p;
+  const c = [0, 1, 2, 3].map(d => rsDustDirConn(b.x, b.y, b.z, d));
+  const n = c.filter(Boolean).length;
+  if (n === 0) p = [true, true, true, true];
+  else if (n === 1) { const l = c.indexOf(true); p = [false, false, false, false]; p[l] = true; p[l ^ 1] = true; }
+  else p = c;
+  rsPts.set(k, p);
+  return p;
+}
+function rsDustLinks(b, fn) {      // dust blocks this dust conducts to
+  for (let d = 0; d < 4; d++) {
+    const nx = b.x + RS_DIRS[d][0], nz = b.z + RS_DIRS[d][1];
+    const s = rsB(nx, b.y, nz);
+    if (s && s.type === 'redstone_dust') fn(s);
+    const up = rsB(nx, b.y + 1, nz);
+    if (up && up.type === 'redstone_dust' && !rsSolid(rsB(b.x, b.y + 1, b.z))) fn(up);
+    const dn = rsB(nx, b.y - 1, nz);
+    if (dn && dn.type === 'redstone_dust' && !rsSolid(s)) fn(dn);
+  }
+}
+// Power level that block `f` pushes into the neighbouring cell (tx,ty,tz), based on current state.
+function rsEmit(f, tx, ty, tz) {
+  switch (f.type) {
+    case 'redstone_dust': {
+      const lv = rsLevel(f); if (lv <= 0) return 0;
+      if (tx === f.x && tz === f.z) return ty === f.y - 1 ? lv : 0;         // always powers the block it sits on
+      if (ty !== f.y) return 0;
+      return rsPoints(f)[rsDirIdx(tx - f.x, tz - f.z)] ? lv : 0;
+    }
+    case 'pressure_plate': {
+      if (!((f.meta | 0) & 1)) return 0;
+      if (ty === f.y - 1) return 15;                                         // the block under the plate
+      return rsSolid(rsB(tx, ty, tz)) ? 0 : 15;                              // dust / repeaters / doors next to it
+    }
+    case 'redstone_torch': {
+      if ((f.meta | 0) & 1) return 0;                                        // burnt out / switched off
+      if (ty < f.y) return 0;
+      const a = rsTorchAttach(f);
+      if (a && a[0] === tx && a[1] === ty && a[2] === tz) return 0;          // never powers what it hangs on
+      if (rsSolid(rsB(tx, ty, tz)) && ty === f.y) return 0;                  // only the block above gets hard power
+      return 15;
+    }
+    case 'repeater': {
+      if (!((f.meta | 0) & 16)) return 0;
+      const dd = RS_DIRS[(f.meta | 0) & 3];
+      return (tx === f.x + dd[0] && ty === f.y && tz === f.z + dd[1]) ? 15 : 0;
+    }
+    case 'comparator': {
+      const r = rsRt.get(key(f.x, f.y, f.z)); const out = r ? r.out : 0; if (out <= 0) return 0;
+      const dd = RS_DIRS[(f.meta | 0) & 3];
+      return (tx === f.x + dd[0] && ty === f.y && tz === f.z + dd[1]) ? out : 0;
+    }
+  }
+  if (rsSolid(f)) {                                                          // a powered solid block passes power on
+    const tb = rsB(tx, ty, tz);
+    return rsBlockPower(f, tx, ty, tz, !!(tb && tb.type === 'redstone_dust'));
+  }
+  return 0;
+}
+// Power a solid block receives from the components touching it (never from another solid block).
+function rsBlockPower(s, tx, ty, tz, forDust) {
+  let best = 0;
+  for (const [dx, dy, dz] of RS_N6) {
+    const nx = s.x + dx, ny = s.y + dy, nz = s.z + dz;
+    if (nx === tx && ny === ty && nz === tz) continue;
+    const nb = rsB(nx, ny, nz);
+    if (!nb || !RS_EMITTERS[nb.type]) continue;
+    if (forDust && nb.type === 'redstone_dust') continue;                    // dust only gives a block weak power
+    const lv = rsEmit(nb, s.x, s.y, s.z);
+    if (lv > best) best = lv;
+  }
+  return best;
+}
+function rsInputAt(tx, ty, tz) {   // strongest power any neighbour pushes into this cell
+  let best = 0;
+  for (const [dx, dy, dz] of RS_N6) {
+    const nb = rsB(tx + dx, ty + dy, tz + dz); if (!nb) continue;
+    const lv = rsEmit(nb, tx, ty, tz); if (lv > best) best = lv;
+  }
+  return best;
+}
+function rsContainerLevel(b) {     // comparator reading a chest: 0 if empty, else 1..15 by how full it is
+  if (b.type !== 'chest') return 0;
+  const sl = chestData[key(b.x, b.y, b.z)]; if (!sl || !sl.length) return 0;
+  let any = false, frac = 0;
+  for (const s of sl) if (s && s.count > 0) { any = true; frac += s.count / maxStackFor(s.type); }
+  return any ? Math.min(15, Math.floor(1 + (frac / sl.length) * 14)) : 0;
+}
+function rsPlatePressed(b) {
+  const cx = b.x, cy = b.y, cz = b.z;
+  const on = (ex, ey, ez, r) => Math.abs(ex - cx) < 0.375 + r && Math.abs(ez - cz) < 0.375 + r && ey > cy - 0.62 && ey < cy - 0.1;
+  if (on(player.pos.x, player.pos.y, player.pos.z, player.radius)) return true;
+  for (const e of otherPlayers.values()) { const p = e.group && e.group.position; if (p && on(p.x, p.y, p.z, 0.3)) return true; }
+  for (const a of animals) if (a.alive !== false && a.pos && on(a.pos.x, a.pos.y, a.pos.z, a.radius || 0.3)) return true;
+  for (const d of droppedItems) if (d.pos && on(d.pos.x, d.pos.y, d.pos.z, 0.1)) return true;
+  return false;
+}
+function rsSetOpen(b, open) {     // local only: every client runs the same sim, so nothing needs to be uploaded
+  const m = b.meta | 0; if (!!(m & 4) === open) return;
+  b.meta = open ? (m | 4) : (m & ~4);
+  markChunkDirty(b.x, b.z);
+  if (isDoorType(b.type)) {
+    const ob = rsB(b.x, b.y + (((m & 8) !== 0) ? -1 : 1), b.z);
+    if (ob && isDoorType(ob.type)) ob.meta = open ? ((ob.meta | 0) | 4) : ((ob.meta | 0) & ~4);
+  }
+}
+function rsConsumerPowered(b) {
+  if (rsInputAt(b.x, b.y, b.z) > 0) return true;
+  return isDoorType(b.type) && rsInputAt(b.x, b.y + 1, b.z) > 0;
+}
+
+function rsStep() {
+  rsTickN++; rsPts.clear();
+  const plates = [], torches = [], reps = [], cmps = [], dusts = [], consumers = [];
+  for (const k of rsKeys) {
+    const b = world.get(k); if (!b) { rsKeys.delete(k); continue; }
+    switch (b.type) {
+      case 'pressure_plate': plates.push(b); break;
+      case 'redstone_torch': torches.push(b); break;
+      case 'repeater': reps.push(b); break;
+      case 'comparator': cmps.push(b); break;
+      case 'redstone_dust': dusts.push(b); break;
+      default:
+        if (isDoorType(b.type)) { if (!((b.meta | 0) & 8)) consumers.push(b); }   // lower half drives both halves
+        else if (isTrapType(b.type)) consumers.push(b);
+    }
+  }
+  let anyDirty = false;
+  const dirty = b => { markChunkDirty(b.x, b.z); anyDirty = true; };
+
+  // 1) pressure plates
+  for (const b of plates) {
+    const rt = rsRtOf(key(b.x, b.y, b.z)), m = b.meta | 0, pressed = (m & 1) !== 0;
+    if (rsPlatePressed(b)) { rt.hold = 10; if (!pressed) { b.meta = m | 1; dirty(b); } }
+    else if (pressed && --rt.hold <= 0) { b.meta = m & ~1; dirty(b); }
+  }
+  // 2) decide next states from the CURRENT state (so torches / repeaters / comparators cost a tick, like the real thing)
+  const torchNext = [], repNext = [], cmpNext = [];
+  for (const b of torches) {
+    const rt = rsRtOf(key(b.x, b.y, b.z)), att = rsTorchAttach(b);
+    let powered = false;
+    if (att) { const s = rsB(att[0], att[1], att[2]); if (s) powered = rsBlockPower(s, b.x, b.y, b.z, false) > 0; }
+    let lit = !powered;
+    if (rt.burn > rsTickN) lit = false;
+    if (lit !== !((b.meta | 0) & 1)) {
+      rt.hist.push(rsTickN); rt.hist = rt.hist.filter(t => rsTickN - t < 60);
+      if (lit && rt.hist.length > 8) { lit = false; rt.burn = rsTickN + 40; }   // too-fast clock burns the torch out
+    }
+    torchNext.push([b, lit]);
+  }
+  for (const b of reps) {
+    const rt = rsRtOf(key(b.x, b.y, b.z)), m = b.meta | 0, dd = RS_DIRS[m & 3];
+    const back = rsB(b.x - dd[0], b.y, b.z - dd[1]);
+    const inp = !!back && rsEmit(back, b.x, b.y, b.z) > 0;
+    if (rt.last === undefined) rt.last = (m & 16) !== 0;
+    if (inp !== rt.last) { rt.last = inp; rt.q.push({ t: rsTickN + ((m >> 2) & 3) + 1, v: inp }); }
+    let on = (m & 16) !== 0;
+    while (rt.q.length && rt.q[0].t <= rsTickN) on = rt.q.shift().v;
+    repNext.push([b, on]);
+  }
+  for (const b of cmps) {
+    const m = b.meta | 0, dd = RS_DIRS[m & 3];
+    const back = rsB(b.x - dd[0], b.y, b.z - dd[1]);
+    let bk = 0;
+    if (back) { bk = rsContainerLevel(back); if (!bk) bk = rsEmit(back, b.x, b.y, b.z); }
+    let sd = 0;
+    for (const s of [[dd[1], dd[0]], [-dd[1], -dd[0]]]) {
+      const nb = rsB(b.x + s[0], b.y, b.z + s[1]);
+      if (nb && (nb.type === 'redstone_dust' || nb.type === 'repeater' || nb.type === 'comparator')) { const lv = rsEmit(nb, b.x, b.y, b.z); if (lv > sd) sd = lv; }
+    }
+    cmpNext.push([b, (m & 4) ? Math.max(0, bk - sd) : (bk >= sd ? bk : 0)]);
+  }
+  // 3) apply
+  for (const [b, lit] of torchNext) { const m = b.meta | 0, w = lit ? (m & ~1) : (m | 1); if (w !== m) { b.meta = w; dirty(b); } }
+  for (const [b, on] of repNext) { const m = b.meta | 0, w = on ? (m | 16) : (m & ~16); if (w !== m) { b.meta = w; dirty(b); } }
+  for (const [b, out] of cmpNext) {
+    rsRtOf(key(b.x, b.y, b.z)).out = out;
+    const m = b.meta | 0, w = out > 0 ? (m | 16) : (m & ~16); if (w !== m) { b.meta = w; dirty(b); }
+  }
+  // 4) dust: seed from the neighbours, then spread (-1 per block)
+  const lvl = new Map(), buckets = Array.from({ length: 16 }, () => []);
+  for (const b of dusts) {
+    let base = 0;
+    for (const [dx, dy, dz] of RS_N6) {
+      const nb = rsB(b.x + dx, b.y + dy, b.z + dz);
+      if (!nb || nb.type === 'redstone_dust') continue;
+      const lv = rsEmit(nb, b.x, b.y, b.z); if (lv > base) base = lv;
+    }
+    lvl.set(key(b.x, b.y, b.z), base);
+    if (base > 0) buckets[base].push(b);
+  }
+  for (let L = 15; L >= 2; L--) {
+    const bk = buckets[L];
+    for (let i = 0; i < bk.length; i++) {
+      const b = bk[i]; if (lvl.get(key(b.x, b.y, b.z)) !== L) continue;
+      rsDustLinks(b, nb => { const nk = key(nb.x, nb.y, nb.z); if ((lvl.get(nk) || 0) < L - 1) { lvl.set(nk, L - 1); buckets[L - 1].push(nb); } });
+    }
+  }
+  for (const b of dusts) {
+    const k = key(b.x, b.y, b.z), L = lvl.get(k) || 0;
+    rsRtOf(k).lvl = L;
+    let mask = 0; for (let d = 0; d < 4; d++) if (rsDustDirConn(b.x, b.y, b.z, d)) mask |= (1 << d);
+    const w = mask | (L > 0 ? 16 : 0), m = b.meta | 0;
+    if ((m & 31) !== w) { b.meta = (m & ~31) | w; dirty(b); }
+  }
+  // 5) doors + trapdoors follow the power (edge-triggered, so you can still open them by hand)
+  for (const b of consumers) {
+    const k = key(b.x, b.y, b.z), powered = rsConsumerPowered(b), prev = rsDoorPow.get(k), open = ((b.meta | 0) & 4) !== 0;
+    rsDoorPow.set(k, powered);
+    if (prev === undefined ? (powered && !open) : (powered !== prev && powered !== open)) { rsSetOpen(b, powered); anyDirty = true; }
+  }
+  if (anyDirty) flushDirtyChunks(false);
+  if (rsTickN % 200 === 0) {   // forget state of blocks that are gone
+    for (const k of Array.from(rsRt.keys())) if (!rsKeys.has(k)) rsRt.delete(k);
+    for (const k of Array.from(rsDoorPow.keys())) if (!rsKeys.has(k)) rsDoorPow.delete(k);
+  }
+}
+function rsUpdate(dt) {
+  if (!rsKeys.size) return;
+  rsAcc += dt;
+  let n = 0;
+  while (rsAcc >= 0.1 && n < 3) { rsAcc -= 0.1; rsStep(); n++; }
+  if (rsAcc > 0.3) rsAcc = 0;
+}
+// Right-click: repeater cycles its delay (1-4), comparator flips compare / subtract. Sneak to place a block on top instead.
+function rsInteract(b) {
+  if (b.type !== 'repeater' && b.type !== 'comparator') return false;
+  if (player.crouched) return false;
+  const m = b.meta | 0;
+  const nm = b.type === 'repeater' ? ((m & ~12) | (((((m >> 2) & 3) + 1) & 3) << 2)) : (m ^ 4);
+  b.meta = nm; markChunkDirty(b.x, b.z); flushDirtyChunks(false);
+  pushBlockDiff(b.x, b.y, b.z, b.type, nm & 15);       // only facing / delay / mode are saved
+  return true;
+}
+
 function animate() {
   requestAnimationFrame(animate);
   const now = performance.now();
@@ -7970,6 +8417,7 @@ function animate() {
   updateAnimals(dt);
   updateAnimalSpawning(dt);
   updateDroppedItems(dt);
+  rsUpdate(dt);
   if (attackCooldown > 0) attackCooldown -= dt;
   jcUpdate(dt);
 
