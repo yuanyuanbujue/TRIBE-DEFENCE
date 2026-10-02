@@ -533,6 +533,7 @@
   #mobileTopBtns .mBtn {
     width: 48px; height: 40px; border-radius: 10px; font-size: 12px;
   }
+  #mBtnDrop { background: rgba(220, 90, 60, 0.4); }
   #lookPad { display: none; }
   /* ===== Control style 2: PC-style (joystick + click buttons) ===== */
   #joyBase, #pcBtns { display: none; }
@@ -765,7 +766,7 @@
     <div id="enchantTop">
       <div id="enchantSlotWrap"></div>
       <div id="enchantChoices">
-        <div id="enchTypeRow"><button class="enchBtn enchType" id="enchType0"><span class="eb-t">Efficiency</span><span class="eb-s">faster mining</span></button><button class="enchBtn enchType" id="enchType1"><span class="eb-t">Fortune</span><span class="eb-s">more ore / wood</span></button></div>
+        <div id="enchTypeRow"><button class="enchBtn enchType" id="enchType0"><span class="eb-t">Efficiency</span><span class="eb-s">faster mining</span></button><button class="enchBtn enchType" id="enchType1"><span class="eb-t">Fortune</span><span class="eb-s">more ore / wood</span></button><button class="enchBtn enchType" id="enchType2"><span class="eb-t">Sharpness</span><span class="eb-s">more damage</span></button></div>
         <button class="enchBtn" id="enchBtn0"><span class="eb-t"></span><span class="eb-s"></span></button>
         <button class="enchBtn" id="enchBtn1"><span class="eb-t"></span><span class="eb-s"></span></button>
         <button class="enchBtn" id="enchBtn2"><span class="eb-t"></span><span class="eb-s"></span></button>
@@ -775,7 +776,7 @@
     <div id="enchantMsg"></div>
     <div id="enchantMainGrid"></div>
     <div id="enchantHotbarGrid"></div>
-    <p id="enchantHint">Tap an item in your bag to put it in the slot (tap the slot to take it back). Swords get <b>Sharpness</b> (more damage), armor gets <b>Protection</b> (less damage taken), tools get <b>Efficiency</b> (mine faster) and pickaxes/axes also <b>Fortune</b> (more ore / wood drops). The more XP levels you spend, the stronger the enchantment. Kill mobs to earn XP · Press E to close</p>
+    <p id="enchantHint">Tap an item in your bag to put it in the slot (tap the slot to take it back). Swords get <b>Sharpness</b> (more damage), armor gets <b>Protection</b> (less damage taken), tools get <b>Efficiency</b> (mine faster), pickaxes/axes also <b>Fortune</b> (more ore / wood drops), and axes can also take <b>Sharpness</b>. Craft a <b>shield</b> (planks + iron) to block frontal attacks — axes can temporarily disable a raised shield. The more XP levels you spend, the stronger the enchantment. Kill mobs to earn XP · Press E to close</p>
   </div>
 </div>
 
@@ -826,10 +827,11 @@
   </div>
   <div id="mobileTopBtns">
     <div class="mBtn" id="mBtnInv">Bag</div>
+    <div class="mBtn" id="mBtnDrop">Drop</div>
     <div class="mBtn" id="mBtnChat">Chat</div>
   </div>
 </div>
-<div id="mobileHint">Tap block/mob: place or attack · Hold on a block: mine · Double-tap ▲: sprint</div>
+<div id="mobileHint">Tap block/mob: place or attack · Hold on a block: mine · Double-tap ▲: sprint · Drop: throw held item</div>
 <div id="crosshair"></div>
 <div id="atkCd"><div id="atkCdFill"></div></div>
 <div id="mineProgressWrap"><div id="mineProgressBar"></div></div>
@@ -841,7 +843,7 @@
 <div id="chatLog"></div>
 <div id="chatInputWrap"><input id="chatInput" type="text" maxlength="200" enterkeyhint="send" autocomplete="off" autocorrect="off" placeholder="Say something... (Enter to send, Esc to cancel)"><button type="button" class="chatBtn" id="chatSendBtn">Send</button><button type="button" class="chatBtn" id="chatCancelBtn" aria-label="Cancel chat">✕</button></div>
 <div id="damageFlash"></div>
-<div id="hud">Mine blocks to collect materials · place them from your inventory.<br>Press <b id="hkInv">E</b> for inventory · <b id="hkTp">F5</b> for third-person · <b id="hkEat">F</b> to eat food · <b id="hkDrop">Q</b> to throw item · <b>Right-click</b> uses your off-hand item · <b id="hkChat">T</b> to chat. Right-click a crafting table/furnace/chest to use it, a <b>sign</b> to edit its text, <b>TNT</b> to light it, or a bed to set your respawn point. Smelt logs in a furnace for <b>charcoal</b>. World auto-saves as you play.</div>
+<div id="hud">Mine blocks to collect materials · place them from your inventory.<br>Press <b id="hkInv">E</b> for inventory · <b id="hkTp">F5</b> for third-person · <b id="hkEat">F</b> to eat food · <b id="hkDrop">Q</b> to throw item · <b>Right-click</b> uses your off-hand item (or raise a <b>shield</b> to block) · <b id="hkChat">T</b> to chat. Right-click a crafting table/furnace/chest to use it, a <b>sign</b> to edit its text, <b>TNT</b> to light it, or a bed to set your respawn point. Place a <b>campfire</b> for light. Smelt logs in a furnace for <b>charcoal</b>. World auto-saves as you play.</div>
 <div id="fps">FPS: --<br><span id="playerCount">Players online: 1</span></div>
 <div id="coordsDisplay">XYZ: 0, 0, 0</div>
 <button id="settingsBtn" title="Settings">⚙️</button>
@@ -948,9 +950,14 @@ const camera = new THREE.PerspectiveCamera(75, window.innerWidth/window.innerHei
 // itself in the scene graph for the renderer to draw its children.
 const viewModelGroup = new THREE.Group();
 camera.add(viewModelGroup);
+// Off-hand (left) first-person view model — any item held in the left hand is shown here.
+const viewModelOffGroup = new THREE.Group();
+camera.add(viewModelOffGroup);
 scene.add(camera);
 const viewModelState = { heldType: undefined, heldMesh: null };
+const viewModelOffState = { heldType: undefined, heldMesh: null };
 const _restHeldEuler = new THREE.Euler(0.2, -0.6, -0.15);
+const _restOffEuler = new THREE.Euler(0.15, 0.55, 0.12);
 const renderer = new THREE.WebGLRenderer({ antialias: true, powerPreference: 'high-performance' });
 // Cap devicePixelRatio: on a 2x/3x retina/high-DPI screen an uncapped ratio
 // means the GPU shades 4x-9x the fragments for a barely-visible sharpness
@@ -1231,6 +1238,24 @@ const TEX = {
     ctx.fillStyle = '#5a3417';
     ctx.fillRect(3,4,10,1); ctx.fillRect(3,7,8,1); ctx.fillRect(3,10,9,1);
   }),
+  campfire: makeTexture(ctx => {
+    // log base
+    ctx.fillStyle = '#6f4420'; ctx.fillRect(0,10,16,6);
+    ctx.fillStyle = '#8a5a2b'; ctx.fillRect(1,11,14,4);
+    ctx.fillStyle = '#5a3417'; ctx.fillRect(0,12,16,1); ctx.fillRect(3,10,1,6); ctx.fillRect(12,10,1,6);
+    // fire
+    ctx.fillStyle = '#d9480f'; ctx.fillRect(4,4,8,7); ctx.fillRect(5,2,6,2);
+    ctx.fillStyle = '#ff8a1e'; ctx.fillRect(5,5,6,5); ctx.fillRect(6,3,4,2);
+    ctx.fillStyle = '#ffc233'; ctx.fillRect(6,6,4,3);
+    ctx.fillStyle = '#fff2a8'; ctx.fillRect(7,7,2,2);
+  }),
+  campfireTop: makeTexture(ctx => {
+    ctx.fillStyle = '#5a3417'; ctx.fillRect(0,0,16,16);
+    ctx.fillStyle = '#8a5a2b'; ctx.fillRect(2,2,12,12);
+    ctx.fillStyle = '#ff8a1e'; ctx.fillRect(5,5,6,6);
+    ctx.fillStyle = '#ffc233'; ctx.fillRect(6,6,4,4);
+    ctx.fillStyle = '#fff2a8'; ctx.fillRect(7,7,2,2);
+  }),
 };
 
 
@@ -1411,6 +1436,7 @@ const BLOCK_TYPES = {
   repeater:       { transparent: true, hardness: 0.1, tool: null, shape: 'repeater' },
   comparator:     { transparent: true, hardness: 0.1, tool: null, shape: 'comparator' },
   pressure_plate: { transparent: true, hardness: 0.5, tool: 'axe', shape: 'plate', noCollide: true },
+  campfire: { transparent: true, hardness: 0.5, tool: 'axe', shape: 'campfire' },
 };
 // Non-block items: sticks, tools, and food. Tools don't stack (max 1 per slot).
 const ITEM_INFO = {
@@ -1461,6 +1487,8 @@ const ITEM_INFO = {
   charcoal:       {},
   sign:           {},
   cooked_meat:    { food: 6 },
+  shield:         { maxStack: 1 },
+  totem_of_undying: { maxStack: 1 },
 };
 const ARMOR_TYPES = ['iron_helmet', 'iron_chestplate', 'iron_leggings', 'iron_boots',
   'gold_helmet', 'gold_chestplate', 'gold_leggings', 'gold_boots',
@@ -1480,6 +1508,8 @@ function totalArmorReduction() {
   return Math.min(0.9, 1 - (1 - base) * (1 - extra));
 }
 function isSword(type) { return type === 'wood_sword' || type === 'stone_sword' || type === 'iron_sword' || type === 'gold_sword' || type === 'diamond_sword'; }
+function isAxe(type) { return !!(type && type.endsWith('_axe')); }
+function isShield(type) { return type === 'shield'; }
 function isFood(type) { return !!(ITEM_INFO[type] && ITEM_INFO[type].food); }
 function isDoorType(t) { return t === 'door' || t === 'birch_door'; }
 function isTrapType(t) { return t === 'trapdoor' || t === 'birch_trapdoor'; }
@@ -1516,6 +1546,8 @@ const ITEM_GLYPHS = {
   stick:   ['.......s','......s.','.....s..','....s...','...s....','..s.....','.s......','s.......'],
   ingot:   ['........','..xxxxxx','.xxxxxxx','xxxxxxx.','xxxxxx..','........','........','........'],
   lump:    ['..xxx...','.xxxxxx.','xxxsxxxx','xxxxxxx.','.xxxxxx.','..xxxx..','........','........'],
+  shield:  ['.xxxxxx.','.xs..sx.','.x.ss.x.','.x.ss.x.','.xs..sx.','.xxxxxx.','.xxxxxx.','..xxxx..'],
+  totem:   ['..xsx...','.xxxxxx.','xxsxxsxx','xxxxxxxx','x.xxxx.x','..xxxx..','..x..x..','..x..x..'],
 };
 const ITEM_MATS = {
   wood:  { bg: '#7a5530', x: '#e0bb7a', s: '#4a2f14' },
@@ -1539,6 +1571,8 @@ const ITEM_STYLE = {
   apple:       { g: 'apple', bg: '#2e6b2e', x: '#e03a3a', s: '#6f4420' },
   coal:        { g: 'lump',  bg: '#4a4a4a', x: '#141414', s: '#6a6a6a' },
   charcoal:    { g: 'lump',  bg: '#3a3228', x: '#1a120c', s: '#6a5a48' },
+  shield:      { g: 'shield', bg: '#6b4420', x: '#c4a06a', s: '#e8eef2' },
+  totem_of_undying: { g: 'totem', bg: '#8a6a12', x: '#ffe566', s: '#3ecf5a' },
 };
 for (const m of ['wood', 'stone', 'iron', 'gold', 'diamond'])
   for (const t of ['pickaxe', 'axe', 'shovel', 'sword'])
@@ -1710,7 +1744,7 @@ function blockFaceCanvases(type) {            // -> { top, side } source canvase
 }
 const _iconCanvasCache = {};
 // Item sprites from the pack (only the apple exists in the pack's items folder that the game uses)
-const PACK_ITEMS = { golden_apple: "data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAABAAAAAQCAYAAAAf8/9hAAAAy0lEQVR42mNgoAeQlJT8j0uOiRLNFNvOwMDAwEhIo/if1wwvWUQZnj9/zkiUFyQlJf9LSkr+v3jVjsGa+wODCj8rw6HOX3BxvC6AaUQGH7fsYeD3cWH4uGUPAwMDA4NdORuKa7AGoqjgCgZRwRUMDAwMDPw+Lig0Ti/AbIdpfP0+AqsGmHeIjkZCgAVdAJfNZCck5MDEa8Dz588Z9bUPYVWILIYeCyyk2EZ00r29SPj/7UXC/03FWf+birPC+UTnC/RUhysVMjAwMAAAprVV3jDXbi4AAAAASUVORK5CYII=", iron_helmet: "data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAABAAAAAQCAYAAAAf8/9hAAAAmUlEQVR42tVSsQ3EIBAzUXoWQZRsxErU7IIooAOxCBPcVx8BfyTfxg06bHMnc8DrIdYLYwzdGXLOYksaY4iIqJSyPdcGYjSnlFBrvcje+08TKSWstdckx0g+mQEgxjjV51horVFrRe8drbVJqJRiHzzXCb5m7/0kTCkhhIDHAJ1zxP3Ejt9mwIHjjzWDO3C84BZotyz/aF6ID1hucr6ph8znAAAAAElFTkSuQmCC", iron_chestplate: "data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAABAAAAAQCAYAAAAf8/9hAAAApElEQVR42uWRsQ0DIQxFTXTzUPomYiUoaNgFUeAOxCJM4FScyMlESJcuv8ESz98fDPBQahSIyKMmIiXBSwYRmZm5lMIzJBncuWNc1lohpQTeezDGiCY5Z3DOrZ3nCdJprWVE/Eig5rcRkUJEzjlDrRV679eQ1hqEEC5m8C8p6r35m0QDrfX2GpcJdnVIe9daQ4xx2TTzv0kg/YG4712D8zzhj/QG31uCnOHNTkwAAAAASUVORK5CYII=", iron_leggings: "data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAABAAAAAQCAYAAAAf8/9hAAAAmklEQVR42t1SsQ0DIQw8UHo2oTQTsRe7IBp3oF/EE5AKCR5ISBXp3RiD73w+Afw7VDsQUf0FyMxquCCiWmutOeevuR/26klKKVMWEcQYAQAxRlzXNQzWfWGtHR5TShPgHnqloIFDCAghwBhzRtAUNDAzK2ZW3vstyaRARJaN9/WOPNitd+TBSsHKUH3S9Il8+AfOua0C7z0eGm9y6Ww84LNpjAAAAABJRU5ErkJggg==", iron_boots: "data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAABAAAAAQCAYAAAAf8/9hAAAAdUlEQVR42u2RwRXAEBBEl5d6HCl1D+pxGEedqCA5bUKyRAHmhP+MsUO0ZWThvT9bkHM27X7EbXsIgGKMw9c03hmUUiilNDTQeGfgnJv+V+OfBDNp3MqAAFCtdSkBgHuoh1xm5t/KJAEzEwAKIZzmXc9qjVuPLl6YPuT3JjzIAAAAAElFTkSuQmCC", gold_helmet: "data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAABAAAAAQCAYAAAAf8/9hAAAAqUlEQVR42mNgGPKAEV3AXpf/Pz4NBy9/ZMQpaa/L///f/73//9+wxUmjW8CIrHn/pXUMjDcb4JIPb33GsERejZfBIfQS3CVMKKYR0MzAwMCwbtEbFD4LMue/egMD480Ghoe3PjOcPfETRaGxBTtWA1nQXQDTPGnzMxSF+1vXMTzaXMxAMADXVmn+xxYTuORxhgHWOMciz4QeBvgANnlGbAkIV2IhRs0QBADA52nbNkQ7ygAAAABJRU5ErkJggg==", gold_chestplate: "data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAABAAAAAQCAYAAAAf8/9hAAAAt0lEQVR42mNgoBAwwhj2uvz/YeyDlz8yYlOMU429Lv//f//3/v9/w/Y/siJsBqCrY4E75WYDw7pFbxgOrNZjcAi9hNWQ/ZfWMayvzsFtMrIN2Oi1VZr/7XX5UVzAiOy3g5c/Mtrr8v/ff2kdA+PNBoaHtz7DLTl74ifDpM3P4Gpg6pmwhiyaZnwAqwH/1RuIjkacLiAWsGCL9//qDQwMt4pxakJWTx0XYAuDs4tyyDfAUS+IYQQBAI/zecgZL271AAAAAElFTkSuQmCC", gold_leggings: "data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAABAAAAAQCAYAAAAf8/9hAAAAsElEQVR42mNgGGjACGPY6/L/J0XjwcsfGVEE7HX5///7v/f//xu2BGlky1BccGC1HoZND299RuGfPfGTYdLmZ3AXMCFL/ldvQFG8btEbhrMnfuL1CgtKgNxsQNE8afMzBgYGBoYDcXoYLoEBrC6AaT54+SPjwcsfGR1CLzHIq/ESNoDxZgNOm9C9h9cFWOP7ZgNxLsAF/qs3YA1QJmIU4TMcJRYc9YJwusAh9BLDMAUAhnRo9pIqym4AAAAASUVORK5CYII=", gold_boots: "data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAABAAAAAQCAYAAAAf8/9hAAAAgklEQVR42mNgGAWMMIa9Lv9/ZImDlz8yIvNxyTMhC+6/tI7hwGo9nLZhk0cxgPFmA8O6RW9wOxeLPIoB/9Ub8PoXmzyGC/AG2E0cBtjr8v/ff2kdw8Nbn4lywf5L6+CBygLTvL46h3CUQV2wvjqHYf+ldQyOekH/GdGjh9hoHAUIAACC9DprCyCQKwAAAABJRU5ErkJggg==", diamond_helmet: "data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAABAAAAAQCAYAAAAf8/9hAAAAqUlEQVR42mNgGPKAEV2A18r0Pz4Nn4+dZsQpyWtl+v/p/1//vd7exEmjW8CIrPnG0aMMqe/uwyWfPX6KYYmUrDTDYd8YuEuYkCUJaWZgYGC4tXkHCp8FmTNbSJEh9d19hmePnzJ8uXAZRSGPgS5WA1nQXQDT/HLWEhSFB48eZfC+eISBYACqLJj4H1tM4JLHGQbYADZ5JvQwwAewyTNiS0C4EgsxaoYgAAAmLW2iExkjdwAAAABJRU5ErkJggg==", diamond_chestplate: "data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAABAAAAAQCAYAAAAf8/9hAAAAtklEQVR42mNgoBAwwhi8Vqb/YezPx04zYlOMUw2vlen/p/9//fd6e/M/siJsBqCrY4FJpr67z3Br8w4G281LGA77xmA15MbRowz2C6fjNhnZBmy0yoKJ/3mtTFFcwIjst8/HTjPyWpn+v3H0KEPqu/sMzx4/hVvy5cJlhpezlsDVwNQzYXMqumZ8AKsBs4UUiY5GnC4gFrBgi/fZQooM3ni8gKyeOi7AFgb2m3eQb4CGtTXDCAIAmiB9DkupwCoAAAAASUVORK5CYII=", diamond_leggings: "data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAABAAAAAQCAYAAAAf8/9hAAAArElEQVR42mNgGGjACGPwWpn+J0Xj52OnGVEEeK1M/z/9/+u/19ubBGlky1BcYLt5CYZNzx4/ReF/uXCZ4eWsJXAXMCFLzhZSRFF8a/MOhi8XLuP1CgsyJ/XdfRTNL2dBXKS2eQmGS2AAqwtgmj8fO834+dhpxsO+MQxSstKEDUh9dx+nTejew+sCbADZe3hdgAvMFlLEGqBMxCjCZzhKLGhYW+N0wWHfGIZhCgAp5mkEv+S6UAAAAABJRU5ErkJggg==", diamond_boots: "data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAABAAAAAQCAYAAAAf8/9hAAAAf0lEQVR42mNgGAWMMAavlel/ZInPx04zIvNxyTMhC944epTBdvMSnLZhk0cxIPXdfYZbm3fgNACbPIoBs4UU8foXmzyGC/ABbPJMsAC6cfQow7PHT4lywY2jR+GBygLTbL9wOsEog7nAfuF0hhtHjzJoWFv/Z0SPHmKjcRQgAAAVgTyY+we4SgAAAABJRU5ErkJggg==", apple: "data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAABAAAAAQCAYAAAAf8/9hAAABCklEQVR4nL2STUoDQRCFvw6DkpCIjSYwEELAA8SF4AVcu/IAuYUriZKL5ACuXHuBKK4UBDfKoAT8YfLnhEwSKgtx7GFmtFHwLetVf6+6uuE/dLhTkiwvZ3P46jnM9H8EAJx7U2XTF5PWWs42arJddmSvtpp5hQT5ptEQ6Y1RbpHj9zsAmn6ZbhgA0B69qkzAdWVLlFtMTXp49AHohkEMYrUDgHpVU6/qRD0CfJduanelwFFpM9qJ9QSmbudfz/orgKkIcL+Y/Q2w/+ZZfZZO0Od0Mox6HdO88F6o5D5K5sYHT0N8WaQCE6kH+TVpFtYBOHF6ALTmbmp6YgLgs0EALiczBdDJ98XwYloCVg1WWG8S5iYAAAAASUVORK5CYII=" , charcoal: "data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAABAAAAAQCAYAAAAf8/9hAAABgklEQVR42q2TS28TMRSFv3k4dqI82swkGmkELEACgbqgEqzaJf9/QyWCAAVSQUmBQjPMy55xF1GjTjNBlcrd2NLx+XyvdQz3LOdfopLCXu/zQjt3Bnieh/BdG03HeK6DEIL54qwV4u4yT8M9wv0hD+MpWmviKGh01ArwPI8wDAHoKsmg3yXLCo5fvwBohWx1IKUEwBjD0avnhOMhJ+8XTMYjhBBbkC3A8vs3G0cBcRSw+HqO7AjGe32q2pJmOT8vVkyC0Qbi3p79zfFLtKnIcs27D6d8+nLGyewzxhiKQgOQ/M13jzA/XQIwCUb0eorLJAXYrIN+t/0Rhe/aOAoA6HUVs48L0nR9U5LmFIXm8OAJAFle7O7g4NkjtNY8ffyA819/KLVZB8Z1eDubb85pUzuNICkp7CQYoXWFUh08dy2V2rBKMuq6xvd9Sm0wxqBN7VRV1UziNQRglWSNmcvSYK3lMkk35tYoKymskh0AhoMeyx+/G/pN886/cDMotw3/va4AGJytBqZp1KgAAAAASUVORK5CYII=", sign: "data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAABAAAAAQCAYAAAAf8/9hAAAAl0lEQVR42mNgGGjACGPMb/H9T4rGUxeeMUxfc5aRCVlwwcqDWBU3Td0Hl0NXg2LAozd/GZqm7sPQBJNbsPIgw6M3f2noBWQnLlh5EMUFuLzAgu5XZCfDNCA7m+peYEEWIAfADbjx4B1lCQkbSPLV+c/AwMBw//lXhv1n7mNVy4TPAClRIYIuYKI0L1BsAAs+yaOXHhM0AAA31VKGTW05XgAAAABJRU5ErkJggg=="};
+const PACK_ITEMS = { golden_apple: "data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAABAAAAAQCAYAAAAf8/9hAAAAy0lEQVR42mNgoAeQlJT8j0uOiRLNFNvOwMDAwEhIo/if1wwvWUQZnj9/zkiUFyQlJf9LSkr+v3jVjsGa+wODCj8rw6HOX3BxvC6AaUQGH7fsYeD3cWH4uGUPAwMDA4NdORuKa7AGoqjgCgZRwRUMDAwMDPw+Lig0Ti/AbIdpfP0+AqsGmHeIjkZCgAVdAJfNZCck5MDEa8Dz588Z9bUPYVWILIYeCyyk2EZ00r29SPj/7UXC/03FWf+birPC+UTnC/RUhysVMjAwMAAAprVV3jDXbi4AAAAASUVORK5CYII=", iron_helmet: "data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAABAAAAAQCAYAAAAf8/9hAAAAmUlEQVR42tVSsQ3EIBAzUXoWQZRsxErU7IIooAOxCBPcVx8BfyTfxg06bHMnc8DrIdYLYwzdGXLOYksaY4iIqJSyPdcGYjSnlFBrvcje+08TKSWstdckx0g+mQEgxjjV51horVFrRe8drbVJqJRiHzzXCb5m7/0kTCkhhIDHAJ1zxP3Ejt9mwIHjjzWDO3C84BZotyz/aF6ID1hucr6ph8znAAAAAElFTkSuQmCC", iron_chestplate: "data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAABAAAAAQCAYAAAAf8/9hAAAApElEQVR42uWRsQ0DIQxFTXTzUPomYiUoaNgFUeAOxCJM4FScyMlESJcuv8ESz98fDPBQahSIyKMmIiXBSwYRmZm5lMIzJBncuWNc1lohpQTeezDGiCY5Z3DOrZ3nCdJprWVE/Eig5rcRkUJEzjlDrRV679eQ1hqEEC5m8C8p6r35m0QDrfX2GpcJdnVIe9daQ4xx2TTzv0kg/YG4712D8zzhj/QG31uCnOHNTkwAAAAASUVORK5CYII=", iron_leggings: "data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAABAAAAAQCAYAAAAf8/9hAAAAmklEQVR42t1SsQ0DIQw8UHo2oTQTsRe7IBp3oF/EE5AKCR5ISBXp3RiD73w+Afw7VDsQUf0FyMxquCCiWmutOeevuR/26klKKVMWEcQYAQAxRlzXNQzWfWGtHR5TShPgHnqloIFDCAghwBhzRtAUNDAzK2ZW3vstyaRARJaN9/WOPNitd+TBSsHKUH3S9Il8+AfOua0C7z0eGm9y6Ww84LNpjAAAAABJRU5ErkJggg==", iron_boots: "data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAABAAAAAQCAYAAAAf8/9hAAAAdUlEQVR42u2RwRXAEBBEl5d6HCl1D+pxGEedqCA5bUKyRAHmhP+MsUO0ZWThvT9bkHM27X7EbXsIgGKMw9c03hmUUiilNDTQeGfgnJv+V+OfBDNp3MqAAFCtdSkBgHuoh1xm5t/KJAEzEwAKIZzmXc9qjVuPLl6YPuT3JjzIAAAAAElFTkSuQmCC", gold_helmet: "data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAABAAAAAQCAYAAAAf8/9hAAAAqUlEQVR42mNgGPKAEV3AXpf/Pz4NBy9/ZMQpaa/L///f/73//9+wxUmjW8CIrHn/pXUMjDcb4JIPb33GsERejZfBIfQS3CVMKKYR0MzAwMCwbtEbFD4LMue/egMD480Ghoe3PjOcPfETRaGxBTtWA1nQXQDTPGnzMxSF+1vXMTzaXMxAMADXVmn+xxYTuORxhgHWOMciz4QeBvgANnlGbAkIV2IhRs0QBADA52nbNkQ7ygAAAABJRU5ErkJggg==", gold_chestplate: "data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAABAAAAAQCAYAAAAf8/9hAAAAt0lEQVR42mNgoBAwwhj2uvz/YeyDlz8yYlOMU429Lv//f//3/v9/w/Y/siJsBqCrY4E75WYDw7pFbxgOrNZjcAi9hNWQ/ZfWMayvzsFtMrIN2Oi1VZr/7XX5UVzAiOy3g5c/Mtrr8v/ff2kdA+PNBoaHtz7DLTl74ifDpM3P4Gpg6pmwhiyaZnwAqwH/1RuIjkacLiAWsGCL9//qDQwMt4pxakJWTx0XYAuDs4tyyDfAUS+IYQQBAI/zecgZL271AAAAAElFTkSuQmCC", gold_leggings: "data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAABAAAAAQCAYAAAAf8/9hAAAAsElEQVR42mNgGGjACGPY6/L/J0XjwcsfGVEE7HX5///7v/f//xu2BGlky1BccGC1HoZND299RuGfPfGTYdLmZ3AXMCFL/ldvQFG8btEbhrMnfuL1CgtKgNxsQNE8afMzBgYGBoYDcXoYLoEBrC6AaT54+SPjwcsfGR1CLzHIq/ESNoDxZgNOm9C9h9cFWOP7ZgNxLsAF/qs3YA1QJmIU4TMcJRYc9YJwusAh9BLDMAUAhnRo9pIqym4AAAAASUVORK5CYII=", gold_boots: "data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAABAAAAAQCAYAAAAf8/9hAAAAgklEQVR42mNgGAWMMIa9Lv9/ZImDlz8yIvNxyTMhC+6/tI7hwGo9nLZhk0cxgPFmA8O6RW9wOxeLPIoB/9Ub8PoXmzyGC/AG2E0cBtjr8v/ff2kdw8Nbn4lywf5L6+CBygLTvL46h3CUQV2wvjqHYf+ldQyOekH/GdGjh9hoHAUIAACC9DprCyCQKwAAAABJRU5ErkJggg==", diamond_helmet: "data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAABAAAAAQCAYAAAAf8/9hAAAAqUlEQVR42mNgGPKAEV2A18r0Pz4Nn4+dZsQpyWtl+v/p/1//vd7exEmjW8CIrPnG0aMMqe/uwyWfPX6KYYmUrDTDYd8YuEuYkCUJaWZgYGC4tXkHCp8FmTNbSJEh9d19hmePnzJ8uXAZRSGPgS5WA1nQXQDT/HLWEhSFB48eZfC+eISBYACqLJj4H1tM4JLHGQbYADZ5JvQwwAewyTNiS0C4EgsxaoYgAAAmLW2iExkjdwAAAABJRU5ErkJggg==", diamond_chestplate: "data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAABAAAAAQCAYAAAAf8/9hAAAAtklEQVR42mNgoBAwwhi8Vqb/YezPx04zYlOMUw2vlen/p/9//fd6e/M/siJsBqCrY4FJpr67z3Br8w4G281LGA77xmA15MbRowz2C6fjNhnZBmy0yoKJ/3mtTFFcwIjst8/HTjPyWpn+v3H0KEPqu/sMzx4/hVvy5cJlhpezlsDVwNQzYXMqumZ8AKsBs4UUiY5GnC4gFrBgi/fZQooM3ni8gKyeOi7AFgb2m3eQb4CGtTXDCAIAmiB9DkupwCoAAAAASUVORK5CYII=", diamond_leggings: "data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAABAAAAAQCAYAAAAf8/9hAAAArElEQVR42mNgGGjACGPwWpn+J0Xj52OnGVEEeK1M/z/9/+u/19ubBGlky1BcYLt5CYZNzx4/ReF/uXCZ4eWsJXAXMCFLzhZSRFF8a/MOhi8XLuP1CgsyJ/XdfRTNL2dBXKS2eQmGS2AAqwtgmj8fO834+dhpxsO+MQxSstKEDUh9dx+nTejew+sCbADZe3hdgAvMFlLEGqBMxCjCZzhKLGhYW+N0wWHfGIZhCgAp5mkEv+S6UAAAAABJRU5ErkJggg==", diamond_boots: "data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAABAAAAAQCAYAAAAf8/9hAAAAf0lEQVR42mNgGAWMMAavlel/ZInPx04zIvNxyTMhC944epTBdvMSnLZhk0cxIPXdfYZbm3fgNACbPIoBs4UU8foXmzyGC/ABbPJMsAC6cfQow7PHT4lywY2jR+GBygLTbL9wOsEog7nAfuF0hhtHjzJoWFv/Z0SPHmKjcRQgAAAVgTyY+we4SgAAAABJRU5ErkJggg==", apple: "data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAABAAAAAQCAYAAAAf8/9hAAABCklEQVR4nL2STUoDQRCFvw6DkpCIjSYwEELAA8SF4AVcu/IAuYUriZKL5ACuXHuBKK4UBDfKoAT8YfLnhEwSKgtx7GFmtFHwLetVf6+6uuE/dLhTkiwvZ3P46jnM9H8EAJx7U2XTF5PWWs42arJddmSvtpp5hQT5ptEQ6Y1RbpHj9zsAmn6ZbhgA0B69qkzAdWVLlFtMTXp49AHohkEMYrUDgHpVU6/qRD0CfJduanelwFFpM9qJ9QSmbudfz/orgKkIcL+Y/Q2w/+ZZfZZO0Od0Mox6HdO88F6o5D5K5sYHT0N8WaQCE6kH+TVpFtYBOHF6ALTmbmp6YgLgs0EALiczBdDJ98XwYloCVg1WWG8S5iYAAAAASUVORK5CYII=" , charcoal: "data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAABAAAAAQCAYAAAAf8/9hAAABgklEQVR42q2TS28TMRSFv3k4dqI82swkGmkELEACgbqgEqzaJf9/QyWCAAVSQUmBQjPMy55xF1GjTjNBlcrd2NLx+XyvdQz3LOdfopLCXu/zQjt3Bnieh/BdG03HeK6DEIL54qwV4u4yT8M9wv0hD+MpWmviKGh01ArwPI8wDAHoKsmg3yXLCo5fvwBohWx1IKUEwBjD0avnhOMhJ+8XTMYjhBBbkC3A8vs3G0cBcRSw+HqO7AjGe32q2pJmOT8vVkyC0Qbi3p79zfFLtKnIcs27D6d8+nLGyewzxhiKQgOQ/M13jzA/XQIwCUb0eorLJAXYrIN+t/0Rhe/aOAoA6HUVs48L0nR9U5LmFIXm8OAJAFle7O7g4NkjtNY8ffyA819/KLVZB8Z1eDubb85pUzuNICkp7CQYoXWFUh08dy2V2rBKMuq6xvd9Sm0wxqBN7VRV1UziNQRglWSNmcvSYK3lMkk35tYoKymskh0AhoMeyx+/G/pN886/cDMotw3/va4AGJytBqZp1KgAAAAASUVORK5CYII=", sign: "data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAABAAAAAQCAYAAAAf8/9hAAAAl0lEQVR42mNgGGjACGPMb/H9T4rGUxeeMUxfc5aRCVlwwcqDWBU3Td0Hl0NXg2LAozd/GZqm7sPQBJNbsPIgw6M3f2noBWQnLlh5EMUFuLzAgu5XZCfDNCA7m+peYEEWIAfADbjx4B1lCQkbSPLV+c/AwMBw//lXhv1n7mNVy4TPAClRIYIuYKI0L1BsAAs+yaOXHhM0AAA31VKGTW05XgAAAABJRU5ErkJggg==", shield: "data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAABAAAAAQCAYAAAAf8/9hAAABIklEQVR42q2SvU4CQRSFv/1niWxiVqJUSkJpTQilL+PzGEsrX8NEaysT7SwMb8Am6/7NzA5YsO6C4A/CqeaenLlz5txrXF3fzPknirzABpg83pJmBQCe6yCkou17ZLlYcJ6DEArf98gr7vziEgCTHWEDlFqjtQZASJBS4ThWwwkQUmGaBkKqlQYmgGPbdPsjuv0RcZwAoJRG6xlaz2pxeDZESoVcamJ/Hl6f7gDwW+63dicvDyhV1nUUTfeUAUAQHNQOikICYNnWivjk+IhpFK9noMrGVttvbeVgqy9kebFbgx8d9AZjeoMxcfy+WWgYhKdDkjQjSbPKUVaFOG/GGB526ku6XCyS5S7eeXu+/30KQdBZS3pZs3ET97IHf4Xxpf4Ax3ZzR3wG7Z0AAAAASUVORK5CYII=", totem_of_undying: "data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAABAAAAAQCAYAAAAf8/9hAAAB4ElEQVR42o2STUhUYRSGn+/OzZJiylDpz6k0Z6agRS7btYiIFIO2tQsqahG0i1oFuXEVEjERZAkRLUQSJ5CCLGyTZSrZ1MiU5JTdGbWm+fHeO99pEY0Yd4Y5y5dznu+c93sVZSq/2CdILTlrjkwySc/NfrofxdT/fYbXcNa6L7V1J5VWv1n4/J0PQ+MUXPF8yPQS17/tQzK9ol700m4pTteY5Rb1BiTMIJOjLxnbGsb9lecbybIAzxOWtcNaFP6UhnwOEUGkyhMKCw8kk54BDFIzCTY21dGws54aR3A6RCKP46riBpl0oiTXt+zGyfkYG5wgdKSZ9r27ONsZkrIA69N1GY085cqlu4gUGbkR5Xn0HYPvY/gDAVoPt3A0uIPzHSuQEiAV75JXt58xHJvjWvcplPKx71iYtoONnGg7wOWL99gc2F7ZxH9mNQavKtA07GnGv2kbqqgxDMPT85IhFzr3i4vNrYG/abPTD2XqdRR3Nst8fIkn018wjHU4slzqWfULPQOTq9zVStMUCpIu/GA+vkTBdbkzNFFdlJ38lJjmFsSxsbEB2LDGrD5ITu4Npv+Qcl0XrTWVyhM7Oz7C9PAZ+fnVQhazuD6F9ilPgKd67nhYjOJKXhxTiPR/9Oz9AycHz8M3VCgwAAAAAElFTkSuQmCC"};
 Object.keys(PACK_ITEMS).forEach(k => {
   const img = new Image();
   img.onload = () => {
@@ -1857,6 +1891,15 @@ const RECIPES = [
 
   { shape: [['planks'],['planks'],['stick']], out: 'wood_sword', outCount: 1, needsTable: true },
   { shape: [['cobblestone'],['cobblestone'],['stick']], out: 'stone_sword', outCount: 1, needsTable: true },
+  // Shield: iron boss + wood face (Minecraft-style simplified)
+  { shape: [[null,'planks',null],['planks','iron_ingot','planks'],[null,'planks',null]], out: 'shield', outCount: 1, needsTable: true },
+  // Totem of Undying: middle row of gold + one gold below the center
+  { shape: [[null,null,null],['gold_ingot','gold_ingot','gold_ingot'],[null,'gold_ingot',null]], out: 'totem_of_undying', outCount: 1, needsTable: true },
+  // Campfire: logs + sticks + coal/charcoal
+  { shape: [[null,'stick',null],['stick','coal','stick'],['wood','wood','wood']], out: 'campfire', outCount: 1, needsTable: true },
+  { shape: [[null,'stick',null],['stick','charcoal','stick'],['wood','wood','wood']], out: 'campfire', outCount: 1, needsTable: true },
+  { shape: [[null,'stick',null],['stick','coal','stick'],['birch_wood','birch_wood','birch_wood']], out: 'campfire', outCount: 1, needsTable: true },
+  { shape: [[null,'stick',null],['stick','charcoal','stick'],['birch_wood','birch_wood','birch_wood']], out: 'campfire', outCount: 1, needsTable: true },
 
   { shape: [['iron_ingot','iron_ingot','iron_ingot'],[null,'stick',null],[null,'stick',null]], out: 'iron_pickaxe', outCount: 1, needsTable: true },
   { shape: [['iron_ingot','iron_ingot'],['iron_ingot','stick'],[null,'stick']], out: 'iron_axe', outCount: 1, needsTable: true },
@@ -1986,6 +2029,8 @@ const MI = {
   tnt:       regMat(TEX.tnt),
   tntTop:    regMat(TEX.tntTop),
   bedSide:   regMat(TEX.bedSide),
+  campfire:  regMat(TEX.campfire, true),
+  campfireTop: regMat(TEX.campfireTop, true),
 };
 MI.doorLower = regMat(TEX.doorLower);
 MI.doorUpper = regMat(TEX.doorUpper);
@@ -2131,6 +2176,17 @@ MI.glassV = GLASS_TEX.map((t, m) => m === 15 ? MI.glass : regMat(t, true));
 // Minecraft light-emitting block.
 MAT_LIST[MI.torch].emissive = new THREE.Color(0xff9a3c);
 MAT_LIST[MI.torch].emissiveIntensity = 0.9;
+MAT_LIST[MI.campfire].emissive = new THREE.Color(0xff7a20);
+MAT_LIST[MI.campfire].emissiveIntensity = 0.85;
+MAT_LIST[MI.campfireTop].emissive = new THREE.Color(0xff9a30);
+MAT_LIST[MI.campfireTop].emissiveIntensity = 0.9;
+[MI.campfire, MI.campfireTop].forEach(mi => {
+  const m = MAT_LIST[mi];
+  m.side = THREE.DoubleSide;
+  m.transparent = false;
+  m.opacity = 1;
+  m.alphaTest = 0.4;
+});
 // Torch and sapling are cross-shaped sprites (two crossed 2D quads, like a
 // Minecraft flower/sapling), not solid cubes — see addCrossQuads. That
 // needs the material double-sided (so both faces of each thin quad are
@@ -2157,6 +2213,7 @@ function faceMatIndex(type, faceIdx) {
     case 'chest': return (faceIdx===2 || faceIdx===3) ? MI.chestTop : MI.chest;
     case 'bed':   return (faceIdx===2 || faceIdx===3) ? MI.bedTop : MI.bedSide;
     case 'tnt':   return (faceIdx===2 || faceIdx===3) ? MI.tntTop : MI.tnt;
+    case 'campfire': return (faceIdx===2) ? MI.campfireTop : MI.campfire;
     default: return MI[type];
   }
 }
@@ -2396,6 +2453,9 @@ function blockBoxes(b) {
       // standing sign: post + board
       r = [[-0.06, 0.06, -0.5, 0.1, -0.06, 0.06], [-0.4, 0.4, 0.1, 0.5, -0.06, 0.06]];
     }
+  } else if (shape === 'campfire') {
+    // low log base (player can stand on it)
+    r = [[-0.45, 0.45, -0.5, -0.12, -0.45, 0.45]];
   } else r = [[-0.5, 0.5, -0.5, 0.5, -0.5, 0.5]];
   _boxCache.set(ck, r);
   return r;
@@ -2900,9 +2960,10 @@ for (let i = 0; i < MAX_ACTIVE_TORCH_LIGHTS; i++) {
 }
 function syncBlockLight(x,y,z,type,deferRerank) {
   const k = key(x,y,z);
-  if (type === 'torch') {
+  if (type === 'torch' || type === 'campfire') {
     if (!blockLights.has(k)) {
-      blockLights.set(k, { position: new THREE.Vector3(x+0.5, y+0.6, z+0.5) });
+      const yOff = type === 'campfire' ? 0.85 : 0.6;
+      blockLights.set(k, { position: new THREE.Vector3(x+0.5, y+yOff, z+0.5) });
       if (!deferRerank) scheduleTorchRerank();
     }
   } else if (blockLights.has(k)) {
@@ -3871,9 +3932,33 @@ function quickMove(zone) {
   } else {
     const src = getZoneItem(zone);
     if (!src) return;
+    // Armor: shift-click equips into the matching armor slot
     if (zone.k === 'inv' && !chestOpen && !furnaceOpen && isArmor(src.type) && !armorSlots[ITEM_INFO[src.type].slot]) {
       armorSlots[ITEM_INFO[src.type].slot] = jcCopy(src, 1);
       src.count--; if (src.count <= 0) setZoneItem(zone, null);
+      renderInventoryPanel(); renderHotbar(); saveLocalPlayer(); return;
+    }
+    // Totem of Undying: shift-click from bag/hotbar → off-hand (swap if something is already there)
+    if (zone.k === 'inv' && !chestOpen && !furnaceOpen && src.type === 'totem_of_undying') {
+      const taken = jcCopy(src, 1);
+      src.count--; if (src.count <= 0) setZoneItem(zone, null);
+      if (offhand) {
+        // Put the previous off-hand item back into this slot (or stash if full)
+        const prev = offhand;
+        offhand = taken;
+        if (!getZoneItem(zone)) setZoneItem(zone, prev);
+        else stashBackpack(prev);
+      } else {
+        offhand = taken;
+      }
+      renderInventoryPanel(); renderHotbar(); saveLocalPlayer(); return;
+    }
+    // Shift-click off-hand → back into bag/hotbar
+    if (zone.k === 'off') {
+      const item = jcCopy(src);
+      setZoneItem(zone, null);
+      stashBackpack(item);
+      if (item.count > 0) offhand = item; // no room — keep leftover in off-hand
       renderInventoryPanel(); renderHotbar(); saveLocalPlayer(); return;
     }
     const item = jcCopy(src);
@@ -4644,15 +4729,18 @@ const ICON_HUNGER_EMPTY = 'data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAABIAAAA
 const ICON_HEART_GOLD_FULL = 'data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAABIAAAASCAYAAABWzo5XAAAAyklEQVR42t3SLwvCQBjH8e/+qFUxLPoKNJi02mwm017JzApGX4MmWdi7mAwURMRoUxYEo4LbGfTAHYOVTcRfunvujufDw8GvRVMLd78tPveV7kYDCL2SAPD3r+PB6JF4q+cukpJyZw1AFC4BuKxsAKpWE4BruCNNlpvIlAvZqf6WGNYQgFpjDoC4nRKywN1SyIxMtRAdpwDE56REnY0avbB/5I1NAdDvtRISmZkbAzBZRNp3RKpMJjiIVEnuosw4tiEc2xBZ93T+Nk8eKUfpqS7CzQAAAABJRU5ErkJggg==';
 const ICON_HEART_GOLD_HALF = 'data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAABIAAAASCAYAAABWzo5XAAAA0klEQVR42t2SvQ4BQRRGz/4ElQQR5b6BQkWjEI1OFKrtvYNoFeIxFBKVZ5AIDc3qRSUjEcqVWKNYm5jNimaJOM3MfHPv5ORm4NfQwsFlUZLP52RlrQFULUvJZ7ud0qvHbhSYJMorADwxAeC4tAGod7KRDzhCaLEamcHmLBwAcg8To9AGIGON/DXl359cF4B0/uA3iphnZIYDbzsA4Lb3TerNFyYh9I/9o2nflACNWlGZXat3VermG6l9xyhsFjAce5EmsRu9pWsbsmsb8l2dzt9yBxjoPmEt1e9nAAAAAElFTkSuQmCC';
 const absorbBarEl = document.getElementById('absorbBar');
-const GOLD_APPLE_ABSORB_MAX = 4;   // 2 gold hearts, never more
+const GOLD_APPLE_ABSORB_MAX = 4;   // 2 gold hearts from golden apple
+const TOTEM_ABSORB = 12;           // 6 gold hearts from totem of undying
+const ABSORB_DISPLAY_MAX = 12;     // UI can show up to 6 gold hearts
 let _lastRegenSecs = -1;
 function renderAbsorbBar() {
-  const a = Math.ceil(Math.max(0, Math.min(GOLD_APPLE_ABSORB_MAX, player.absorb)));
+  const a = Math.ceil(Math.max(0, Math.min(ABSORB_DISPLAY_MAX, player.absorb)));
   const regen = player.regenT > 0;
   heartsBarEl.classList.toggle('regen', regen);
   if (a <= 0 && !regen) { absorbBarEl.style.display = 'none'; absorbBarEl.innerHTML = ''; return; }
   let html = '';
-  for (let i = 0; i < GOLD_APPLE_ABSORB_MAX / 2; i++) {
+  const slots = Math.max(GOLD_APPLE_ABSORB_MAX / 2, Math.ceil(a / 2));
+  for (let i = 0; i < slots; i++) {
     const src = a >= (i + 1) * 2 ? ICON_HEART_GOLD_FULL : (a >= i * 2 + 1 ? ICON_HEART_GOLD_HALF : null);
     if (src) html += '<span class="mcIcon"><img src="' + src + '" alt="" draggable="false"></span>';
   }
@@ -4686,15 +4774,37 @@ function flashDamage() {
   damageFlash.style.opacity = '1';
   setTimeout(() => { damageFlash.style.opacity = '0'; }, 150);
 }
-function damagePlayer(amount, knockDir, knockStrength) {
+function isShieldBlockingFront(knockDir) {
+  if (!isBlocking || performance.now() < shieldDisableUntil) return false;
+  if (!knockDir) return true; // unknown direction — still count as blocked
+  const d = knockDir.clone ? knockDir.clone() : new THREE.Vector3(knockDir.x || 0, 0, knockDir.z || 0);
+  d.y = 0;
+  if (d.lengthSq() < 1e-6) return true;
+  d.normalize();
+  // Player looks along (-sin yaw, 0, -cos yaw). Attack comes from opposite of knockDir
+  // (knockDir points away from attacker). Front = attacker is in front of player.
+  const fx = -Math.sin(player.yaw), fz = -Math.cos(player.yaw);
+  // Vector from player toward attacker ≈ -knockDir
+  const towardAtkX = -d.x, towardAtkZ = -d.z;
+  const dot = fx * towardAtkX + fz * towardAtkZ;
+  return dot > 0.25; // roughly ±75° front cone
+}
+function damagePlayer(amount, knockDir, knockStrength, opts) {
   if (amount <= 0 || player.hp <= 0) return;
-  let applied = isBlocking ? amount * 0.5 : amount; // sword block halves incoming damage
-  applied *= (1 - totalArmorReduction()); // iron armor in inventory reduces damage taken
-  if (player.absorb > 0) { const soak = Math.min(player.absorb, applied); player.absorb -= soak; applied -= soak; }   // gold hearts go first
+  opts = opts || {};
+  const frontBlock = isShieldBlockingFront(knockDir);
+  // Shield blocks nearly all frontal damage; axes that land while blocking disable the shield.
+  if (frontBlock && opts.axeHit) {
+    shieldDisableUntil = performance.now() + 5000;
+    isBlocking = false;
+    myShieldPulse = 0.4;
+  }
+  let applied = frontBlock ? amount * 0.05 : amount; // shield blocks ~95% from the front
+  applied *= (1 - totalArmorReduction());
+  if (player.absorb > 0) { const soak = Math.min(player.absorb, applied); player.absorb -= soak; applied -= soak; }
   player.hp = Math.max(0, player.hp - applied);
-  // Light knockback away from the attacker (blocked hits push less).
   if (knockDir && knockStrength > 0) {
-    const str = isBlocking ? knockStrength * 0.35 : knockStrength;
+    const str = frontBlock ? knockStrength * 0.2 : knockStrength;
     const d = knockDir.clone ? knockDir.clone() : new THREE.Vector3(knockDir.x, 0, knockDir.z);
     d.y = 0;
     if (d.lengthSq() < 1e-6) d.set(0, 0, 1);
@@ -4707,7 +4817,50 @@ function damagePlayer(amount, knockDir, knockStrength) {
   updateHpUI();
   flashDamage();
   flashRed(myModel.group);
-  if (player.hp <= 0) respawnPlayer();
+  if (player.hp <= 0) {
+    if (tryPopTotem()) return;
+    respawnPlayer();
+  }
+}
+
+// Totem of Undying: if you hold one in either hand (or have one in inventory),
+// lethal damage is cancelled — the totem is consumed and you get regen + 6 gold hearts.
+function findAndConsumeTotem() {
+  // Prefer off-hand, then main hand, then any inventory slot (Minecraft prioritizes held)
+  if (offhand && offhand.type === 'totem_of_undying') {
+    offhand = null; renderHotbar(); saveLocalPlayer(); return true;
+  }
+  const main = currentItem();
+  if (main && main.type === 'totem_of_undying') {
+    inventory[currentSlot] = null; renderHotbar(); saveLocalPlayer(); return true;
+  }
+  for (let i = 0; i < INV_SIZE; i++) {
+    if (inventory[i] && inventory[i].type === 'totem_of_undying') {
+      inventory[i] = null; renderHotbar(); if (inventoryOpen) renderInventoryPanel(); saveLocalPlayer(); return true;
+    }
+  }
+  return false;
+}
+function tryPopTotem() {
+  if (!findAndConsumeTotem()) return false;
+  player.hp = 1;
+  player.absorb = TOTEM_ABSORB;
+  player.absorbT = 45;           // absorption lasts a while
+  player.regenT = 40;            // regeneration for 40 seconds
+  player.regenTick = 0;
+  _lastRegenSecs = -1;
+  updateHpUI();
+  // Brief golden flash + chat notice
+  try {
+    const flash = document.getElementById('damageFlash');
+    if (flash) {
+      flash.style.background = 'rgba(255, 220, 80, 0.55)';
+      flash.style.opacity = '1';
+      setTimeout(() => { flash.style.opacity = '0'; flash.style.background = 'rgba(255,0,0,0.35)'; }, 280);
+    }
+  } catch (e) {}
+  if (typeof addChatLine === 'function') addChatLine('System', 'Your Totem of Undying has been activated!', true);
+  return true;
 }
 function knockbackEntity(ent, fromPos, strength) {
   if (!ent || !ent.pos || !fromPos) return;
@@ -4860,7 +5013,8 @@ function updateHunger(dt, isMoving, sprinting) {
 // cancels it.
 const eating = { active: false, progress: 0, duration: 1.3, type: null, fromOff: false };
 let blockFromOff = false;
-let isBlocking = false; // true while holding right-click with a sword equipped
+let isBlocking = false; // true while holding right-click with a shield equipped
+let shieldDisableUntil = 0; // performance.now() until which the shield is disabled (axe bash)
 function startEating(fromOff) {
   const it = fromOff ? offhand : currentItem();
   if (!it || !isFood(it.type) || (player.hunger >= player.maxHunger && !isGoldenFood(it.type))) return false;
@@ -4899,6 +5053,7 @@ let thirdPerson = false;
 const myModel = buildHumanoid(colorForId(MY_ID));
 myModel.group.visible = false;
 myModel.heldState = { heldType: undefined, heldMesh: null };
+myModel.offheldState = { heldType: undefined, heldMesh: null };
 scene.add(myModel.group);
 let myWalkCycle = 0;
 let mineSwingCycle = 0;
@@ -4927,22 +5082,35 @@ function applySneakPose(m, on) {
 // While holding an item the right arm is raised out in front, with the item turned
 // toward the side, so other players can see what you're carrying (it used to hang at the hip).
 const HOLD_ARM_X = 1.1;
-// st: { swing (0..1 progress or 0), blocking, eating, eatProg, mining, mineCycle, pulse, holding }
+// st: { swing, blocking, eating, eatProg, mining, mineCycle, pulse, holding, offHolding, shieldInOff }
 function poseArms(m, st, walkSwing) {
   const rest = st.holding ? HOLD_ARM_X : 0;
-  m.armL.rotation.set(-walkSwing, 0, 0);
+  const offRest = st.offHolding ? HOLD_ARM_X * 0.85 : 0;
+  m.armL.rotation.set(-walkSwing * (st.offHolding ? 0.15 : 1) + offRest * 0.15, 0, 0);
   m.armR.rotation.set(rest + walkSwing * (st.holding ? 0.15 : 1), 0, 0);
   if (st.swing > 0) {
     // overhead chop: arm starts raised and slashes down/forward to its resting pose
     const e = 1 - Math.pow(1 - st.swing, 2);
     m.armR.rotation.x = 2.7 + (rest - 2.7) * e;
     m.armR.rotation.z = -0.4 * (1 - e);
-    m.armL.rotation.x = -0.3 * (1 - e);
+    m.armL.rotation.x = -0.3 * (1 - e) + offRest * 0.1;
   } else if (st.blocking) {
-    // Hold the sword up and across the body in a guard stance.
-    m.armR.rotation.x = 1.6;
-    m.armR.rotation.z = -0.5;
-    m.armL.rotation.x = 1.2;
+    // Shield guard: the arm holding the shield pushes it forward across the body.
+    if (st.shieldInOff) {
+      // Shield in left hand — raise left arm and plant the shield in front
+      m.armL.rotation.x = 1.55;
+      m.armL.rotation.y = 0.55;
+      m.armL.rotation.z = 0.85;
+      m.armR.rotation.x = rest * 0.5;
+      m.armR.rotation.z = 0.15;
+    } else {
+      // Shield in main (right) hand
+      m.armR.rotation.x = 1.55;
+      m.armR.rotation.y = -0.45;
+      m.armR.rotation.z = -0.75;
+      m.armL.rotation.x = 0.6;
+      m.armL.rotation.z = 0.2;
+    }
   } else if (st.eating) {
     // Raise the arm to the mouth and give it a quick "bite" bob.
     m.armR.rotation.x = 2.1 + Math.sin(st.eatProg * 16) * 0.12;
@@ -4952,12 +5120,34 @@ function poseArms(m, st, walkSwing) {
   }
   if (m.handAnchor) {
     const it = m.handAnchor.children[0];
-    m.handAnchor.rotation.set(st.holding ? -0.5 : 0, (st.holding && it && !it.userData.isTool) ? -0.8 : 0, 0);
+    const isSh = it && it.userData && it.userData.isShield;
+    if (st.blocking && !st.shieldInOff && isSh) {
+      // Shield raised in main hand: board face outward toward the enemy
+      m.handAnchor.rotation.set(-0.15, Math.PI * 0.5, 0.05);
+    } else if (isSh) {
+      // Rest: face outward at the side
+      m.handAnchor.rotation.set(-0.35, Math.PI * 0.45, 0.1);
+    } else {
+      m.handAnchor.rotation.set(st.holding ? -0.5 : 0, (st.holding && it && !it.userData.isTool) ? -0.8 : 0, 0);
+    }
+  }
+  if (m.offhandAnchor) {
+    const ot = m.offhandAnchor.children[0];
+    const isSh = ot && ot.userData && ot.userData.isShield;
+    if (st.blocking && st.shieldInOff && isSh) {
+      m.offhandAnchor.rotation.set(-0.15, -Math.PI * 0.5, -0.05);
+    } else if (isSh) {
+      m.offhandAnchor.rotation.set(-0.35, -Math.PI * 0.45, -0.1);
+    } else {
+      m.offhandAnchor.rotation.set(st.offHolding ? -0.5 : 0, (st.offHolding && ot && !ot.userData.isTool) ? 0.8 : 0, 0);
+    }
   }
   applySneakPose(m, !!st.sneak);
+  // Fallback translucent shield plane only when blocking without a visible shield mesh in-hand
   if (m.shield) {
-    m.shield.visible = !!st.blocking;
-    m.shield.material.opacity = 0.28 + Math.min(0.4, st.pulse || 0) * 2;
+    const hasShieldMesh = st.blocking && (st.shieldInOff || (st.holding && st.heldIsShield));
+    m.shield.visible = !!st.blocking && !hasShieldMesh;
+    if (m.shield.visible) m.shield.material.opacity = 0.28 + Math.min(0.4, st.pulse || 0) * 2;
   }
 }
 
@@ -4965,7 +5155,9 @@ function updateMyModel(dt, isMoving) {
   myModel.group.position.set(player.pos.x, player.pos.y, player.pos.z);
   myModel.group.rotation.y = player.yaw;
   const held = currentItem();
+  const off = offhand;
   setHeldVisual(myModel.heldState, myModel.handAnchor, held ? held.type : null);
+  if (myModel.offhandAnchor) setHeldVisual(myModel.offheldState, myModel.offhandAnchor, off ? off.type : null);
   setArmorVisual(myModel.armor, armorMask());
   if (isMoving && player.onGround) myWalkCycle += dt * 8;
   const walkSwing = (isMoving && player.onGround) ? Math.sin(myWalkCycle) * 0.6 : 0;
@@ -4974,10 +5166,13 @@ function updateMyModel(dt, isMoving) {
   if (swing.active) { swing.t += dt / SWING_DURATION; if (swing.t >= 1) { swing.active = false; swing.t = 0; } }
   if (mining.active) mineSwingCycle += dt * 9;
   if (myShieldPulse > 0) myShieldPulse -= dt;
+  const shieldInOff = !!(off && isShield(off.type));
+  const heldIsShield = !!(held && isShield(held.type));
   poseArms(myModel, {
     swing: swing.active ? swing.t : 0, blocking: isBlocking, eating: eating.active, eatProg: eating.progress,
     mining: mining.active, mineCycle: mineSwingCycle, pulse: myShieldPulse,
-    holding: !!held, sneak: player.crouched
+    holding: !!held, offHolding: !!off, shieldInOff: shieldInOff && isBlocking,
+    heldIsShield, sneak: player.crouched
   }, walkSwing);
   myModel.head.rotation.x = player.pitch;
 }
@@ -5374,6 +5569,11 @@ function buildHumanoid(color) {
   handAnchor.position.set(0, -0.68, 0.14);
   handAnchor.scale.setScalar(1.5);      // bigger in-hand item so other players can actually see what you hold
   armR.add(handAnchor);
+  // Left-hand (off-hand) item anchor — any off-hand item is shown here for others.
+  const offhandAnchor = new THREE.Group();
+  offhandAnchor.position.set(0, -0.68, 0.14);
+  offhandAnchor.scale.setScalar(1.5);
+  armL.add(offhandAnchor);
 
   // Iron armor pieces (hidden until worn): slot 0 helmet, 1 chestplate, 2 leggings, 3 boots.
   const armor = [[], [], [], []];
@@ -5397,7 +5597,7 @@ function buildHumanoid(color) {
   }
 
   group.add(torso, head, legL, legR, armL, armR, shield);
-  return { group, head, torso, legL, legR, armL, armR, handAnchor, shield, armor, baseColor: color.clone() };
+  return { group, head, torso, legL, legR, armL, armR, handAnchor, offhandAnchor, shield, armor, baseColor: color.clone() };
 }
 
 // ---------- Held item visuals ----------
@@ -5414,8 +5614,60 @@ function getHeldCubeMaterials(type) {
   heldMatCache.set(type, mats);
   return mats;
 }
+// Proper 3D shield (not a flat card): wide board + thickness + boss, face outward.
+function makeShieldHeldMesh() {
+  const group = new THREE.Group();
+  // Front texture from the shield sprite (pack / glyph)
+  let frontMap = null;
+  try {
+    const spr = sprite16('shield');
+    if (spr) {
+      frontMap = new THREE.CanvasTexture(spr);
+      frontMap.magFilter = THREE.NearestFilter;
+      frontMap.minFilter = THREE.NearestFilter;
+      frontMap.generateMipmaps = false;
+    }
+  } catch (e) {}
+  const wood = 0xc4a06a, woodDark = 0x6b4420, metal = 0xc8d0d8, metalDark = 0x7a828c;
+  const frontMat = frontMap
+    ? new THREE.MeshBasicMaterial({ map: frontMap })
+    : new THREE.MeshBasicMaterial({ color: wood });
+  const backMat = new THREE.MeshBasicMaterial({ color: woodDark });
+  const rimMat = new THREE.MeshBasicMaterial({ color: metal });
+  const bossMat = new THREE.MeshBasicMaterial({ color: metal });
+  // Compact board — large enough to read as a shield, small enough not to eat the FOV
+  const W = 0.26, H = 0.32, T = 0.05;
+  const boardGeo = new THREE.BoxGeometry(W, H, T);
+  // Box faces: +x,-x,+y,-y,+z,-z  — put texture on +z (front)
+  const board = new THREE.Mesh(boardGeo, [rimMat, rimMat, rimMat, rimMat, frontMat, backMat]);
+  board.position.set(0, 0.04, 0);
+  group.add(board);
+  // Metal rim strip around the edge
+  const rim = new THREE.Mesh(
+    new THREE.BoxGeometry(W + 0.025, H + 0.025, 0.015),
+    new THREE.MeshBasicMaterial({ color: metalDark })
+  );
+  rim.position.set(0, 0.04, -T * 0.35);
+  group.add(rim);
+  // Center boss
+  const boss = new THREE.Mesh(new THREE.BoxGeometry(0.07, 0.07, 0.03), bossMat);
+  boss.position.set(0, 0.04, T * 0.55);
+  group.add(boss);
+  // Small grip bar on the back
+  const grip = new THREE.Mesh(
+    new THREE.BoxGeometry(0.04, 0.12, 0.035),
+    new THREE.MeshBasicMaterial({ color: 0x5a3a18 })
+  );
+  grip.position.set(0, 0.02, -T * 0.7);
+  group.add(grip);
+  group.userData.isShield = true;
+  group.userData.sharedGeo = true;
+  group.userData.centerOffset = new THREE.Vector3(0, 0.01, -0.015);
+  return group;
+}
 function makeHeldItemMesh(type) {
   if (!type) return null;
+  if (type === 'shield') return makeShieldHeldMesh();
   if (BLOCK_TYPES[type] && !BLOCK_TYPES[type].cross && !RS_FLAT_ITEMS[type]) {
     const geo = new THREE.BoxGeometry(0.26, 0.26, 0.26);
     // Chunk materials use vertexColors for baked skylight shading, so any
@@ -5454,7 +5706,9 @@ function makeVoxelItemMesh(type) {
       }
       if (near) px[y * P + x] = [0.09, 0.07, 0.05];
     }
-    const pos = [], col = [], S = 0.5 / P, T = S * 1.6;    // pixel size, thickness
+    const pos = [], col = [], S = 0.5 / P;
+    // Totem of Undying: one pixel thick (flat plate). Other items stay slightly chunkier.
+    const T = (type === 'totem_of_undying') ? S : S * 1.6;
     // Tools pivot around their grip (handle, bottom-left of the sprite) instead of
     // their middle, so swinging turns them from where the player holds them.
     const isTool = /_(sword|pickaxe|axe|shovel)$/.test(type);
@@ -5482,8 +5736,11 @@ function makeVoxelItemMesh(type) {
   mesh.scale.set(-1.15, 1.15, 1.15);          // mirrored: the tip/head tilts LEFT
   mesh.userData.sharedGeo = true;
   mesh.userData.isTool = /_(sword|pickaxe|axe|shovel)$/.test(type);
+  mesh.userData.isShield = type === 'shield';
   // Tools/weapons: turn so the head points forward, away from the player.
   if (/_(sword|pickaxe|axe|shovel)$/.test(type)) mesh.rotation.y = -1.1;
+  // Shield: face the board toward the camera / outward so the painted face is visible
+  if (type === 'shield') { mesh.rotation.y = Math.PI * 0.5; mesh.scale.set(1.35, 1.35, 1.35); }
   mesh.updateMatrix();
   // where the sprite's middle sits relative to the pivot (grip) — used to keep the
   // first-person pose looking the same while rotations happen around the grip
@@ -6303,9 +6560,10 @@ function jcAttackPlayer(pt) {
   const d = jcIframe(entry, r.dmg);
   if (d > 0) {
     const g = entry.group.position;
+    const held = currentItem();
     playersChannel.send({
       type: 'broadcast', event: 'hit',
-      payload: { targetId: pt.id, amount: d, attackerId: MY_ID, kx: g.x - player.pos.x, kz: g.z - player.pos.z, knock: 8.8 * r.kb }
+      payload: { targetId: pt.id, amount: d, attackerId: MY_ID, kx: g.x - player.pos.x, kz: g.z - player.pos.z, knock: 8.8 * r.kb, axe: !!(held && isAxe(held.type)) }
     });
     flashRed(entry.group);
     if (entry.blocking) entry.shieldPulse = 0.25;
@@ -6399,8 +6657,12 @@ function jcEnchInfo(type) {
   if (isSword(type)) return { id: 'sharpness', name: 'Sharpness', opts: ['sharpness'] };
   if (isArmor(type)) return { id: 'protection', name: 'Protection', opts: ['protection'] };
   const tk = jcToolKind(type);
-  if (tk) {   // Efficiency on every tool; Fortune only on pickaxes and axes
-    const opts = tk === 'shovel' ? ['efficiency'] : ['efficiency', 'fortune'];
+  if (tk) {
+    // Axes can take Sharpness (combat), Efficiency, or Fortune; other tools as before
+    let opts;
+    if (tk === 'axe') opts = ['sharpness', 'efficiency', 'fortune'];
+    else if (tk === 'shovel') opts = ['efficiency'];
+    else opts = ['efficiency', 'fortune'];
     const id = opts.includes(enchPick) ? enchPick : opts[0];
     return { id, name: JC_ENCH_NAMES[id], opts };
   }
@@ -6463,9 +6725,12 @@ function jcRenderEnchantChoices() {
   const typeRow = document.getElementById('enchTypeRow');
   if (typeRow) {
     typeRow.style.display = info && info.opts.length > 1 ? 'flex' : 'none';
-    ['efficiency', 'fortune'].forEach((id, i) => {
+    ['efficiency', 'fortune', 'sharpness'].forEach((id, i) => {
       const tb = document.getElementById('enchType' + i);
-      if (tb) tb.classList.toggle('on', !!info && info.id === id);
+      if (!tb) return;
+      const show = !info || info.opts.includes(id);
+      tb.style.display = show ? '' : 'none';
+      tb.classList.toggle('on', !!info && info.id === id);
     });
   }
   JC_ENCH_TIERS.forEach((t, i) => {
@@ -6586,10 +6851,12 @@ function createOtherPlayer(id, name) {
   scene.add(model.group);
   const entry = {
     group: model.group, head: model.head, legL: model.legL, legR: model.legR, armL: model.armL, armR: model.armR,
-    handAnchor: model.handAnchor, torso: model.torso, armor: model.armor, heldState: { heldType: undefined, heldMesh: null }, sneak: false,
+    handAnchor: model.handAnchor, offhandAnchor: model.offhandAnchor, torso: model.torso, armor: model.armor,
+    heldState: { heldType: undefined, heldMesh: null }, offheldState: { heldType: undefined, heldMesh: null }, sneak: false,
     target: { x: model.group.position.x, y: model.group.position.y, z: model.group.position.z, yaw: 0 },
     name, walkCycle: 0, lastPos: { x: 0, y: 0, z: 0 },
-    shield: model.shield, swing: { active: false, t: 0 }, blocking: false, mining: false, mineCycle: 0, shieldPulse: 0
+    shield: model.shield, swing: { active: false, t: 0 }, blocking: false, mining: false, mineCycle: 0, shieldPulse: 0,
+    offType: null
   };
   otherPlayers.set(id, entry);
   updatePlayerCountHUD();
@@ -6640,6 +6907,8 @@ playersChannel
     if (!entry) entry = createOtherPlayer(payload.id, payload.name || 'Player');
     entry.target.x = payload.x; entry.target.y = payload.y; entry.target.z = payload.z; entry.target.yaw = payload.yaw;
     setHeldVisual(entry.heldState, entry.handAnchor, payload.heldType || null);
+    if (entry.offhandAnchor) setHeldVisual(entry.offheldState, entry.offhandAnchor, payload.offType || null);
+    entry.offType = payload.offType || null;
     setArmorVisual(entry.armor, payload.armor | 0);
     entry.blocking = !!payload.blocking;
     entry.mining = !!payload.mining;
@@ -6680,14 +6949,14 @@ playersChannel
     .on('broadcast', { event: 'hit' }, ({ payload }) => {
     if (!payload) return;
     if (payload.targetId === MY_ID) {
-      if (isBlocking) myShieldPulse = 0.25;   // shield flashes when a blocked hit lands
       let kdir = null;
       if (payload.kx != null && payload.kz != null) kdir = new THREE.Vector3(payload.kx, 0, payload.kz);
       else if (payload.attackerId && otherPlayers.has(payload.attackerId)) {
         const at = otherPlayers.get(payload.attackerId);
         kdir = new THREE.Vector3(player.pos.x - at.group.position.x, 0, player.pos.z - at.group.position.z);
       }
-      damagePlayer(payload.amount, kdir, payload.knock != null ? payload.knock : 8.5);
+      if (isShieldBlockingFront(kdir)) myShieldPulse = 0.25;
+      damagePlayer(payload.amount, kdir, payload.knock != null ? payload.knock : 8.5, { axeHit: !!payload.axe });
     } else {
       const entry = otherPlayers.get(payload.targetId);
       if (entry) { flashRed(entry.group); if (entry.blocking) entry.shieldPulse = 0.25; }
@@ -6766,7 +7035,9 @@ function broadcastMyPosition(dt) {
     type: 'broadcast', event: 'pos',
     payload: {
       id: MY_ID, name: MY_NAME, x: player.pos.x, y: player.pos.y, z: player.pos.z, yaw: player.yaw,
-      heldType: currentItem() ? currentItem().type : null, armor: armorMask(),
+      heldType: currentItem() ? currentItem().type : null,
+      offType: offhand ? offhand.type : null,
+      armor: armorMask(),
       blocking: isBlocking, mining: mining.active, sneak: !!player.crouched,
       mobs: (isMobHost() && (mobSnapTick = (mobSnapTick + 1) % 2) === 0) ? buildMobSnapshot() : undefined
     }
@@ -6793,10 +7064,15 @@ function updateOtherPlayerVisuals(dt) {
     if (entry.swing.active) { entry.swing.t += dt / SWING_DURATION; if (entry.swing.t >= 1) { entry.swing.active = false; entry.swing.t = 0; } }
     if (entry.mining) entry.mineCycle += dt * 9;
     if (entry.shieldPulse > 0) entry.shieldPulse -= dt;
+    const offT = entry.offType || (entry.offheldState && entry.offheldState.heldType);
+    const heldT = entry.heldState && entry.heldState.heldType;
     poseArms(entry, {
       swing: entry.swing.active ? entry.swing.t : 0, blocking: entry.blocking,
       mining: entry.mining, mineCycle: entry.mineCycle, pulse: entry.shieldPulse,
-      holding: !!entry.heldState.heldType, sneak: entry.sneak
+      holding: !!heldT, offHolding: !!offT,
+      shieldInOff: !!(entry.blocking && offT && isShield(offT)),
+      heldIsShield: !!(heldT && isShield(heldT)),
+      sneak: entry.sneak
     }, walkAmt);
   });
 }
@@ -7106,23 +7382,20 @@ function bindHoldButton(id, onDown, onUp) {
 
 function tryMobilePlace() {
   if (!isPlaying()) return;
+  // Functional blocks always open, even with food / shield / any item in either hand.
+  if (typeof tryUseLookedBlock === 'function' && tryUseLookedBlock()) return;
   if (typeof tryIgniteLookedTnt === 'function' && tryIgniteLookedTnt()) return;
   if (typeof startEating === 'function' && startEating()) return;
   const heldItem = currentItem();
-  if (heldItem && isSword(heldItem.type)) { isBlocking = true; return; }
+  if (heldItem && isShield(heldItem.type) && performance.now() >= shieldDisableUntil) { isBlocking = true; return; }
+  // Off-hand shield: still allow raising it when not aiming at a usable block
+  if (offhand && isShield(offhand.type) && performance.now() >= shieldDisableUntil) {
+    isBlocking = true; blockFromOff = true; return;
+  }
   const aim = getAimRay();
   const hit = castVoxelRay(aim.origin, aim.dir, RAY_DIST);
   if (!hit) return;
   if (typeof startSwing === 'function') startSwing();
-  const targeted = getBlock(hit.x, hit.y, hit.z);
-  if (targeted && targeted.type === 'crafting_table') { openWorkbench(); return; }
-  if (targeted && targeted.type === 'enchanting_table') { openEnchant(); return; }
-  if (targeted && targeted.type === 'furnace') { openFurnace(); return; }
-  if (targeted && targeted.type === 'chest') { openChest(hit.x, hit.y, hit.z); return; }
-  if (targeted && (isDoorType(targeted.type) || isTrapType(targeted.type))) { toggleOpenable(targeted); return; }
-  if (targeted && rsInteract(targeted)) return;
-  if (targeted && targeted.type === 'bed') { useBed(hit.x, hit.y, hit.z); return; }
-  if (targeted && targeted.type === 'sign') { openSignEditor(hit.x, hit.y, hit.z); return; }
   const type = currentBlockType();
   if (!type) return;
   const nx = hit.px, ny = hit.py, nz = hit.pz;
@@ -7244,6 +7517,17 @@ function initMobileControls() {
     if (!gameStarted) return;
     if (inventoryOpen) closeInventory(); else if (!menusOpen()) openInventory();
   }, { passive: false });
+  document.getElementById('mBtnDrop').addEventListener('touchstart', e => {
+    e.preventDefault(); e.stopPropagation();
+    if (!isPlaying()) return;
+    throwCurrentItem();
+  }, { passive: false });
+  // Also allow a quick mouse/click on Drop for hybrid devices
+  document.getElementById('mBtnDrop').addEventListener('click', e => {
+    e.preventDefault(); e.stopPropagation();
+    if (!isPlaying()) return;
+    throwCurrentItem();
+  });
   document.getElementById('mBtnChat').addEventListener('touchstart', e => {
     e.preventDefault(); e.stopPropagation();
     if (!gameStarted) return;
@@ -7442,6 +7726,7 @@ function toggleFullscreen() { if (isFullscreen()) exitFullscreen(); else enterFu
   for (let i = 0; i < 3; i++) bind('enchBtn' + i, () => jcEnchantApply(i));
   bind('enchType0', () => { enchPick = 'efficiency'; jcRenderEnchantChoices(); });
   bind('enchType1', () => { enchPick = 'fortune'; jcRenderEnchantChoices(); });
+  bind('enchType2', () => { enchPick = 'sharpness'; jcRenderEnchantChoices(); });
 })();
 
 function startGame() {
@@ -8069,11 +8354,39 @@ document.addEventListener('contextmenu', e => {
   if (e.target && e.target.closest && e.target.closest('input, textarea')) return;
   e.preventDefault();
 }, true);
-// ---- Off hand: right-click uses the off-hand item (food, sword-block, or placing a block) ----
+// Right-click / tap on a functional block (chest, crafting table, furnace, etc.) always opens it,
+// even if the off-hand or main hand holds food, a shield, or any other item.
+function tryUseLookedBlock() {
+  let hit;
+  if (typeof getAimRay === 'function') {
+    const aim = getAimRay();
+    hit = castVoxelRay(aim.origin, aim.dir, RAY_DIST);
+  } else {
+    const dir = new THREE.Vector3();
+    camera.getWorldDirection(dir);
+    hit = castVoxelRay(camera.position, dir, RAY_DIST);
+  }
+  if (!hit) return false;
+  const targeted = getBlock(hit.x, hit.y, hit.z);
+  if (!targeted) return false;
+  if (targeted.type === 'crafting_table') { openWorkbench(); return true; }
+  if (targeted.type === 'enchanting_table') { openEnchant(); return true; }
+  if (targeted.type === 'furnace') { openFurnace(); return true; }
+  if (targeted.type === 'chest') { openChest(hit.x, hit.y, hit.z); return true; }
+  if (isDoorType(targeted.type) || isTrapType(targeted.type)) { toggleOpenable(targeted); return true; }
+  if (typeof rsInteract === 'function' && rsInteract(targeted)) return true;
+  if (targeted.type === 'bed') { useBed(hit.x, hit.y, hit.z); return true; }
+  if (targeted.type === 'sign') { openSignEditor(hit.x, hit.y, hit.z); return true; }
+  return false;
+}
+
+// ---- Off hand: right-click uses the off-hand item (food, shield, or placing a block) ----
 let offSwap = null;
 canvas.addEventListener('mousedown', e => {
   if (e.button !== 2 || !pointerLocked) return;
   blockFromOff = false;
+  // Functional blocks always win — open them before off-hand / shield / food logic.
+  if (tryUseLookedBlock()) { e.stopImmediatePropagation(); return; }
   const mainHeld = currentItem();   // food in your main (right) hand: right-click eats it, even with an off-hand item
   if (mainHeld && isFood(mainHeld.type) && player.hunger < player.maxHunger) {
     if (!tryIgniteLookedTnt()) startEating(false);
@@ -8089,7 +8402,7 @@ canvas.addEventListener('mousedown', e => {
     return;
   }
   if (isFood(offhand.type)) { if (!tryIgniteLookedTnt()) startEating(true); e.stopImmediatePropagation(); return; }
-  if (isSword(offhand.type)) { isBlocking = true; blockFromOff = true; e.stopImmediatePropagation(); return; }
+  if (isShield(offhand.type) && performance.now() >= shieldDisableUntil) { isBlocking = true; blockFromOff = true; e.stopImmediatePropagation(); return; }
   offSwap = { main: inventory[currentSlot] };   // temporarily treat off hand as the item in use
   inventory[currentSlot] = offhand;
 });
@@ -8110,41 +8423,17 @@ canvas.addEventListener('mousedown', e => {
     mining.target = null; // resolved fresh each frame in updateMining()
   } else if (e.button === 2) {
     if (tryIgniteLookedTnt()) return; // right-click TNT = light the fuse (works with any item in hand)
+    // Functional blocks (chest / table / furnace / …) — already handled in the off-hand
+    // listener above when that runs first; still check here for the no-offhand path.
+    if (tryUseLookedBlock()) return;
     if (startEating()) return; // holding food takes priority over placing a block
     const heldItem = currentItem();
-    if (heldItem && isSword(heldItem.type)) { isBlocking = true; return; } // hold right-click with a sword to block
+    if (heldItem && isShield(heldItem.type) && performance.now() >= shieldDisableUntil) { isBlocking = true; return; } // hold right-click with a shield to block
     const dir = new THREE.Vector3();
     camera.getWorldDirection(dir);
     const hit = castVoxelRay(camera.position, dir, RAY_DIST);
     if (!hit) return;
     startSwing(); // hand moves whenever you interact with / place on a block (others see it too)
-    const targeted = getBlock(hit.x, hit.y, hit.z);
-    if (targeted && targeted.type === 'crafting_table') {
-      openWorkbench(); // interacting with a functional block takes priority over placing
-      return;
-    }
-    if (targeted && targeted.type === 'enchanting_table') { openEnchant(); return; }
-    if (targeted && targeted.type === 'furnace') {
-      openFurnace();
-      return;
-    }
-    if (targeted && targeted.type === 'chest') {
-      openChest(hit.x, hit.y, hit.z);
-      return;
-    }
-    if (targeted && (isDoorType(targeted.type) || isTrapType(targeted.type))) {
-      toggleOpenable(targeted);
-      return;
-    }
-    if (targeted && rsInteract(targeted)) return;
-    if (targeted && targeted.type === 'bed') {
-      useBed(hit.x, hit.y, hit.z);
-      return;
-    }
-    if (targeted && targeted.type === 'sign') {
-      openSignEditor(hit.x, hit.y, hit.z);
-      return;
-    }
     const type = currentBlockType();
     if (!type) return;
     const nx = hit.px, ny = hit.py, nz = hit.pz;
@@ -9040,7 +9329,7 @@ function animate() {
   updateTorchLightFades(dt);
   if (isBlocking) {
     const held = blockFromOff ? offhand : currentItem();
-    if (!held || !isSword(held.type)) isBlocking = false; // item switched away mid-block
+    if (!held || !isShield(held.type) || performance.now() < shieldDisableUntil) isBlocking = false; // item switched / shield disabled
   }
   updateAnimals(dt);
   updateAnimalSpawning(dt);
@@ -9073,7 +9362,7 @@ function animate() {
   const baseSpeed = sprinting ? 6 : 4.2;   // was 8 / 5 -- tweak these two numbers to taste
   let speed = inWater ? baseSpeed*0.5 : baseSpeed;
   if (player.crouched) speed *= 0.3;   // sneaking is slow
-  if (isBlocking) speed *= 0.35; // raising a sword to block plants your feet, like a shield
+  if (isBlocking) speed *= 0.35; // raising a shield plants your feet
 
   if (isPlaying()) {
     const forward = new THREE.Vector3(-Math.sin(player.yaw), 0, -Math.cos(player.yaw));
@@ -9187,42 +9476,93 @@ function animate() {
     else camera.rotation.z = 0;
   }
 
-  // Held-item view model: only shown in first person (third person already
-  // shows it in myModel's hand). Parented to the camera, so a little extra
-  // sway on top of the camera's own swing/eating roll sells the motion.
+  // Held-item view models (main hand + off hand). Only in first person —
+  // third person already shows items on myModel's hands.
   const heldNow = currentItem();
+  const offNow = offhand;
+  const shieldInMain = !!(heldNow && isShield(heldNow.type));
+  const shieldInOff = !!(offNow && isShield(offNow.type));
+  const blockingWithShield = isBlocking && (shieldInMain || shieldInOff);
   viewModelGroup.visible = !thirdPerson && !!heldNow;
+  viewModelOffGroup.visible = !thirdPerson && !!offNow;
   fpArm.visible = !thirdPerson && !heldNow;
-  blockAmt += ((isBlocking ? 1 : 0) - blockAmt) * Math.min(1, dt * 14);
+  // Smooth raise / lower of the shield guard (ease toward 1 while blocking, 0 otherwise)
+  blockAmt += ((blockingWithShield ? 1 : 0) - blockAmt) * Math.min(1, dt * 12);
   if (!thirdPerson) {
     setHeldVisual(viewModelState, viewModelGroup, heldNow ? heldNow.type : null);
+    setHeldVisual(viewModelOffState, viewModelOffGroup, offNow ? offNow.type : null);
+
+    // ---- Main (right) hand ----
     let vx = 0.32, vy = -0.28, vz = -0.55, rx = 0.2, ry = -0.6, rz = -0.15;
-    if (!mining.active && eating.active) { vy += 0.06; vz += 0.1; }
-    // Mining repeats the exact same forward swing as an attack hit, over and over
-    let swAmt = swing.active ? Math.sin(swing.t * Math.PI) : 0;
-    if (mining.active) swAmt = Math.max(swAmt, Math.abs(Math.sin(mineSwingCycle * 0.5)));
-    if (swAmt > 0) {                          // forward swing: pitch forward and down
-      const sw = swAmt;
-      // swing straight forward (away from the player), pivoting on the grip:
-      // the head pitches forward/down and the whole item thrusts ahead, no sideways drift
-      vx += sw * 0.02; vy -= sw * 0.05; vz -= sw * 0.28; rx -= sw * 1.2;
-    }
-    if (blockAmt > 0.01) {                    // guard: bring it to the centre, held upright
-      const bl = blockAmt;
-      vx += (0.0 - vx) * bl; vy += (-0.12 - vy) * bl; vz += (-0.5 - vz) * bl;
-      rx += (-0.1 - rx) * bl; ry += (0.0 - ry) * bl; rz += (0.0 - rz) * bl;
+    if (shieldInMain) {
+      // Rest: lower-right, face outward — stays out of the crosshair
+      vx = 0.30; vy = -0.28; vz = -0.48;
+      rx = 0.08; ry = Math.PI * 0.85; rz = 0.18;
+      if (blockAmt > 0.01) {
+        const t = 1 - Math.pow(1 - blockAmt, 2);
+        // Guard: raise slightly but keep on the RIGHT so center view stays clear
+        vx += (0.22 - vx) * t;
+        vy += (-0.18 - vy) * t;
+        vz += (-0.40 - vz) * t;
+        rx += (0.05 - rx) * t;
+        ry += (Math.PI * 0.92 - ry) * t;
+        rz += (0.12 - rz) * t;
+      }
+    } else {
+      if (!mining.active && eating.active) { vy += 0.06; vz += 0.1; }
+      let swAmt = swing.active ? Math.sin(swing.t * Math.PI) : 0;
+      if (mining.active) swAmt = Math.max(swAmt, Math.abs(Math.sin(mineSwingCycle * 0.5)));
+      if (swAmt > 0) {
+        const sw = swAmt;
+        vx += sw * 0.02; vy -= sw * 0.05; vz -= sw * 0.28; rx -= sw * 1.2;
+      }
     }
     if (heldNow) {
       const co = viewModelState.heldMesh && viewModelState.heldMesh.userData.centerOffset;
       viewModelGroup.position.set(vx, vy, vz);
-      if (co) viewModelGroup.position.sub(co.clone().applyEuler(_restHeldEuler));  // pivot = grip
+      if (co && !shieldInMain) viewModelGroup.position.sub(co.clone().applyEuler(_restHeldEuler));
+      else if (co && shieldInMain) viewModelGroup.position.sub(co);
       viewModelGroup.rotation.set(rx, ry, rz);
+      const sc = 1 + Math.min(0.4, myShieldPulse) * 0.1 * (shieldInMain ? 1 : 0);
+      viewModelGroup.scale.setScalar(sc);
     } else {
       fpArm.position.set(vx + 0.05, vy - 0.02, vz + 0.3);
       fpArm.rotation.set(rx, ry, rz);
     }
+
+    // ---- Off (left) hand — any item, including shield ----
+    let ox = -0.34, oy = -0.30, oz = -0.52, orx = 0.15, ory = 0.55, orz = 0.12;
+    if (shieldInOff) {
+      // Rest: lower-left, face outward — stays out of the crosshair
+      ox = -0.30; oy = -0.28; oz = -0.48;
+      orx = 0.08; ory = -Math.PI * 0.85; orz = -0.18;
+      if (blockAmt > 0.01) {
+        const t = 1 - Math.pow(1 - blockAmt, 2);
+        // Guard: raise slightly but keep on the LEFT so center view stays clear
+        ox += (-0.22 - ox) * t;
+        oy += (-0.18 - oy) * t;
+        oz += (-0.40 - oz) * t;
+        orx += (0.05 - orx) * t;
+        ory += (-Math.PI * 0.92 - ory) * t;
+        orz += (-0.12 - orz) * t;
+      }
+    }
+    if (offNow) {
+      const oco = viewModelOffState.heldMesh && viewModelOffState.heldMesh.userData.centerOffset;
+      viewModelOffGroup.position.set(ox, oy, oz);
+      if (oco && !shieldInOff) viewModelOffGroup.position.sub(oco.clone().applyEuler(_restOffEuler));
+      else if (oco && shieldInOff) viewModelOffGroup.position.sub(oco);
+      viewModelOffGroup.rotation.set(orx, ory, orz);
+      const osc = 1 + Math.min(0.4, myShieldPulse) * 0.12 * (shieldInOff && blockAmt > 0.2 ? 1 : 0);
+      viewModelOffGroup.scale.setScalar(osc);
+    }
+  } else {
+    viewModelGroup.visible = false;
+    viewModelOffGroup.visible = false;
+    fpArm.visible = false;
   }
-  fpShield.visible = !thirdPerson && blockAmt > 0.02;
+  // Legacy blue plane only as a fallback flash when no shield mesh is in either hand
+  fpShield.visible = !thirdPerson && blockAmt > 0.02 && !shieldInMain && !shieldInOff;
   if (fpShield.visible) fpShield.material.opacity = (0.16 + Math.min(0.4, myShieldPulse) * 1.6) * blockAmt;
 
   updateSignLabels();
