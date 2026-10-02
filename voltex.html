@@ -5513,18 +5513,30 @@ function flashRed(group) {
 
 // Shared limbed humanoid builder — used for both the local player's
 // (optional third-person) model and every other connected player.
-function setArmorVisual(armor, mask) {
+function setArmorVisual(armor, mask, enchMask) {
   if (!armor) return;
   for (let i = 0; i < 4; i++) for (const m of armor[i]) m.visible = !!((mask >> i) & 1);
   if (armor.mats) for (let i = 0; i < 4; i++) {
     const tx = ARMOR_TEX[(mask >> (4 + 2 * i)) & 3] || ARMOR_TEX[0];
     if (armor.mats[i].map !== tx) armor.mats[i].map = tx;
-    // Purple enchant glint on worn armor pieces that have enchants
-    const piece = (typeof armorSlots !== 'undefined' && armorSlots[i]) ? armorSlots[i] : null;
-    const hasEnch = !!(piece && piece.ench);
-    if (armor.mats[i].emissive) {
-      armor.mats[i].emissive.setHex(hasEnch ? 0x6a2ec8 : 0x000000);
-      armor.mats[i].emissiveIntensity = hasEnch ? 0.4 : 0;
+    // Purple tint on enchanted armor (local uses armorSlots; remote uses enchMask bits)
+    let hasEnch = false;
+    if (enchMask != null) hasEnch = !!((enchMask >> i) & 1);
+    else {
+      const piece = (typeof armorSlots !== 'undefined' && armorSlots[i]) ? armorSlots[i] : null;
+      hasEnch = !!(piece && piece.ench);
+    }
+    const mat = armor.mats[i];
+    if (mat && mat.emissive) {
+      mat.emissive.setHex(hasEnch ? 0x9b5cff : 0x000000);
+    }
+    // Also brighten color slightly so glint reads on MeshLambert without emissiveIntensity
+    if (mat && mat.color) {
+      if (hasEnch) mat.color.setHex(0xe8d0ff);
+      // when not enchanted, leave color alone — map/texture drives look; reset if we tinted before
+      else if (mat.userData && mat.userData._enchTinted) mat.color.setHex(0xffffff);
+      if (!mat.userData) mat.userData = {};
+      mat.userData._enchTinted = hasEnch;
     }
   }
 }
@@ -5779,39 +5791,78 @@ function makeVoxelItemMesh(type) {
 }
 // Swaps the mesh parented to `anchor` only when the held type actually
 // changes, so this is cheap to call every frame.
+// Safe enchant glint: never mutates shared MAT_LIST / vertex-color materials.
+// Wraps the held mesh in a group and adds a translucent purple shell that pulses.
+const _enchGlintMat = new THREE.MeshBasicMaterial({
+  color: 0xc48cff, transparent: true, opacity: 0.42,
+  depthWrite: false, side: THREE.DoubleSide, blending: THREE.AdditiveBlending
+});
+function _disposeHeldRoot(root) {
+  if (!root) return;
+  root.traverse(o => {
+    if (!o.isMesh) return;
+    // Only dispose geometries we created for the glint shell (not shared voxel geos)
+    if (o.userData && o.userData.glintShell && o.geometry && !(o.geometry.userData && o.geometry.userData.sharedGeo)) {
+      try { o.geometry.dispose(); } catch (e) {}
+    }
+    if (o.userData && o.userData.glintShell && o.material && o.material !== _enchGlintMat) {
+      try { o.material.dispose(); } catch (e) {}
+    }
+  });
+}
 function setHeldVisual(state, anchor, type, ench) {
-  const sig = type + '|' + (ench ? JSON.stringify(ench) : '');
+  const hasEnch = !!(ench && typeof ench === 'object' && Object.keys(ench).length);
+  const sig = (type || '') + '|' + (hasEnch ? '1' : '0');
   if (state.heldSig === sig) return;
   state.heldSig = sig;
   state.heldType = type;
   if (state.heldMesh) {
     anchor.remove(state.heldMesh);
-    if (state.heldMesh.geometry && !state.heldMesh.userData.sharedGeo) state.heldMesh.geometry.dispose();
+    _disposeHeldRoot(state.heldMesh);
+    // Dispose non-shared geometry on the main held mesh only
+    const main = state.heldMesh.userData && state.heldMesh.userData.heldMain;
+    if (main && main.geometry && !main.userData.sharedGeo) {
+      try { main.geometry.dispose(); } catch (e) {}
+    } else if (state.heldMesh.isMesh && state.heldMesh.geometry && !state.heldMesh.userData.sharedGeo) {
+      try { state.heldMesh.geometry.dispose(); } catch (e) {}
+    }
   }
   const mesh = makeHeldItemMesh(type);
-  if (mesh) {
-    // Enchant glint: purple emissive pulse on the held item when enchanted
-    if (ench && typeof mesh.traverse === 'function') {
-      mesh.traverse(o => {
-        if (o.isMesh && o.material) {
-          const mats = Array.isArray(o.material) ? o.material : [o.material];
-          mats.forEach(m => {
-            if (!m || !m.color) return;
-            const c = m.clone();
-            c.emissive = new THREE.Color(0x6a2ec8);
-            c.emissiveIntensity = 0.45;
-            if (Array.isArray(o.material)) {
-              const idx = o.material.indexOf(m);
-              if (idx >= 0) o.material[idx] = c;
-            } else o.material = c;
-          });
-        }
-      });
-      mesh.userData.enchGlint = true;
-    }
+  if (!mesh) { state.heldMesh = null; return; }
+  if (!hasEnch) {
     anchor.add(mesh);
+    state.heldMesh = mesh;
+    return;
   }
-  state.heldMesh = mesh;
+  // Group: original item + purple additive shell (same geo when possible)
+  const root = new THREE.Group();
+  root.userData.heldMain = mesh;
+  root.userData.enchGlint = true;
+  root.add(mesh);
+  const shells = [];
+  const addShell = (src) => {
+    if (!src || !src.isMesh || !src.geometry) return;
+    const shell = new THREE.Mesh(src.geometry, _enchGlintMat);
+    shell.userData.glintShell = true;
+    shell.userData.sharedGeo = true; // do not dispose shared / source geo
+    // Slightly larger so the glow reads outside the item silhouette
+    shell.scale.copy(src.scale).multiplyScalar(1.12);
+    shell.position.copy(src.position);
+    shell.rotation.copy(src.rotation);
+    shell.renderOrder = 2;
+    root.add(shell);
+    shells.push(shell);
+  };
+  if (mesh.isMesh) addShell(mesh);
+  else if (mesh.isGroup || mesh.children) mesh.traverse(o => { if (o.isMesh) addShell(o); });
+  root.userData.glintShells = shells;
+  anchor.add(root);
+  state.heldMesh = root;
+}
+function pulseHeldEnchantGlints(t) {
+  // Soft pulse so enchanted gear is obvious in 1st/3rd person
+  const op = 0.28 + 0.22 * (0.5 + 0.5 * Math.sin(t * 4.2));
+  _enchGlintMat.opacity = op;
 }
 
 // ================= Animals =================
@@ -6961,10 +7012,12 @@ playersChannel
     let entry = otherPlayers.get(payload.id);
     if (!entry) entry = createOtherPlayer(payload.id, payload.name || 'Player');
     entry.target.x = payload.x; entry.target.y = payload.y; entry.target.z = payload.z; entry.target.yaw = payload.yaw;
-    setHeldVisual(entry.heldState, entry.handAnchor, payload.heldType || null);
-    if (entry.offhandAnchor) setHeldVisual(entry.offheldState, entry.offhandAnchor, payload.offType || null);
+    setHeldVisual(entry.heldState, entry.handAnchor, payload.heldType || null, payload.heldEnch ? { _r: 1 } : null);
+    if (entry.offhandAnchor) setHeldVisual(entry.offheldState, entry.offhandAnchor, payload.offType || null, payload.offEnch ? { _r: 1 } : null);
     entry.offType = payload.offType || null;
-    setArmorVisual(entry.armor, payload.armor | 0);
+    entry.heldEnch = !!payload.heldEnch;
+    entry.offEnch = !!payload.offEnch;
+    setArmorVisual(entry.armor, payload.armor | 0, payload.armorEnch | 0);
     entry.blocking = !!payload.blocking;
     entry.mining = !!payload.mining;
     entry.sneak = !!payload.sneak;
@@ -7091,8 +7144,11 @@ function broadcastMyPosition(dt) {
     payload: {
       id: MY_ID, name: MY_NAME, x: player.pos.x, y: player.pos.y, z: player.pos.z, yaw: player.yaw,
       heldType: currentItem() ? currentItem().type : null,
+      heldEnch: !!(currentItem() && currentItem().ench),
       offType: offhand ? offhand.type : null,
+      offEnch: !!(offhand && offhand.ench),
       armor: armorMask(),
+      armorEnch: (armorSlots || []).reduce((m, a, i) => m | ((a && a.ench) ? (1 << i) : 0), 0),
       blocking: isBlocking, mining: mining.active, sneak: !!player.crouched,
       mobs: (isMobHost() && (mobSnapTick = (mobSnapTick + 1) % 2) === 0) ? buildMobSnapshot() : undefined
     }
@@ -9511,6 +9567,7 @@ function animate() {
 
   updateOtherPlayerVisuals(dt);
   updateMyModel(dt, isMoving);
+  if (typeof pulseHeldEnchantGlints === 'function') pulseHeldEnchantGlints(performance.now() * 0.001);
 
   if (thirdPerson) {
     // Orbit camera behind and slightly above the player's head, pulled in
