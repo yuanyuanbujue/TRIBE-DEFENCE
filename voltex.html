@@ -275,6 +275,19 @@
     background: rgba(255,255,255,0.12); border: 1px solid rgba(255,255,255,0.25);
     border-radius: 4px; padding: 2px 7px; font-size: 11.5px; font-family: monospace;
   }
+  .keybindRow .keyBtn {
+    min-width: 84px; background: rgba(255,255,255,0.12); color: #fff; border: 1px solid rgba(255,255,255,0.25);
+    border-radius: 4px; padding: 3px 8px; font-size: 11.5px; font-family: monospace; cursor: pointer;
+  }
+  .keybindRow .keyBtn:hover { background: rgba(255,255,255,0.22); }
+  .keybindRow .keyBtn.listening { background: #ffd54a; color: #111; border-color: #ffd54a; animation: pulse 1s infinite; }
+  #resetBindsBtn {
+    margin: 8px 0 2px; width: 100%; padding: 6px; border-radius: 6px; font-size: 12px; cursor: pointer;
+    background: rgba(255,255,255,0.08); color: #fff; border: 1px solid rgba(255,255,255,0.25);
+  }
+  #resetBindsBtn:hover { background: rgba(255,255,255,0.18); }
+  .keybindSub { margin: 12px 0 4px; font-size: 11.5px; opacity: 0.55; text-transform: uppercase; letter-spacing: 0.8px; }
+  .keybindHint { font-size: 11.5px; opacity: 0.6; margin: 0 0 6px; }
   #settingsCloseBtn {
     margin-top: 18px; width: 100%; padding: 10px; border-radius: 8px; border: none;
     background: rgba(255,255,255,0.12); color: #fff; font-weight: 700; font-size: 13px; cursor: pointer;
@@ -810,7 +823,7 @@
 <div id="chatLog"></div>
 <div id="chatInputWrap"><input id="chatInput" type="text" maxlength="200" enterkeyhint="send" autocomplete="off" autocorrect="off" placeholder="Say something... (Enter to send, Esc to cancel)"><button type="button" class="chatBtn" id="chatSendBtn">Send</button><button type="button" class="chatBtn" id="chatCancelBtn" aria-label="Cancel chat">✕</button></div>
 <div id="damageFlash"></div>
-<div id="hud">Mine blocks to collect materials · place them from your inventory.<br>Press <b>E</b> for inventory · <b>F5</b> for third-person · <b>F</b> to eat food · <b>Q</b> to throw item · <b>Right-click</b> uses your off-hand item · <b>T</b> to chat. Right-click a crafting table/furnace/chest to use it, a <b>sign</b> to edit its text, <b>TNT</b> to light it, or a bed to set your respawn point. Smelt logs in a furnace for <b>charcoal</b>. World auto-saves as you play.</div>
+<div id="hud">Mine blocks to collect materials · place them from your inventory.<br>Press <b id="hkInv">E</b> for inventory · <b id="hkTp">F5</b> for third-person · <b id="hkEat">F</b> to eat food · <b id="hkDrop">Q</b> to throw item · <b>Right-click</b> uses your off-hand item · <b id="hkChat">T</b> to chat. Right-click a crafting table/furnace/chest to use it, a <b>sign</b> to edit its text, <b>TNT</b> to light it, or a bed to set your respawn point. Smelt logs in a furnace for <b>charcoal</b>. World auto-saves as you play.</div>
 <div id="fps">FPS: --<br><span id="playerCount">Players online: 1</span></div>
 <div id="coordsDisplay">XYZ: 0, 0, 0</div>
 <button id="settingsBtn" title="Settings">⚙️</button>
@@ -856,6 +869,19 @@
         <option value="low">Low</option>
         <option value="medium">Medium</option>
         <option value="high">High</option>
+      </select>
+    </label>
+    <label class="settingRow" for="maxFpsSelect">
+      Max FPS
+      <select id="maxFpsSelect">
+        <option value="30">30</option>
+        <option value="60">60</option>
+        <option value="90">90</option>
+        <option value="120">120</option>
+        <option value="144">144</option>
+        <option value="165">165</option>
+        <option value="240">240</option>
+        <option value="0">Unlimited</option>
       </select>
     </label>
     <label class="settingRow" for="shadowsToggle">
@@ -2221,10 +2247,20 @@ function shadeFromLevel(level) {
 // on the surface facing the torch but don't pass it on.
 let lightVersion = 0, floodCacheVersion = -1;
 const floodCache = new Map();
+// A block change only matters to torches whose light could reach it (within TORCH_LIGHT_RADIUS),
+// so drop just those cached floods instead of wiping every torch's flood on every edit
+// (which made each mine / place near a base re-flood every torch from scratch).
+function lightInvalidateNear(x, y, z) {
+  if (!floodCache.size) return;
+  const R = TORCH_LIGHT_RADIUS;
+  floodCache.forEach((f, k) => {
+    if (Math.abs(f.tx - x) <= R && Math.abs(f.ty - y) <= R && Math.abs(f.tz - z) <= R) floodCache.delete(k);
+  });
+}
 function floodTorchCached(k, tx, ty, tz, into) {
   if (floodCacheVersion !== lightVersion) { floodCache.clear(); floodCacheVersion = lightVersion; }
   let f = floodCache.get(k);
-  if (!f) { f = new Map(); floodTorchLight(tx, ty, tz, f); floodCache.set(k, f); }
+  if (!f) { f = new Map(); f.tx = tx; f.ty = ty; f.tz = tz; floodTorchLight(tx, ty, tz, f); floodCache.set(k, f); }
   f.forEach((v, kk) => { if ((into.get(kk) || 0) < v) into.set(kk, v); });
 }
 function floodTorchLight(tx, ty, tz, field) {
@@ -2515,8 +2551,8 @@ function skyLevelAt(y, topY) {
 // Live light level at a world cell (used by the stats board).
 function lightLevelAtWorld(x, y, z) {
   let sky = skyLevelAt(y, columnSkyTop(x, z));
-  const nOff = [[1,0],[-1,0],[0,1],[0,-1]];
-  for (const [dx, dz] of nOff) sky = Math.max(sky, skyLevelAt(y, columnSkyTop(x+dx, z+dz)) - SKY_BLEED_PENALTY);
+  sky = Math.max(sky, skyLevelAt(y, columnSkyTop(x+1, z)) - SKY_BLEED_PENALTY, skyLevelAt(y, columnSkyTop(x-1, z)) - SKY_BLEED_PENALTY,
+                      skyLevelAt(y, columnSkyTop(x, z+1)) - SKY_BLEED_PENALTY, skyLevelAt(y, columnSkyTop(x, z-1)) - SKY_BLEED_PENALTY);
   const field = new Map();
   blockLights.forEach((light, k) => {
     const [tx, ty, tz] = k.split(',').map(Number);
@@ -2559,25 +2595,39 @@ function rebuildChunk(cx, cz) {
 
   // Light level of the CELL (x,y,z), which is the air/water cell in front of a
   // face, not the solid block itself — so a roof's underside is dark, its top is bright.
+  // Memo of the result per cell for this rebuild (neighbouring faces ask about the same cell a lot).
+  let shadeCache = null, warmCache = null;
   function cellShade(x, y, z) {
-    let sky = skyLevelAt(y, topAt(x, z));
-    const nOff = [[1,0],[-1,0],[0,1],[0,-1]];
-    for (let i = 0; i < 4; i++) {
-      const lvl = skyLevelAt(y, topAt(x+nOff[i][0], z+nOff[i][1])) - SKY_BLEED_PENALTY;
-      if (lvl > sky) sky = lvl;
+    let gi = -1;
+    if (shadeCache !== null) {
+      const lx = x - x0 + 1, lz = z - z0 + 1, ly = y - yLo + 1;
+      if (lx >= 0 && lx < GW && lz >= 0 && lz < GW && ly >= 0 && ly < GY) {
+        gi = (lx * GW + lz) * GY + ly;
+        const cv = shadeCache[gi];
+        if (cv === cv) { _warm = warmCache[gi]; return cv; }   // (NaN = not computed yet)
+      }
     }
+    let sky = skyLevelAt(y, topAt(x, z));
+    let lvl = skyLevelAt(y, topAt(x + 1, z)) - SKY_BLEED_PENALTY; if (lvl > sky) sky = lvl;
+    lvl = skyLevelAt(y, topAt(x - 1, z)) - SKY_BLEED_PENALTY; if (lvl > sky) sky = lvl;
+    lvl = skyLevelAt(y, topAt(x, z + 1)) - SKY_BLEED_PENALTY; if (lvl > sky) sky = lvl;
+    lvl = skyLevelAt(y, topAt(x, z - 1)) - SKY_BLEED_PENALTY; if (lvl > sky) sky = lvl;
     const torchRaw = torchField.size ? (torchField.get(key(x, y, z)) || 0) : 0;
     // steeper falloff than linear: bright pool of light near the flame, fading softly
     const torch = torchRaw > 0 ? LIGHT_MAX * Math.pow(torchRaw / TORCH_LIGHT_LEVEL, 1.5) : 0;
     const skyL = Math.max(sky, 0);
     _warm = torch > 0 ? torch / (torch + skyL * 1.2 + 1) : 0;
-    return shadeFromLevel(Math.min(LIGHT_MAX, skyL + torch));
+    const res = shadeFromLevel(Math.min(LIGHT_MAX, skyL + torch));
+    if (gi >= 0) { shadeCache[gi] = res; warmCache[gi] = _warm; }
+    return res;
   }
 
   const _yr = chunkYRange.get(ck);
   const yLo = _yr ? Math.max(Y_MIN, _yr[0]) : Y_MAX + 1, yHi = _yr ? Math.min(Y_MAX, _yr[1]) : Y_MAX;
   const GW = CHUNK_SIZE + 2, GY = yHi - yLo + 3;
   const grid = new Array(GW*GW*GY);
+  shadeCache = new Float32Array(GW*GW*GY).fill(NaN);
+  warmCache = new Float32Array(GW*GW*GY);
   for (let gx=0; gx<GW; gx++) for (let gz=0; gz<GW; gz++) {
     const base = (gx*GW+gz)*GY;
     for (let gy=0; gy<GY; gy++) grid[base+gy] = world.get(key(x0-1+gx, yLo-1+gy, z0-1+gz));
@@ -2685,10 +2735,12 @@ function _nearestDirtyChunkKey() {
   });
   return best;
 }
+let _lastRebuildEnd = 0;
 function _rebuildDirtyKey(k) {
   dirtyChunkKeys.delete(k);
   const [cx,cz] = k.split(',').map(Number);
   rebuildChunk(cx,cz);
+  _lastRebuildEnd = performance.now();
 }
 // all = true : rebuild everything now (world load).
 // all = false: rebuild only the nearest dirty chunk now; neighbours (edge faces,
@@ -2705,6 +2757,9 @@ function flushDirtyChunks(all = true) {
 }
 function stepDirtyChunks() {
   if (!dirtyChunkKeys.size) return;
+  // The chunk you just edited was rebuilt immediately; its neighbours (edge faces / torch light) can wait a
+  // frame instead of landing right behind it — two rebuilds in a row is what felt like a stutter on mining.
+  if (performance.now() - _lastRebuildEnd < 9) return;
   const k = _nearestDirtyChunkKey();
   if (k) _rebuildDirtyKey(k);
 }
@@ -2949,7 +3004,7 @@ function addBlock(x,y,z,type,skipMark,meta) {
   if (world.has(k)) return false;
   if (removedDiffs.has(k)) return false; // a player explicitly mined this spot — don't regrow it
   world.set(k, { type, x, y, z, meta: meta == null ? 0 : meta });
-  lightVersion++;
+  lightInvalidateNear(x,y,z);
   syncBlockLight(x,y,z,type,skipMark);
   syncSaplingGrowth(x,y,z,type);
   if (!skipMark) { markChunkDirty(x,z); markLightArea(x,y,z, type === 'torch'); }
@@ -2965,7 +3020,7 @@ function removeBlock(x,y,z,skipMark) {
     if (signData[k]) { delete signData[k]; saveSignData(); broadcastSign(k, ''); }
     if (signLabelEls[k]) { signLabelEls[k].remove(); delete signLabelEls[k]; }
   }
-  lightVersion++;
+  lightInvalidateNear(x,y,z);
   syncBlockLight(x,y,z,null);
   syncSaplingGrowth(x,y,z,null);
   if (!skipMark) { markChunkDirty(x,z); markLightArea(x,y,z, removedType === 'torch'); }
@@ -3492,6 +3547,7 @@ function applyBlockDiff(row, skipMark) {
     const parts = type.split('|');
     type = parts[0]; meta = parseInt(parts[1], 10) || 0;
   }
+  lightInvalidateNear(x, y, z);
   const k = key(x,y,z);
   if (type === 'air') {
     removedDiffs.add(k);
@@ -3523,9 +3579,27 @@ async function loadWorldDiffs() {
 
 // Push this player's block change to Supabase so every other connected
 // browser's realtime subscription picks it up and applies the same diff.
+// Every block write we send comes back to us through the realtime subscription. If that echo is applied it can
+// land AFTER a newer local change (mine a block, place one in the same spot, then the old "air" echo arrives and
+// deletes your new block / makes a ghost block). We remember our own write timestamps and skip those echoes.
+const _ownStamps = new Set();
+function ownStamp() {
+  const d = new Date();
+  _ownStamps.add(d.getTime());
+  if (_ownStamps.size > 600) { let n = 0; for (const v of _ownStamps) { _ownStamps.delete(v); if (++n >= 300) break; } }
+  return d.toISOString();
+}
+function isOwnWriteEcho(row) {
+  if (!row || !row.updated_at) return false;
+  const ms = Date.parse(row.updated_at);
+  return !isNaN(ms) && _ownStamps.has(ms);
+}
 async function pushBlockDiff(x, y, z, type, meta) {
+  // Keep removedDiffs in step right now. It used to be updated only when our own write echoed back from the
+  // server; since those echoes are skipped now (see ownStamp), do it here at the moment the change is made.
+  { const rk = key(x, y, z); if (type === 'air') removedDiffs.add(rk); else removedDiffs.delete(rk); }
   const typeStr = (meta != null && type !== 'air' && BLOCK_TYPES[type] && BLOCK_TYPES[type].shape) ? (type + '|' + meta) : type;
-  const { error } = await sb.from('world_blocks').upsert({ x, y, z, type: typeStr, updated_at: new Date().toISOString() });
+  const { error } = await sb.from('world_blocks').upsert({ x, y, z, type: typeStr, updated_at: ownStamp() });
   if (error) console.error('pushBlockDiff', error);
 }
 
@@ -3536,8 +3610,9 @@ function subscribeWorldChanges() {
   sb.channel('world_blocks_changes')
     .on('postgres_changes', { event: '*', schema: 'public', table: 'world_blocks' }, payload => {
       if (!payload.new) return;
+      if (isOwnWriteEcho(payload.new)) return;   // our own change coming back: already applied locally
       applyBlockDiff(payload.new, false);
-      flushDirtyChunks(false);   // staged: one chunk now, the rest one per frame
+      // no synchronous rebuild here: stepDirtyChunks() picks the dirty chunk up on the next frame
     })
     .subscribe();
 }
@@ -3587,7 +3662,13 @@ function removeFromCurrentSlot(n) {
 }
 
 const hotbar = document.getElementById('hotbar');
+let _hotbarSig = '';
 function renderHotbar() {
+  // Called after every mine / place / pickup (and every frame while a full inventory can't take a drop):
+  // rebuilding 10 DOM slots + image tags each time is wasted work when nothing in the hotbar changed.
+  const sig = currentSlot + '|' + JSON.stringify(inventory.slice(0, HOTBAR_SIZE)) + '|' + JSON.stringify(offhand);
+  if (sig === _hotbarSig && hotbar.firstChild) return;
+  _hotbarSig = sig;
   hotbar.innerHTML = '';
   for (let i = 0; i < HOTBAR_SIZE; i++) {
     const s = inventory[i];
@@ -5664,7 +5745,7 @@ function updateDroppedItems(dt) {
 
     it.vel.y -= 20*dt;
     moveEntity(it.pos, it.vel, dt, it.radius, it.height);
-    it.vel.x *= 0.9; it.vel.z *= 0.9; // ground friction / air drag
+    { const fr = Math.pow(0.9, dt * 60); it.vel.x *= fr; it.vel.z *= fr; } // ground friction / air drag (same feel at any fps)
     it.bobPhase += dt*3;
     it.sprite.position.set(it.pos.x, it.pos.y + 0.15 + Math.sin(it.bobPhase)*0.05, it.pos.z);
 
@@ -6242,6 +6323,10 @@ playersChannel
   // client is the one that actually removes the blocks; we only add visuals + our own damage).
   .on('broadcast', { event: 'tnt' }, ({ payload }) => {
     if (!payload || payload.from === MY_ID) return;
+    if (Array.isArray(payload.list)) {   // chain-reaction batch
+      payload.list.forEach(q => spawnPrimedTnt(q.x, q.y, q.z, q.fuse, { id: q.id, remote: true, vx: q.vx, vy: q.vy, vz: q.vz }));
+      return;
+    }
     spawnPrimedTnt(payload.x, payload.y, payload.z, payload.fuse, { id: payload.id, remote: true, vx: payload.vx, vy: payload.vy, vz: payload.vz });
   })
   // Someone swung their arm (attack animation).
@@ -6472,6 +6557,50 @@ chatInput.addEventListener('keydown', e => {
 const keys = {};
 let lastWTapTime = 0;
 let isSprinting = false;
+
+// ================= Key bindings (PC) — rebindable in Settings > Keybinds =================
+// Stored as KeyboardEvent.code (physical key), so they keep working on any keyboard layout.
+const BIND_KEY = 'voltex_binds_v1';
+const BIND_DEFAULTS = {
+  forward: 'KeyW', back: 'KeyS', left: 'KeyA', right: 'KeyD',
+  jump: 'Space', sneak: 'ShiftLeft', sprint: '',
+  inventory: 'KeyE', eat: 'KeyF', drop: 'KeyQ', thirdPerson: 'F5', chat: 'KeyT',
+};
+const BIND_LABELS = [
+  ['forward', 'Move forward'], ['back', 'Move backward'], ['left', 'Move left'], ['right', 'Move right'],
+  ['jump', 'Jump / swim up'], ['sneak', 'Sneak (no falling off edges)'], ['sprint', 'Sprint (hold)'],
+  ['inventory', 'Inventory'], ['eat', 'Eat held food'], ['drop', 'Throw held item'],
+  ['thirdPerson', 'Third-person view'], ['chat', 'Chat'],
+];
+const binds = Object.assign({}, BIND_DEFAULTS);
+try {
+  const raw = localStorage.getItem(BIND_KEY);
+  if (raw) { const o = JSON.parse(raw); for (const a in BIND_DEFAULTS) if (typeof o[a] === 'string') binds[a] = o[a]; }
+} catch (e) {}
+function saveBinds() { try { localStorage.setItem(BIND_KEY, JSON.stringify(binds)); } catch (e) {} }
+// Is the key bound to this action currently held? (Right Shift still counts as sneak while sneak is on Left Shift.)
+function keyDown(action) {
+  const c = binds[action];
+  return !!(c && keys[c]) || (action === 'sneak' && c === 'ShiftLeft' && !!keys['ShiftRight']);
+}
+function isBoundCode(code) { for (const a in binds) if (binds[a] && binds[a] === code) return true; return false; }
+function keyName(code) {
+  if (!code) return 'None';
+  const named = { Space:'Space', ShiftLeft:'Left Shift', ShiftRight:'Right Shift', ControlLeft:'Left Ctrl', ControlRight:'Right Ctrl',
+    AltLeft:'Left Alt', AltRight:'Right Alt', ArrowUp:'↑', ArrowDown:'↓', ArrowLeft:'←', ArrowRight:'→', Backquote:'`', Minus:'-',
+    Equal:'=', BracketLeft:'[', BracketRight:']', Backslash:'\\', Semicolon:';', Quote:"'", Comma:',', Period:'.', Slash:'/',
+    Enter:'Enter', Tab:'Tab', Backspace:'Backspace', CapsLock:'Caps Lock' };
+  if (named[code]) return named[code];
+  if (/^Key[A-Z]$/.test(code)) return code.slice(3);
+  if (/^Digit\d$/.test(code)) return code.slice(5);
+  if (code.indexOf('Numpad') === 0) return 'Num ' + code.slice(6);
+  return code;
+}
+function updateHudKeys() {
+  const set = (id, a) => { const el = document.getElementById(id); if (el) el.textContent = keyName(binds[a]); };
+  set('hkInv', 'inventory'); set('hkTp', 'thirdPerson'); set('hkEat', 'eat'); set('hkDrop', 'drop'); set('hkChat', 'chat');
+}
+updateHudKeys();
 document.addEventListener('keydown', e => {
   if (!gameStarted || chatOpen) return;
   if (e.code === 'Escape') {
@@ -6485,12 +6614,13 @@ document.addEventListener('keydown', e => {
     return;
   }
   if (signOpen) return;
-  if (e.code === 'KeyE') { if (signOpen) { closeSignEditor(true); return; } if (enchantOpen) closeEnchant(); else if (furnaceOpen) closeFurnace(); else if (chestOpen) closeChest(); else if (!settingsOpen) toggleInventory(); return; }
-  if (e.code === 'F5') { thirdPerson = !thirdPerson; myModel.group.visible = thirdPerson; e.preventDefault(); return; }
-  if (e.code === 'KeyF') { startEating(); return; }
-  if (e.code === 'KeyQ') { throwCurrentItem(); return; }
-  if (e.code === 'KeyT') { openChat(); e.preventDefault(); return; }
-  if (e.code === 'KeyW' && !e.repeat) {
+  if (!e.ctrlKey && !e.metaKey && !e.altKey && isBoundCode(e.code)) e.preventDefault();   // e.g. Space / Tab / arrows must not scroll or move focus
+  if (e.code === binds.inventory) { if (signOpen) { closeSignEditor(true); return; } if (enchantOpen) closeEnchant(); else if (furnaceOpen) closeFurnace(); else if (chestOpen) closeChest(); else if (!settingsOpen) toggleInventory(); return; }
+  if (e.code === binds.thirdPerson) { thirdPerson = !thirdPerson; myModel.group.visible = thirdPerson; e.preventDefault(); return; }
+  if (e.code === binds.eat) { startEating(); return; }
+  if (e.code === binds.drop) { throwCurrentItem(); return; }
+  if (e.code === binds.chat) { openChat(); e.preventDefault(); return; }
+  if (e.code === binds.forward && !e.repeat) {
     const now = performance.now();
     if (now - lastWTapTime < 300) isSprinting = true;
     lastWTapTime = now;
@@ -6499,12 +6629,12 @@ document.addEventListener('keydown', e => {
   const num = parseInt(e.key);
   if (num >= 1 && num <= HOTBAR_SIZE) selectSlot(num-1);
 });
-window.addEventListener('blur', () => { keys['ShiftLeft'] = false; keys['ShiftRight'] = false; });
+window.addEventListener('blur', () => { for (const k in keys) keys[k] = false; isSprinting = false; });   // no stuck keys after alt-tab
 document.addEventListener('keyup', e => {
   keys[e.code] = false;
   // Sprint stops the moment you let go of forward (or move some other way),
   // same as vanilla Minecraft — you have to double-tap again to resume it.
-  if (e.code === 'KeyW') isSprinting = false;
+  if (e.code === binds.forward) isSprinting = false;
 });
 
 let pointerLocked = false;
@@ -6626,7 +6756,7 @@ function tryMobilePlace() {
   const blockMinY = ny - 0.5, blockMaxY = ny + 0.5;
   const blockMinZ = nz - 0.5, blockMaxZ = nz + 0.5;
   const pMinX = player.pos.x - player.radius, pMaxX = player.pos.x + player.radius;
-  const pMinY = player.pos.y, pMaxY = player.pos.y + player.height;
+  const pMinY = player.pos.y + 0.15, pMaxY = player.pos.y + player.height;   // 0.15: feet sit slightly inside the floor, don't block bridging
   const pMinZ = player.pos.z - player.radius, pMaxZ = player.pos.z + player.radius;
   const overlaps = blockMaxX > pMinX && blockMinX < pMaxX &&
                     blockMaxY > pMinY && blockMinY < pMaxY &&
@@ -7096,6 +7226,7 @@ let settings = {
   sensitivity: 1,    // look sensitivity multiplier (mouse + touch)
   btnSize: 1,        // mobile on-screen button scale
   ctrl: 'classic',   // 'classic' (D-pad + tap) | 'joy' (PC style: joystick + click buttons)
+  maxFps: 120,       // frame-rate cap (0 = unlimited / follow the display). A browser can't go above the monitor's refresh rate.
 };
 try {
   const raw = localStorage.getItem(SETTINGS_KEY);
@@ -7105,6 +7236,7 @@ try {
 settings.sensitivity = Math.max(0.2, Math.min(3, Number(settings.sensitivity) || 1));
 settings.btnSize = Math.max(0.4, Math.min(3, Number(settings.btnSize) || 1));
 if (settings.ctrl !== 'joy') settings.ctrl = 'classic';
+{ const okFps = [0, 30, 60, 90, 120, 144, 165, 240]; settings.maxFps = okFps.indexOf(Number(settings.maxFps)) >= 0 ? Number(settings.maxFps) : 120; }
 function saveSettings() {
   try { localStorage.setItem(SETTINGS_KEY, JSON.stringify(settings)); } catch(e) {}
 }
@@ -7243,28 +7375,56 @@ qualitySelect.addEventListener('change', () => {
   saveSettings();
 });
 
-// Read-only reference of the game's current controls, shown in Settings.
+const maxFpsSelect = document.getElementById('maxFpsSelect');
+maxFpsSelect.value = String(settings.maxFps);
+maxFpsSelect.addEventListener('change', () => { settings.maxFps = parseInt(maxFpsSelect.value, 10) || 0; saveSettings(); });
+
+// Controls that can't be rebound (shown for reference).
 const KEYBINDS = [
-  ['Move', 'W A S D'],
-  ['Sprint', 'Double-tap W'],
-  ['Sneak / bridge (no falling off edges)', 'Hold Shift'],
-  ['Jump / swim up', 'Space'],
   ['Look around', 'Mouse'],
   ['Mine / attack', 'Left click (hold)'],
   ['Place block / eat / block with sword', 'Right click (hold)'],
-  ['Open / close door or trapdoor', 'Right click it'],
-  ['Hotbar slot', '1 – 9'],
-  ['Inventory', 'E'],
-  ['Eat held food', 'F'],
-  ['Throw held item', 'Q'],
-  ['Third-person view', 'F5'],
-  ['Chat', 'T'],
+  ['Open door / trapdoor, light TNT', 'Right click it'],
+  ['Hotbar slot', '1 – 9 / scroll wheel'],
+  ['Sprint', 'Double-tap Forward'],
   ['Pause / release mouse', 'Esc'],
 ];
 const keybindList = document.getElementById('keybindList');
-keybindList.innerHTML = KEYBINDS.map(([action, key]) =>
-  `<div class="keybindRow"><span>${action}</span><span class="keyLabel">${key}</span></div>`
-).join('');
+let bindListening = null;   // action waiting for its new key (null = not rebinding)
+function renderKeybinds() {
+  const rows = BIND_LABELS.map(([a, label]) =>
+    `<div class="keybindRow"><span>${label}</span><button class="keyBtn${bindListening === a ? ' listening' : ''}" data-action="${a}">${bindListening === a ? 'Press a key…' : keyName(binds[a])}</button></div>`
+  ).join('');
+  const fixed = KEYBINDS.map(([action, k]) =>
+    `<div class="keybindRow"><span>${action}</span><span class="keyLabel">${k}</span></div>`
+  ).join('');
+  keybindList.innerHTML = `<p class="keybindHint">Click a key, then press the new one (Esc cancels). Using a key that's already taken swaps the two.</p>`
+    + rows + `<button id="resetBindsBtn">Reset keybinds to default</button><div class="keybindSub">Fixed controls</div>` + fixed;
+}
+keybindList.addEventListener('click', e => {
+  const btn = e.target.closest && e.target.closest('.keyBtn');
+  if (btn) { bindListening = (bindListening === btn.dataset.action) ? null : btn.dataset.action; renderKeybinds(); return; }
+  if (e.target.id === 'resetBindsBtn') {
+    Object.assign(binds, BIND_DEFAULTS); bindListening = null; saveBinds();
+    for (const k in keys) keys[k] = false;
+    renderKeybinds(); updateHudKeys();
+  }
+});
+// Capture phase on window: while a row is waiting for a key, nothing else (inventory, chat, movement...) sees the press.
+window.addEventListener('keydown', e => {
+  if (!bindListening) return;
+  e.preventDefault(); e.stopImmediatePropagation();
+  if (e.code === 'Escape') { bindListening = null; renderKeybinds(); return; }
+  if (/^Digit[1-9]$/.test(e.code)) return;   // 1-9 are the hotbar slots — keep them free
+  const action = bindListening, old = binds[action];
+  bindListening = null;
+  for (const a in binds) if (a !== action && binds[a] === e.code) binds[a] = old;   // key was taken: swap
+  binds[action] = e.code;
+  saveBinds();
+  for (const k in keys) keys[k] = false;
+  renderKeybinds(); updateHudKeys();
+}, true);
+renderKeybinds();
 
 function openSettings() {
   settingsOpen = true;
@@ -7273,6 +7433,7 @@ function openSettings() {
   pauseOverlay.style.display = 'none';
 }
 function closeSettings() {
+  if (bindListening) { bindListening = null; renderKeybinds(); }
   settingsOpen = false;
   settingsOverlay.style.display = 'none';
   pauseOverlay.style.display = (!pointerLocked && gameStarted && !inventoryOpen && !furnaceOpen && !enchantOpen && !chestOpen && !chatOpen) ? 'flex' : 'none';
@@ -7303,14 +7464,37 @@ document.addEventListener('mousemove', e => {
 // that blocks aren't separate scene objects.
 const RAY_DIST = 7;
 function castVoxelRay(origin, dir, maxDist) {
-  const step = 0.02;
-  let px = Math.round(origin.x), py = Math.round(origin.y), pz = Math.round(origin.z);
-  for (let t = 0; t <= maxDist; t += step) {
-    const x = origin.x + dir.x*t, y = origin.y + dir.y*t, z = origin.z + dir.z*t;
-    const bx = Math.round(x), by = Math.round(y), bz = Math.round(z);
-    const b = world.get(key(bx,by,bz));
-    if (b && b.type !== 'water' && (!BLOCK_TYPES[b.type].shape || pointInBlock(b, x, y, z))) return { x:bx, y:by, z:bz, px, py, pz, hx:x, hy:y, hz:z };
-    px = bx; py = by; pz = bz;
+  // Amanatides-Woo grid walk: visits each voxel the ray passes through exactly once
+  // (~10-20 map lookups) instead of sampling every 0.02 blocks (350 string-keyed lookups
+  // per call, several calls per frame while mining). Same result shape as before.
+  const ox = origin.x, oy = origin.y, oz = origin.z;
+  const dx = dir.x, dy = dir.y, dz = dir.z;
+  let bx = Math.round(ox), by = Math.round(oy), bz = Math.round(oz);   // blocks are centred on integer coords
+  let px = bx, py = by, pz = bz;
+  const sx = dx > 0 ? 1 : -1, sy = dy > 0 ? 1 : -1, sz = dz > 0 ? 1 : -1;
+  const tdx = dx !== 0 ? Math.abs(1 / dx) : Infinity;
+  const tdy = dy !== 0 ? Math.abs(1 / dy) : Infinity;
+  const tdz = dz !== 0 ? Math.abs(1 / dz) : Infinity;
+  let tmx = dx > 0 ? (bx + 0.5 - ox) / dx : dx < 0 ? (bx - 0.5 - ox) / dx : Infinity;
+  let tmy = dy > 0 ? (by + 0.5 - oy) / dy : dy < 0 ? (by - 0.5 - oy) / dy : Infinity;
+  let tmz = dz > 0 ? (bz + 0.5 - oz) / dz : dz < 0 ? (bz - 0.5 - oz) / dz : Infinity;
+  let t = 0;
+  for (let n = 0; n < 512; n++) {
+    const b = world.get(bx + ',' + by + ',' + bz);
+    if (b && b.type !== 'water') {
+      if (!BLOCK_TYPES[b.type].shape) return { x:bx, y:by, z:bz, px, py, pz, hx:ox + dx*t, hy:oy + dy*t, hz:oz + dz*t };
+      // partial-volume block (stairs, slab, door...): only a hit if the ray actually passes through its boxes
+      const tEnd = Math.min(tmx, tmy, tmz, maxDist);
+      for (let st = t; st <= tEnd; st += 0.02) {
+        const x = ox + dx*st, y = oy + dy*st, z = oz + dz*st;
+        if (pointInBlock(b, x, y, z)) return { x:bx, y:by, z:bz, px, py, pz, hx:x, hy:y, hz:z };
+      }
+    }
+    let tn;
+    if (tmx <= tmy && tmx <= tmz) { tn = tmx; if (tn > maxDist) return null; px = bx; py = by; pz = bz; bx += sx; tmx += tdx; }
+    else if (tmy <= tmz)          { tn = tmy; if (tn > maxDist) return null; px = bx; py = by; pz = bz; by += sy; tmy += tdy; }
+    else                          { tn = tmz; if (tn > maxDist) return null; px = bx; py = by; pz = bz; bz += sz; tmz += tdz; }
+    t = tn;
   }
   return null;
 }
@@ -7481,6 +7665,19 @@ document.addEventListener('pointerlockchange', () => {
   }
 });
 
+// Safety nets so mining can't stay "on" after the button was released outside the canvas or the window lost focus.
+document.addEventListener('mouseup', e => {
+  if (e.button !== 0 || touchMode) return;
+  mining.active = false; mining.progress = 0; mining.target = null;
+  mineProgressWrap.style.display = 'none';
+});
+window.addEventListener('blur', () => {
+  if (touchMode) return;
+  mining.active = false; mining.progress = 0; mining.target = null;
+  mineProgressWrap.style.display = 'none';
+  isBlocking = false;
+});
+
 // Right-click is a game control: never show the browser's context menu (inspect etc.) anywhere except in text inputs.
 document.addEventListener('contextmenu', e => {
   if (e.target && e.target.closest && e.target.closest('input, textarea')) return;
@@ -7573,7 +7770,10 @@ canvas.addEventListener('mousedown', e => {
     const blockMinY = ny - 0.5, blockMaxY = ny + 0.5;
     const blockMinZ = nz - 0.5, blockMaxZ = nz + 0.5;
     const pMinX = player.pos.x - player.radius, pMaxX = player.pos.x + player.radius;
-    const pMinY = player.pos.y, pMaxY = player.pos.y + player.height;
+    // Feet rest slightly (~0.05) inside the top face of the floor block, so a block placed at
+    // floor level beside you (bridging while sneaking over an edge) used to count as
+    // "overlapping" your feet. Ignore overlaps thinner than 0.15 on the Y axis.
+    const pMinY = player.pos.y + 0.15, pMaxY = player.pos.y + player.height;
     const pMinZ = player.pos.z - player.radius, pMaxZ = player.pos.z + player.radius;
     const overlaps = blockMaxX > pMinX && blockMinX < pMaxX &&
                       blockMaxY > pMinY && blockMinY < pMaxY &&
@@ -7873,10 +8073,17 @@ const _tntFlashGeo = new THREE.BoxGeometry(1.03, 1.03, 1.03);
 const _fxBoxGeo = new THREE.BoxGeometry(1, 1, 1);
 const _fxSphereGeo = new THREE.SphereGeometry(1, 16, 12);
 const tntFx = []; // fireballs / debris
+// Shared by every primed TNT / debris piece (one material each instead of a new one per entity per explosion).
+const _tntFlashMat = new THREE.MeshBasicMaterial({ color: 0xffffff, transparent: true, opacity: 0.75, depthWrite: false });
+const _debrisMats = [0xff7a1a, 0xffcf40, 0x3a3a3a, 0x666666].map(c => new THREE.MeshBasicMaterial({ color: c }));
+const _tntSndLast = {};
 
 let _tntAudio = null;
 let _tntBufs = null;
 function tntSound(kind) {
+  const nowT = performance.now();
+  if (nowT - (_tntSndLast[kind] || 0) < (kind === 'boom' ? 70 : 110)) return;   // chain reactions: don't start 100 audio nodes at once
+  _tntSndLast[kind] = nowT;
   try {
     _tntAudio = _tntAudio || new (window.AudioContext || window.webkitAudioContext)();
     const ac = _tntAudio; if (ac.state === 'suspended') ac.resume();
@@ -7903,18 +8110,31 @@ function spawnPrimedTnt(x, y, z, fuse, opts) {
   const grp = new THREE.Group();
   const mats = [0,1,2,3,4,5].map(i => MAT_LIST[faceMatIndex('tnt', i)]);
   grp.add(new THREE.Mesh(_tntGeo, mats));
-  const flashMat = new THREE.MeshBasicMaterial({ color: 0xffffff, transparent: true, opacity: 0, depthWrite: false });
-  const flash = new THREE.Mesh(_tntFlashGeo, flashMat);
+  const flash = new THREE.Mesh(_tntFlashGeo, _tntFlashMat);   // shared material: blinking just toggles visibility
+  flash.visible = false;
   grp.add(flash);
   scene.add(grp);
   const pos = new THREE.Vector3(x, y - 0.48, z); // pos = feet of the 0.98-tall cube
   const vel = new THREE.Vector3(opts.vx || 0, opts.vy != null ? opts.vy : 3.2, opts.vz || 0);
   if (opts.vx == null) { vel.x = (Math.random() - 0.5) * 0.8; vel.z = (Math.random() - 0.5) * 0.8; }
-  primedTnts.push({ id, grp, flashMat, pos, vel, fuse, total: fuse, owner: !opts.remote });
-  if (!opts.remote) {
-    playersChannel.send({ type: 'broadcast', event: 'tnt', payload: { from: MY_ID, id, x, y, z, fuse, vx: vel.x, vy: vel.y, vz: vel.z } });
+  primedTnts.push({ id, grp, flash, pos, vel, fuse, total: fuse, owner: !opts.remote });
+  const payload = { id, x, y, z, fuse, vx: vel.x, vy: vel.y, vz: vel.z };
+  if (!opts.remote && !opts.noBroadcast) {
+    playersChannel.send({ type: 'broadcast', event: 'tnt', payload: Object.assign({ from: MY_ID }, payload) });
   }
   tntSound('fuse');
+  return payload;
+}
+// Chain reaction: spawn many primed TNT and tell everyone with a few messages instead of one per block.
+function spawnPrimedTntBatch(list) {
+  const out = [];
+  list.forEach(p => {
+    const pl = spawnPrimedTnt(p.x, p.y, p.z, 0.35 + Math.random() * 0.9, { noBroadcast: true });
+    if (pl) out.push(pl);
+  });
+  for (let i = 0; i < out.length; i += 40) {
+    playersChannel.send({ type: 'broadcast', event: 'tnt', payload: { from: MY_ID, list: out.slice(i, i + 40) } });
+  }
 }
 
 // Turn the TNT block at (x,y,z) into a primed entity.
@@ -7940,7 +8160,7 @@ function tryIgniteLookedTnt() {
 }
 
 function pushBlockDiffsBatch(list) { // [{x,y,z}] -> 'air'
-  const stamp = new Date().toISOString();
+  const stamp = ownStamp();
   for (let i = 0; i < list.length; i += 400) {
     const rows = list.slice(i, i + 400).map(p => ({ x: p.x, y: p.y, z: p.z, type: 'air', updated_at: stamp }));
     sb.from('world_blocks').upsert(rows).then(({ error }) => { if (error) console.error('tnt batch diff', error); });
@@ -7948,21 +8168,25 @@ function pushBlockDiffsBatch(list) { // [{x,y,z}] -> 'air'
 }
 
 function spawnExplosionFx(c) {
-  const ballMat = new THREE.MeshBasicMaterial({ color: 0xffb030, transparent: true, opacity: 0.95, depthWrite: false });
-  const ball = new THREE.Mesh(_fxSphereGeo, ballMat); ball.position.copy(c); ball.scale.setScalar(0.5); scene.add(ball);
-  tntFx.push({ kind: 'ball', mesh: ball, mat: ballMat, t: 0, life: 0.55 });
-  const core = new THREE.MeshBasicMaterial({ color: 0xfff3b0, transparent: true, opacity: 1, depthWrite: false });
-  const cm = new THREE.Mesh(_fxSphereGeo, core); cm.position.copy(c); cm.scale.setScalar(0.3); scene.add(cm);
-  tntFx.push({ kind: 'core', mesh: cm, mat: core, t: 0, life: 0.35 });
-  for (let i = 0; i < 14; i++) {
+  const busy = tntFx.length;   // many simultaneous blasts (TNT chains): thin the effects out so they can't tank the frame rate
+  if (busy < 90) {
+    const ballMat = new THREE.MeshBasicMaterial({ color: 0xffb030, transparent: true, opacity: 0.95, depthWrite: false });
+    const ball = new THREE.Mesh(_fxSphereGeo, ballMat); ball.position.copy(c); ball.scale.setScalar(0.5); scene.add(ball);
+    tntFx.push({ kind: 'ball', mesh: ball, mat: ballMat, t: 0, life: 0.55 });
+    const core = new THREE.MeshBasicMaterial({ color: 0xfff3b0, transparent: true, opacity: 1, depthWrite: false });
+    const cm = new THREE.Mesh(_fxSphereGeo, core); cm.position.copy(c); cm.scale.setScalar(0.3); scene.add(cm);
+    tntFx.push({ kind: 'core', mesh: cm, mat: core, t: 0, life: 0.35 });
+  }
+  const n = busy > 140 ? 0 : busy > 50 ? 5 : 14;
+  for (let i = 0; i < n; i++) {
     const hot = Math.random() < 0.45;
-    const m = new THREE.MeshBasicMaterial({ color: hot ? (Math.random() < 0.5 ? 0xff7a1a : 0xffcf40) : (Math.random() < 0.5 ? 0x3a3a3a : 0x666666), transparent: true, opacity: 1 });
+    const m = _debrisMats[hot ? (Math.random() < 0.5 ? 0 : 1) : (Math.random() < 0.5 ? 2 : 3)];
     const mesh = new THREE.Mesh(_fxBoxGeo, m);
     const sz = 0.12 + Math.random() * 0.22; mesh.scale.setScalar(sz);
     mesh.position.copy(c).add(new THREE.Vector3((Math.random()-0.5)*1.5, (Math.random()-0.5)*1.5, (Math.random()-0.5)*1.5));
     scene.add(mesh);
     const v = new THREE.Vector3(Math.random()-0.5, Math.random()*0.8+0.1, Math.random()-0.5).normalize().multiplyScalar(4 + Math.random() * 7);
-    tntFx.push({ kind: 'debris', mesh, mat: m, v, t: 0, life: 0.8 + Math.random() * 0.8 });
+    tntFx.push({ kind: 'debris', mesh, mat: m, shared: true, size: sz, v, t: 0, life: 0.8 + Math.random() * 0.8 });
   }
 }
 
@@ -8023,7 +8247,7 @@ function explodeTnt(t) {
         slots.forEach(s => { if (s) spawnDroppedItem(s.type, s.count, new THREE.Vector3(x, y, z)); });
         delete chestData[k]; saveChestData();
       }
-    } else if (!isLeavesType(b.type) && b.type !== 'glass' && b.type !== 'torch' && b.type !== 'sapling' && drops < 10 && Math.random() < 0.15) {
+    } else if (!isLeavesType(b.type) && b.type !== 'glass' && b.type !== 'torch' && b.type !== 'sapling' && drops < 10 && droppedItems.length < 120 && Math.random() < 0.15) {
       const drop = blockDropType(b.type);
       spawnDroppedItem(drop, 1, new THREE.Vector3(x, y, z));
       drops++;
@@ -8033,13 +8257,22 @@ function explodeTnt(t) {
       removed.push({ x, y, z });
     }
   }
+  // chain reaction: neighbouring TNT becomes primed right here, in the SAME batch as the blast. Before, every
+  // neighbour did its own chunk rebuild + network write + broadcast (a block of 100 TNT = 100 rebuilds in one frame).
+  const chained = [];
+  chain.forEach(p => {
+    if (removeBlock(p.x, p.y, p.z, true)) {
+      removedDiffs.add(key(p.x, p.y, p.z));
+      removed.push(p);
+      chained.push(p);
+    }
+  });
   // mesh + light refresh for everything we touched
   const seen = new Set();
   removed.forEach(p => { const k = p.x + ',' + p.z; if (!seen.has(k)) { seen.add(k); markChunkDirty(p.x, p.z); } });
   if (blockLights.size) markLightArea(cx, cy, cz, false, TNT_RADIUS); // only relight if a torch is actually in range
   if (removed.length) pushBlockDiffsBatch(removed); // chunk meshes are rebuilt one per frame by stepDirtyChunks()
-  // chain reaction: neighbours get a short random fuse
-  chain.forEach(p => igniteTntAt(p.x, p.y, p.z, 0.35 + Math.random() * 0.9));
+  if (chained.length) spawnPrimedTntBatch(chained);
   renderHotbar();
   if (inventoryOpen) renderInventoryPanel();
 }
@@ -8056,7 +8289,7 @@ function updateTnt(dt) {
     // fuse visuals: flash white at an accelerating rate, swell slightly right before the blast
     const p = 1 - Math.max(0, t.fuse) / t.total;
     const blink = Math.floor(Math.max(0, t.fuse) * (3 + p * 9)) % 2 === 0;
-    t.flashMat.opacity = blink ? 0.75 : 0;
+    t.flash.visible = blink;
     const sc = 1 + (t.fuse < 0.6 ? (0.6 - Math.max(0, t.fuse)) * 0.35 : 0);
     t.grp.scale.setScalar(sc);
     if (t.fuse <= 0) {
@@ -8069,12 +8302,12 @@ function updateTnt(dt) {
     const f = tntFx[i];
     f.t += dt;
     const k = f.t / f.life;
-    if (k >= 1) { scene.remove(f.mesh); f.mat.dispose(); tntFx.splice(i, 1); continue; }
+    if (k >= 1) { scene.remove(f.mesh); if (!f.shared) f.mat.dispose(); tntFx.splice(i, 1); continue; }
     if (f.kind === 'debris') {
       f.v.y -= 16 * dt; f.v.multiplyScalar(1 - 0.6 * dt);
       f.mesh.position.addScaledVector(f.v, dt);
       f.mesh.rotation.x += dt * 6; f.mesh.rotation.y += dt * 5;
-      f.mat.opacity = 1 - k * k;
+      f.mesh.scale.setScalar(Math.max(0.001, f.size * (1 - k * k)));   // shrink away (shared material, so no per-piece fade)
     } else {
       const grow = f.kind === 'ball' ? (0.5 + k * (TNT_RADIUS * 1.15)) : (0.3 + k * TNT_RADIUS * 0.7);
       f.mesh.scale.setScalar(grow);
@@ -8383,9 +8616,18 @@ function rsInteract(b) {
   return true;
 }
 
+let _nextFrameAt = 0;
 function animate() {
   requestAnimationFrame(animate);
   const now = performance.now();
+  // Frame cap (Settings > Graphics > Max FPS, default 120). requestAnimationFrame fires once per display
+  // refresh, so a 120 cap only skips refreshes on displays faster than 120 Hz; a 60 Hz screen simply runs at 60.
+  const capFps = settings.maxFps | 0;
+  if (capFps > 0) {
+    const interval = 1000 / capFps;
+    if (now < _nextFrameAt - 1) return;   // too early: skip this refresh (lastTime untouched, so dt stays correct)
+    _nextFrameAt = (now - _nextFrameAt > interval * 2) ? now + interval : _nextFrameAt + interval;
+  }
   let dt = (now - lastTime) / 1000;
   dt = Math.min(dt, 0.05);
   lastTime = now;
@@ -8430,16 +8672,16 @@ function animate() {
   // Only reads keys while pointer-locked, so opening chat/inventory can't
   // leave a stuck sprint/move key active.
   const canSprint = player.hunger > 6;
-  const wantForward = keys['KeyW'] || (touchMode && mobile.fwd);
-  const wantBack = keys['KeyS'] || (touchMode && mobile.back);
+  const wantForward = keyDown('forward') || (touchMode && mobile.fwd);
+  const wantBack = keyDown('back') || (touchMode && mobile.back);
   // Shift (or the phone Sneak button) = crouch. Standing back up needs headroom.
-  const wantSneak = isPlaying() && !inWater && (keys['ShiftLeft'] || keys['ShiftRight'] || (touchMode && mobile.sneak));
+  const wantSneak = isPlaying() && !inWater && (keyDown('sneak') || (touchMode && mobile.sneak));
   if (wantSneak && !player.crouched) { player.crouched = true; player.height = CROUCH_HEIGHT; isSprinting = false; mobile.sprint = false; }
   else if (!wantSneak && player.crouched &&
            !checkCollision(player.pos.x, player.pos.y, player.pos.z, player.radius, STAND_HEIGHT)) {
     player.crouched = false; player.height = STAND_HEIGHT;
   }
-  const sprinting = isPlaying() && canSprint && !player.crouched && (isSprinting || mobile.sprint) && wantForward && !wantBack;
+  const sprinting = isPlaying() && canSprint && !player.crouched && (isSprinting || mobile.sprint || keyDown('sprint')) && wantForward && !wantBack;
   jcSprinting = sprinting;
   if (!canSprint) { isSprinting = false; mobile.sprint = false; }
   const baseSpeed = sprinting ? 6 : 4.2;   // was 8 / 5 -- tweak these two numbers to taste
@@ -8452,24 +8694,23 @@ function animate() {
     const right = new THREE.Vector3(Math.cos(player.yaw), 0, -Math.sin(player.yaw));
 
     let move = new THREE.Vector3();
-    if (keys['KeyW'] || (touchMode && mobile.fwd)) move.add(forward);
-    if (keys['KeyS'] || (touchMode && mobile.back)) move.sub(forward);
-    if (keys['KeyD'] || (touchMode && mobile.right)) move.add(right);
-    if (keys['KeyA'] || (touchMode && mobile.left)) move.sub(right);
+    if (keyDown('forward') || (touchMode && mobile.fwd)) move.add(forward);
+    if (keyDown('back') || (touchMode && mobile.back)) move.sub(forward);
+    if (keyDown('right') || (touchMode && mobile.right)) move.add(right);
+    if (keyDown('left') || (touchMode && mobile.left)) move.sub(right);
     isMoving = move.lengthSq() > 0;
     if (isMoving) move.normalize().multiplyScalar(speed);
     swimMoveDir = isMoving ? move.clone().normalize() : null;
 
     // Fade residual knockback (high horizontal speed from hits) into walk input.
-    const kbDecay = 0.88;
-    const kbX = Math.abs(player.vel.x) > Math.abs(move.x) + 0.5 ? player.vel.x * kbDecay : 0;
-    const kbZ = Math.abs(player.vel.z) > Math.abs(move.z) + 0.5 ? player.vel.z * kbDecay : 0;
-    player.vel.x = move.x + kbX * 0.55;
-    player.vel.z = move.z + kbZ * 0.55;
+    const kbF = Math.pow(0.88 * 0.55, dt * 60);   // per-frame factor at 60 fps, scaled by dt so 120 fps feels the same
+    const kbX = Math.abs(player.vel.x) > Math.abs(move.x) + 0.5 ? player.vel.x : 0;
+    const kbZ = Math.abs(player.vel.z) > Math.abs(move.z) + 0.5 ? player.vel.z : 0;
+    player.vel.x = move.x + kbX * kbF;
+    player.vel.z = move.z + kbZ * kbF;
   } else {
     // Menu/chat open: let residual knockback decay, don't hard-stop mid shove.
-    player.vel.x *= 0.9;
-    player.vel.z *= 0.9;
+    { const fr = Math.pow(0.9, dt * 60); player.vel.x *= fr; player.vel.z *= fr; }
   }
 
   // Gravity, swimming, and jumping always run — this is what previously
@@ -8477,7 +8718,7 @@ function animate() {
   // place (ignoring gravity) whenever chat or the inventory was open.
   if (inWater) {
     player.vel.y -= 6*dt;
-    if (isPlaying() && (keys['Space'] || mobile.jump)) player.vel.y = 4.5;
+    if (isPlaying() && (keyDown('jump') || mobile.jump)) player.vel.y = 4.5;
     // Climb out: pushing against a bank with open space above it gives a
     // boost that carries you over the edge (like vanilla Minecraft).
     if (swimMoveDir && isPlaying()) {
@@ -8490,7 +8731,7 @@ function animate() {
     player.vel.y = Math.max(player.vel.y, -3);
   } else {
     player.vel.y -= 20*dt;
-    if (player.onGround && isPlaying() && (keys['Space'] || mobile.jump)) {
+    if (player.onGround && isPlaying() && (keyDown('jump') || mobile.jump)) {
       player.vel.y = 8;
       player.onGround = false;
     }
@@ -8607,10 +8848,41 @@ function animate() {
     tntShake *= Math.pow(0.02, dt);
   }
   stepDirtyChunks();
+  // At very high frame rates the shadow pass (the whole scene drawn again from the sun, and again for every
+  // shadow-casting torch) is the single biggest cost, so refresh the shadow maps every other frame there.
+  // World-space shadows don't move between refreshes; only fast movers update at half rate (still 60 Hz+).
+  if (renderer.shadowMap.enabled) {
+    if (dt < 0.0115 && (capFps === 0 || capFps > 90)) {
+      renderer.shadowMap.autoUpdate = false;
+      _shadowTick = !_shadowTick;
+      renderer.shadowMap.needsUpdate = _shadowTick;
+    } else if (!renderer.shadowMap.autoUpdate) renderer.shadowMap.autoUpdate = true;
+  }
   renderer.render(scene, camera);
 }
+let _shadowTick = false;
 
 window.addEventListener('beforeunload', saveLocalPlayer);
+
+// Pre-compile the effect shaders and pre-upload the common drop sprites while the game is still loading. Without
+// this, the very first explosion / first mined block of each kind has to compile a shader or build a texture in
+// the middle of gameplay, which shows up as a one-off freeze. Tiny, invisible objects rendered for a moment.
+(function warmUpEffects() {
+  const objs = [];
+  setTimeout(() => objs.forEach(o => scene.remove(o)), 1500);
+  const add = o => { o.frustumCulled = false; scene.add(o); objs.push(o); };
+  try {
+    const fx = new THREE.MeshBasicMaterial({ color: 0xffffff, transparent: true, opacity: 0.01, depthWrite: false });
+    const a = new THREE.Mesh(_fxSphereGeo, fx); a.scale.setScalar(0.0001); add(a);
+    const b = new THREE.Mesh(_fxBoxGeo, _debrisMats[0]); b.scale.setScalar(0.0001); add(b);
+    const c = new THREE.Mesh(_tntFlashGeo, _tntFlashMat); c.scale.setScalar(0.0001); add(c);
+  } catch (e) { console.warn('effect warm-up skipped', e); }
+  ['dirt', 'grass', 'stone', 'cobblestone', 'wood', 'planks', 'sand', 'leaves', 'coal', 'tnt', 'stick', 'torch', 'sapling', 'iron_ore', 'diamond'].forEach(t => {
+    try {
+      if (BLOCK_TYPES[t] || ITEM_INFO[t]) { const sp = makeItemSprite(t); sp.scale.setScalar(0.0001); add(sp); }
+    } catch (e) { /* that icon isn't available — skip it */ }
+  });
+})();
 
 animate();
 </script>
