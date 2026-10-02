@@ -1489,6 +1489,7 @@ const ITEM_INFO = {
   cooked_meat:    { food: 6 },
   shield:         { maxStack: 1 },
   totem_of_undying: { maxStack: 1 },
+  null_totem: { maxStack: 1 },
 };
 const ARMOR_TYPES = ['iron_helmet', 'iron_chestplate', 'iron_leggings', 'iron_boots',
   'gold_helmet', 'gold_chestplate', 'gold_leggings', 'gold_boots',
@@ -1573,6 +1574,7 @@ const ITEM_STYLE = {
   charcoal:    { g: 'lump',  bg: '#3a3228', x: '#1a120c', s: '#6a5a48' },
   shield:      { g: 'shield', bg: '#6b4420', x: '#c4a06a', s: '#e8eef2' },
   totem_of_undying: { g: 'totem', bg: '#8a6a12', x: '#ffe566', s: '#3ecf5a' },
+  null_totem: { g: 'totem', bg: '#2a1038', x: '#c48cff', s: '#7a40c8' },
 };
 for (const m of ['wood', 'stone', 'iron', 'gold', 'diamond'])
   for (const t of ['pickaxe', 'axe', 'shovel', 'sword'])
@@ -1744,7 +1746,7 @@ function blockFaceCanvases(type) {            // -> { top, side } source canvase
 }
 const _iconCanvasCache = {};
 // Item sprites from the pack (only the apple exists in the pack's items folder that the game uses)
-const PACK_ITEMS = { golden_apple: "data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAABAAAAAQCAYAAAAf8/9hAAAAy0lEQVR42mNgoAeQlJT8j0uOiRLNFNvOwMDAwEhIo/if1wwvWUQZnj9/zkiUFyQlJf9LSkr+v3jVjsGa+wODCj8rw6HOX3BxvC6AaUQGH7fsYeD3cWH4uGUPAwMDA4NdORuKa7AGoqjgCgZRwRUMDAwMDPw+Lig0Ti/AbIdpfP0+AqsGmHeIjkZCgAVdAJfNZCck5MDEa8Dz588Z9bUPYVWILIYeCyyk2EZ00r29SPj/7UXC/03FWf+birPC+UTnC/RUhysVMjAwMAAAprVV3jDXbi4AAAAASUVORK5CYII=", iron_helmet: "data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAABAAAAAQCAYAAAAf8/9hAAAAmUlEQVR42tVSsQ3EIBAzUXoWQZRsxErU7IIooAOxCBPcVx8BfyTfxg06bHMnc8DrIdYLYwzdGXLOYksaY4iIqJSyPdcGYjSnlFBrvcje+08TKSWstdckx0g+mQEgxjjV51horVFrRe8drbVJqJRiHzzXCb5m7/0kTCkhhIDHAJ1zxP3Ejt9mwIHjjzWDO3C84BZotyz/aF6ID1hucr6ph8znAAAAAElFTkSuQmCC", iron_chestplate: "data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAABAAAAAQCAYAAAAf8/9hAAAApElEQVR42uWRsQ0DIQxFTXTzUPomYiUoaNgFUeAOxCJM4FScyMlESJcuv8ESz98fDPBQahSIyKMmIiXBSwYRmZm5lMIzJBncuWNc1lohpQTeezDGiCY5Z3DOrZ3nCdJprWVE/Eig5rcRkUJEzjlDrRV679eQ1hqEEC5m8C8p6r35m0QDrfX2GpcJdnVIe9daQ4xx2TTzv0kg/YG4712D8zzhj/QG31uCnOHNTkwAAAAASUVORK5CYII=", iron_leggings: "data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAABAAAAAQCAYAAAAf8/9hAAAAmklEQVR42t1SsQ0DIQw8UHo2oTQTsRe7IBp3oF/EE5AKCR5ISBXp3RiD73w+Afw7VDsQUf0FyMxquCCiWmutOeevuR/26klKKVMWEcQYAQAxRlzXNQzWfWGtHR5TShPgHnqloIFDCAghwBhzRtAUNDAzK2ZW3vstyaRARJaN9/WOPNitd+TBSsHKUH3S9Il8+AfOua0C7z0eGm9y6Ww84LNpjAAAAABJRU5ErkJggg==", iron_boots: "data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAABAAAAAQCAYAAAAf8/9hAAAAdUlEQVR42u2RwRXAEBBEl5d6HCl1D+pxGEedqCA5bUKyRAHmhP+MsUO0ZWThvT9bkHM27X7EbXsIgGKMw9c03hmUUiilNDTQeGfgnJv+V+OfBDNp3MqAAFCtdSkBgHuoh1xm5t/KJAEzEwAKIZzmXc9qjVuPLl6YPuT3JjzIAAAAAElFTkSuQmCC", gold_helmet: "data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAABAAAAAQCAYAAAAf8/9hAAAAqUlEQVR42mNgGPKAEV3AXpf/Pz4NBy9/ZMQpaa/L///f/73//9+wxUmjW8CIrHn/pXUMjDcb4JIPb33GsERejZfBIfQS3CVMKKYR0MzAwMCwbtEbFD4LMue/egMD480Ghoe3PjOcPfETRaGxBTtWA1nQXQDTPGnzMxSF+1vXMTzaXMxAMADXVmn+xxYTuORxhgHWOMciz4QeBvgANnlGbAkIV2IhRs0QBADA52nbNkQ7ygAAAABJRU5ErkJggg==", gold_chestplate: "data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAABAAAAAQCAYAAAAf8/9hAAAAt0lEQVR42mNgoBAwwhj2uvz/YeyDlz8yYlOMU429Lv//f//3/v9/w/Y/siJsBqCrY4E75WYDw7pFbxgOrNZjcAi9hNWQ/ZfWMayvzsFtMrIN2Oi1VZr/7XX5UVzAiOy3g5c/Mtrr8v/ff2kdA+PNBoaHtz7DLTl74ifDpM3P4Gpg6pmwhiyaZnwAqwH/1RuIjkacLiAWsGCL9//qDQwMt4pxakJWTx0XYAuDs4tyyDfAUS+IYQQBAI/zecgZL271AAAAAElFTkSuQmCC", gold_leggings: "data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAABAAAAAQCAYAAAAf8/9hAAAAsElEQVR42mNgGGjACGPY6/L/J0XjwcsfGVEE7HX5///7v/f//xu2BGlky1BccGC1HoZND299RuGfPfGTYdLmZ3AXMCFL/ldvQFG8btEbhrMnfuL1CgtKgNxsQNE8afMzBgYGBoYDcXoYLoEBrC6AaT54+SPjwcsfGR1CLzHIq/ESNoDxZgNOm9C9h9cFWOP7ZgNxLsAF/qs3YA1QJmIU4TMcJRYc9YJwusAh9BLDMAUAhnRo9pIqym4AAAAASUVORK5CYII=", gold_boots: "data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAABAAAAAQCAYAAAAf8/9hAAAAgklEQVR42mNgGAWMMIa9Lv9/ZImDlz8yIvNxyTMhC+6/tI7hwGo9nLZhk0cxgPFmA8O6RW9wOxeLPIoB/9Ub8PoXmzyGC/AG2E0cBtjr8v/ff2kdw8Nbn4lywf5L6+CBygLTvL46h3CUQV2wvjqHYf+ldQyOekH/GdGjh9hoHAUIAACC9DprCyCQKwAAAABJRU5ErkJggg==", diamond_helmet: "data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAABAAAAAQCAYAAAAf8/9hAAAAqUlEQVR42mNgGPKAEV2A18r0Pz4Nn4+dZsQpyWtl+v/p/1//vd7exEmjW8CIrPnG0aMMqe/uwyWfPX6KYYmUrDTDYd8YuEuYkCUJaWZgYGC4tXkHCp8FmTNbSJEh9d19hmePnzJ8uXAZRSGPgS5WA1nQXQDT/HLWEhSFB48eZfC+eISBYACqLJj4H1tM4JLHGQbYADZ5JvQwwAewyTNiS0C4EgsxaoYgAAAmLW2iExkjdwAAAABJRU5ErkJggg==", diamond_chestplate: "data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAABAAAAAQCAYAAAAf8/9hAAAAtklEQVR42mNgoBAwwhi8Vqb/YezPx04zYlOMUw2vlen/p/9//fd6e/M/siJsBqCrY4FJpr67z3Br8w4G281LGA77xmA15MbRowz2C6fjNhnZBmy0yoKJ/3mtTFFcwIjst8/HTjPyWpn+v3H0KEPqu/sMzx4/hVvy5cJlhpezlsDVwNQzYXMqumZ8AKsBs4UUiY5GnC4gFrBgi/fZQooM3ni8gKyeOi7AFgb2m3eQb4CGtTXDCAIAmiB9DkupwCoAAAAASUVORK5CYII=", diamond_leggings: "data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAABAAAAAQCAYAAAAf8/9hAAAArElEQVR42mNgGGjACGPwWpn+J0Xj52OnGVEEeK1M/z/9/+u/19ubBGlky1BcYLt5CYZNzx4/ReF/uXCZ4eWsJXAXMCFLzhZSRFF8a/MOhi8XLuP1CgsyJ/XdfRTNL2dBXKS2eQmGS2AAqwtgmj8fO834+dhpxsO+MQxSstKEDUh9dx+nTejew+sCbADZe3hdgAvMFlLEGqBMxCjCZzhKLGhYW+N0wWHfGIZhCgAp5mkEv+S6UAAAAABJRU5ErkJggg==", diamond_boots: "data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAABAAAAAQCAYAAAAf8/9hAAAAf0lEQVR42mNgGAWMMAavlel/ZInPx04zIvNxyTMhC944epTBdvMSnLZhk0cxIPXdfYZbm3fgNACbPIoBs4UU8foXmzyGC/ABbPJMsAC6cfQow7PHT4lywY2jR+GBygLTbL9wOsEog7nAfuF0hhtHjzJoWFv/Z0SPHmKjcRQgAAAVgTyY+we4SgAAAABJRU5ErkJggg==", apple: "data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAABAAAAAQCAYAAAAf8/9hAAABCklEQVR4nL2STUoDQRCFvw6DkpCIjSYwEELAA8SF4AVcu/IAuYUriZKL5ACuXHuBKK4UBDfKoAT8YfLnhEwSKgtx7GFmtFHwLetVf6+6uuE/dLhTkiwvZ3P46jnM9H8EAJx7U2XTF5PWWs42arJddmSvtpp5hQT5ptEQ6Y1RbpHj9zsAmn6ZbhgA0B69qkzAdWVLlFtMTXp49AHohkEMYrUDgHpVU6/qRD0CfJduanelwFFpM9qJ9QSmbudfz/orgKkIcL+Y/Q2w/+ZZfZZO0Od0Mox6HdO88F6o5D5K5sYHT0N8WaQCE6kH+TVpFtYBOHF6ALTmbmp6YgLgs0EALiczBdDJ98XwYloCVg1WWG8S5iYAAAAASUVORK5CYII=" , charcoal: "data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAABAAAAAQCAYAAAAf8/9hAAABgklEQVR42q2TS28TMRSFv3k4dqI82swkGmkELEACgbqgEqzaJf9/QyWCAAVSQUmBQjPMy55xF1GjTjNBlcrd2NLx+XyvdQz3LOdfopLCXu/zQjt3Bnieh/BdG03HeK6DEIL54qwV4u4yT8M9wv0hD+MpWmviKGh01ArwPI8wDAHoKsmg3yXLCo5fvwBohWx1IKUEwBjD0avnhOMhJ+8XTMYjhBBbkC3A8vs3G0cBcRSw+HqO7AjGe32q2pJmOT8vVkyC0Qbi3p79zfFLtKnIcs27D6d8+nLGyewzxhiKQgOQ/M13jzA/XQIwCUb0eorLJAXYrIN+t/0Rhe/aOAoA6HUVs48L0nR9U5LmFIXm8OAJAFle7O7g4NkjtNY8ffyA819/KLVZB8Z1eDubb85pUzuNICkp7CQYoXWFUh08dy2V2rBKMuq6xvd9Sm0wxqBN7VRV1UziNQRglWSNmcvSYK3lMkk35tYoKymskh0AhoMeyx+/G/pN886/cDMotw3/va4AGJytBqZp1KgAAAAASUVORK5CYII=", sign: "data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAABAAAAAQCAYAAAAf8/9hAAAAl0lEQVR42mNgGGjACGPMb/H9T4rGUxeeMUxfc5aRCVlwwcqDWBU3Td0Hl0NXg2LAozd/GZqm7sPQBJNbsPIgw6M3f2noBWQnLlh5EMUFuLzAgu5XZCfDNCA7m+peYEEWIAfADbjx4B1lCQkbSPLV+c/AwMBw//lXhv1n7mNVy4TPAClRIYIuYKI0L1BsAAs+yaOXHhM0AAA31VKGTW05XgAAAABJRU5ErkJggg==", shield: "data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAABAAAAAQCAYAAAAf8/9hAAABIklEQVR42q2SvU4CQRSFv/1niWxiVqJUSkJpTQilL+PzGEsrX8NEaysT7SwMb8Am6/7NzA5YsO6C4A/CqeaenLlz5txrXF3fzPknirzABpg83pJmBQCe6yCkou17ZLlYcJ6DEArf98gr7vziEgCTHWEDlFqjtQZASJBS4ThWwwkQUmGaBkKqlQYmgGPbdPsjuv0RcZwAoJRG6xlaz2pxeDZESoVcamJ/Hl6f7gDwW+63dicvDyhV1nUUTfeUAUAQHNQOikICYNnWivjk+IhpFK9noMrGVttvbeVgqy9kebFbgx8d9AZjeoMxcfy+WWgYhKdDkjQjSbPKUVaFOG/GGB526ku6XCyS5S7eeXu+/30KQdBZS3pZs3ET97IHf4Xxpf4Ax3ZzR3wG7Z0AAAAASUVORK5CYII=", totem_of_undying: "data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAABAAAAAQCAYAAAAf8/9hAAAB4ElEQVR42o2STUhUYRSGn+/OzZJiylDpz6k0Z6agRS7btYiIFIO2tQsqahG0i1oFuXEVEjERZAkRLUQSJ5CCLGyTZSrZ1MiU5JTdGbWm+fHeO99pEY0Yd4Y5y5dznu+c93sVZSq/2CdILTlrjkwySc/NfrofxdT/fYbXcNa6L7V1J5VWv1n4/J0PQ+MUXPF8yPQS17/tQzK9ol700m4pTteY5Rb1BiTMIJOjLxnbGsb9lecbybIAzxOWtcNaFP6UhnwOEUGkyhMKCw8kk54BDFIzCTY21dGws54aR3A6RCKP46riBpl0oiTXt+zGyfkYG5wgdKSZ9r27ONsZkrIA69N1GY085cqlu4gUGbkR5Xn0HYPvY/gDAVoPt3A0uIPzHSuQEiAV75JXt58xHJvjWvcplPKx71iYtoONnGg7wOWL99gc2F7ZxH9mNQavKtA07GnGv2kbqqgxDMPT85IhFzr3i4vNrYG/abPTD2XqdRR3Nst8fIkn018wjHU4slzqWfULPQOTq9zVStMUCpIu/GA+vkTBdbkzNFFdlJ38lJjmFsSxsbEB2LDGrD5ITu4Npv+Qcl0XrTWVyhM7Oz7C9PAZ+fnVQhazuD6F9ilPgKd67nhYjOJKXhxTiPR/9Oz9AycHz8M3VCgwAAAAAElFTkSuQmCC"};
+const PACK_ITEMS = { gold_nugget: "data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAABAAAAAQCAYAAAAf8/9hAAAArElEQVR4nOWSrQ7CMBRGDwuZmMKNh6lALVOzS6Z4jGnUHmOKgEUtKEQFj7K9AGLmYujSkdssYBCcpEl/7vna5BZ+zSp0UGWJuPnx+gjWqWKVJSLjfRqnw0b8QJ+1dmthYgAGuwegrDtocgB5f02kyWXdTbIfpBH5C01eIlougdS03wekpuXc5FzsqHZjtlFliRQmZme2ANxsHxQdsy68CgV6gEU5iPsLH4t/yhPDNEr1XX6z+wAAAABJRU5ErkJggg==", golden_apple: "data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAABAAAAAQCAYAAAAf8/9hAAAAy0lEQVR42mNgoAeQlJT8j0uOiRLNFNvOwMDAwEhIo/if1wwvWUQZnj9/zkiUFyQlJf9LSkr+v3jVjsGa+wODCj8rw6HOX3BxvC6AaUQGH7fsYeD3cWH4uGUPAwMDA4NdORuKa7AGoqjgCgZRwRUMDAwMDPw+Lig0Ti/AbIdpfP0+AqsGmHeIjkZCgAVdAJfNZCck5MDEa8Dz588Z9bUPYVWILIYeCyyk2EZ00r29SPj/7UXC/03FWf+birPC+UTnC/RUhysVMjAwMAAAprVV3jDXbi4AAAAASUVORK5CYII=", iron_helmet: "data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAABAAAAAQCAYAAAAf8/9hAAAAmUlEQVR42tVSsQ3EIBAzUXoWQZRsxErU7IIooAOxCBPcVx8BfyTfxg06bHMnc8DrIdYLYwzdGXLOYksaY4iIqJSyPdcGYjSnlFBrvcje+08TKSWstdckx0g+mQEgxjjV51horVFrRe8drbVJqJRiHzzXCb5m7/0kTCkhhIDHAJ1zxP3Ejt9mwIHjjzWDO3C84BZotyz/aF6ID1hucr6ph8znAAAAAElFTkSuQmCC", iron_chestplate: "data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAABAAAAAQCAYAAAAf8/9hAAAApElEQVR42uWRsQ0DIQxFTXTzUPomYiUoaNgFUeAOxCJM4FScyMlESJcuv8ESz98fDPBQahSIyKMmIiXBSwYRmZm5lMIzJBncuWNc1lohpQTeezDGiCY5Z3DOrZ3nCdJprWVE/Eig5rcRkUJEzjlDrRV679eQ1hqEEC5m8C8p6r35m0QDrfX2GpcJdnVIe9daQ4xx2TTzv0kg/YG4712D8zzhj/QG31uCnOHNTkwAAAAASUVORK5CYII=", iron_leggings: "data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAABAAAAAQCAYAAAAf8/9hAAAAmklEQVR42t1SsQ0DIQw8UHo2oTQTsRe7IBp3oF/EE5AKCR5ISBXp3RiD73w+Afw7VDsQUf0FyMxquCCiWmutOeevuR/26klKKVMWEcQYAQAxRlzXNQzWfWGtHR5TShPgHnqloIFDCAghwBhzRtAUNDAzK2ZW3vstyaRARJaN9/WOPNitd+TBSsHKUH3S9Il8+AfOua0C7z0eGm9y6Ww84LNpjAAAAABJRU5ErkJggg==", iron_boots: "data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAABAAAAAQCAYAAAAf8/9hAAAAdUlEQVR42u2RwRXAEBBEl5d6HCl1D+pxGEedqCA5bUKyRAHmhP+MsUO0ZWThvT9bkHM27X7EbXsIgGKMw9c03hmUUiilNDTQeGfgnJv+V+OfBDNp3MqAAFCtdSkBgHuoh1xm5t/KJAEzEwAKIZzmXc9qjVuPLl6YPuT3JjzIAAAAAElFTkSuQmCC", gold_helmet: "data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAABAAAAAQCAYAAAAf8/9hAAAAqUlEQVR42mNgGPKAEV3AXpf/Pz4NBy9/ZMQpaa/L///f/73//9+wxUmjW8CIrHn/pXUMjDcb4JIPb33GsERejZfBIfQS3CVMKKYR0MzAwMCwbtEbFD4LMue/egMD480Ghoe3PjOcPfETRaGxBTtWA1nQXQDTPGnzMxSF+1vXMTzaXMxAMADXVmn+xxYTuORxhgHWOMciz4QeBvgANnlGbAkIV2IhRs0QBADA52nbNkQ7ygAAAABJRU5ErkJggg==", gold_chestplate: "data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAABAAAAAQCAYAAAAf8/9hAAAAt0lEQVR42mNgoBAwwhj2uvz/YeyDlz8yYlOMU429Lv//f//3/v9/w/Y/siJsBqCrY4E75WYDw7pFbxgOrNZjcAi9hNWQ/ZfWMayvzsFtMrIN2Oi1VZr/7XX5UVzAiOy3g5c/Mtrr8v/ff2kdA+PNBoaHtz7DLTl74ifDpM3P4Gpg6pmwhiyaZnwAqwH/1RuIjkacLiAWsGCL9//qDQwMt4pxakJWTx0XYAuDs4tyyDfAUS+IYQQBAI/zecgZL271AAAAAElFTkSuQmCC", gold_leggings: "data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAABAAAAAQCAYAAAAf8/9hAAAAsElEQVR42mNgGGjACGPY6/L/J0XjwcsfGVEE7HX5///7v/f//xu2BGlky1BccGC1HoZND299RuGfPfGTYdLmZ3AXMCFL/ldvQFG8btEbhrMnfuL1CgtKgNxsQNE8afMzBgYGBoYDcXoYLoEBrC6AaT54+SPjwcsfGR1CLzHIq/ESNoDxZgNOm9C9h9cFWOP7ZgNxLsAF/qs3YA1QJmIU4TMcJRYc9YJwusAh9BLDMAUAhnRo9pIqym4AAAAASUVORK5CYII=", gold_boots: "data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAABAAAAAQCAYAAAAf8/9hAAAAgklEQVR42mNgGAWMMIa9Lv9/ZImDlz8yIvNxyTMhC+6/tI7hwGo9nLZhk0cxgPFmA8O6RW9wOxeLPIoB/9Ub8PoXmzyGC/AG2E0cBtjr8v/ff2kdw8Nbn4lywf5L6+CBygLTvL46h3CUQV2wvjqHYf+ldQyOekH/GdGjh9hoHAUIAACC9DprCyCQKwAAAABJRU5ErkJggg==", diamond_helmet: "data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAABAAAAAQCAYAAAAf8/9hAAAAqUlEQVR42mNgGPKAEV2A18r0Pz4Nn4+dZsQpyWtl+v/p/1//vd7exEmjW8CIrPnG0aMMqe/uwyWfPX6KYYmUrDTDYd8YuEuYkCUJaWZgYGC4tXkHCp8FmTNbSJEh9d19hmePnzJ8uXAZRSGPgS5WA1nQXQDT/HLWEhSFB48eZfC+eISBYACqLJj4H1tM4JLHGQbYADZ5JvQwwAewyTNiS0C4EgsxaoYgAAAmLW2iExkjdwAAAABJRU5ErkJggg==", diamond_chestplate: "data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAABAAAAAQCAYAAAAf8/9hAAAAtklEQVR42mNgoBAwwhi8Vqb/YezPx04zYlOMUw2vlen/p/9//fd6e/M/siJsBqCrY4FJpr67z3Br8w4G281LGA77xmA15MbRowz2C6fjNhnZBmy0yoKJ/3mtTFFcwIjst8/HTjPyWpn+v3H0KEPqu/sMzx4/hVvy5cJlhpezlsDVwNQzYXMqumZ8AKsBs4UUiY5GnC4gFrBgi/fZQooM3ni8gKyeOi7AFgb2m3eQb4CGtTXDCAIAmiB9DkupwCoAAAAASUVORK5CYII=", diamond_leggings: "data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAABAAAAAQCAYAAAAf8/9hAAAArElEQVR42mNgGGjACGPwWpn+J0Xj52OnGVEEeK1M/z/9/+u/19ubBGlky1BcYLt5CYZNzx4/ReF/uXCZ4eWsJXAXMCFLzhZSRFF8a/MOhi8XLuP1CgsyJ/XdfRTNL2dBXKS2eQmGS2AAqwtgmj8fO834+dhpxsO+MQxSstKEDUh9dx+nTejew+sCbADZe3hdgAvMFlLEGqBMxCjCZzhKLGhYW+N0wWHfGIZhCgAp5mkEv+S6UAAAAABJRU5ErkJggg==", diamond_boots: "data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAABAAAAAQCAYAAAAf8/9hAAAAf0lEQVR42mNgGAWMMAavlel/ZInPx04zIvNxyTMhC944epTBdvMSnLZhk0cxIPXdfYZbm3fgNACbPIoBs4UU8foXmzyGC/ABbPJMsAC6cfQow7PHT4lywY2jR+GBygLTbL9wOsEog7nAfuF0hhtHjzJoWFv/Z0SPHmKjcRQgAAAVgTyY+we4SgAAAABJRU5ErkJggg==", apple: "data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAABAAAAAQCAYAAAAf8/9hAAABCklEQVR4nL2STUoDQRCFvw6DkpCIjSYwEELAA8SF4AVcu/IAuYUriZKL5ACuXHuBKK4UBDfKoAT8YfLnhEwSKgtx7GFmtFHwLetVf6+6uuE/dLhTkiwvZ3P46jnM9H8EAJx7U2XTF5PWWs42arJddmSvtpp5hQT5ptEQ6Y1RbpHj9zsAmn6ZbhgA0B69qkzAdWVLlFtMTXp49AHohkEMYrUDgHpVU6/qRD0CfJduanelwFFpM9qJ9QSmbudfz/orgKkIcL+Y/Q2w/+ZZfZZO0Od0Mox6HdO88F6o5D5K5sYHT0N8WaQCE6kH+TVpFtYBOHF6ALTmbmp6YgLgs0EALiczBdDJ98XwYloCVg1WWG8S5iYAAAAASUVORK5CYII=" , charcoal: "data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAABAAAAAQCAYAAAAf8/9hAAABgklEQVR42q2TS28TMRSFv3k4dqI82swkGmkELEACgbqgEqzaJf9/QyWCAAVSQUmBQjPMy55xF1GjTjNBlcrd2NLx+XyvdQz3LOdfopLCXu/zQjt3Bnieh/BdG03HeK6DEIL54qwV4u4yT8M9wv0hD+MpWmviKGh01ArwPI8wDAHoKsmg3yXLCo5fvwBohWx1IKUEwBjD0avnhOMhJ+8XTMYjhBBbkC3A8vs3G0cBcRSw+HqO7AjGe32q2pJmOT8vVkyC0Qbi3p79zfFLtKnIcs27D6d8+nLGyewzxhiKQgOQ/M13jzA/XQIwCUb0eorLJAXYrIN+t/0Rhe/aOAoA6HUVs48L0nR9U5LmFIXm8OAJAFle7O7g4NkjtNY8ffyA819/KLVZB8Z1eDubb85pUzuNICkp7CQYoXWFUh08dy2V2rBKMuq6xvd9Sm0wxqBN7VRV1UziNQRglWSNmcvSYK3lMkk35tYoKymskh0AhoMeyx+/G/pN886/cDMotw3/va4AGJytBqZp1KgAAAAASUVORK5CYII=", sign: "data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAABAAAAAQCAYAAAAf8/9hAAAAl0lEQVR42mNgGGjACGPMb/H9T4rGUxeeMUxfc5aRCVlwwcqDWBU3Td0Hl0NXg2LAozd/GZqm7sPQBJNbsPIgw6M3f2noBWQnLlh5EMUFuLzAgu5XZCfDNCA7m+peYEEWIAfADbjx4B1lCQkbSPLV+c/AwMBw//lXhv1n7mNVy4TPAClRIYIuYKI0L1BsAAs+yaOXHhM0AAA31VKGTW05XgAAAABJRU5ErkJggg==", shield: "data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAABAAAAAQCAYAAAAf8/9hAAABIklEQVR42q2SvU4CQRSFv/1niWxiVqJUSkJpTQilL+PzGEsrX8NEaysT7SwMb8Am6/7NzA5YsO6C4A/CqeaenLlz5txrXF3fzPknirzABpg83pJmBQCe6yCkou17ZLlYcJ6DEArf98gr7vziEgCTHWEDlFqjtQZASJBS4ThWwwkQUmGaBkKqlQYmgGPbdPsjuv0RcZwAoJRG6xlaz2pxeDZESoVcamJ/Hl6f7gDwW+63dicvDyhV1nUUTfeUAUAQHNQOikICYNnWivjk+IhpFK9noMrGVttvbeVgqy9kebFbgx8d9AZjeoMxcfy+WWgYhKdDkjQjSbPKUVaFOG/GGB526ku6XCyS5S7eeXu+/30KQdBZS3pZs3ET97IHf4Xxpf4Ax3ZzR3wG7Z0AAAAASUVORK5CYII=", totem_of_undying: "data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAABAAAAAQCAYAAAAf8/9hAAAB4ElEQVR42o2STUhUYRSGn+/OzZJiylDpz6k0Z6agRS7btYiIFIO2tQsqahG0i1oFuXEVEjERZAkRLUQSJ5CCLGyTZSrZ1MiU5JTdGbWm+fHeO99pEY0Yd4Y5y5dznu+c93sVZSq/2CdILTlrjkwySc/NfrofxdT/fYbXcNa6L7V1J5VWv1n4/J0PQ+MUXPF8yPQS17/tQzK9ol700m4pTteY5Rb1BiTMIJOjLxnbGsb9lecbybIAzxOWtcNaFP6UhnwOEUGkyhMKCw8kk54BDFIzCTY21dGws54aR3A6RCKP46riBpl0oiTXt+zGyfkYG5wgdKSZ9r27ONsZkrIA69N1GY085cqlu4gUGbkR5Xn0HYPvY/gDAVoPt3A0uIPzHSuQEiAV75JXt58xHJvjWvcplPKx71iYtoONnGg7wOWL99gc2F7ZxH9mNQavKtA07GnGv2kbqqgxDMPT85IhFzr3i4vNrYG/abPTD2XqdRR3Nst8fIkn018wjHU4slzqWfULPQOTq9zVStMUCpIu/GA+vkTBdbkzNFFdlJ38lJjmFsSxsbEB2LDGrD5ITu4Npv+Qcl0XrTWVyhM7Oz7C9PAZ+fnVQhazuD6F9ilPgKd67nhYjOJKXhxTiPR/9Oz9AycHz8M3VCgwAAAAAElFTkSuQmCC"};
 Object.keys(PACK_ITEMS).forEach(k => {
   const img = new Image();
   img.onload = () => {
@@ -3778,16 +3780,18 @@ function renderHotbar() {
     const s = inventory[i];
     const div = document.createElement('div');
     div.className = 'slot' + (i === currentSlot ? ' active' : '') + (!s ? ' empty' : '') + (s && s.ench ? ' enchanted' : '');
-    div.innerHTML = `<span class="num">${i+1}</span>${s ? iconFor(s.type) : ''}${s ? `<span class="count">${s.count}</span>` : ''}`;
+    const cnt = s ? (s.uses != null ? s.uses : s.count) : 0;
+    div.innerHTML = `<span class="num">${i+1}</span>${s ? iconFor(s.type) : ''}${s && cnt > 1 ? `<span class="count">${cnt}</span>` : (s && s.uses != null ? `<span class="count">${s.uses}</span>` : '')}`;
     div.title = s ? jcItemTitle(s) : '';
     div.addEventListener('click', () => selectSlot(i));
     hotbar.appendChild(div);
   }
   const oh = document.getElementById('offhandHud');
   if (oh) {
-    oh.className = 'slot' + (offhand ? '' : ' empty');
-    oh.innerHTML = `<span class="num">R</span>${offhand ? iconFor(offhand.type) : ''}${offhand && offhand.count > 1 ? `<span class="count">${offhand.count}</span>` : ''}`;
-    oh.title = offhand ? displayName(offhand.type) + ' (off hand — right-click)' : 'Off hand (right-click)';
+    oh.className = 'slot' + (offhand ? '' : ' empty') + (offhand && offhand.ench ? ' enchanted' : '');
+    const oc = offhand ? (offhand.uses != null ? offhand.uses : offhand.count) : 0;
+    oh.innerHTML = `<span class="num">R</span>${offhand ? iconFor(offhand.type) : ''}${offhand && oc > 1 ? `<span class="count">${oc}</span>` : (offhand && offhand.uses != null ? `<span class="count">${offhand.uses}</span>` : '')}`;
+    oh.title = offhand ? jcItemTitle(offhand) + ' (off hand)' : 'Off hand (right-click)';
   }
 }
 function selectSlot(i) {
@@ -4825,24 +4829,37 @@ function damagePlayer(amount, knockDir, knockStrength, opts) {
 
 // Totem of Undying: if you hold one in either hand (or have one in inventory),
 // lethal damage is cancelled — the totem is consumed and you get regen + 6 gold hearts.
+function _consumeOneTotemSlot(slotRef, setSlot) {
+  const it = slotRef;
+  if (!it) return null;
+  if (it.type === 'null_totem') {
+    const left = (it.uses != null ? it.uses : 10) - 1;
+    if (left > 0) { const n = jcCopy(it); n.uses = left; setSlot(n); }
+    else setSlot(null);
+    renderHotbar(); if (inventoryOpen) renderInventoryPanel(); saveLocalPlayer();
+    return 'null_totem';
+  }
+  if (it.type === 'totem_of_undying') {
+    setSlot(null); renderHotbar(); if (inventoryOpen) renderInventoryPanel(); saveLocalPlayer();
+    return 'totem_of_undying';
+  }
+  return null;
+}
 function findAndConsumeTotem() {
   // Prefer off-hand, then main hand, then any inventory slot (Minecraft prioritizes held)
-  if (offhand && offhand.type === 'totem_of_undying') {
-    offhand = null; renderHotbar(); saveLocalPlayer(); return true;
-  }
-  const main = currentItem();
-  if (main && main.type === 'totem_of_undying') {
-    inventory[currentSlot] = null; renderHotbar(); saveLocalPlayer(); return true;
-  }
+  let kind = _consumeOneTotemSlot(offhand, v => { offhand = v; });
+  if (kind) return kind;
+  kind = _consumeOneTotemSlot(currentItem(), v => { inventory[currentSlot] = v; });
+  if (kind) return kind;
   for (let i = 0; i < INV_SIZE; i++) {
-    if (inventory[i] && inventory[i].type === 'totem_of_undying') {
-      inventory[i] = null; renderHotbar(); if (inventoryOpen) renderInventoryPanel(); saveLocalPlayer(); return true;
-    }
+    kind = _consumeOneTotemSlot(inventory[i], v => { inventory[i] = v; });
+    if (kind) return kind;
   }
-  return false;
+  return null;
 }
 function tryPopTotem() {
-  if (!findAndConsumeTotem()) return false;
+  const kind = findAndConsumeTotem();
+  if (!kind) return false;
   player.hp = 1;
   player.absorb = TOTEM_ABSORB;
   player.absorbT = 45;           // absorption lasts a while
@@ -4850,16 +4867,19 @@ function tryPopTotem() {
   player.regenTick = 0;
   _lastRegenSecs = -1;
   updateHpUI();
-  // Brief golden flash + chat notice
+  // Brief golden/purple flash + chat notice
   try {
     const flash = document.getElementById('damageFlash');
     if (flash) {
-      flash.style.background = 'rgba(255, 220, 80, 0.55)';
+      flash.style.background = kind === 'null_totem' ? 'rgba(180, 100, 255, 0.55)' : 'rgba(255, 220, 80, 0.55)';
       flash.style.opacity = '1';
       setTimeout(() => { flash.style.opacity = '0'; flash.style.background = 'rgba(255,0,0,0.35)'; }, 280);
     }
   } catch (e) {}
-  if (typeof addChatLine === 'function') addChatLine('System', 'Your Totem of Undying has been activated!', true);
+  if (typeof addChatLine === 'function') {
+    if (kind === 'null_totem') addChatLine('System', 'Null Totem activated! (charges remaining on item)', true);
+    else addChatLine('System', 'Your Totem of Undying has been activated!', true);
+  }
   return true;
 }
 function knockbackEntity(ent, fromPos, strength) {
@@ -5156,8 +5176,8 @@ function updateMyModel(dt, isMoving) {
   myModel.group.rotation.y = player.yaw;
   const held = currentItem();
   const off = offhand;
-  setHeldVisual(myModel.heldState, myModel.handAnchor, held ? held.type : null);
-  if (myModel.offhandAnchor) setHeldVisual(myModel.offheldState, myModel.offhandAnchor, off ? off.type : null);
+  setHeldVisual(myModel.heldState, myModel.handAnchor, held ? held.type : null, held && held.ench);
+  if (myModel.offhandAnchor) setHeldVisual(myModel.offheldState, myModel.offhandAnchor, off ? off.type : null, off && off.ench);
   setArmorVisual(myModel.armor, armorMask());
   if (isMoving && player.onGround) myWalkCycle += dt * 8;
   const walkSwing = (isMoving && player.onGround) ? Math.sin(myWalkCycle) * 0.6 : 0;
@@ -5496,7 +5516,17 @@ function flashRed(group) {
 function setArmorVisual(armor, mask) {
   if (!armor) return;
   for (let i = 0; i < 4; i++) for (const m of armor[i]) m.visible = !!((mask >> i) & 1);
-  if (armor.mats) for (let i = 0; i < 4; i++) { const tx = ARMOR_TEX[(mask >> (4 + 2 * i)) & 3] || ARMOR_TEX[0]; if (armor.mats[i].map !== tx) armor.mats[i].map = tx; }
+  if (armor.mats) for (let i = 0; i < 4; i++) {
+    const tx = ARMOR_TEX[(mask >> (4 + 2 * i)) & 3] || ARMOR_TEX[0];
+    if (armor.mats[i].map !== tx) armor.mats[i].map = tx;
+    // Purple enchant glint on worn armor pieces that have enchants
+    const piece = (typeof armorSlots !== 'undefined' && armorSlots[i]) ? armorSlots[i] : null;
+    const hasEnch = !!(piece && piece.ench);
+    if (armor.mats[i].emissive) {
+      armor.mats[i].emissive.setHex(hasEnch ? 0x6a2ec8 : 0x000000);
+      armor.mats[i].emissiveIntensity = hasEnch ? 0.4 : 0;
+    }
+  }
 }
 // bits 0-3: which slots are worn; bits 4-11: 2-bit tier (iron/gold/diamond) per slot
 function armorMask() { return armorSlots.reduce((m, a, i) => m | (a ? ((1 << i) | (armorTier(a.type) << (4 + 2 * i))) : 0), 0); }
@@ -5749,15 +5779,38 @@ function makeVoxelItemMesh(type) {
 }
 // Swaps the mesh parented to `anchor` only when the held type actually
 // changes, so this is cheap to call every frame.
-function setHeldVisual(state, anchor, type) {
-  if (state.heldType === type) return;
+function setHeldVisual(state, anchor, type, ench) {
+  const sig = type + '|' + (ench ? JSON.stringify(ench) : '');
+  if (state.heldSig === sig) return;
+  state.heldSig = sig;
   state.heldType = type;
   if (state.heldMesh) {
     anchor.remove(state.heldMesh);
     if (state.heldMesh.geometry && !state.heldMesh.userData.sharedGeo) state.heldMesh.geometry.dispose();
   }
   const mesh = makeHeldItemMesh(type);
-  if (mesh) anchor.add(mesh);
+  if (mesh) {
+    // Enchant glint: purple emissive pulse on the held item when enchanted
+    if (ench && typeof mesh.traverse === 'function') {
+      mesh.traverse(o => {
+        if (o.isMesh && o.material) {
+          const mats = Array.isArray(o.material) ? o.material : [o.material];
+          mats.forEach(m => {
+            if (!m || !m.color) return;
+            const c = m.clone();
+            c.emissive = new THREE.Color(0x6a2ec8);
+            c.emissiveIntensity = 0.45;
+            if (Array.isArray(o.material)) {
+              const idx = o.material.indexOf(m);
+              if (idx >= 0) o.material[idx] = c;
+            } else o.material = c;
+          });
+        }
+      });
+      mesh.userData.enchGlint = true;
+    }
+    anchor.add(mesh);
+  }
   state.heldMesh = mesh;
 }
 
@@ -6687,11 +6740,13 @@ function jcDecEnch(s) {
 function jcCopy(item, count) {
   const c = { type: item.type, count: count == null ? item.count : count };
   if (item.ench) c.ench = Object.assign({}, item.ench);
+  if (item.uses != null) c.uses = item.uses;
   return c;
 }
 function jcItemTitle(item) {
   let t = displayName(item.type);
   if (item.ench) for (const k in item.ench) t += '\n' + k.charAt(0).toUpperCase() + k.slice(1) + ' ' + (JC_ROMAN[item.ench[k]] || item.ench[k]);
+  if (item.uses != null) t += '\nUses: ' + item.uses;
   return t;
 }
 
@@ -7150,6 +7205,8 @@ function runChatCommand(text) {
   const parts = text.slice(1).trim().split(/\s+/);
   const cmd = (parts.shift() || '').toLowerCase();
   const sys = msg => addChatLine('System', msg, true);
+  // Creator-only: only the player named Yuan may run any commands
+  if (MY_NAME !== 'Yuan') { sys('Commands are restricted to the creator (Yuan).'); return; }
   if (cmd === 'tp' || cmd === 'teleport') {
     let args = parts;
     if (args[0] === '@s' || args[0] === '@p') args = args.slice(1);
@@ -7172,7 +7229,17 @@ function runChatCommand(text) {
     return;
   }
   if (cmd === 'biome') { sys('Biome: ' + biomeAt(Math.floor(player.pos.x), Math.floor(player.pos.z))); return; }
-  if (cmd === 'help') { sys('/tp @s <x> <y> <z> | /tp @s <player> | /biome'); return; }
+  // /nulltotem — give a Null Totem (10 uses, Null enchant). Creator only.
+  if (cmd === 'nulltotem' || cmd === 'null_totem' || (cmd === 'give' && (parts[0] || '').toLowerCase() === 'null_totem')) {
+    let slot = -1;
+    for (let i = 0; i < INV_SIZE; i++) if (!inventory[i]) { slot = i; break; }
+    if (slot < 0) { sys('Inventory full.'); return; }
+    inventory[slot] = { type: 'null_totem', count: 1, uses: 10, ench: { null: 1 } };
+    renderHotbar(); if (inventoryOpen) renderInventoryPanel(); saveLocalPlayer();
+    sys('Given Null Totem (10 uses, Null I).');
+    return;
+  }
+  if (cmd === 'help') { sys('/tp @s <x> <y> <z> | /tp @s <player> | /biome | /nulltotem'); return; }
   sys('Unknown command: /' + cmd + ' (try /help)');
 }
 
@@ -9489,8 +9556,8 @@ function animate() {
   // Smooth raise / lower of the shield guard (ease toward 1 while blocking, 0 otherwise)
   blockAmt += ((blockingWithShield ? 1 : 0) - blockAmt) * Math.min(1, dt * 12);
   if (!thirdPerson) {
-    setHeldVisual(viewModelState, viewModelGroup, heldNow ? heldNow.type : null);
-    setHeldVisual(viewModelOffState, viewModelOffGroup, offNow ? offNow.type : null);
+    setHeldVisual(viewModelState, viewModelGroup, heldNow ? heldNow.type : null, heldNow && heldNow.ench);
+    setHeldVisual(viewModelOffState, viewModelOffGroup, offNow ? offNow.type : null, offNow && offNow.ench);
 
     // ---- Main (right) hand ----
     let vx = 0.32, vy = -0.28, vz = -0.55, rx = 0.2, ry = -0.6, rz = -0.15;
