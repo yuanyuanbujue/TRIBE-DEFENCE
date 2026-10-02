@@ -562,6 +562,72 @@
     .invSlot { width: 40px !important; height: 40px !important; font-size: 18px !important; }
     #equipBox { transform: scale(0.85); transform-origin: top left; }
   }
+
+  /* ===== XP bar ===== */
+  #xpWrap { position: fixed; left: 50%; transform: translateX(-50%); bottom: 68px; display: flex; align-items: center; gap: 6px; z-index: 10; pointer-events: none; }
+  body.touch-mode #xpWrap { bottom: calc(56px + env(safe-area-inset-bottom, 0px)); }
+  #xpLvl { min-width: 16px; text-align: center; font: bold 14px 'Segoe UI', Arial, sans-serif; color: #8cff3c; text-shadow: 1px 1px 0 #000, -1px 1px 0 #000, 1px -1px 0 #000, -1px -1px 0 #000; }
+  #xpTrack { width: 190px; height: 8px; box-sizing: border-box; padding: 1px; background: rgba(0,0,0,0.6); border: 1px solid rgba(0,0,0,0.9); }
+  #xpFill { height: 100%; width: 0%; background: linear-gradient(#bfff68, #5fd21f); }
+  .xpPop { position: fixed; left: 50%; bottom: 100px; transform: translateX(-50%); color: #9cff4a; font: bold 14px 'Segoe UI', Arial, sans-serif; text-shadow: 1px 1px 0 #000; pointer-events: none; z-index: 12; white-space: nowrap; animation: xpPopUp 1.15s ease-out forwards; }
+  body.touch-mode .xpPop { bottom: 130px; }
+  @keyframes xpPopUp { 0% { opacity: 0; transform: translate(-50%, 6px); } 15% { opacity: 1; } 100% { opacity: 0; transform: translate(-50%, -26px); } }
+  #statusBars { bottom: 84px; }
+  #chatLog { bottom: 112px; }
+
+  /* ===== Enchanted item glint ===== */
+  .slot.enchanted, .invSlot.enchanted { position: relative; }
+  .enchanted::after {
+    content: ''; position: absolute; inset: 0; border-radius: 4px; pointer-events: none;
+    background: linear-gradient(115deg, rgba(255,255,255,0) 30%, rgba(196,130,255,0.65) 50%, rgba(255,255,255,0) 70%);
+    background-size: 250% 100%; animation: enchGlint 2.2s linear infinite;
+    box-shadow: inset 0 0 7px rgba(176,96,255,0.85);
+  }
+  @keyframes enchGlint { 0% { background-position: 150% 0; } 100% { background-position: -50% 0; } }
+
+  /* ===== Enchanting table panel ===== */
+  #enchantPanel {
+    position: fixed; inset: 0; z-index: 60; display: none;
+    background: rgba(0,0,0,0.6); color: white; align-items: center; justify-content: center;
+    flex-direction: column; text-align: center; overflow-y: auto; -webkit-overflow-scrolling: touch;
+  }
+  #enchantPanel h2 { text-shadow: 2px 2px 0 rgba(0,0,0,0.5); margin: 4px 0; font-size: 16px; }
+  #enchantPanelBox {
+    margin: auto; background: rgba(34,22,52,0.95); border: 3px solid rgba(196,140,255,0.5); border-radius: 10px;
+    padding: 16px 20px; display: flex; flex-direction: column; align-items: center; gap: 4px;
+  }
+  #enchantTop { display: flex; align-items: center; gap: 16px; margin: 6px 0 4px; }
+  #enchantSlotWrap { padding: 6px; border-radius: 8px; background: rgba(0,0,0,0.25); }
+  #enchantSlotWrap.flash { animation: enchFlash 0.7s ease-out; }
+  @keyframes enchFlash { 0% { box-shadow: 0 0 0 0 rgba(210,150,255,0.95); } 100% { box-shadow: 0 0 0 22px rgba(210,150,255,0); } }
+  #enchantChoices { display: flex; flex-direction: column; gap: 6px; min-width: 270px; }
+  .enchBtn {
+    display: flex; flex-direction: column; align-items: flex-start; gap: 1px; width: 100%;
+    padding: 7px 12px; border-radius: 7px; cursor: pointer; text-align: left; color: #fff;
+    border: 2px solid rgba(255,255,255,0.35); background: rgba(80,50,120,0.55);
+    font-family: inherit; touch-action: manipulation;
+  }
+  .enchBtn .eb-t { font-weight: bold; font-size: 14px; }
+  .enchBtn .eb-s { font-size: 12px; opacity: 0.85; }
+  #enchBtn0 { border-color: #7fd0ff; }
+  #enchBtn1 { border-color: #c48cff; }
+  #enchBtn2 { border-color: #ffd24a; }
+  .enchBtn:hover:not(:disabled) { background: rgba(140,90,210,0.7); }
+  .enchBtn:disabled { opacity: 0.45; cursor: not-allowed; }
+  #enchantInfo { font-size: 13px; margin: 2px 0 8px; }
+  #enchantInfo b { color: #8cff3c; }
+  #enchantMsg { min-height: 16px; font-size: 13px; color: #e6c8ff; }
+  #enchantMainGrid { display: grid; grid-template-columns: repeat(9, 52px); gap: 5px; margin-bottom: 12px; }
+  #enchantHotbarGrid { display: grid; grid-template-columns: repeat(9, 52px); gap: 5px; margin-top: 6px; padding-top: 10px; border-top: 2px solid rgba(255,255,255,0.25); }
+  #enchantHint { font-size: 12px; opacity: 0.8; margin-top: 6px; max-width: 500px; }
+  body.touch-mode #enchantPanel { justify-content: flex-start; }
+  body.touch-mode #enchantHint { display: none; }
+  @media (max-width: 700px) {
+    #enchantPanelBox { max-width: 96vw; padding: 10px; overflow-x: auto; }
+    #enchantMainGrid, #enchantHotbarGrid { grid-template-columns: repeat(9, minmax(34px, 40px)) !important; gap: 3px !important; }
+    #enchantTop { flex-direction: column; gap: 8px; }
+    #enchantChoices { min-width: 0; width: 100%; }
+  }
 </style>
 </head>
 <body>
@@ -662,6 +728,26 @@
   </div>
 </div>
 
+<div id="enchantPanel">
+  <button class="panelClose" id="enchantCloseBtn" aria-label="Close enchanting table">✕</button>
+  <div id="enchantPanelBox">
+    <h2>Enchanting Table</h2>
+    <div id="enchantTop">
+      <div id="enchantSlotWrap"></div>
+      <div id="enchantChoices">
+        <button class="enchBtn" id="enchBtn0"><span class="eb-t"></span><span class="eb-s"></span></button>
+        <button class="enchBtn" id="enchBtn1"><span class="eb-t"></span><span class="eb-s"></span></button>
+        <button class="enchBtn" id="enchBtn2"><span class="eb-t"></span><span class="eb-s"></span></button>
+      </div>
+    </div>
+    <div id="enchantInfo">Your XP level: <b id="enchantLvl">0</b></div>
+    <div id="enchantMsg"></div>
+    <div id="enchantMainGrid"></div>
+    <div id="enchantHotbarGrid"></div>
+    <p id="enchantHint">Tap an item in your bag to put it in the slot (tap the slot to take it back). Swords get <b>Sharpness</b> (more damage), armor gets <b>Protection</b> (less damage taken). The more XP levels you spend, the stronger the enchantment. Kill mobs to earn XP · Press E to close</p>
+  </div>
+</div>
+
 <div id="chestPanel">
   <button class="panelClose" id="chestCloseBtn" aria-label="Close chest">✕</button>
   <div id="chestPanelBox">
@@ -720,6 +806,7 @@
   <div id="heartsBar" aria-label="Health"></div>
   <div id="hungerBar" aria-label="Hunger"></div>
 </div>
+<div id="xpWrap"><span id="xpLvl">0</span><div id="xpTrack"><div id="xpFill"></div></div></div>
 <div id="chatLog"></div>
 <div id="chatInputWrap"><input id="chatInput" type="text" maxlength="200" enterkeyhint="send" autocomplete="off" autocorrect="off" placeholder="Say something... (Enter to send, Esc to cancel)"><button type="button" class="chatBtn" id="chatSendBtn">Send</button><button type="button" class="chatBtn" id="chatCancelBtn" aria-label="Cancel chat">✕</button></div>
 <div id="damageFlash"></div>
@@ -1237,6 +1324,7 @@ const BLOCK_TYPES = {
   glass:  { transparent: true, hardness: 0.3, tool: null },
   water:  { transparent: true, hardness: 0 },
   crafting_table: { transparent: false, hardness: 1.0, tool: 'axe' },
+  enchanting_table: { transparent: false, hardness: 2.0, tool: 'pickaxe' },
   sapling: { transparent: true, hardness: 0.1, tool: null, cross: true },
   coal_ore: { transparent: false, hardness: 1.5, tool: 'pickaxe' },
   iron_ore: { transparent: false, hardness: 2.5, tool: 'pickaxe' },
@@ -1316,9 +1404,14 @@ function isArmor(type) { return !!(ITEM_INFO[type] && ITEM_INFO[type].armor); }
 // player is carrying in their inventory count as "worn" (simplified —
 // no separate armor slots), each reducing incoming damage by its value.
 function totalArmorReduction() {
-  let total = 0;
-  for (const a of armorSlots) if (a && isArmor(a.type)) total += ITEM_INFO[a.type].armor;   // only EQUIPPED armor counts
-  return Math.min(0.8, total * 0.04); // each armor point ~4% reduction, capped at 80%
+  let total = 0, prot = 0;
+  for (const a of armorSlots) if (a && isArmor(a.type)) {   // only EQUIPPED armor counts
+    total += ITEM_INFO[a.type].armor;
+    if (a.ench && a.ench.protection) prot += a.ench.protection;
+  }
+  const base = Math.min(0.8, total * 0.04);   // each armor point ~4% reduction, capped at 80%
+  const extra = Math.min(0.8, prot * 0.04);   // each Protection level on each piece = another 4%
+  return Math.min(0.9, 1 - (1 - base) * (1 - extra));
 }
 function isSword(type) { return type === 'wood_sword' || type === 'stone_sword' || type === 'iron_sword' || type === 'gold_sword' || type === 'diamond_sword'; }
 function isFood(type) { return !!(ITEM_INFO[type] && ITEM_INFO[type].food); }
@@ -1523,6 +1616,7 @@ function blockFaceCanvases(type) {            // -> { top, side } source canvase
     case 'wood':  return { top: T('woodTop'), side: T('wood') };
     case 'birch_wood': return { top: T('birchWoodTop'), side: T('birchWood') };
     case 'crafting_table': return { top: T('craftTop'), side: T('planks') };
+    case 'enchanting_table': return { top: T('enchTop'), side: T('enchSide') };
     case 'chest': return { top: T('chestTop'), side: T('chest') };
     case 'bed':   return { top: T('bedTop'), side: T('bedSide') };
     case 'tnt':   return { top: T('tntTop'), side: T('tnt') };
@@ -1659,6 +1753,9 @@ const RECIPES = [
   { shape: [['charcoal'],['stick']], out: 'torch', outCount: 4, needsTable: false },
   { shape: [['cobblestone','cobblestone','cobblestone'],['cobblestone',null,'cobblestone'],['cobblestone','cobblestone','cobblestone']], out: 'furnace', outCount: 1, needsTable: true },
   { shape: [['planks','planks','planks'],['planks',null,'planks'],['planks','planks','planks']], out: 'chest', outCount: 1, needsTable: true },
+  // Enchanting table: 2 diamond + 4 wood (logs OR planks) + 1 iron ingot
+  { shape: [[null,'iron_ingot',null],['diamond','wood','diamond'],['wood','wood','wood']], out: 'enchanting_table', outCount: 1, needsTable: true },
+  { shape: [[null,'iron_ingot',null],['diamond','planks','diamond'],['planks','planks','planks']], out: 'enchanting_table', outCount: 1, needsTable: true },
   // Bed: 3 wool (dropped by sheep) on top of 3 planks, like Minecraft.
   { shape: [['wool','wool','wool'],['planks','planks','planks']], out: 'bed', outCount: 1, needsTable: true },
   // TNT: coal (stands in for gunpowder) + sand, checkerboard like Minecraft's 5+4.
@@ -1810,6 +1907,24 @@ MI.birch_leaves = regMat(TEX.birch_leaves);
 MI.birchDoorLower = regMat(TEX.birchDoorLower);
 MI.birchDoorUpper = regMat(TEX.birchDoorUpper);
 MI.birchTrapdoor  = regMat(TEX.birchTrapdoor);
+// ---- enchanting table (obsidian-style base, red cloth + book on top) ----
+TEX.enchSide = makeTexture(ctx => {
+  speckle(ctx, '#2b1f40', ['#201733', '#36284f', '#271c3a'], 40);
+  ctx.fillStyle = '#7d1f3f'; ctx.fillRect(0, 0, 16, 2);
+  ctx.fillStyle = '#4fd8ec'; ctx.fillRect(1, 11, 2, 2); ctx.fillRect(13, 11, 2, 2);
+});
+TEX.enchTop = makeTexture(ctx => {
+  ctx.fillStyle = '#2b1f40'; ctx.fillRect(0, 0, 16, 16);
+  ctx.fillStyle = '#b11d33'; ctx.fillRect(2, 2, 12, 12);
+  ctx.fillStyle = '#d63a4e'; ctx.fillRect(3, 3, 10, 2);
+  ctx.fillStyle = '#7d1226'; ctx.fillRect(2, 13, 12, 1); ctx.fillRect(13, 2, 1, 12);
+  ctx.fillStyle = '#f2e8d0'; ctx.fillRect(5, 5, 6, 6);
+  ctx.fillStyle = '#9b7a45'; ctx.fillRect(8, 5, 1, 6);
+  ctx.fillStyle = '#4fd8ec';
+  [[0, 0], [14, 0], [0, 14], [14, 14]].forEach(([x, y]) => ctx.fillRect(x, y, 2, 2));
+});
+MI.enchTop  = regMat(TEX.enchTop);
+MI.enchSide = regMat(TEX.enchSide);
 MI.birch_door     = MI.birchDoorLower;   // held / icon material
 MI.birch_trapdoor = MI.birchTrapdoor;
 MI.door      = MI.doorLower;   // held / icon material
@@ -1841,6 +1956,7 @@ function faceMatIndex(type, faceIdx) {
     case 'wood':  return (faceIdx===2 || faceIdx===3) ? MI.woodTop : MI.wood;
     case 'birch_wood': return (faceIdx===2 || faceIdx===3) ? MI.birchWoodTop : MI.birch_wood;
     case 'crafting_table': return (faceIdx===2 || faceIdx===3) ? MI.craftTop : MI.craftSide;
+    case 'enchanting_table': return (faceIdx===2 || faceIdx===3) ? MI.enchTop : MI.enchSide;
     case 'chest': return (faceIdx===2 || faceIdx===3) ? MI.chestTop : MI.chest;
     case 'bed':   return (faceIdx===2 || faceIdx===3) ? MI.bedTop : MI.bedSide;
     case 'tnt':   return (faceIdx===2 || faceIdx===3) ? MI.tntTop : MI.tnt;
@@ -3032,6 +3148,8 @@ function snapshotSave() {
     hp: player.hp,
     hunger: player.hunger,
     saturation: player.saturation,
+    xpLevel: xpState.level,
+    xpPoints: xpState.points,
     name: MY_NAME,
     respawnPoint,
     ts: Date.now()
@@ -3051,6 +3169,9 @@ function applySaveData(data) {
   if (typeof data.hunger === 'number') player.hunger = Math.max(0, Math.min(player.maxHunger, data.hunger));
   if (typeof data.saturation === 'number') player.saturation = Math.max(0, data.saturation);
   if (data.respawnPoint && typeof data.respawnPoint.x === 'number') respawnPoint = data.respawnPoint;
+  if (Number.isInteger(data.xpLevel) && data.xpLevel >= 0) xpState.level = data.xpLevel;
+  if (typeof data.xpPoints === 'number' && data.xpPoints >= 0) xpState.points = data.xpPoints;
+  try { jcXpUI(); } catch (e) {}
 }
 function loadLocalPlayer() {
   try {
@@ -3161,6 +3282,7 @@ function subscribeWorldChanges() {
 const HOTBAR_SIZE = 9, MAIN_SIZE = 27, INV_SIZE = HOTBAR_SIZE + MAIN_SIZE;
 let inventory = new Array(INV_SIZE).fill(null);
 let armorSlots = [null, null, null, null]; // helmet, chestplate, leggings, boots
+let xpState = { level: 0, points: 0 };      // XP: whole levels + progress points into the next level
 let offhand = null;                        // off-hand item, used with right-click
 let currentSlot = 1; // index into hotbar (0-8); starts on the dirt-ish slot once picked up
 
@@ -3173,11 +3295,11 @@ function currentBlockType() {
 // Adds `count` of `type` into the inventory: first topping up existing
 // matching stacks, then filling empty slots. Returns leftover count that
 // didn't fit (0 if it all fit).
-function addItemToInventory(type, count) {
+function addItemToInventory(type, count, ench) {
   const maxStack = maxStackFor(type);
   for (let i = 0; i < INV_SIZE && count > 0; i++) {
     const s = inventory[i];
-    if (s && s.type === type && s.count < maxStack) {
+    if (s && s.type === type && !s.ench && !ench && s.count < maxStack) {
       const add = Math.min(maxStack - s.count, count);
       s.count += add; count -= add;
     }
@@ -3185,7 +3307,7 @@ function addItemToInventory(type, count) {
   for (let i = 0; i < INV_SIZE && count > 0; i++) {
     if (!inventory[i]) {
       const add = Math.min(maxStack, count);
-      inventory[i] = { type, count: add }; count -= add;
+      inventory[i] = { type, count: add }; if (ench) inventory[i].ench = Object.assign({}, ench); count -= add;
     }
   }
   return count;
@@ -3203,9 +3325,9 @@ function renderHotbar() {
   for (let i = 0; i < HOTBAR_SIZE; i++) {
     const s = inventory[i];
     const div = document.createElement('div');
-    div.className = 'slot' + (i === currentSlot ? ' active' : '') + (!s ? ' empty' : '');
+    div.className = 'slot' + (i === currentSlot ? ' active' : '') + (!s ? ' empty' : '') + (s && s.ench ? ' enchanted' : '');
     div.innerHTML = `<span class="num">${i+1}</span>${s ? iconFor(s.type) : ''}${s ? `<span class="count">${s.count}</span>` : ''}`;
-    div.title = s ? displayName(s.type) : '';
+    div.title = s ? jcItemTitle(s) : '';
     div.addEventListener('click', () => selectSlot(i));
     hotbar.appendChild(div);
   }
@@ -3262,7 +3384,8 @@ function makeSlotEl(getItem, onLeftClick, onRightClick, extraClass, zone) {
   const item = getItem();
   if (!item) div.classList.add('dim');
   div.innerHTML = iconHtml(item);
-  div.title = item ? displayName(item.type) : '';
+  div.title = item ? jcItemTitle(item) : '';
+  if (item && item.ench) div.classList.add('enchanted');
   div.addEventListener('mousedown', e => {
     if (e.button !== 0) return;
     e.preventDefault();
@@ -3292,7 +3415,7 @@ function stashInto(arr, lo, hi, item) {
   for (let i = lo; i < hi && item.count > 0; i++) {           // then empty slots
     if (!arr[i]) {
       const add = Math.min(max, item.count);
-      arr[i] = { type: item.type, count: add }; item.count -= add;
+      arr[i] = jcCopy(item, add); item.count -= add;
     }
   }
 }
@@ -3358,11 +3481,11 @@ function quickMove(zone) {
     const src = getZoneItem(zone);
     if (!src) return;
     if (zone.k === 'inv' && !chestOpen && !furnaceOpen && isArmor(src.type) && !armorSlots[ITEM_INFO[src.type].slot]) {
-      armorSlots[ITEM_INFO[src.type].slot] = { type: src.type, count: 1 };
+      armorSlots[ITEM_INFO[src.type].slot] = jcCopy(src, 1);
       src.count--; if (src.count <= 0) setZoneItem(zone, null);
       renderInventoryPanel(); renderHotbar(); saveLocalPlayer(); return;
     }
-    const item = { type: src.type, count: src.count };
+    const item = jcCopy(src);
     if (zone.k === 'inv') {
       if (chestOpen && chestSlots) stashInto(chestSlots, 0, CHEST_SIZE, item);
       else if (furnaceOpen) stashFurnace(item);
@@ -3392,9 +3515,9 @@ function clickSlot(getItem, setItem, isRight) {
     if (!slotItem) return;
     if (isRight) {
       const take = Math.ceil(slotItem.count / 2);
-      cursorItem = { type: slotItem.type, count: take };
+      cursorItem = jcCopy(slotItem, take);
       const remain = slotItem.count - take;
-      setItem(remain > 0 ? { type: slotItem.type, count: remain } : null);
+      setItem(remain > 0 ? jcCopy(slotItem, remain) : null);
     } else {
       cursorItem = slotItem;
       setItem(null);
@@ -3402,7 +3525,7 @@ function clickSlot(getItem, setItem, isRight) {
   } else {
     if (!slotItem) {
       if (isRight) {
-        setItem({ type: cursorItem.type, count: 1 });
+        setItem(jcCopy(cursorItem, 1));
         cursorItem.count--; if (cursorItem.count <= 0) cursorItem = null;
       } else {
         setItem(cursorItem);
@@ -3520,8 +3643,8 @@ document.addEventListener('mousemove', e => {
 
 function returnCursorItemToInventory() {
   if (!cursorItem) return;
-  const leftover = addItemToInventory(cursorItem.type, cursorItem.count);
-  cursorItem = leftover > 0 ? { type: cursorItem.type, count: leftover } : null;
+  const leftover = addItemToInventory(cursorItem.type, cursorItem.count, cursorItem.ench);
+  cursorItem = leftover > 0 ? jcCopy(cursorItem, leftover) : null;
 }
 
 
@@ -3531,7 +3654,8 @@ function renderStatsBoard() {
   if (!statsBoardEl) return;
   const held = currentItem();
   const _js = jcStats(held);
-  const atk = _js.dmg + ' dmg · ' + (20 / _js.ticks).toFixed(1) + '/s';
+  const _sh = held && held.ench && held.ench.sharpness;
+  const atk = _js.dmg + ' dmg · ' + (20 / _js.ticks).toFixed(1) + '/s' + (_sh ? ' · Sharp ' + JC_ROMAN[_sh] : '');
   let armorPts = 0, itemCount = 0, usedSlots = 0;
   for (const it of inventory) {
     if (!it) continue;
@@ -3576,7 +3700,7 @@ function openInventory(atTable) {
 // allow pointer lock from a user gesture); if the browser refuses, the
 // normal "Click to resume" overlay appears as a fallback.
 function resumeGameplay() {
-  if (!gameStarted || inventoryOpen || furnaceOpen || chestOpen || chatOpen || settingsOpen || signOpen) return;
+  if (!gameStarted || inventoryOpen || furnaceOpen || enchantOpen || chestOpen || chatOpen || settingsOpen || signOpen) return;
   if (pointerLocked) return;
   pauseOverlay.style.display = 'none';
   try {
@@ -3585,13 +3709,13 @@ function resumeGameplay() {
   } catch (e) { pauseOverlay.style.display = 'flex'; }
 }
 document.addEventListener('pointerlockerror', () => {
-  if (gameStarted && !pointerLocked && !inventoryOpen && !furnaceOpen && !chestOpen && !chatOpen && !settingsOpen && !signOpen && !signOpen) pauseOverlay.style.display = 'flex';
+  if (gameStarted && !pointerLocked && !inventoryOpen && !furnaceOpen && !enchantOpen && !chestOpen && !chatOpen && !settingsOpen && !signOpen && !signOpen) pauseOverlay.style.display = 'flex';
 });
 function closeInventory() {
   inventoryOpen = false;
   invPanel.style.display = 'none';
   // return any grid/cursor contents to the inventory rather than deleting items
-  craftSlots.forEach((s, i) => { if (s) { addItemToInventory(s.type, s.count); craftSlots[i] = null; } });
+  craftSlots.forEach((s, i) => { if (s) { addItemToInventory(s.type, s.count, s.ench); craftSlots[i] = null; } });
   returnCursorItemToInventory();
   renderHotbar();
   saveLocalPlayer();
@@ -3630,6 +3754,7 @@ const furnaceHotbarGridEl = document.getElementById('furnaceHotbarGrid');
 const furnaceFlameFill = document.getElementById('furnaceFlameFill');
 const furnaceArrowFill = document.getElementById('furnaceArrowFill');
 
+let enchantOpen = false;
 let furnaceOpen = false;
 let furnaceSlots = { input: null, fuel: null, output: null };
 let furnaceBurnLeft = 0;   // seconds of current fuel charge remaining
@@ -3799,13 +3924,13 @@ function chestSyncTick() {
 // ---- chest contents in the shared world table (survives reloads, visible to everyone) ----
 const recentChestPushes = [];   // our own recent writes, so their realtime echo can't undo newer local edits
 const chestDbTimers = {};
-function encodeChest(slots) { return 'c:' + slots.map(s => s ? s.type + '*' + s.count : '').join(','); }
+function encodeChest(slots) { return 'c:' + slots.map(s => s ? s.type + '*' + s.count + jcEnchEnc(s.ench) : '').join(','); }
 function decodeChest(str) {
   const arr = new Array(CHEST_SIZE).fill(null);
   str.split(',').forEach((e, i) => {
     if (i >= CHEST_SIZE || !e) return;
-    const [t, c] = e.split('*'), n = parseInt(c, 10);
-    if (t && n > 0 && (BLOCK_TYPES[t] || ITEM_INFO[t])) arr[i] = { type: t, count: n };
+    const [t, cr] = e.split('*'), c = (cr || '').split('~'), n = parseInt(c[0], 10);
+    if (t && n > 0 && (BLOCK_TYPES[t] || ITEM_INFO[t])) { arr[i] = { type: t, count: n }; const en = jcDecEnch(c[1]); if (en) arr[i].ench = en; }
   });
   return arr;
 }
@@ -5046,6 +5171,7 @@ function damageAnimal(animal, dmg, fromPos, kbMul) {
 }
 function killAnimal(animal) {
   animal.alive = false;
+  jcAddXp(JC_XP[animal.kind] || 2);
   scene.remove(animal.group);
   if (animal.kind === 'zombie') {
     if (Math.random() < 0.08) addItemToInventory('iron_ingot', 1);
@@ -5097,7 +5223,7 @@ function spawnDroppedItem(type, count, pos, vel, opts) {
   // a neighboring solid block and end up visually wedged inside it.
   const v = vel ? vel.clone() : new THREE.Vector3((Math.random()-0.5)*0.6, 2.5, (Math.random()-0.5)*0.6);
   droppedItems.push({
-    id, sprite, type, count,
+    id, sprite, type, count, ench: opts.ench || null,
     pos: pos.clone(),
     vel: v,
     radius: 0.15, height: 0.15,
@@ -5107,7 +5233,7 @@ function spawnDroppedItem(type, count, pos, vel, opts) {
   if (!opts.remote) {
     playersChannel.send({
       type: 'broadcast', event: 'drop',
-      payload: { from: MY_ID, id, itemType: type, count, x: pos.x, y: pos.y, z: pos.z, vx: v.x, vy: v.y, vz: v.z }
+      payload: { from: MY_ID, id, itemType: type, count, ench: opts.ench || null, x: pos.x, y: pos.y, z: pos.z, vx: v.x, vy: v.y, vz: v.z }
     });
   }
 }
@@ -5145,7 +5271,7 @@ function updateDroppedItems(dt) {
       const dy = it.pos.y - (player.pos.y + player.height*0.5);
       if (dx*dx + dz*dz < 1.6*1.6 && Math.abs(dy) < 2.2) {
         const before = it.count;
-        const leftover = addItemToInventory(it.type, it.count);
+        const leftover = addItemToInventory(it.type, it.count, it.ench);
         renderHotbar();
         if (inventoryOpen) renderInventoryPanel();
         if (leftover < before) {
@@ -5172,7 +5298,7 @@ function throwCurrentItem() {
   const startPos = new THREE.Vector3(player.pos.x, player.pos.y + player.height*0.6, player.pos.z)
     .add(dir.clone().multiplyScalar(0.6));
   const vel = dir.clone().multiplyScalar(6.5).add(new THREE.Vector3(0, 2.8, 0));
-  spawnDroppedItem(held.type, 1, startPos, vel);
+  spawnDroppedItem(held.type, 1, startPos, vel, { ench: held.ench });
   removeFromCurrentSlot(1);
   renderHotbar();
   if (inventoryOpen) renderInventoryPanel();
@@ -5244,6 +5370,8 @@ function jcRoll() {
   const wet = (typeof isInWater === 'function') && isInWater(player.pos);
   const crit = charged && !player.onGround && player.vel.y < -1.5 && !wet && !jcSprinting;
   if (crit) dmg *= 1.5;
+  const _h = currentItem(), _sh = (_h && _h.ench && _h.ench.sharpness) || 0;
+  if (_sh > 0) dmg += (0.5 * _sh + 0.5) * s;   // Java Sharpness: +0.5*level+0.5, scaled by charge
   const sprint = charged && jcSprinting;
   const sweep = charged && st.kind === 'sword' && player.onGround && !jcSprinting && !crit;
   return { st, s, charged, dmg, crit, sprint, sweep, kb: (charged ? 1 : 0.6) * (sprint ? 1.9 : 1) };
@@ -5371,6 +5499,188 @@ function jcAttackPlayer(pt) {
   return true;
 }
 
+// ================= Generous target picking (mobile) =================
+// Ray vs. a vertical capsule (feet..head) with extra padding, unioned with the old
+// "angle to body centre" test, so it is never harder to hit something than before.
+function jcPickTarget(ray, reach, pad) {
+  const o = ray.origin, d = ray.dir;
+  let best = null, bestScore = Infinity;
+  const consider = (kind, ref, px, py, pz, radius, height) => {
+    let minMiss = Infinity, minDist = Infinity;
+    for (let k = 0; k <= 4; k++) {
+      const x = px - o.x, y = py + height * (k / 4) - o.y, z = pz - o.z;
+      const t = Math.max(0, x * d.x + y * d.y + z * d.z);
+      const cx = x - d.x * t, cy = y - d.y * t, cz = z - d.z * t;
+      const miss = Math.sqrt(cx * cx + cy * cy + cz * cz), dist = Math.sqrt(x * x + y * y + z * z);
+      if (miss < minMiss) minMiss = miss;
+      if (dist < minDist) minDist = dist;
+    }
+    if (minDist > reach) return;
+    const mx = px - o.x, my = py + height * 0.5 - o.y, mz = pz - o.z;
+    const md = Math.sqrt(mx * mx + my * my + mz * mz) || 1;
+    const fwd = (mx * d.x + my * d.y + mz * d.z) / md;
+    if (fwd < -0.3) return;                                   // behind you
+    const ang = Math.acos(Math.max(-1, Math.min(1, fwd)));
+    const okCap = minMiss <= radius + pad, okAng = ang < 0.45 && md <= reach;
+    if (!okCap && !okAng) return;
+    const score = Math.min(minMiss / (radius + pad), ang / 0.45) + minDist * 0.02;
+    if (score < bestScore) { bestScore = score; best = { kind, ref }; }
+  };
+  animals.forEach(a => { if (a.alive) consider('animal', a, a.pos.x, a.pos.y, a.pos.z, a.radius || 0.45, a.height || 1.0); });
+  otherPlayers.forEach((entry, id) => {
+    if (!entry || !entry.group) return;
+    const g = entry.group.position;
+    consider('player', { id, entry }, g.x, g.y, g.z, 0.4, 1.8);
+  });
+  return best;
+}
+
+// ================= XP & enchanting =================
+const JC_XP = { zombie: 8, cow: 4, sheep: 3, pig: 3 };           // XP per kill
+function xpNeed(level) { return 7 + level * 2; }                  // XP points to climb from `level` to level+1
+const xpLvlEl = document.getElementById('xpLvl'), xpFillEl = document.getElementById('xpFill');
+function jcXpUI() {
+  xpLvlEl.textContent = xpState.level;
+  xpFillEl.style.width = Math.min(100, xpState.points / xpNeed(xpState.level) * 100).toFixed(1) + '%';
+  if (enchantOpen) jcRenderEnchantChoices();
+}
+function jcXpPop(text) {
+  const d = document.createElement('div'); d.className = 'xpPop'; d.textContent = text;
+  document.body.appendChild(d); setTimeout(() => d.remove(), 1200);
+}
+function jcAddXp(n) {
+  if (!(n > 0)) return;
+  const before = xpState.level;
+  xpState.points += n;
+  while (xpState.points >= xpNeed(xpState.level)) { xpState.points -= xpNeed(xpState.level); xpState.level++; }
+  jcXpUI();
+  jcXpPop('+' + n + ' XP' + (xpState.level > before ? '  ·  Level ' + xpState.level + '!' : ''));
+  saveLocalPlayer();
+}
+
+const JC_ROMAN = ['', 'I', 'II', 'III', 'IV', 'V'];
+// Low / Medium / High: the more XP levels you spend, the stronger the enchantment.
+const JC_ENCH_TIERS = [
+  { name: 'Low',    cost: 2, level: 1 },
+  { name: 'Medium', cost: 4, level: 2 },
+  { name: 'High',   cost: 6, level: 3 },
+];
+function jcEnchInfo(type) {
+  if (isSword(type)) return { id: 'sharpness', name: 'Sharpness' };
+  if (isArmor(type)) return { id: 'protection', name: 'Protection' };
+  return null;
+}
+function jcCleanEnch(e) {
+  if (!e || typeof e !== 'object') return null;
+  for (const k of ['sharpness', 'protection']) {
+    const n = parseInt(e[k], 10);
+    if (n >= 1 && n <= 3) return { [k]: n };
+  }
+  return null;
+}
+function jcEnchEnc(e) { const c = jcCleanEnch(e); if (!c) return ''; const k = Object.keys(c)[0]; return '~' + k + ':' + c[k]; }
+function jcDecEnch(s) { if (!s) return null; const p = s.split(':'); return jcCleanEnch({ [p[0]]: p[1] }); }
+function jcCopy(item, count) {
+  const c = { type: item.type, count: count == null ? item.count : count };
+  if (item.ench) c.ench = Object.assign({}, item.ench);
+  return c;
+}
+function jcItemTitle(item) {
+  let t = displayName(item.type);
+  if (item.ench) for (const k in item.ench) t += '\n' + k.charAt(0).toUpperCase() + k.slice(1) + ' ' + (JC_ROMAN[item.ench[k]] || item.ench[k]);
+  return t;
+}
+
+let enchSlot = null;
+const enchantPanelEl = document.getElementById('enchantPanel');
+function jcEnchMsg(t) { const m = document.getElementById('enchantMsg'); if (m) m.textContent = t || ''; }
+function jcEnchSave() { jcRenderEnchantPanel(); renderHotbar(); saveLocalPlayer(); }
+function jcEnchPut(idx) {                       // bag -> enchant slot (swaps with whatever is already there)
+  const it = inventory[idx];
+  if (!it) return;
+  if (!jcEnchInfo(it.type)) { jcEnchMsg('Only swords and armor can be enchanted.'); return; }
+  jcEnchMsg('');
+  const prev = enchSlot;
+  enchSlot = it; inventory[idx] = prev || null;
+  jcEnchSave();
+}
+function jcGiveBack(item) {                     // put an item into the first free bag slot (or drop it at your feet)
+  for (let i = 0; i < INV_SIZE; i++) if (!inventory[i]) { inventory[i] = item; return true; }
+  spawnDroppedItem(item.type, 1, new THREE.Vector3(player.pos.x, player.pos.y + 1, player.pos.z), undefined, { ench: item.ench });
+  return false;
+}
+function jcEnchTake() {                         // enchant slot -> bag
+  if (!enchSlot) return;
+  jcGiveBack(enchSlot); enchSlot = null;
+  jcEnchMsg('');
+  jcEnchSave();
+}
+function jcRenderEnchantChoices() {
+  const info = enchSlot ? jcEnchInfo(enchSlot.type) : null;
+  const cur = info && enchSlot.ench ? (enchSlot.ench[info.id] || 0) : 0;
+  JC_ENCH_TIERS.forEach((t, i) => {
+    const b = document.getElementById('enchBtn' + i); if (!b) return;
+    let sub = info ? info.name + ' ' + JC_ROMAN[t.level] : 'Put a sword or armor in the slot';
+    let dis = !info;
+    if (info && cur >= t.level) { sub += '  ·  you already have ' + JC_ROMAN[cur]; dis = true; }
+    else if (info && xpState.level < t.cost) { sub += '  ·  need level ' + t.cost; dis = true; }
+    b.disabled = dis;
+    b.querySelector('.eb-t').textContent = t.name + ' — ' + t.cost + ' levels';
+    b.querySelector('.eb-s').textContent = sub;
+  });
+  const lv = document.getElementById('enchantLvl'); if (lv) lv.textContent = xpState.level;
+}
+function jcRenderEnchantPanel() {
+  const wrap = document.getElementById('enchantSlotWrap');
+  wrap.innerHTML = '';
+  wrap.appendChild(makeSlotEl(() => enchSlot, jcEnchTake, jcEnchTake, null, null));
+  const mainG = document.getElementById('enchantMainGrid'), hotG = document.getElementById('enchantHotbarGrid');
+  mainG.innerHTML = ''; hotG.innerHTML = '';
+  for (let i = HOTBAR_SIZE; i < INV_SIZE; i++) {
+    const idx = i;
+    mainG.appendChild(makeSlotEl(() => inventory[idx], () => jcEnchPut(idx), () => jcEnchPut(idx), null, null));
+  }
+  for (let i = 0; i < HOTBAR_SIZE; i++) {
+    const idx = i;
+    const el = makeSlotEl(() => inventory[idx], () => jcEnchPut(idx), () => jcEnchPut(idx), null, null);
+    if (idx === currentSlot) el.style.borderColor = '#fff';
+    hotG.appendChild(el);
+  }
+  jcRenderEnchantChoices();
+}
+function jcEnchantApply(i) {
+  const t = JC_ENCH_TIERS[i];
+  if (!t || !enchSlot) return;
+  const info = jcEnchInfo(enchSlot.type);
+  if (!info) return;
+  const cur = enchSlot.ench ? (enchSlot.ench[info.id] || 0) : 0;
+  if (cur >= t.level || xpState.level < t.cost) return;
+  xpState.level -= t.cost;
+  enchSlot.ench = { [info.id]: t.level };
+  jcXpUI();
+  jcEnchMsg(displayName(enchSlot.type) + ' enchanted: ' + info.name + ' ' + JC_ROMAN[t.level]);
+  jcEnchSave();
+  const w = document.getElementById('enchantSlotWrap');
+  if (w) { w.classList.remove('flash'); void w.offsetWidth; w.classList.add('flash'); }
+}
+function openEnchant() {
+  enchantOpen = true;
+  enchantPanelEl.style.display = 'flex';
+  jcEnchMsg('');
+  jcRenderEnchantPanel();
+  document.exitPointerLock();
+}
+function closeEnchant() {
+  enchantOpen = false;
+  enchantPanelEl.style.display = 'none';
+  if (enchSlot) { jcGiveBack(enchSlot); enchSlot = null; }
+  returnCursorItemToInventory();
+  renderHotbar();
+  saveLocalPlayer();
+  resumeGameplay();
+}
+jcXpUI();
+
 // Per-frame: recharge, item-switch reset, particles, and the centre indicator.
 function jcUpdate(dt) {
   const held = currentItem();
@@ -5380,12 +5690,14 @@ function jcUpdate(dt) {
   if (mining.active && isPlaying()) atkTicks = 0;                // breaking blocks keeps it empty
   else atkTicks = Math.min(atkTicks + dt * 20, st.ticks + 2);
   jcUpdateParts(dt);
+  // mobile: holding on a target keeps swinging each time the weapon is fully recharged
+  if (touchMode && mobile.atkHold && isPlaying() && jcStrength(st.ticks) >= 1 && mobileFindTargetAlongAim(5)) mobileTryAttack();
 
   if (!isPlaying() || player.hp <= 0 || mining.active) {
     atkCdEl.style.display = 'none'; crosshairEl.classList.remove('hot'); return;
   }
   jcTargetTimer += dt;
-  if (jcTargetTimer > 0.05) { jcTargetTimer = 0; jcHasTarget = !!(findTargetPlayer() || findTargetAnimal()); }
+  if (jcTargetTimer > 0.05) { jcTargetTimer = 0; jcHasTarget = touchMode ? !!mobileFindTargetAlongAim(5) : !!(findTargetPlayer() || findTargetAnimal()); }
   const s = jcStrength(st.ticks);
   const ready = s > 0.9;
   crosshairEl.classList.toggle('hot', ready && jcHasTarget);
@@ -5513,7 +5825,7 @@ playersChannel
   .on('broadcast', { event: 'drop' }, ({ payload }) => {
     if (!payload || payload.from === MY_ID || !BLOCK_TYPES[payload.itemType] && !ITEM_INFO[payload.itemType]) return;
     spawnDroppedItem(payload.itemType, payload.count, new THREE.Vector3(payload.x, payload.y, payload.z),
-      new THREE.Vector3(payload.vx, payload.vy, payload.vz), { id: payload.id, remote: true });
+      new THREE.Vector3(payload.vx, payload.vy, payload.vz), { id: payload.id, remote: true, ench: jcCleanEnch(payload.ench) });
   })
   .on('broadcast', { event: 'pickup' }, ({ payload }) => {
     if (!payload || payload.from === MY_ID) return;
@@ -5681,6 +5993,7 @@ document.addEventListener('keydown', e => {
   if (e.code === 'Escape') {
     if (signOpen) closeSignEditor(false);
     else if (settingsOpen) closeSettings();
+    else if (enchantOpen) closeEnchant();
     else if (furnaceOpen) closeFurnace();
     else if (chestOpen) closeChest();
     else if (inventoryOpen) closeInventory();
@@ -5688,7 +6001,7 @@ document.addEventListener('keydown', e => {
     return;
   }
   if (signOpen) return;
-  if (e.code === 'KeyE') { if (signOpen) { closeSignEditor(true); return; } if (furnaceOpen) closeFurnace(); else if (chestOpen) closeChest(); else if (!settingsOpen) toggleInventory(); return; }
+  if (e.code === 'KeyE') { if (signOpen) { closeSignEditor(true); return; } if (enchantOpen) closeEnchant(); else if (furnaceOpen) closeFurnace(); else if (chestOpen) closeChest(); else if (!settingsOpen) toggleInventory(); return; }
   if (e.code === 'F5') { thirdPerson = !thirdPerson; myModel.group.visible = thirdPerson; e.preventDefault(); return; }
   if (e.code === 'KeyF') { startEating(); return; }
   if (e.code === 'KeyQ') { throwCurrentItem(); return; }
@@ -5743,7 +6056,7 @@ console.log('[Voltex] client:', touchMode ? 'mobile' : 'pc');
 
 // Unified "player has control" check — desktop uses pointer lock; mobile uses gameStarted.
 function menusOpen() {
-  return !!(inventoryOpen || furnaceOpen || chestOpen || chatOpen || settingsOpen || signOpen);
+  return !!(inventoryOpen || furnaceOpen || enchantOpen || chestOpen || chatOpen || settingsOpen || signOpen);
 }
 function isPlaying() {
   if (!gameStarted) return false;
@@ -5772,7 +6085,7 @@ const mobile = {
 };
 const LOOK_SENS = 0.0045;
 const LONG_PRESS_MS = 280;
-const TAP_MOVE_MAX = 14; // px — above this counts as look-drag, not a tap
+const TAP_MOVE_MAX = 22; // px — above this counts as look-drag, not a tap
 const DBL_FWD_MS = 320;
 
 function setMobileVisible(on) {
@@ -5815,6 +6128,7 @@ function tryMobilePlace() {
   if (typeof startSwing === 'function') startSwing();
   const targeted = getBlock(hit.x, hit.y, hit.z);
   if (targeted && targeted.type === 'crafting_table') { openWorkbench(); return; }
+  if (targeted && targeted.type === 'enchanting_table') { openEnchant(); return; }
   if (targeted && targeted.type === 'furnace') { openFurnace(); return; }
   if (targeted && targeted.type === 'chest') { openChest(hit.x, hit.y, hit.z); return; }
   if (targeted && (isDoorType(targeted.type) || isTrapType(targeted.type))) { toggleOpenable(targeted); return; }
@@ -5847,37 +6161,10 @@ function tryMobilePlace() {
   }
 }
 
+// Mobile target picking: generous capsule around each mob/player (see jcPickTarget),
+// so a tap anywhere on or near the body counts.
 function mobileFindTargetAlongAim(maxDist) {
-  maxDist = maxDist || 4.5;
-  const aim = getAimRay();
-  let best = null, bestDist = Infinity, bestKind = null;
-  // Other players
-  if (typeof otherPlayers !== 'undefined') {
-    otherPlayers.forEach((entry, id) => {
-      if (!entry || !entry.group) return;
-      const center = entry.group.position.clone();
-      center.y += 0.9;
-      const to = center.clone().sub(aim.origin);
-      const dist = to.length();
-      if (dist > maxDist) return;
-      to.normalize();
-      if (aim.dir.angleTo(to) < 0.45 && dist < bestDist) {
-        best = { id, entry }; bestDist = dist; bestKind = 'player';
-      }
-    });
-  }
-  animals.forEach(a => {
-    if (!a.alive) return;
-    const center = new THREE.Vector3(a.pos.x, a.pos.y + (a.kind === 'zombie' ? 0.4 : a.height * 0.5), a.pos.z);
-    const to = center.clone().sub(aim.origin);
-    const dist = to.length();
-    if (dist > maxDist) return;
-    to.normalize();
-    if (aim.dir.angleTo(to) < 0.45 && dist < bestDist) {
-      best = a; bestDist = dist; bestKind = 'animal';
-    }
-  });
-  return best ? { kind: bestKind, ref: best } : null;
+  return jcPickTarget(getAimRay(), Math.max(maxDist || 4.5, 5), 0.7);
 }
 function mobileTryAttack() {
   if (!isPlaying()) return false;
@@ -5898,6 +6185,8 @@ function mobileTapAction() {
 function mobileLongPressStart() {
   if (!isPlaying()) return;
   mobile.longActive = true;
+  // holding on a mob/player = keep attacking (swings as the weapon recharges) instead of mining past it
+  if (mobileFindTargetAlongAim(5)) { mobile.atkHold = true; mobileTryAttack(); return; }
   // Prefer eating if holding food and hungry; else mine
   const held = currentItem();
   if (held && isFood(held.type) && player.hunger < player.maxHunger) {
@@ -5914,6 +6203,7 @@ function mobileLongPressStart() {
 
 function mobileLongPressEnd() {
   mobile.longActive = false;
+  mobile.atkHold = false;
   mobile.mining = false;
   mining.active = false;
   mining.progress = 0;
@@ -6006,9 +6296,9 @@ function initMobileControls() {
       if (!isPlaying()) return;
       mobile.aimX = null; mobile.aimY = null;
       if (eating.active) cancelEating();
-      if (mobileTryAttack()) return;
+      if (mobileTryAttack()) { mobile.atkHold = true; return; }
       mobileLongPressStart();
-    }, () => { mobileLongPressEnd(); });
+    }, () => { mobile.atkHold = false; mobileLongPressEnd(); });
     // Right click: place / use / light TNT / eat / block (hold)
     bindHoldButton('mBtnRClick', () => { if (isPlaying()) tryMobilePlace(); },
       () => { if (eating.active) cancelEating(); isBlocking = false; });
@@ -6032,7 +6322,7 @@ function initMobileControls() {
   function touchOnUi(x, y) {
     const topEl = document.elementFromPoint(x, y);
     return !!(topEl && topEl.closest && topEl.closest(
-      '#dpad, #joyBase, #pcBtns, #mobileBtns, #mobileTopBtns, #hotbar, #offhandHud, #settingsBtn, .slot, button, input, textarea, #invPanel, #furnacePanel, #chestPanel, #signPanel, #chatInputWrap, #startScreen, #pauseOverlay, #settingsOverlay, #mobileHint'
+      '#dpad, #joyBase, #pcBtns, #mobileBtns, #mobileTopBtns, #hotbar, #offhandHud, #settingsBtn, .slot, button, input, textarea, #invPanel, #furnacePanel, #chestPanel, #enchantPanel, #signPanel, #chatInputWrap, #startScreen, #pauseOverlay, #settingsOverlay, #mobileHint'
     ));
   }
   lookTarget.addEventListener('touchstart', e => {
@@ -6158,6 +6448,8 @@ function toggleFullscreen() { if (isFullscreen()) exitFullscreen(); else enterFu
   bind('invCloseBtn', () => { if (inventoryOpen) closeInventory(); });
   bind('furnaceCloseBtn', () => { if (furnaceOpen) closeFurnace(); });
   bind('chestCloseBtn', () => { if (chestOpen) closeChest(); });
+  bind('enchantCloseBtn', () => { if (enchantOpen) closeEnchant(); });
+  for (let i = 0; i < 3; i++) bind('enchBtn' + i, () => jcEnchantApply(i));
 })();
 
 function startGame() {
@@ -6293,17 +6585,17 @@ confirmOverlay.addEventListener('click', e => {
   if (e.target === confirmOverlay) confirmOverlay.style.display = 'none';
 });
 canvas.addEventListener('click', () => {
-  if (!pointerLocked && gameStarted && !inventoryOpen && !furnaceOpen && !chestOpen && !chatOpen && !settingsOpen && !signOpen) canvas.requestPointerLock();
+  if (!pointerLocked && gameStarted && !inventoryOpen && !furnaceOpen && !enchantOpen && !chestOpen && !chatOpen && !settingsOpen && !signOpen) canvas.requestPointerLock();
 });
 // The pause overlay sits on top of (and fully covers) the canvas while
 // showing, so clicks on it never reached the canvas's own click listener
 // above — "Click to resume" did nothing. Handle it directly here instead.
 pauseOverlay.addEventListener('click', () => {
-  if (gameStarted && !inventoryOpen && !furnaceOpen && !chestOpen && !chatOpen && !settingsOpen && !signOpen) canvas.requestPointerLock();
+  if (gameStarted && !inventoryOpen && !furnaceOpen && !enchantOpen && !chestOpen && !chatOpen && !settingsOpen && !signOpen) canvas.requestPointerLock();
 });
 document.addEventListener('pointerlockchange', () => {
   pointerLocked = document.pointerLockElement === canvas;
-  pauseOverlay.style.display = (!pointerLocked && gameStarted && !inventoryOpen && !furnaceOpen && !chestOpen && !chatOpen && !settingsOpen && !signOpen) ? 'flex' : 'none';
+  pauseOverlay.style.display = (!pointerLocked && gameStarted && !inventoryOpen && !furnaceOpen && !enchantOpen && !chestOpen && !chatOpen && !settingsOpen && !signOpen) ? 'flex' : 'none';
 });
 
 // ================= Settings (persisted locally) =================
@@ -6497,7 +6789,7 @@ function openSettings() {
 function closeSettings() {
   settingsOpen = false;
   settingsOverlay.style.display = 'none';
-  pauseOverlay.style.display = (!pointerLocked && gameStarted && !inventoryOpen && !furnaceOpen && !chestOpen && !chatOpen) ? 'flex' : 'none';
+  pauseOverlay.style.display = (!pointerLocked && gameStarted && !inventoryOpen && !furnaceOpen && !enchantOpen && !chestOpen && !chatOpen) ? 'flex' : 'none';
 }
 settingsBtn.addEventListener('click', () => { if (settingsOpen) closeSettings(); else openSettings(); });
 document.getElementById('settingsCloseBtn').addEventListener('click', closeSettings);
@@ -6505,7 +6797,7 @@ settingsOverlay.addEventListener('click', e => { if (e.target === settingsOverla
 
 // Mouse wheel cycles through the hotbar (scroll down = next slot, up = previous)
 document.addEventListener('wheel', e => {
-  if (!pointerLocked || inventoryOpen || furnaceOpen || chestOpen || chatOpen || settingsOpen) return;
+  if (!pointerLocked || inventoryOpen || furnaceOpen || enchantOpen || chestOpen || chatOpen || settingsOpen) return;
   e.preventDefault();
   if (!e.deltaY) return;
   const dir = e.deltaY > 0 ? 1 : -1;
@@ -6620,8 +6912,8 @@ function updateMining(dt) {
         if (slots) {
           slots.forEach(s => {
             if (!s) return;
-            const leftover = addItemToInventory(s.type, s.count);
-            if (leftover > 0) spawnDroppedItem(s.type, leftover, new THREE.Vector3(hit.x, hit.y, hit.z));
+            const leftover = addItemToInventory(s.type, s.count, s.ench);
+            if (leftover > 0) spawnDroppedItem(s.type, leftover, new THREE.Vector3(hit.x, hit.y, hit.z), undefined, { ench: s.ench });
           });
           delete chestData[k];
           saveChestData();
@@ -6722,7 +7014,7 @@ canvas.addEventListener('mousedown', e => {
     const h = currentItem();   // right-click armor in hand = equip it (swaps out any worn piece)
     if (h && isArmor(h.type)) {
       const sl = ITEM_INFO[h.type].slot, old = armorSlots[sl];
-      armorSlots[sl] = { type: h.type, count: 1 }; inventory[currentSlot] = old;
+      armorSlots[sl] = jcCopy(h, 1); inventory[currentSlot] = old;
       renderHotbar(); saveLocalPlayer(); e.stopImmediatePropagation();
     }
     return;
@@ -6762,6 +7054,7 @@ canvas.addEventListener('mousedown', e => {
       openWorkbench(); // interacting with a functional block takes priority over placing
       return;
     }
+    if (targeted && targeted.type === 'enchanting_table') { openEnchant(); return; }
     if (targeted && targeted.type === 'furnace') {
       openFurnace();
       return;
