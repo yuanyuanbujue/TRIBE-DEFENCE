@@ -622,6 +622,9 @@
   }
   .enchBtn .eb-t { font-weight: bold; font-size: 14px; }
   .enchBtn .eb-s { font-size: 12px; opacity: 0.85; }
+  #enchTypeRow { display: none; gap: 6px; }
+  #enchTypeRow .enchType { flex: 1; }
+  #enchTypeRow .enchType.on { background: rgba(140,90,210,0.85); box-shadow: 0 0 0 2px #fff inset; }
   #enchBtn0 { border-color: #7fd0ff; }
   #enchBtn1 { border-color: #c48cff; }
   #enchBtn2 { border-color: #ffd24a; }
@@ -748,6 +751,7 @@
     <div id="enchantTop">
       <div id="enchantSlotWrap"></div>
       <div id="enchantChoices">
+        <div id="enchTypeRow"><button class="enchBtn enchType" id="enchType0"><span class="eb-t">Efficiency</span><span class="eb-s">faster mining</span></button><button class="enchBtn enchType" id="enchType1"><span class="eb-t">Fortune</span><span class="eb-s">more ore / wood</span></button></div>
         <button class="enchBtn" id="enchBtn0"><span class="eb-t"></span><span class="eb-s"></span></button>
         <button class="enchBtn" id="enchBtn1"><span class="eb-t"></span><span class="eb-s"></span></button>
         <button class="enchBtn" id="enchBtn2"><span class="eb-t"></span><span class="eb-s"></span></button>
@@ -757,7 +761,7 @@
     <div id="enchantMsg"></div>
     <div id="enchantMainGrid"></div>
     <div id="enchantHotbarGrid"></div>
-    <p id="enchantHint">Tap an item in your bag to put it in the slot (tap the slot to take it back). Swords get <b>Sharpness</b> (more damage), armor gets <b>Protection</b> (less damage taken). The more XP levels you spend, the stronger the enchantment. Kill mobs to earn XP · Press E to close</p>
+    <p id="enchantHint">Tap an item in your bag to put it in the slot (tap the slot to take it back). Swords get <b>Sharpness</b> (more damage), armor gets <b>Protection</b> (less damage taken), tools get <b>Efficiency</b> (mine faster) and pickaxes/axes also <b>Fortune</b> (more ore / wood drops). The more XP levels you spend, the stronger the enchantment. Kill mobs to earn XP · Press E to close</p>
   </div>
 </div>
 
@@ -1764,6 +1768,8 @@ function miningTimeFor(blockType) {
     else if (heldType.startsWith('diamond_')) tier = 8; // faster than iron, slower than gold
     else if (heldType.startsWith('gold_')) tier = 10; // fastest dig (weaker combat)
     speedMult = tier;
+    const _eff = (held && held.ench && held.ench.efficiency) || 0;   // Efficiency: +60% dig speed per level
+    if (_eff > 0) speedMult *= 1 + 0.6 * _eff;
   } else if (toolKind) {
     speedMult = 1; // wrong tool, no bonus (same as hand)
   } else if (def.tool === 'pickaxe') {
@@ -4523,7 +4529,7 @@ function isInWater(pos) {
 
 // ================= Day/Night cycle =================
 let worldTime = 0.25;
-const DAY_LENGTH = 180;
+const DAY_LENGTH = 600;   // seconds per full day+night cycle (was 180)
 
 // Sun height matches updateDayNight(): 1 = noon, -1 = midnight. Night = sun below the horizon.
 function isNightTime() { return -Math.cos(worldTime * Math.PI * 2) < -0.05; }
@@ -5824,12 +5830,12 @@ let attackCooldown = 0;
 // extra damage over the previous one.
 const JC_DMG = {
   sword:   { wood: 4,   stone: 5,   iron: 6,   gold: 4,   diamond: 7 },
-  axe:     { wood: 7,   stone: 9,   iron: 9,   gold: 7,   diamond: 9 },
+  axe:     { wood: 6,   stone: 7,   iron: 9,   gold: 8,   diamond: 10 },
   pickaxe: { wood: 2,   stone: 3,   iron: 4,   gold: 2,   diamond: 5 },
   shovel:  { wood: 2.5, stone: 3.5, iron: 4.5, gold: 2.5, diamond: 5.5 },
 };
 const JC_TICKS = {   // ticks to recharge fully (20 ticks = 1s)
-  sword: 12, pickaxe: 18, shovel: 20,
+  sword: 12.5, pickaxe: 18, shovel: 20,
   axe: { wood: 25, stone: 25, iron: 22, gold: 20, diamond: 20 },
 };
 const JC_HAND = { dmg: 1, ticks: 5, kind: 'hand' };
@@ -6054,21 +6060,36 @@ const JC_ENCH_TIERS = [
   { name: 'Medium', cost: 4, level: 2 },
   { name: 'High',   cost: 6, level: 3 },
 ];
+const JC_ENCH_NAMES = { sharpness: 'Sharpness', protection: 'Protection', efficiency: 'Efficiency', fortune: 'Fortune' };
+let enchPick = 'efficiency';   // which tool enchant the table will apply (Efficiency / Fortune)
+function jcToolKind(type) { const m = /_(pickaxe|axe|shovel)$/.exec(type || ''); return m ? m[1] : null; }
 function jcEnchInfo(type) {
-  if (isSword(type)) return { id: 'sharpness', name: 'Sharpness' };
-  if (isArmor(type)) return { id: 'protection', name: 'Protection' };
+  if (isSword(type)) return { id: 'sharpness', name: 'Sharpness', opts: ['sharpness'] };
+  if (isArmor(type)) return { id: 'protection', name: 'Protection', opts: ['protection'] };
+  const tk = jcToolKind(type);
+  if (tk) {   // Efficiency on every tool; Fortune only on pickaxes and axes
+    const opts = tk === 'shovel' ? ['efficiency'] : ['efficiency', 'fortune'];
+    const id = opts.includes(enchPick) ? enchPick : opts[0];
+    return { id, name: JC_ENCH_NAMES[id], opts };
+  }
   return null;
 }
 function jcCleanEnch(e) {
   if (!e || typeof e !== 'object') return null;
-  for (const k of ['sharpness', 'protection']) {
+  const out = {}; let any = false;
+  for (const k of ['sharpness', 'protection', 'efficiency', 'fortune']) {
     const n = parseInt(e[k], 10);
-    if (n >= 1 && n <= 3) return { [k]: n };
+    if (n >= 1 && n <= 3) { out[k] = n; any = true; }
   }
-  return null;
+  return any ? out : null;
 }
-function jcEnchEnc(e) { const c = jcCleanEnch(e); if (!c) return ''; const k = Object.keys(c)[0]; return '~' + k + ':' + c[k]; }
-function jcDecEnch(s) { if (!s) return null; const p = s.split(':'); return jcCleanEnch({ [p[0]]: p[1] }); }
+function jcEnchEnc(e) { const c = jcCleanEnch(e); if (!c) return ''; return '~' + Object.keys(c).map(k => k + ':' + c[k]).join('|'); }
+function jcDecEnch(s) {
+  if (!s) return null;
+  const o = {};
+  s.split('|').forEach(part => { const p = part.split(':'); o[p[0]] = p[1]; });
+  return jcCleanEnch(o);
+}
 function jcCopy(item, count) {
   const c = { type: item.type, count: count == null ? item.count : count };
   if (item.ench) c.ench = Object.assign({}, item.ench);
@@ -6087,7 +6108,7 @@ function jcEnchSave() { jcRenderEnchantPanel(); renderHotbar(); saveLocalPlayer(
 function jcEnchPut(idx) {                       // bag -> enchant slot (swaps with whatever is already there)
   const it = inventory[idx];
   if (!it) return;
-  if (!jcEnchInfo(it.type)) { jcEnchMsg('Only swords and armor can be enchanted.'); return; }
+  if (!jcEnchInfo(it.type)) { jcEnchMsg('Only swords, armor and tools can be enchanted.'); return; }
   jcEnchMsg('');
   const prev = enchSlot;
   enchSlot = it; inventory[idx] = prev || null;
@@ -6107,9 +6128,17 @@ function jcEnchTake() {                         // enchant slot -> bag
 function jcRenderEnchantChoices() {
   const info = enchSlot ? jcEnchInfo(enchSlot.type) : null;
   const cur = info && enchSlot.ench ? (enchSlot.ench[info.id] || 0) : 0;
+  const typeRow = document.getElementById('enchTypeRow');
+  if (typeRow) {
+    typeRow.style.display = info && info.opts.length > 1 ? 'flex' : 'none';
+    ['efficiency', 'fortune'].forEach((id, i) => {
+      const tb = document.getElementById('enchType' + i);
+      if (tb) tb.classList.toggle('on', !!info && info.id === id);
+    });
+  }
   JC_ENCH_TIERS.forEach((t, i) => {
     const b = document.getElementById('enchBtn' + i); if (!b) return;
-    let sub = info ? info.name + ' ' + JC_ROMAN[t.level] : 'Put a sword or armor in the slot';
+    let sub = info ? info.name + ' ' + JC_ROMAN[t.level] : 'Put a sword, armor or tool in the slot';
     let dis = !info;
     if (info && cur >= t.level) { sub += '  ·  you already have ' + JC_ROMAN[cur]; dis = true; }
     else if (info && xpState.level < t.cost) { sub += '  ·  need level ' + t.cost; dis = true; }
@@ -6145,7 +6174,7 @@ function jcEnchantApply(i) {
   const cur = enchSlot.ench ? (enchSlot.ench[info.id] || 0) : 0;
   if (cur >= t.level || xpState.level < t.cost) return;
   xpState.level -= t.cost;
-  enchSlot.ench = { [info.id]: t.level };
+  enchSlot.ench = Object.assign({}, enchSlot.ench || {}, { [info.id]: t.level });
   jcXpUI();
   jcEnchMsg(displayName(enchSlot.type) + ' enchanted: ' + info.name + ' ' + JC_ROMAN[t.level]);
   jcEnchSave();
@@ -7066,6 +7095,8 @@ function toggleFullscreen() { if (isFullscreen()) exitFullscreen(); else enterFu
   bind('chestCloseBtn', () => { if (chestOpen) closeChest(); });
   bind('enchantCloseBtn', () => { if (enchantOpen) closeEnchant(); });
   for (let i = 0; i < 3; i++) bind('enchBtn' + i, () => jcEnchantApply(i));
+  bind('enchType0', () => { enchPick = 'efficiency'; jcRenderEnchantChoices(); });
+  bind('enchType1', () => { enchPick = 'fortune'; jcRenderEnchantChoices(); });
 })();
 
 function startGame() {
@@ -7630,7 +7661,13 @@ function updateMining(dt) {
           // otherwise: nothing drops
         } else {
           const drop = blockDropType(b.type);
-          spawnDroppedItem(drop, b.type === 'redstone_ore' ? 4 + Math.floor(Math.random() * 2) : 1, popPos);   // redstone drops 4-5 dust
+          let dropN = b.type === 'redstone_ore' ? 4 + Math.floor(Math.random() * 2) : 1;   // redstone drops 4-5 dust
+          // Fortune (pickaxe on ores, axe on logs): chance of 1..level bonus drops, higher level = better odds
+          const _fl = (held && held.ench && held.ench.fortune) || 0;
+          const _fortuneOk = (toolKind === 'pickaxe' && (b.type === 'coal_ore' || b.type === 'iron_ore' || b.type === 'gold_ore' || b.type === 'diamond_ore' || b.type === 'redstone_ore')) ||
+                             (toolKind === 'axe' && (b.type === 'wood' || b.type === 'birch_wood'));
+          if (_fl > 0 && _fortuneOk && Math.random() < 0.25 + 0.2 * _fl) dropN += 1 + Math.floor(Math.random() * _fl);
+          spawnDroppedItem(drop, dropN, popPos);
         }
       }
       flushDirtyChunks(false);
