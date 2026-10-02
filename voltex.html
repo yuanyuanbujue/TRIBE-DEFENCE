@@ -174,6 +174,13 @@
     text-align: center; outline: none; transition: border-color 0.15s, background 0.15s;
   }
   #nameInput:focus { border-color: #7ee8fa; background: rgba(255,255,255,0.13); }
+  .skinRow { display: flex; align-items: center; justify-content: center; gap: 10px; margin-top: 10px; }
+  .skinPreview { width: 32px; height: 32px; flex: 0 0 auto; border-radius: 6px; border: 1px solid rgba(255,255,255,0.3); background: rgba(255,255,255,0.08) center/auto no-repeat; background-size: 256px 256px; background-position: -32px -32px; image-rendering: pixelated; opacity: .35; }
+  .skinPick { display: inline-block; padding: 6px 12px; border-radius: 8px; border: 1px solid rgba(255,255,255,0.3); background: rgba(255,255,255,0.1); color: #fff; font-size: 12.5px; cursor: pointer; }
+  .skinPick:hover { background: rgba(255,255,255,0.2); }
+  .skinPick input { display: none; }
+  .skinMsg { min-height: 14px; font-size: 12px; color: #ff9d9d; text-align: center; }
+  .skinResetBtn:disabled { opacity: .4; cursor: default; }
   #nameInput::placeholder { color: rgba(255,255,255,0.45); }
 
   #authChoice, #authUser { margin-top: 16px; display: flex; flex-direction: column; align-items: center; gap: 10px; }
@@ -664,6 +671,8 @@
     <div id="authUser" style="display:none"><img id="authAvatar" alt=""><span id="authLabel"></span><button class="linkBtn" id="signOutBtn">Sign out</button></div>
     <div id="guestNote" style="margin-top:12px;font-size:12px;opacity:.8">Guest progress is saved on this device only. <button class="linkBtn" id="guestGoogleLink">Sign in with Google</button> <button class="linkBtn" id="guestBackLink" style="display:none">Back</button></div>
     <input id="nameInput" maxlength="16" placeholder="Your name">
+    <div class="skinRow"><div class="skinPreview" title="Your skin"></div><label class="skinPick">Use my Minecraft skin<input type="file" class="skinFileInput" accept="image/png"></label><button class="skinResetBtn linkBtn" type="button">Default</button></div>
+    <div id="skinMsg" class="skinMsg"></div>
     <div id="loadBarWrap"><div id="loadBarFill"></div></div>
     <div id="connStatus"><span class="connDot" id="connDot"></span><span id="connText">Connecting to server…</span></div>
     <button id="startBtn" disabled>Start Game</button><br>
@@ -857,6 +866,12 @@
       <label for="fullscreenBtn">Fullscreen</label>
       <button id="fullscreenBtn" style="background:rgba(255,255,255,0.12);color:#fff;border:1px solid rgba(255,255,255,0.3);border-radius:6px;padding:5px 12px;font-size:12.5px;cursor:pointer">Toggle</button>
     </div>
+    <h4>Skin</h4>
+    <div class="settingRow">
+      <span class="skinRow"><span class="skinPreview" title="Your skin"></span><label class="skinPick">Choose skin (64×64 PNG)<input type="file" class="skinFileInput" accept="image/png"></label></span>
+      <button class="skinResetBtn" type="button" style="background:rgba(255,255,255,0.12);color:#fff;border:1px solid rgba(255,255,255,0.3);border-radius:6px;padding:5px 12px;font-size:12.5px;cursor:pointer">Default</button>
+    </div>
+    <div id="skinMsg2" class="skinMsg"></div>
     <h4>Gameplay</h4>
     <label class="settingRow" for="coordsToggle">
       Show coordinates
@@ -3276,7 +3291,7 @@ function placeOreVein(sx, sy, sz, oreType, size, salt) {
     const b = world.get(key(x, y, z));
     if (b && b.type === 'stone') {
       // overwrite stone in-place (generation-only path; no network)
-      b.type = oreType;
+      b.type = oreType; b.natural = true;   // generated ore only: Fortune requires this tag
     }
     // step to a random neighbour (biased slightly horizontal — flatter veins)
     const r = hashRandom(sx + i * 3, sy, sz + i * 5, salt + i);
@@ -4845,8 +4860,8 @@ function applySneakPose(m, on) {
   m.torso.position.set(0, on ? 1.05 : 1.125, on ? -0.14 : 0);
   m.torso.rotation.x = on ? -0.35 : 0;
   m.head.position.set(0, on ? 1.6 : 1.75, on ? -0.32 : 0);
-  m.armL.position.set(-0.4, on ? 1.38 : 1.5, on ? -0.26 : 0);
-  m.armR.position.set( 0.4, on ? 1.38 : 1.5, on ? -0.26 : 0);
+  m.armL.position.set(-0.375, on ? 1.38 : 1.5, on ? -0.26 : 0);
+  m.armR.position.set( 0.375, on ? 1.38 : 1.5, on ? -0.26 : 0);
 }
 // Arm angles: +x rotation swings the arm FORWARD (the model faces -z).
 // While holding an item the right arm is raised out in front, with the item turned
@@ -4908,11 +4923,219 @@ function updateMyModel(dt, isMoving) {
 }
 
 // First-person hand + guard shield (the held item alone can't show a punch when your hand is empty).
-const fpArmGeo = new THREE.BoxGeometry(0.13, 0.13, 0.6);
+const fpArmGeo = new THREE.BoxGeometry(0.17, 0.17, 0.6);
 fpArmGeo.translate(0, 0, -0.3);   // pivot at the shoulder end
 const fpArm = new THREE.Mesh(fpArmGeo, new THREE.MeshBasicMaterial({ color: colorForId(MY_ID).clone().offsetHSL(0, 0, 0.15) }));
 fpArm.visible = false;
 camera.add(fpArm);
+
+// ================= Custom Minecraft skins =================
+// Players can load their own Minecraft skin (64x64 PNG, or the old 64x32 layout). It is drawn on the
+// body model (with the hat / jacket / sleeve / pants overlay layers) and shared with everyone online.
+const SKIN_KEY = 'voltex_skin_v1';
+let mySkinData = null;   // normalized 64x64 PNG data URL, or null for the default coloured body
+const SKIN_PARTS = [     // MC pixel size (w,h,d), base-layer origin, overlay-layer origin (null = none)
+  { part: 'head',  w: 8, h: 8,  d: 8, base: [0, 0],   over: [32, 0] },
+  { part: 'torso', w: 8, h: 12, d: 4, base: [16, 16], over: [16, 32] },
+  { part: 'armR',  w: 4, h: 12, d: 4, base: [40, 16], over: [40, 32], arm: true },
+  { part: 'armL',  w: 4, h: 12, d: 4, base: [32, 48], over: [48, 48], arm: true },
+  { part: 'legR',  w: 4, h: 12, d: 4, base: [0, 16],  over: [0, 32] },
+  { part: 'legL',  w: 4, h: 12, d: 4, base: [16, 48], over: [0, 48] },
+];
+
+// Default Minecraft-style skin (Steve layout) drawn on a 64x64 canvas; the shirt uses the player's colour.
+function makeDefaultSkin(color) {
+  const cv = document.createElement('canvas'); cv.width = 64; cv.height = 64;
+  const g = cv.getContext('2d'); g.imageSmoothingEnabled = false;
+  let seed = 1337; const rnd = () => (seed = (seed * 16807) % 2147483647) / 2147483647;
+  const px = (x, y, w, h, c) => {
+    const base = new THREE.Color(c);
+    for (let j = 0; j < h; j++) for (let i = 0; i < w; i++) {
+      const k = 0.93 + rnd() * 0.14;
+      g.fillStyle = '#' + new THREE.Color(base.r * k, base.g * k, base.b * k).getHexString();
+      g.fillRect(x + i, y + j, 1, 1);
+    }
+  };
+  // paint all six faces of a box at (u,v) of size w,h,d; fn(face) picks the colour per face
+  const box = (u, v, w, h, d, fn) => {
+    px(u + d, v, w, d, fn('top', 0));       px(u + d + w, v, w, d, fn('bottom', 0));
+    px(u, v + d, d, h, fn('side', 0));      px(u + d, v + d, w, h, fn('front', 0));
+    px(u + d + w, v + d, d, h, fn('side', 0)); px(u + 2 * d + w, v + d, w, h, fn('back', 0));
+  };
+  const SK = '#c08e6c', HAIR = '#43301d', SHIRT = '#' + color.getHexString(), SHIRT_D = '#' + color.clone().offsetHSL(0, 0, -0.12).getHexString();
+  const PANTS = '#34347a', SHOE = '#6a6a6a';
+  box(0, 0, 8, 8, 8, () => SK);                       // head
+  px(8, 0, 8, 8, HAIR); px(16, 0, 8, 8, HAIR);        // hair: top + bottom shade
+  px(0, 8, 8, 3, HAIR); px(8, 8, 8, 2, HAIR); px(16, 8, 8, 3, HAIR); px(24, 8, 8, 8, HAIR); // sides, fringe, back
+  px(8, 10, 1, 1, HAIR); px(15, 10, 1, 1, HAIR);
+  px(9, 12, 2, 1, '#ffffff'); px(13, 12, 2, 1, '#ffffff');      // eyes
+  px(10, 12, 1, 1, '#3b2a8c'); px(13, 12, 1, 1, '#3b2a8c');
+  px(11, 13, 2, 1, '#a8765a'); px(10, 14, 4, 1, '#7a4a38');     // nose + mouth
+  box(16, 16, 8, 12, 4, (f) => (f === 'bottom' ? SHIRT_D : SHIRT));   // torso
+  for (const [u, v] of [[40, 16], [32, 48]]) {                         // arms: sleeve on top, skin below
+    box(u, v, 4, 12, 4, (f) => (f === 'top' ? SHIRT : SK));
+    px(u, v + 4, 4, 3, SHIRT); px(u + 4, v + 4, 4, 3, SHIRT); px(u + 8, v + 4, 4, 3, SHIRT); px(u + 12, v + 4, 4, 3, SHIRT);
+  }
+  for (const [u, v] of [[0, 16], [16, 48]]) {                          // legs: pants + shoes
+    box(u, v, 4, 12, 4, (f) => (f === 'top' ? PANTS : (f === 'bottom' ? SHOE : PANTS)));
+    for (const x of [u, u + 4, u + 8, u + 12]) px(x, v + 13, 4, 3, SHOE);
+  }
+  return cv;
+}
+// Turns any loaded skin image into a clean 64x64 canvas (mirrors the missing left limbs of old 64x32 skins).
+function normalizeSkinImage(img) {
+  const W = img.naturalWidth || img.width, H = img.naturalHeight || img.height;
+  if (!W || !H || (W !== H && W !== H * 2) || W < 64 || W > 1024) return null;
+  const cv = document.createElement('canvas'); cv.width = 64; cv.height = 64;
+  const cx = cv.getContext('2d'); cx.imageSmoothingEnabled = false;
+  if (W === H) {
+    cx.drawImage(img, 0, 0, W, H, 0, 0, 64, 64);
+  } else {
+    cx.drawImage(img, 0, 0, W, H, 0, 0, 64, 32);
+    const flip = (sx, sy, w, h, dx, dy) => { cx.save(); cx.translate(dx + w, dy); cx.scale(-1, 1); cx.drawImage(cv, sx, sy, w, h, 0, 0, w, h); cx.restore(); };
+    flip(0, 16, 16, 16, 16, 48);    // right leg -> left leg
+    flip(40, 16, 16, 16, 32, 48);   // right arm -> left arm
+    cv._legacy = true;
+  }
+  return cv;
+}
+function skinIsSlim(cv) {   // Alex-style 3px arms leave the outer columns of the arm region empty
+  const d = cv.getContext('2d').getImageData(54, 20, 2, 12).data;
+  for (let i = 3; i < d.length; i += 4) if (d[i] > 0) return false;
+  return true;
+}
+function skinRegionHasPixels(cv, x, y, w, h) {
+  const d = cv.getContext('2d').getImageData(x, y, w, h).data;
+  for (let i = 3; i < d.length; i += 4) if (d[i] > 0) return true;
+  return false;
+}
+function skinRegionHasAlpha(cv, x, y, w, h) {
+  const d = cv.getContext('2d').getImageData(x, y, w, h).data;
+  for (let i = 3; i < d.length; i += 4) if (d[i] < 250) return true;
+  return false;
+}
+// Writes Minecraft box-skin UVs onto a BoxGeometry (face order +x,-x,+y,-y,+z,-z; the model faces -z, so
+// +x is the character's right side and -z its front). Works from vertex positions, so any pivot offset is fine.
+function setSkinBoxUV(geo, u, v, w, h, d) {
+  geo.computeBoundingBox();
+  const bb = geo.boundingBox, pos = geo.attributes.position, uv = geo.attributes.uv;
+  for (let i = 0; i < pos.count; i++) {
+    const nx = (pos.getX(i) - bb.min.x) / ((bb.max.x - bb.min.x) || 1);
+    const ny = (pos.getY(i) - bb.min.y) / ((bb.max.y - bb.min.y) || 1);
+    const nz = (pos.getZ(i) - bb.min.z) / ((bb.max.z - bb.min.z) || 1);
+    let px, py;
+    switch (Math.floor(i / 4)) {
+      case 0: px = u + (1 - nz) * d;             py = v + d + (1 - ny) * h; break;   // character's right side
+      case 1: px = u + d + w + nz * d;           py = v + d + (1 - ny) * h; break;   // character's left side
+      case 2: px = u + d + (1 - nx) * w;         py = v + (1 - nz) * d;     break;   // top
+      case 3: px = u + d + w + (1 - nx) * w;     py = v + nz * d;           break;   // bottom
+      case 4: px = u + w + 2 * d + nx * w;       py = v + d + (1 - ny) * h; break;   // back
+      default: px = u + d + (1 - nx) * w;        py = v + d + (1 - ny) * h;          // front
+    }
+    uv.setXY(i, px / 64, 1 - py / 64);
+  }
+  uv.needsUpdate = true;
+}
+function clearSkin(model) {
+  const st = model.skinState;
+  if (!st) return;
+  st.restore.forEach(r => { r.mesh.geometry.dispose(); r.mesh.geometry = r.geo; r.mesh.material.dispose(); r.mesh.material = r.mat; });
+  st.overlays.forEach(o => { o.parent && o.parent.remove(o); o.geometry.dispose(); o.material.dispose(); });
+  if (st.tex) st.tex.dispose();
+  model.skinState = null;
+  if (model.group && model.group.userData._flashMeshes) delete model.group.userData._flashMeshes;
+}
+// cv = normalized skin canvas, or null to go back to the default coloured body.
+function applySkin(model, cv) {
+  clearSkin(model);
+  if (!cv) cv = makeDefaultSkin(model.baseColor || new THREE.Color(0x3b7dd8));
+  model.skinCanvas = cv;
+  const slim = skinIsSlim(cv), legacy = !!cv._legacy;
+  const tex = new THREE.CanvasTexture(cv);
+  tex.magFilter = THREE.NearestFilter; tex.minFilter = THREE.NearestFilter; tex.generateMipmaps = false;
+  const st = { restore: [], overlays: [], tex };
+  model.skinState = st;
+  for (const sp of SKIN_PARTS) {
+    const mesh = model[sp.part];
+    if (!mesh) continue;
+    const w = sp.arm && slim ? 3 : sp.w;
+    st.restore.push({ mesh, geo: mesh.geometry, mat: mesh.material });
+    const geo = mesh.geometry.clone();
+    if (sp.arm && slim) geo.scale(0.75, 1, 1);
+    setSkinBoxUV(geo, sp.base[0], sp.base[1], w, sp.h, sp.d);
+    mesh.geometry = geo;
+    mesh.material = new THREE.MeshLambertMaterial({ map: tex, alphaTest: 0.1 });
+    // second skin layer (hat, jacket, sleeves, pants): old 64x32 skins only have a hat, and only if it is see-through
+    if (legacy && sp.part !== 'head') continue;
+    if (legacy && !skinRegionHasAlpha(cv, 32, 0, 32, 16)) continue;   // solid hat area = no real hat layer
+    if (!skinRegionHasPixels(cv, sp.over[0], sp.over[1], 2 * w + 2 * sp.d, sp.h + sp.d)) continue;   // empty overlay
+    mesh.geometry.computeBoundingBox();
+    const bb = mesh.geometry.boundingBox, size = new THREE.Vector3(), ctr = new THREE.Vector3();
+    bb.getSize(size); bb.getCenter(ctr);
+    const og = new THREE.BoxGeometry(size.x + 0.05, size.y + 0.05, size.z + 0.05);
+    og.translate(ctr.x, ctr.y, ctr.z);
+    setSkinBoxUV(og, sp.over[0], sp.over[1], w, sp.h, sp.d);
+    const om = new THREE.Mesh(og, new THREE.MeshLambertMaterial({ map: tex, transparent: true, alphaTest: 0.5 }));
+    om.userData.noFlash = true;
+    mesh.add(om); st.overlays.push(om);
+  }
+}
+function skinAverageColor(cv, x, y, w, h) {
+  const d = cv.getContext('2d').getImageData(x, y, w, h).data;
+  let r = 0, g = 0, b = 0, n = 0;
+  for (let i = 0; i < d.length; i += 4) if (d[i + 3] > 128) { r += d[i]; g += d[i + 1]; b += d[i + 2]; n++; }
+  return n ? new THREE.Color(r / n / 255, g / n / 255, b / n / 255) : null;
+}
+function applyMySkin(cv) {
+  applySkin(myModel, cv);
+  const c = skinAverageColor(myModel.skinCanvas || cv, 44, 26, 4, 6);
+  fpArm.material.color.copy(c || colorForId(MY_ID).clone().offsetHSL(0, 0, 0.15));
+}
+function skinDataFromCanvas(cv) { return cv.toDataURL('image/png'); }
+function loadSkinFromDataUrl(data, cb) {
+  if (!data || typeof data !== 'string' || data.length > 60000 || data.indexOf('data:image/png;base64,') !== 0) { cb(null); return; }
+  const img = new Image();
+  img.onload = () => cb(normalizeSkinImage(img));
+  img.onerror = () => cb(null);
+  img.src = data;
+}
+// Pick / change / remove my skin; shares it with the other players through presence.
+function setMySkin(cv) {
+  mySkinData = cv ? skinDataFromCanvas(cv) : null;
+  try { if (mySkinData) localStorage.setItem(SKIN_KEY, mySkinData); else localStorage.removeItem(SKIN_KEY); } catch (e) {}
+  applyMySkin(cv);
+  if (typeof refreshSkinUI === 'function') refreshSkinUI();
+  if (gameStarted && typeof playersChannel !== 'undefined') playersChannel.track({ name: MY_NAME, skin: mySkinData });
+}
+function pickSkinFile(file) {
+  if (!file) return;
+  const msg = t => { const m = document.getElementById('skinMsg'); if (m) m.textContent = t; const m2 = document.getElementById('skinMsg2'); if (m2) m2.textContent = t; };
+  if (file.size > 200000) { msg('That file is too big for a skin.'); return; }
+  const url = URL.createObjectURL(file), img = new Image();
+  img.onload = () => {
+    URL.revokeObjectURL(url);
+    const cv = normalizeSkinImage(img);
+    if (!cv) { msg('Skin must be a 64×64 (or 64×32) PNG.'); return; }
+    msg('');
+    setMySkin(cv);
+  };
+  img.onerror = () => { URL.revokeObjectURL(url); msg('Could not read that image.'); };
+  img.src = url;
+}
+function refreshSkinUI() {
+  document.querySelectorAll('.skinPreview').forEach(el => { el.style.backgroundImage = mySkinData ? 'url(' + mySkinData + ')' : 'none'; el.style.opacity = mySkinData ? '1' : '0.35'; });
+  document.querySelectorAll('.skinResetBtn').forEach(el => { el.disabled = !mySkinData; });
+}
+(function initSkinUI() {
+  let saved = null;
+  try { saved = localStorage.getItem(SKIN_KEY); } catch (e) {}
+  applyMySkin(null);   // Minecraft-style default body
+  if (saved) loadSkinFromDataUrl(saved, cv => { if (cv) { mySkinData = skinDataFromCanvas(cv); applyMySkin(cv); } refreshSkinUI(); });
+  document.addEventListener('DOMContentLoaded', refreshSkinUI);
+  refreshSkinUI();
+  document.querySelectorAll('.skinFileInput').forEach(inp => inp.addEventListener('change', () => { pickSkinFile(inp.files && inp.files[0]); inp.value = ''; }));
+  document.querySelectorAll('.skinResetBtn').forEach(b => b.addEventListener('click', e => { e.preventDefault(); const m = document.getElementById('skinMsg'); if (m) m.textContent = ''; setMySkin(null); }));
+})();
 const fpShield = new THREE.Mesh(
   new THREE.PlaneGeometry(0.7, 0.8),
   new THREE.MeshBasicMaterial({ color: 0x66b3ff, transparent: true, opacity: 0, depthTest: false, depthWrite: false })
@@ -5035,38 +5258,38 @@ function buildHumanoid(color) {
   shield.userData.noFlash = true;
 
   const torso = new THREE.Mesh(
-    new THREE.BoxGeometry(0.6, 0.75, 0.35),
+    new THREE.BoxGeometry(0.5, 0.75, 0.25),
     new THREE.MeshLambertMaterial({ color })
   );
   torso.position.y = 1.125;
 
   const head = new THREE.Mesh(
-    new THREE.BoxGeometry(0.45, 0.45, 0.45),
+    new THREE.BoxGeometry(0.5, 0.5, 0.5),
     new THREE.MeshLambertMaterial({ color: skin })
   );
   head.position.y = 1.75;
 
-  const legGeo = new THREE.BoxGeometry(0.22, 0.75, 0.25);
+  const legGeo = new THREE.BoxGeometry(0.25, 0.75, 0.25);
   legGeo.translate(0, -0.375, 0); // pivot at hip so rotation.x swings the leg
   const legMat = new THREE.MeshLambertMaterial({ color: color.clone().offsetHSL(0, 0, -0.15) });
   const legL = new THREE.Mesh(legGeo, legMat);
-  legL.position.set(-0.14, 0.75, 0);
+  legL.position.set(-0.125, 0.75, 0);
   const legR = new THREE.Mesh(legGeo, legMat);
-  legR.position.set(0.14, 0.75, 0);
+  legR.position.set(0.125, 0.75, 0);
 
-  const armGeo = new THREE.BoxGeometry(0.2, 0.7, 0.2);
-  armGeo.translate(0, -0.35, 0); // pivot at shoulder
+  const armGeo = new THREE.BoxGeometry(0.25, 0.75, 0.25);
+  armGeo.translate(0, -0.375, 0); // pivot at shoulder
   const armMat = new THREE.MeshLambertMaterial({ color: skin });
   const armL = new THREE.Mesh(armGeo, armMat);
-  armL.position.set(-0.4, 1.5, 0);
+  armL.position.set(-0.375, 1.5, 0);
   const armR = new THREE.Mesh(armGeo, armMat);
-  armR.position.set(0.4, 1.5, 0);
+  armR.position.set(0.375, 1.5, 0);
 
   // Anchor near the bottom of the right forearm — whatever the player is
   // holding gets parented here, so it swings and rotates with the arm for
   // free (mining punches, eating, blocking, walking).
   const handAnchor = new THREE.Group();
-  handAnchor.position.set(0, -0.62, 0.14);
+  handAnchor.position.set(0, -0.68, 0.14);
   handAnchor.scale.setScalar(1.5);      // bigger in-hand item so other players can actually see what you hold
   armR.add(handAnchor);
 
@@ -5079,14 +5302,14 @@ function buildHumanoid(color) {
     m.userData.noFlash = true;
     m.position.set(x, y, z); m.visible = false; parent.add(m); armor[slot].push(m);
   };
-  piece(head, 0, 0.52, 0.52, 0.52, 0, 0.02, 0);
-  piece(torso, 1, 0.66, 0.8, 0.41, 0, 0, 0);
-  piece(armL, 1, 0.27, 0.34, 0.27, 0, -0.15, 0);
-  piece(armR, 1, 0.27, 0.34, 0.27, 0, -0.15, 0);
-  for (const leg of [legL, legR]) { piece(leg, 2, 0.28, 0.42, 0.31, 0, -0.2, 0); piece(leg, 3, 0.28, 0.22, 0.31, 0, -0.64, 0); }
+  piece(head, 0, 0.57, 0.57, 0.57, 0, 0.0, 0);
+  piece(torso, 1, 0.56, 0.81, 0.31, 0, 0, 0);
+  piece(armL, 1, 0.31, 0.4, 0.31, 0, -0.18, 0);
+  piece(armR, 1, 0.31, 0.4, 0.31, 0, -0.18, 0);
+  for (const leg of [legL, legR]) { piece(leg, 2, 0.31, 0.5, 0.31, 0, -0.25, 0); piece(leg, 3, 0.31, 0.25, 0.31, 0, -0.63, 0); }
 
   group.add(torso, head, legL, legR, armL, armR, shield);
-  return { group, head, torso, legL, legR, armL, armR, handAnchor, shield, armor };
+  return { group, head, torso, legL, legR, armL, armR, handAnchor, shield, armor, baseColor: color.clone() };
 }
 
 // ---------- Held item visuals ----------
@@ -6276,7 +6499,18 @@ function createOtherPlayer(id, name) {
   };
   otherPlayers.set(id, entry);
   updatePlayerCountHUD();
+  entry.head = model.head; entry.model = model;
+  applySkin(model, null);   // Minecraft-style default body until their own skin arrives
   return entry;
+}
+// Apply (or clear) a remote player's skin when their presence data says it changed.
+function updateOtherSkin(entry, skinData) {
+  if (!entry || !entry.model) return;
+  skinData = skinData || null;
+  if (entry.skinData === skinData) return;
+  entry.skinData = skinData;
+  if (!skinData) { applySkin(entry.model, null); return; }
+  loadSkinFromDataUrl(skinData, cv => { if (entry.skinData === skinData) applySkin(entry.model, cv); });
 }
 function removeOtherPlayer(id) {
   const entry = otherPlayers.get(id);
@@ -6301,6 +6535,8 @@ playersChannel
         const meta = state[id][0] || {};
         createOtherPlayer(id, meta.name || 'Player');
       }
+      const m2 = (state[id][0] || {});
+      updateOtherSkin(otherPlayers.get(id), m2.skin);
     });
     Array.from(otherPlayers.keys()).forEach(id => { if (!seen.has(id)) removeOtherPlayer(id); });
   })
@@ -7125,7 +7361,7 @@ function startGame() {
   } else {
     canvas.requestPointerLock();
   }
-  playersChannel.track({ name: MY_NAME });
+  playersChannel.track({ name: MY_NAME, skin: mySkinData });
   saveLocalPlayer(); // remember the name (and everything else) for next time
 }
 document.getElementById('startBtn').addEventListener('click', startGame);
@@ -7680,7 +7916,7 @@ function updateMining(dt) {
           // Fortune: picks a random total from the table below (level I / II / III). Natural ore only —
           // ore that was mined and placed back down gets the normal drop. Pickaxe on ores, axe on logs.
           const _fl = (held && held.ench && held.ench.fortune) || 0;
-          const _fortuneOk = (toolKind === 'pickaxe' && isOreType(b.type) && !b.placed) ||
+          const _fortuneOk = (toolKind === 'pickaxe' && isOreType(b.type) && b.natural === true && !b.placed) ||
                              (toolKind === 'axe' && (b.type === 'wood' || b.type === 'birch_wood'));
           if (_fl > 0 && _fortuneOk) {
             const tbl = JC_FORTUNE[b.type];
