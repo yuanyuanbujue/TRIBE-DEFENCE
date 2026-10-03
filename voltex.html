@@ -133,6 +133,23 @@
   }
   .slot .num { position:absolute; top:1px; left:3px; font-size:9px; color:#fff; opacity:0.7; }
   .slot .count { position:absolute; bottom:1px; right:3px; font-size:10px; color:#fff; font-weight:bold; text-shadow:1px 1px 1px black; }
+  /* Minecraft-style durability bar under the item icon */
+  .durBar {
+    position: absolute; left: 4px; right: 4px; bottom: 3px; height: 4px;
+    background: #000; border: 1px solid #000; box-sizing: border-box;
+    border-radius: 1px; overflow: hidden; pointer-events: none; z-index: 2;
+  }
+  .durBarFill {
+    position: absolute; left: 0; top: 0; bottom: 0; min-width: 1px;
+    /* width set inline = remaining durability, anchored to the LEFT: the lit part slides
+       toward the left edge as the item wears, and is a single sliver at 1 durability */
+  }
+  .durBarFill.g { background: #4caf50; }
+  .durBarFill.y { background: #ffc107; }
+  .durBarFill.r { background: #f44336; }
+  .slot .durBar, .invSlot .durBar { bottom: 2px; }
+  .slot.hasDur .count { bottom: 7px; } /* nudge stack count above the bar */
+  .invSlot.hasDur .count { bottom: 7px; }
   .slot.active { border-color: #fff; background: rgba(255,255,255,0.25); box-shadow: 0 0 8px rgba(255,255,255,0.7); }
   .slot.empty { opacity: 0.45; }
 
@@ -615,6 +632,8 @@
   #xpFill { height: 100%; width: 0%; background: linear-gradient(#bfff68, #5fd21f); }
   .xpPop { position: fixed; left: 50%; bottom: 100px; transform: translateX(-50%); color: #9cff4a; font: bold 14px 'Segoe UI', Arial, sans-serif; text-shadow: 1px 1px 0 #000; pointer-events: none; z-index: 12; white-space: nowrap; animation: xpPopUp 1.15s ease-out forwards; }
   body.touch-mode .xpPop { bottom: 130px; }
+  #bowCharge { position: fixed; left: 50%; top: calc(50% + 28px); transform: translateX(-50%); width: 70px; height: 6px; box-sizing: border-box; padding: 1px; background: rgba(0,0,0,0.55); border: 1px solid rgba(0,0,0,0.9); display: none; z-index: 10; pointer-events: none; }
+  #bowChargeFill { height: 100%; width: 0%; background: #fff; }
   @keyframes xpPopUp { 0% { opacity: 0; transform: translate(-50%, 6px); } 15% { opacity: 1; } 100% { opacity: 0; transform: translate(-50%, -26px); } }
   #statusBars { bottom: 84px; }
   #chatLog { bottom: 112px; }
@@ -660,12 +679,16 @@
   }
   .enchBtn .eb-t { font-weight: bold; font-size: 14px; }
   .enchBtn .eb-s { font-size: 12px; opacity: 0.85; }
-  #enchTypeRow { display: none; gap: 6px; }
-  #enchTypeRow .enchType { flex: 1; }
+  #enchTypeRow { display: none; gap: 6px; flex-wrap: wrap; }
+  #enchTypeRow .enchType { flex: 1 1 30%; min-width: 84px; padding: 6px 8px; }
+  #enchTypeRow .enchType .eb-t { font-size: 13px; }
+  #enchTypeRow .enchType .eb-s { font-size: 11px; }
   #enchTypeRow .enchType.on { background: rgba(140,90,210,0.85); box-shadow: 0 0 0 2px #fff inset; }
   #enchBtn0 { border-color: #7fd0ff; }
   #enchBtn1 { border-color: #c48cff; }
   #enchBtn2 { border-color: #ffd24a; }
+  #enchBtn3 { border-color: #ff7a7a; }
+  #enchBtn4 { border-color: #7dffa0; }
   .enchBtn:hover:not(:disabled) { background: rgba(140,90,210,0.7); }
   .enchBtn:disabled { opacity: 0.45; cursor: not-allowed; }
   #enchantInfo { font-size: 13px; margin: 2px 0 8px; }
@@ -676,8 +699,18 @@
   #enchantHint { font-size: 12px; opacity: 0.8; margin-top: 6px; max-width: 500px; }
   body.touch-mode #enchantPanel { justify-content: flex-start; }
   body.touch-mode #enchantHint { display: none; }
+  /* Scroll fix: panel is the single scroller; the box keeps its full height instead of shrinking/clipping */
+  #enchantPanel {
+    height: 100vh; height: 100dvh; box-sizing: border-box;
+    overflow-x: hidden; overflow-y: auto; overscroll-behavior: contain;
+    touch-action: pan-y; -webkit-overflow-scrolling: touch;
+    justify-content: flex-start;
+    padding: 56px 0 max(24px, env(safe-area-inset-bottom));
+  }
+  #enchantPanelBox { flex: 0 0 auto; margin: auto; max-width: 100vw; box-sizing: border-box; }
+  #enchantMainGrid, #enchantHotbarGrid { overflow-x: auto; max-width: 100%; }
   @media (max-width: 700px) {
-    #enchantPanelBox { max-width: 96vw; padding: 10px; overflow-x: auto; }
+    #enchantPanelBox { max-width: 96vw; padding: 10px; overflow: visible; }
     #enchantMainGrid, #enchantHotbarGrid { grid-template-columns: repeat(9, minmax(34px, 40px)) !important; gap: 3px !important; }
     #enchantTop { flex-direction: column; gap: 8px; }
     #enchantChoices { min-width: 0; width: 100%; }
@@ -804,17 +837,19 @@
     <div id="enchantTop">
       <div id="enchantSlotWrap"></div>
       <div id="enchantChoices">
-        <div id="enchTypeRow"><button class="enchBtn enchType" id="enchType0"><span class="eb-t">Efficiency</span><span class="eb-s">faster mining</span></button><button class="enchBtn enchType" id="enchType1"><span class="eb-t">Fortune</span><span class="eb-s">more ore / wood</span></button><button class="enchBtn enchType" id="enchType2"><span class="eb-t">Sharpness</span><span class="eb-s">more damage</span></button></div>
+        <div id="enchTypeRow"><button class="enchBtn enchType" id="enchType0"><span class="eb-t">Efficiency</span><span class="eb-s">faster mining</span></button><button class="enchBtn enchType" id="enchType1"><span class="eb-t">Fortune</span><span class="eb-s">more ore / wood</span></button><button class="enchBtn enchType" id="enchType2"><span class="eb-t">Sharpness</span><span class="eb-s">more damage</span></button><button class="enchBtn enchType" id="enchType3"><span class="eb-t">Protection</span><span class="eb-s">less damage</span></button><button class="enchBtn enchType" id="enchType4"><span class="eb-t">Unbreaking</span><span class="eb-s">lasts longer</span></button><button class="enchBtn enchType" id="enchType5"><span class="eb-t">Mending</span><span class="eb-s">repairs with XP</span></button><button class="enchBtn enchType" id="enchType6"><span class="eb-t">Looting</span><span class="eb-s">more XP &amp; drops</span></button><button class="enchBtn enchType" id="enchType7"><span class="eb-t">Power</span><span class="eb-s">arrow damage</span></button><button class="enchBtn enchType" id="enchType8"><span class="eb-t">Charge</span><span class="eb-s">arrow knockback</span></button><button class="enchBtn enchType" id="enchType9"><span class="eb-t">Infinity</span><span class="eb-s">infinite arrows</span></button></div>
         <button class="enchBtn" id="enchBtn0"><span class="eb-t"></span><span class="eb-s"></span></button>
         <button class="enchBtn" id="enchBtn1"><span class="eb-t"></span><span class="eb-s"></span></button>
         <button class="enchBtn" id="enchBtn2"><span class="eb-t"></span><span class="eb-s"></span></button>
+        <button class="enchBtn" id="enchBtn3"><span class="eb-t"></span><span class="eb-s"></span></button>
+        <button class="enchBtn" id="enchBtn4"><span class="eb-t"></span><span class="eb-s"></span></button>
       </div>
     </div>
     <div id="enchantInfo">Your XP level: <b id="enchantLvl">0</b></div>
     <div id="enchantMsg"></div>
     <div id="enchantMainGrid"></div>
     <div id="enchantHotbarGrid"></div>
-    <p id="enchantHint">Tap an item in your bag to put it in the slot (tap the slot to take it back). Swords get <b>Sharpness</b> (more damage), armor gets <b>Protection</b> (less damage taken), tools get <b>Efficiency</b> (mine faster), pickaxes/axes also <b>Fortune</b> (more ore / wood drops), and axes can also take <b>Sharpness</b>. Craft a <b>shield</b> (planks + iron) to block frontal attacks — axes can temporarily disable a raised shield. The more XP levels you spend, the stronger the enchantment. Kill mobs to earn XP · Press E to close</p>
+    <p id="enchantHint">Tap an item in your bag to put it in the slot (tap the slot to take it back). Swords get <b>Sharpness</b> (more damage), armor gets <b>Protection</b> (less damage taken), tools get <b>Efficiency</b> (mine faster), pickaxes/axes also <b>Fortune</b> (more ore / wood drops), and axes can also take <b>Sharpness</b>. Craft a <b>shield</b> (planks + iron) to block frontal attacks — axes can temporarily disable a raised shield. Swords can also take <b>Looting</b> (I–IV, more XP and more drops from kills). Sharpness goes up to V (25 levels). Bows can take <b>Power</b> (I–V, arrow damage), <b>Charge</b> (I–II, arrow knockback) and <b>Infinity</b> (30 levels, shooting doesn't use up arrows; you still need one in your bag). A <b>bow</b> (3 sticks + 3 string at a crafting table; 1 wool = 4 string) shoots <b>arrows</b> (iron + stick + string = 4): hold right-click to draw, release to fire. Every tool, sword, bow and armor piece can also take <b>Unbreaking</b> (I–III, lasts longer) and <b>Mending</b> (I, XP you earn repairs your held item, off-hand and worn armor). Enchant costs: level I = 5, II = 10, III = 15, IV = 20 XP levels (Mending = 30). Kill mobs to earn XP · Press E to close</p>
   </div>
 </div>
 
@@ -1276,6 +1311,14 @@ const TEX = {
     ctx.fillStyle = '#5a3417';
     ctx.fillRect(3,4,10,1); ctx.fillRect(3,7,8,1); ctx.fillRect(3,10,9,1);
   }),
+  fire: makeTexture(ctx => {
+    ctx.clearRect(0,0,16,16);
+    const P = (c,x,y,w,h) => { ctx.fillStyle = c; ctx.fillRect(x,y,w,h); };
+    P('#d9480f',1,10,14,6); P('#d9480f',2,6,3,5); P('#d9480f',7,2,3,9); P('#d9480f',12,5,2,6); P('#d9480f',5,8,3,3);
+    P('#ff8a1e',2,11,12,5); P('#ff8a1e',3,8,2,4); P('#ff8a1e',7,4,3,8); P('#ff8a1e',12,7,2,5);
+    P('#ffc233',4,12,8,4); P('#ffc233',7,7,3,6);
+    P('#fff2a8',6,13,4,3); P('#fff2a8',8,10,1,3);
+  }),
   campfire: makeTexture(ctx => {
     // log base
     ctx.fillStyle = '#6f4420'; ctx.fillRect(0,10,16,6);
@@ -1475,48 +1518,50 @@ const BLOCK_TYPES = {
   comparator:     { transparent: true, hardness: 0.1, tool: null, shape: 'comparator' },
   pressure_plate: { transparent: true, hardness: 0.5, tool: 'axe', shape: 'plate', noCollide: true },
   campfire: { transparent: true, hardness: 0.5, tool: 'axe', shape: 'campfire' },
+  fire:     { transparent: true, hardness: 0.05, tool: null, cross: true },   // placed by flint and steel; never an item
 };
 // Non-block items: sticks, tools, and food. Tools don't stack (max 1 per slot).
 const ITEM_INFO = {
   stick:          {},
-  wood_pickaxe:   { maxStack: 1 },
-  wood_axe:       { maxStack: 1 },
-  wood_shovel:    { maxStack: 1 },
-  stone_pickaxe:  { maxStack: 1 },
-  stone_axe:      { maxStack: 1 },
-  stone_shovel:   { maxStack: 1 },
-  wood_sword:     { maxStack: 1, attack: 4 },
-  stone_sword:    { maxStack: 1, attack: 6 },
-  iron_pickaxe:   { maxStack: 1 },
-  iron_axe:       { maxStack: 1 },
-  iron_shovel:    { maxStack: 1 },
-  iron_sword:     { maxStack: 1, attack: 8 },
-  gold_pickaxe:   { maxStack: 1 },
-  gold_axe:       { maxStack: 1 },
-  gold_shovel:    { maxStack: 1 },
-  gold_sword:     { maxStack: 1, attack: 5 },
-  diamond_pickaxe:{ maxStack: 1 },
-  diamond_axe:    { maxStack: 1 },
-  diamond_shovel: { maxStack: 1 },
-  diamond_sword:  { maxStack: 1, attack: 10 },
+  // durability ≈ Minecraft Java (uses / hits until break)
+  wood_pickaxe:   { maxStack: 1, durability: 59 },
+  wood_axe:       { maxStack: 1, durability: 59 },
+  wood_shovel:    { maxStack: 1, durability: 59 },
+  stone_pickaxe:  { maxStack: 1, durability: 131 },
+  stone_axe:      { maxStack: 1, durability: 131 },
+  stone_shovel:   { maxStack: 1, durability: 131 },
+  wood_sword:     { maxStack: 1, attack: 4, durability: 59 },
+  stone_sword:    { maxStack: 1, attack: 6, durability: 131 },
+  iron_pickaxe:   { maxStack: 1, durability: 250 },
+  iron_axe:       { maxStack: 1, durability: 250 },
+  iron_shovel:    { maxStack: 1, durability: 250 },
+  iron_sword:     { maxStack: 1, attack: 8, durability: 250 },
+  gold_pickaxe:   { maxStack: 1, durability: 32 },
+  gold_axe:       { maxStack: 1, durability: 32 },
+  gold_shovel:    { maxStack: 1, durability: 32 },
+  gold_sword:     { maxStack: 1, attack: 5, durability: 32 },
+  diamond_pickaxe:{ maxStack: 1, durability: 1561 },
+  diamond_axe:    { maxStack: 1, durability: 1561 },
+  diamond_shovel: { maxStack: 1, durability: 1561 },
+  diamond_sword:  { maxStack: 1, attack: 10, durability: 1561 },
   iron_ingot:     {},
   gold_ingot:     {},
   diamond:        {},
   redstone:       {},
-  iron_helmet:     { maxStack: 1, armor: 2, slot: 0 },
-  iron_chestplate: { maxStack: 1, armor: 4, slot: 1 },
-  iron_leggings:   { maxStack: 1, armor: 3, slot: 2 },
-  iron_boots:      { maxStack: 1, armor: 1, slot: 3 },
+  iron_helmet:     { maxStack: 1, armor: 2, slot: 0, durability: 165 },
+  iron_chestplate: { maxStack: 1, armor: 4, slot: 1, durability: 240 },
+  iron_leggings:   { maxStack: 1, armor: 3, slot: 2, durability: 225 },
+  iron_boots:      { maxStack: 1, armor: 1, slot: 3, durability: 195 },
   // gold armor: weaker than iron (7 pts total vs iron's 10)
-  gold_helmet:     { maxStack: 1, armor: 1, slot: 0 },
-  gold_chestplate: { maxStack: 1, armor: 3, slot: 1 },
-  gold_leggings:   { maxStack: 1, armor: 2, slot: 2 },
-  gold_boots:      { maxStack: 1, armor: 1, slot: 3 },
+  gold_helmet:     { maxStack: 1, armor: 1, slot: 0, durability: 77 },
+  gold_chestplate: { maxStack: 1, armor: 3, slot: 1, durability: 112 },
+  gold_leggings:   { maxStack: 1, armor: 2, slot: 2, durability: 105 },
+  gold_boots:      { maxStack: 1, armor: 1, slot: 3, durability: 91 },
   // diamond armor: the best (16 pts total)
-  diamond_helmet:     { maxStack: 1, armor: 3, slot: 0 },
-  diamond_chestplate: { maxStack: 1, armor: 6, slot: 1 },
-  diamond_leggings:   { maxStack: 1, armor: 5, slot: 2 },
-  diamond_boots:      { maxStack: 1, armor: 2, slot: 3 },
+  diamond_helmet:     { maxStack: 1, armor: 3, slot: 0, durability: 363 },
+  diamond_chestplate: { maxStack: 1, armor: 6, slot: 1, durability: 528 },
+  diamond_leggings:   { maxStack: 1, armor: 5, slot: 2, durability: 495 },
+  diamond_boots:      { maxStack: 1, armor: 2, slot: 3, durability: 429 },
   raw_meat:       { food: 3 },
   apple:          { food: 2 },
   golden_apple:   { food: 4, golden: true },   // always edible: Regeneration + 2 gold hearts
@@ -1525,14 +1570,109 @@ const ITEM_INFO = {
   charcoal:       {},
   sign:           {},
   cooked_meat:    { food: 6 },
-  shield:         { maxStack: 1 },
+  shield:         { maxStack: 1, durability: 336 },
+  string:         {},
+  arrow:          {},
+  bow:            { maxStack: 1, durability: 384 },
   totem_of_undying: { maxStack: 1 },
   null_totem: { maxStack: 1 },
+  flint_and_steel: { maxStack: 1, durability: 65 },
 };
 const ARMOR_TYPES = ['iron_helmet', 'iron_chestplate', 'iron_leggings', 'iron_boots',
   'gold_helmet', 'gold_chestplate', 'gold_leggings', 'gold_boots',
   'diamond_helmet', 'diamond_chestplate', 'diamond_leggings', 'diamond_boots'];
 function isArmor(type) { return !!(ITEM_INFO[type] && ITEM_INFO[type].armor); }
+function maxDurability(type) {
+  const info = ITEM_INFO[type];
+  return (info && info.durability) ? info.durability : 0;
+}
+function isDurableItem(type) { return maxDurability(type) > 0; }
+/** Ensure item has a `dur` field (remaining). Returns the item. */
+function ensureDur(item) {
+  if (!item || !isDurableItem(item.type)) return item;
+  const max = maxDurability(item.type);
+  if (item.dur == null || !Number.isFinite(Number(item.dur))) item.dur = max;
+  else item.dur = Math.max(0, Math.min(max, Math.trunc(Number(item.dur))));
+  return item;
+}
+/** Create a fresh tool/armor/shield with full durability. */
+function makeDurableItem(type, extra) {
+  const it = Object.assign({ type, count: 1 }, extra || {});
+  if (isDurableItem(type)) it.dur = maxDurability(type);
+  return it;
+}
+/**
+ * Damage a specific item reference by `amount` uses.
+ * `onBreak` called if it breaks (dur hits 0); returns true if broken.
+ */
+function damageItemRef(item, amount, onBreak) {
+  if (!item || !isDurableItem(item.type)) return false;
+  ensureDur(item);
+  const n = Math.max(1, amount | 0);
+  // Unbreaking: each point of wear has a 1/(level+1) chance to actually be applied
+  const _ub = Number(item.ench && item.ench.unbreaking) || 0;
+  let wear = n;
+  if (_ub > 0) { wear = 0; for (let k = 0; k < n; k++) if (Math.random() < 1 / (_ub + 1)) wear++; }
+  if (wear <= 0) return false;
+  item.dur = Math.max(0, item.dur - wear);
+  if (item.dur <= 0) {
+    if (typeof onBreak === 'function') onBreak();
+    return true;
+  }
+  return false;
+}
+/** Damage the currently held main-hand tool/weapon after mining or attacking. */
+function damageHeldTool(amount) {
+  const s = inventory[currentSlot];
+  if (!s || !isDurableItem(s.type)) return;
+  // Admin infinite: negative count stacks never lose durability
+  if (s.count < 0) return;
+  const broken = damageItemRef(s, amount == null ? 1 : amount, () => {
+    inventory[currentSlot] = null;
+  });
+  renderHotbar();
+  if (inventoryOpen) try { renderInventoryPanel(); } catch (e) {}
+  saveLocalPlayer();
+  return broken;
+}
+/** Damage equipped armor when the player takes a hit (split across worn pieces). */
+function damageWornArmor(rawDmg) {
+  const pieces = [];
+  for (let i = 0; i < armorSlots.length; i++) {
+    if (armorSlots[i] && isDurableItem(armorSlots[i].type)) pieces.push(i);
+  }
+  if (!pieces.length) return;
+  // ~1 durability per damage point, split among worn pieces (MC-ish)
+  let total = Math.max(1, Math.ceil(Number(rawDmg) || 1));
+  while (total > 0 && pieces.length) {
+    const idx = pieces[Math.floor(Math.random() * pieces.length)];
+    const it = armorSlots[idx];
+    if (!it) { pieces.splice(pieces.indexOf(idx), 1); continue; }
+    const broken = damageItemRef(it, 1, () => { armorSlots[idx] = null; });
+    if (broken) pieces.splice(pieces.indexOf(idx), 1);
+    total--;
+  }
+  renderHotbar();
+  if (inventoryOpen) try { renderInventoryPanel(); } catch (e) {}
+  saveLocalPlayer();
+}
+/** Damage shield in main or off hand when it blocks a hit. */
+function damageShield(amount) {
+  const n = amount == null ? 1 : amount;
+  const trySlot = (get, set) => {
+    const it = get();
+    if (!it || it.type !== 'shield') return false;
+    if (it.count < 0) return true; // infinite admin
+    damageItemRef(it, n, () => set(null));
+    return true;
+  };
+  if (!trySlot(() => offhand, v => { offhand = v; })) {
+    trySlot(() => inventory[currentSlot], v => { inventory[currentSlot] = v; });
+  }
+  renderHotbar();
+  if (inventoryOpen) try { renderInventoryPanel(); } catch (e) {}
+  saveLocalPlayer();
+}
 // Total damage reduction from equipped armor: any iron armor pieces the
 // player is carrying in their inventory count as "worn" (simplified —
 // no separate armor slots), each reducing incoming damage by its value.
@@ -1540,7 +1680,7 @@ function totalArmorReduction() {
   let total = 0, prot = 0;
   for (const a of armorSlots) if (a && isArmor(a.type)) {   // only EQUIPPED armor counts
     total += ITEM_INFO[a.type].armor;
-    if (a.ench && a.ench.protection) prot += a.ench.protection;
+    if (a.ench && a.ench.protection) prot += Number(a.ench.protection) || 0;
   }
   const base = Math.min(0.8, total * 0.04);   // each armor point ~4% reduction, capped at 80%
   const extra = Math.min(0.8, prot * 0.04);   // each Protection level on each piece = another 4%
@@ -1668,12 +1808,78 @@ SPRITE_GRIDS.coal = ["................", "................", "................",
 SPRITE_GRIDS.gem = ["................", "................", "....oooooooo....", "...owwaabbbco...", "..owwaabbbbbco..", ".owaaabbbbbbbco.", ".oooooooooooooo.", "..oaabbbbbbbco..", "...oabbbbbcco...", "....obbbbcco....", ".....obbcco.....", "......occo......", ".......oo.......", "................", "................", "................"];
 SPRITE_PAL.coal = { a:'#7a7a86', b:'#383840', c:'#18181c', o:'#08080a' };
 SPRITE_PAL.diamond = { w:'#ffffff', a:'#c9ffff', b:'#4fd8ec', c:'#1a8aa0', o:'#0b3f4c' };
+// flint and steel: steel striker loop (top right) joined by a diagonal bar to a chunk of flint (bottom left)
+(function () {
+  const g = Array.from({ length: 16 }, () => Array(16).fill('.'));
+  const set = (x, y, c) => { if (x >= 0 && x < 16 && y >= 0 && y < 16) g[y][x] = c; };
+  for (let x = 9; x <= 14; x++) { set(x, 1, 's'); set(x, 6, 't'); }
+  for (let y = 1; y <= 6; y++) { set(9, y, 's'); set(14, y, 't'); }
+  set(14, 6, 'u'); set(10, 2, 's'); set(13, 5, 'u');
+  for (let i = 0; i <= 5; i++) { const x = 5 + i, y = 10 - i; set(x, y, 't'); set(x + 1, y, 's'); set(x, y + 1, 'u'); }
+  for (let y = 10; y <= 14; y++) for (let x = 1; x <= 5; x++) {
+    if ((x === 1 || x === 5) && (y === 10 || y === 14)) continue;
+    set(x, y, (x + y) % 4 === 0 ? 'h' : 'g');
+  }
+  set(2, 11, 'h'); set(3, 11, 'h'); set(2, 12, 'h');
+  set(7, 12, 'r'); set(3, 9, 'r'); set(8, 11, 'r');
+  const out = g.map(r => r.slice());
+  for (let y = 0; y < 16; y++) for (let x = 0; x < 16; x++) {
+    if (g[y][x] !== '.') continue;
+    for (const [dx, dy] of [[1,0],[-1,0],[0,1],[0,-1]]) {
+      const c = (g[y + dy] || [])[x + dx];
+      if (c && c !== '.') { out[y][x] = 'o'; break; }
+    }
+  }
+  SPRITE_GRIDS.flint_steel = out.map(r => r.join(''));
+})();
+SPRITE_PAL.flint_and_steel = { o:'#14141a', s:'#e6ebef', t:'#aab3ba', u:'#6c757d', g:'#2b2b33', h:'#555563', r:'#ffb347' };
+(function () {
+  const mk = () => Array.from({ length: 16 }, () => Array(16).fill('.'));
+  const put = (g, x, y, c) => { if (x >= 0 && x < 16 && y >= 0 && y < 16) g[y][x] = c; };
+  const outline = g => {
+    const out = g.map(r => r.slice());
+    for (let y = 0; y < 16; y++) for (let x = 0; x < 16; x++) {
+      if (g[y][x] !== '.') continue;
+      for (const [dx, dy] of [[1,0],[-1,0],[0,1],[0,-1]]) { const c = (g[y + dy] || [])[x + dx]; if (c && c !== '.') { out[y][x] = 'o'; break; } }
+    }
+    return out.map(r => r.join(''));
+  };
+  { // string: a wavy light thread
+    const g = mk();
+    [[2,13],[3,12],[4,11],[5,11],[6,10],[7,9],[8,8],[9,7],[10,6],[10,5],[11,4],[12,3],[13,3]].forEach(([x, y]) => put(g, x, y, 'a'));
+    [[3,13],[4,12],[5,12],[7,10],[9,8],[11,5]].forEach(([x, y]) => put(g, x, y, 'b'));
+    SPRITE_GRIDS.string = outline(g);
+  }
+  { // bow: wooden arc bulging to the upper-left, string along the chord
+    const g = mk();
+    for (let i = 0; i <= 11; i++) put(g, 13 - i, 2 + i, 's');
+    for (let t = 180; t <= 270; t += 2) {
+      const r = t * Math.PI / 180;
+      put(g, Math.round(13 + 10.5 * Math.cos(r)), Math.round(13 + 10.5 * Math.sin(r)), 'a');
+      put(g, Math.round(13 + 11.5 * Math.cos(r)), Math.round(13 + 11.5 * Math.sin(r)), 'b');
+    }
+    SPRITE_GRIDS.bow = outline(g);
+  }
+  { // arrow: shaft from bottom-left to top-right, grey head, white fletching
+    const g = mk();
+    for (let i = 0; i <= 9; i++) put(g, 3 + i, 12 - i, 'a');
+    for (let i = 1; i <= 8; i++) put(g, 3 + i, 13 - i, 'b');
+    [[12,3],[13,2],[14,1],[12,2],[13,3],[13,1],[14,2]].forEach(([x, y]) => put(g, x, y, 'g'));
+    [[2,13],[3,13],[2,12],[1,14],[2,14],[4,13],[1,13]].forEach(([x, y]) => put(g, x, y, 'f'));
+    SPRITE_GRIDS.arrow = outline(g);
+  }
+  SPRITE_PAL.string = { a: '#f4f4f4', b: '#c4c4c4', o: '#4a4a4a' };
+  SPRITE_PAL.bow    = { a: '#b98850', b: '#7a4f24', s: '#e8e8e8', o: '#2a1a0a' };
+  SPRITE_PAL.arrow  = { a: '#a67c46', b: '#7a5530', g: '#aeb6bc', f: '#f4f4f4', o: '#24201a' };
+})();
 function _spriteGridFor(type) {
+  if (type === 'string' || type === 'bow' || type === 'arrow') return { rows: SPRITE_GRIDS[type], pal: SPRITE_PAL[type] };
   const m = /^(wood|stone|iron|gold|diamond)_(pickaxe|axe|shovel|sword)$/.exec(type);
   if (m) return { rows: SPRITE_GRIDS[m[2]], pal: { ...SPRITE_MAT[m[1]], ...SPRITE_HANDLE, ...(m[1] === 'iron' ? { o: '#262b30' } : {}) } };
   if (type === 'stick' || type === 'coal' || type === 'apple') return { rows: SPRITE_GRIDS[type], pal: SPRITE_PAL[type] };
   if (type === 'iron_ingot') return { rows: SPRITE_GRIDS.ingot, pal: SPRITE_PAL.iron_ingot };
   if (type === 'gold_ingot') return { rows: SPRITE_GRIDS.ingot, pal: SPRITE_PAL.gold_ingot };
+  if (type === 'flint_and_steel') return { rows: SPRITE_GRIDS.flint_steel, pal: SPRITE_PAL.flint_and_steel };
   if (type === 'diamond') return { rows: SPRITE_GRIDS.gem, pal: SPRITE_PAL.diamond };
   const gl = SPRITE_GLYPH_ITEMS[type];
   if (gl) {                                    // upscale the old 8x8 glyph 2x with edge shading
@@ -1843,9 +2049,10 @@ function blockDropType(t) {
   if (t === 'diamond_ore') return 'diamond';
   if (t === 'redstone_ore') return 'redstone';
   if (t === 'redstone_dust') return 'redstone';
+  if (t === 'fire') return null;
   return t;
 }
-function isPlaceable(type) { return (!!BLOCK_TYPES[type] && type !== 'water') || type === 'redstone'; }   // 'redstone' places as dust
+function isPlaceable(type) { return (!!BLOCK_TYPES[type] && type !== 'water' && type !== 'fire') || type === 'redstone'; }   // 'redstone' places as dust
 
 // ================= Mining time =================
 // Base hardness (seconds with bare hands) comes from BLOCK_TYPES; the right
@@ -1873,7 +2080,7 @@ function miningTimeFor(blockType) {
     else if (heldType.startsWith('diamond_')) tier = 8; // faster than iron, slower than gold
     else if (heldType.startsWith('gold_')) tier = 10; // fastest dig (weaker combat)
     speedMult = tier;
-    const _eff = (held && held.ench && held.ench.efficiency) || 0;   // Efficiency: +60% dig speed per level (admin levels -255..255)
+    const _eff = Number(held && held.ench && held.ench.efficiency) || 0;   // Efficiency any level (admin -100 / 100 / 255)
     if (_eff) speedMult *= Math.max(0.05, 1 + 0.6 * _eff);
   } else if (toolKind) {
     speedMult = 1; // wrong tool, no bonus (same as hand)
@@ -1896,6 +2103,10 @@ function displayName(type) { return type.replace(/_/g, ' '); }
 const RECIPES = [
   { shape: [['wood']], out: 'planks', outCount: 4, needsTable: false },
   { shape: [['planks'],['planks']], out: 'stick', outCount: 4, needsTable: false },
+  // 1 wool -> 4 string; bow = 3 sticks + 3 string; arrow = 1 iron + 1 stick + 1 string -> 4 arrows
+  { shape: [['wool']], out: 'string', outCount: 4, needsTable: false },
+  { shape: [[null,'stick','string'],['stick',null,'string'],[null,'stick','string']], out: 'bow', outCount: 1, needsTable: true },
+  { shape: [['iron_ingot'],['stick'],['string']], out: 'arrow', outCount: 4, needsTable: true },
   { shape: [['planks','planks'],['planks','planks']], out: 'crafting_table', outCount: 1, needsTable: false },
 
   { shape: [['planks','planks','planks'],[null,'stick',null],[null,'stick',null]], out: 'wood_pickaxe', outCount: 1, needsTable: true },
@@ -1935,6 +2146,9 @@ const RECIPES = [
   { shape: [[null,'planks',null],['planks','iron_ingot','planks'],[null,'planks',null]], out: 'shield', outCount: 1, needsTable: true },
   // Totem of Undying: middle row of gold + one gold below the center
   { shape: [[null,null,null],['gold_ingot','gold_ingot','gold_ingot'],[null,'gold_ingot',null]], out: 'totem_of_undying', outCount: 1, needsTable: true },
+  // Flint and steel: iron ingot + cobblestone (stands in for flint), works in the 2x2 grid
+  { shape: [['iron_ingot','cobblestone']], out: 'flint_and_steel', outCount: 1, needsTable: false },
+  { shape: [['cobblestone','iron_ingot']], out: 'flint_and_steel', outCount: 1, needsTable: false },
   // Campfire: logs + sticks + coal/charcoal
   { shape: [[null,'stick',null],['stick','coal','stick'],['wood','wood','wood']], out: 'campfire', outCount: 1, needsTable: true },
   { shape: [[null,'stick',null],['stick','charcoal','stick'],['wood','wood','wood']], out: 'campfire', outCount: 1, needsTable: true },
@@ -2062,6 +2276,7 @@ const MI = {
   sapling:   regMat(TEX.sapling, true),
   coal_ore:  regMat(TEX.coalOre),
   torch:     regMat(TEX.torch, true),
+  fire:      regMat(TEX.fire, true),
   furnace:   regMat(TEX.furnace),
   chest:     regMat(TEX.chest),
   chestTop:  regMat(TEX.chestTop),
@@ -2220,6 +2435,9 @@ MAT_LIST[MI.campfire].emissive = new THREE.Color(0xff7a20);
 MAT_LIST[MI.campfire].emissiveIntensity = 0.85;
 MAT_LIST[MI.campfireTop].emissive = new THREE.Color(0xff9a30);
 MAT_LIST[MI.campfireTop].emissiveIntensity = 0.9;
+MAT_LIST[MI.fire].emissive = new THREE.Color(0xff8a20);
+MAT_LIST[MI.fire].emissiveIntensity = 0.95;
+{ const fm = MAT_LIST[MI.fire]; fm.side = THREE.DoubleSide; fm.transparent = false; fm.opacity = 1; fm.alphaTest = 0.4; }
 [MI.campfire, MI.campfireTop].forEach(mi => {
   const m = MAT_LIST[mi];
   m.side = THREE.DoubleSide;
@@ -2789,6 +3007,8 @@ function rebuildChunk(cx, cz) {
             let rSh;
             if (rOff) rSh = cellShade(x, y, z); else { _warm = 0; rSh = shadeFromLevel(7); }
             addTorchQuads(buffers, rOff ? RS.mi.torchOff : RS.mi.torchOn, x, y, z, rSh, torchWallDir(x, y, z));
+          } else if (b.type === 'fire') {
+            addCrossQuads(buffers, MI.fire, x, y, z, shadeFromLevel(TORCH_LIGHT_LEVEL));   // flames are always fully lit
           } else {
             addCrossQuads(buffers, MI[b.type], x, y, z, cellShade(x, y, z));
           }
@@ -3000,7 +3220,7 @@ for (let i = 0; i < MAX_ACTIVE_TORCH_LIGHTS; i++) {
 }
 function syncBlockLight(x,y,z,type,deferRerank) {
   const k = key(x,y,z);
-  if (type === 'torch' || type === 'campfire') {
+  if (type === 'torch' || type === 'campfire' || type === 'fire') {
     if (!blockLights.has(k)) {
       const yOff = type === 'campfire' ? 0.85 : 0.6;
       blockLights.set(k, { position: new THREE.Vector3(x+0.5, y+yOff, z+0.5) });
@@ -3160,6 +3380,7 @@ function removeBlock(x,y,z,skipMark) {
   if (!world.has(k)) return false;
   const removedType = world.get(k).type;
   world.delete(k);
+  if (removedType === 'fire') onFireRemoved(x, y, z);
   if (removedType === 'sign') {
     if (signData[k]) { delete signData[k]; saveSignData(); broadcastSign(k, ''); }
     if (signLabelEls[k]) { signLabelEls[k].remove(); delete signLabelEls[k]; }
@@ -3625,11 +3846,61 @@ function saveLocalPlayer() {
   try { localStorage.setItem(SAVE_KEY, JSON.stringify(snapshotSave())); } catch(e) { /* storage may be unavailable; fail silently */ }
   scheduleCloudSave();
 }
+// Coerce admin/cloud item shapes so count and ench levels are real numbers.
+// Accepts aliases like Sharpness / SHARPNESS → sharpness, and levels outside 1–3.
+function normalizeItem(it) {
+  if (!it || typeof it !== 'object' || !it.type) return null;
+  const out = { type: String(it.type), count: Number(it.count) };
+  if (!Number.isFinite(out.count)) out.count = 1;
+  if (it.uses != null && Number.isFinite(Number(it.uses))) out.uses = Number(it.uses);
+  if (isDurableItem(out.type)) {
+    const max = maxDurability(out.type);
+    if (it.dur != null && Number.isFinite(Number(it.dur))) out.dur = Math.max(0, Math.min(max, Math.trunc(Number(it.dur))));
+    else out.dur = max; // legacy saves without dur → full
+  }
+  const raw = it.ench || it.enchant || it.enchantments;
+  if (raw && typeof raw === 'object') {
+    const map = {
+      sharpness: 'sharpness', sharp: 'sharpness',
+      protection: 'protection', prot: 'protection',
+      efficiency: 'efficiency', eff: 'efficiency',
+      fortune: 'fortune', fort: 'fortune',
+      unbreaking: 'unbreaking', unb: 'unbreaking',
+      mending: 'mending', mend: 'mending',
+      looting: 'looting', loot: 'looting',
+      power: 'power', charge: 'charge', infinity: 'infinity',
+      null: 'null'
+    };
+    const ench = {};
+    for (const k of Object.keys(raw)) {
+      const id = map[String(k).toLowerCase()] || null;
+      if (!id) continue;
+      const n = Number(raw[k]);
+      if (!Number.isFinite(n) || n === 0) continue;
+      // Clamp only to a safe JS range; admin values like -100 / 100 / 255 are kept
+      ench[id] = Math.max(-9999, Math.min(9999, Math.trunc(n)));
+    }
+    if (Object.keys(ench).length) out.ench = ench;
+  }
+  return out;
+}
+function normalizeInvArray(arr, size) {
+  if (!Array.isArray(arr)) return null;
+  const out = new Array(size == null ? arr.length : size).fill(null);
+  for (let i = 0; i < out.length; i++) out[i] = arr[i] ? normalizeItem(arr[i]) : null;
+  return out;
+}
 function applySaveData(data) {
+  if (!data || typeof data !== 'object') return;
   if (data.playerPos) player.pos.set(data.playerPos[0], data.playerPos[1], data.playerPos[2]);
-  if (Array.isArray(data.inventory)) inventory = data.inventory;
-  if (Array.isArray(data.armorSlots)) armorSlots = [0,1,2,3].map(i => data.armorSlots[i] || null);
-  offhand = data.offhand || null;
+  if (Array.isArray(data.inventory)) {
+    const inv = normalizeInvArray(data.inventory, INV_SIZE);
+    if (inv) inventory = inv;
+  }
+  if (Array.isArray(data.armorSlots)) {
+    armorSlots = [0, 1, 2, 3].map(i => data.armorSlots[i] ? normalizeItem(data.armorSlots[i]) : null);
+  }
+  offhand = data.offhand ? normalizeItem(data.offhand) : null;
   if (Number.isInteger(data.currentSlot)) currentSlot = data.currentSlot;
   if (typeof data.hp === 'number') player.hp = Math.max(1, Math.min(player.maxHp, data.hp));
   if (typeof data.hunger === 'number') player.hunger = Math.max(0, Math.min(player.maxHunger, data.hunger));
@@ -3638,6 +3909,7 @@ function applySaveData(data) {
   if (Number.isInteger(data.xpLevel) && data.xpLevel >= 0) xpState.level = data.xpLevel;
   if (typeof data.xpPoints === 'number' && data.xpPoints >= 0) xpState.points = data.xpPoints;
   try { jcXpUI(); } catch (e) {}
+  try { renderHotbar(); } catch (e) {}
 }
 function loadLocalPlayer() {
   try {
@@ -3781,7 +4053,7 @@ function currentBlockType() {
 // Adds `count` of `type` into the inventory: first topping up existing
 // matching stacks, then filling empty slots. Returns leftover count that
 // didn't fit (0 if it all fit).
-function addItemToInventory(type, count, ench) {
+function addItemToInventory(type, count, ench, dur) {
   const maxStack = maxStackFor(type);
   for (let i = 0; i < INV_SIZE && count > 0; i++) {
     const s = inventory[i];
@@ -3793,7 +4065,7 @@ function addItemToInventory(type, count, ench) {
   for (let i = 0; i < INV_SIZE && count > 0; i++) {
     if (!inventory[i]) {
       const add = Math.min(maxStack, count);
-      inventory[i] = { type, count: add }; if (ench) inventory[i].ench = Object.assign({}, ench); count -= add;
+      inventory[i] = { type, count: add }; if (ench) inventory[i].ench = Object.assign({}, ench); if (isDurableItem(type)) inventory[i].dur = (dur != null && Number.isFinite(Number(dur))) ? Math.max(1, Math.min(maxDurability(type), Math.trunc(Number(dur)))) : maxDurability(type); count -= add;
     }
   }
   return count;
@@ -3820,10 +4092,14 @@ function renderHotbar() {
     const s = inventory[i];
     const div = document.createElement('div');
     div.className = 'slot' + (i === currentSlot ? ' active' : '') + (!s ? ' empty' : '') + (s && s.ench ? ' enchanted' : '');
-    const cnt = s ? (s.uses != null ? s.uses : s.count) : 0;
-    // Show count for stacks other than a plain "1" (includes negatives and huge numbers from cloud saves)
-    const showCnt = s && (s.uses != null || cnt !== 1);
-    div.innerHTML = `<span class="num">${i+1}</span>${s ? iconFor(s.type) : ''}${showCnt ? `<span class="count">${cnt}</span>` : ''}`;
+    let cntHtml = '';
+    if (s) {
+      if (s.uses != null) cntHtml = `<span class="count">${s.uses}</span>`;
+      else if (s.count !== 1) cntHtml = `<span class="count">${s.count}</span>`;
+      const bar = durBarHtml(s);
+      if (bar) { cntHtml += bar; div.classList.add('hasDur'); }
+    }
+    div.innerHTML = `<span class="num">${i+1}</span>${s ? iconFor(s.type) : ''}${cntHtml}`;
     div.title = s ? jcItemTitle(s) : '';
     div.addEventListener('click', () => selectSlot(i));
     hotbar.appendChild(div);
@@ -3831,9 +4107,15 @@ function renderHotbar() {
   const oh = document.getElementById('offhandHud');
   if (oh) {
     oh.className = 'slot' + (offhand ? '' : ' empty') + (offhand && offhand.ench ? ' enchanted' : '');
-    const oc = offhand ? (offhand.uses != null ? offhand.uses : offhand.count) : 0;
-    const showOc = offhand && (offhand.uses != null || oc !== 1);
-    oh.innerHTML = `<span class="num">R</span>${offhand ? iconFor(offhand.type) : ''}${showOc ? `<span class="count">${oc}</span>` : ''}`;
+    let ocHtml = '';
+    oh.classList.remove('hasDur');
+    if (offhand) {
+      if (offhand.uses != null) ocHtml = `<span class="count">${offhand.uses}</span>`;
+      else if (offhand.count !== 1) ocHtml = `<span class="count">${offhand.count}</span>`;
+      const bar = durBarHtml(offhand);
+      if (bar) { ocHtml += bar; oh.classList.add('hasDur'); }
+    }
+    oh.innerHTML = `<span class="num">R</span>${offhand ? iconFor(offhand.type) : ''}${ocHtml}`;
     oh.title = offhand ? jcItemTitle(offhand) + ' (off hand)' : 'Off hand (right-click)';
   }
 }
@@ -3872,11 +4154,34 @@ function computeCraftOutput() {
   return matchRecipe(craftSlots, craftSize, craftSize, craftAtTable);
 }
 
+/** Minecraft-style durability bar: black track, colored fill from the bottom. */
+function durBarHtml(item) {
+  if (!item || !isDurableItem(item.type)) return '';
+  ensureDur(item);
+  const max = maxDurability(item.type);
+  if (max <= 0) return '';
+  // Full durability: hide the bar (like Minecraft)
+  if (item.dur >= max) return '';
+  const pct = Math.max(0, Math.min(100, (item.dur / max) * 100));
+  // green → yellow → red; near-broken fill is tiny (almost nothing left)
+  let cls = 'g';
+  if (pct <= 20) cls = 'r';
+  else if (pct <= 50) cls = 'y';
+  return `<div class="durBar"><div class="durBarFill ${cls}" style="width:${pct}%"></div></div>`;
+}
 function iconHtml(item) {
   if (!item) return '';
-  const show = item.uses != null || item.count !== 1;
-  const n = item.uses != null ? item.uses : item.count;
-  return `${iconFor(item.type)}${show ? `<span class="count">${n}</span>` : ''}`;
+  if (item.uses != null) return `${iconFor(item.type)}<span class="count">${item.uses}</span>`;
+  const bar = durBarHtml(item);
+  if (item.count !== 1 && !isDurableItem(item.type)) {
+    return `${iconFor(item.type)}<span class="count">${item.count}</span>${bar}`;
+  }
+  // Durable items: icon + bar only (no number clutter); stack count if somehow >1
+  const cnt = (!isDurableItem(item.type) && item.count !== 1)
+    ? `<span class="count">${item.count}</span>`
+    : (item.count !== 1 && !isDurableItem(item.type) ? `<span class="count">${item.count}</span>` : '');
+  // For tools count is always 1; only show uses-style number for non-durable
+  return `${iconFor(item.type)}${item.count !== 1 ? `<span class="count">${item.count}</span>` : ''}${bar}`;
 }
 
 function makeSlotEl(getItem, onLeftClick, onRightClick, extraClass, zone) {
@@ -3884,6 +4189,10 @@ function makeSlotEl(getItem, onLeftClick, onRightClick, extraClass, zone) {
   div.className = 'invSlot' + (extraClass ? ' ' + extraClass : '');
   const item = getItem();
   if (!item) div.classList.add('dim');
+  if (item && isDurableItem(item.type)) {
+    ensureDur(item);
+    if (item.dur < maxDurability(item.type)) div.classList.add('hasDur');
+  }
   div.innerHTML = iconHtml(item);
   div.title = item ? jcItemTitle(item) : '';
   if (item && item.ench) div.classList.add('enchanted');
@@ -3972,7 +4281,7 @@ function craftAllAtOnce() {
     for (let i = 0; i < craftSlots.length; i++) {
       if (craftSlots[i]) { craftSlots[i].count--; if (craftSlots[i].count === 0) craftSlots[i] = null; }
     }
-    stashBackpack({ type: recipe.out, count: recipe.outCount });
+    stashBackpack(makeDurableItem(recipe.out, { count: recipe.outCount }));
   }
 }
 function quickMove(zone) {
@@ -4085,11 +4394,11 @@ function clickSlot(getItem, setItem, isRight) {
 function clickCraftOutput() {
   const recipe = computeCraftOutput();
   if (!recipe) return;
-  const produced = { type: recipe.out, count: recipe.outCount };
+  const produced = makeDurableItem(recipe.out, { count: recipe.outCount });
   if (cursorItem && (cursorItem.type !== produced.type || cursorItem.count + produced.count > maxStackFor(produced.type))) return;
   // consume one of every filled ingredient cell, then hand over the output
   for (let i = 0; i < craftSlots.length; i++) {
-    if (craftSlots[i]) { craftSlots[i].count--; if (craftSlots[i].count <= 0) craftSlots[i] = null; }
+    if (craftSlots[i]) { craftSlots[i].count--; if (craftSlots[i].count === 0) craftSlots[i] = null; }
   }
   if (cursorItem) cursorItem.count += produced.count;
   else cursorItem = produced;
@@ -4157,7 +4466,7 @@ function renderInventoryPanel() {
   // craft output (read-only ingredients-wise; clicking crafts + collects)
   craftOutputWrap.innerHTML = '';
   const recipe = computeCraftOutput();
-  const outItem = recipe ? { type: recipe.out, count: recipe.outCount } : null;
+  const outItem = recipe ? makeDurableItem(recipe.out, { count: recipe.outCount }) : null;
   const outEl = makeSlotEl(() => outItem, clickCraftOutput, clickCraftOutput, 'output', { k: 'cout' });
   craftOutputWrap.appendChild(outEl);
   renderEquip();
@@ -4173,7 +4482,7 @@ document.addEventListener('mousemove', e => {
 
 function returnCursorItemToInventory() {
   if (!cursorItem) return;
-  const leftover = addItemToInventory(cursorItem.type, cursorItem.count, cursorItem.ench);
+  const leftover = addItemToInventory(cursorItem.type, cursorItem.count, cursorItem.ench, cursorItem.dur);
   cursorItem = leftover > 0 ? jcCopy(cursorItem, leftover) : null;
 }
 
@@ -4245,7 +4554,7 @@ function closeInventory() {
   inventoryOpen = false;
   invPanel.style.display = 'none';
   // return any grid/cursor contents to the inventory rather than deleting items
-  craftSlots.forEach((s, i) => { if (s) { addItemToInventory(s.type, s.count, s.ench); craftSlots[i] = null; } });
+  craftSlots.forEach((s, i) => { if (s) { addItemToInventory(s.type, s.count, s.ench, s.dur); craftSlots[i] = null; } });
   returnCursorItemToInventory();
   renderHotbar();
   saveLocalPlayer();
@@ -4454,13 +4763,13 @@ function chestSyncTick() {
 // ---- chest contents in the shared world table (survives reloads, visible to everyone) ----
 const recentChestPushes = [];   // our own recent writes, so their realtime echo can't undo newer local edits
 const chestDbTimers = {};
-function encodeChest(slots) { return 'c:' + slots.map(s => s ? s.type + '*' + s.count + jcEnchEnc(s.ench) : '').join(','); }
+function encodeChest(slots) { return 'c:' + slots.map(s => s ? s.type + '*' + s.count + (s.dur != null && isDurableItem(s.type) ? '^' + Math.trunc(Number(s.dur)) : '') + jcEnchEnc(s.ench) : '').join(','); }
 function decodeChest(str) {
   const arr = new Array(CHEST_SIZE).fill(null);
   str.split(',').forEach((e, i) => {
     if (i >= CHEST_SIZE || !e) return;
-    const [t, cr] = e.split('*'), c = (cr || '').split('~'), n = parseInt(c[0], 10);
-    if (t && n !== 0 && Number.isFinite(n) && (BLOCK_TYPES[t] || ITEM_INFO[t])) { arr[i] = { type: t, count: n }; const en = jcDecEnch(c[1]); if (en) arr[i].ench = en; }
+    const [t, cr] = e.split('*'), c = (cr || '').split('~'), cd = (c[0] || '').split('^'), n = parseInt(cd[0], 10);
+    if (t && n !== 0 && Number.isFinite(n) && (BLOCK_TYPES[t] || ITEM_INFO[t])) { arr[i] = { type: t, count: n }; if (cd[1] != null && isDurableItem(t) && Number.isFinite(parseInt(cd[1], 10))) arr[i].dur = Math.max(0, Math.min(maxDurability(t), parseInt(cd[1], 10))); const en = jcDecEnch(c[1]); if (en) arr[i].ench = en; }
   });
   return arr;
 }
@@ -4856,6 +5165,9 @@ function damagePlayer(amount, knockDir, knockStrength, opts) {
   let applied = frontBlock ? amount * 0.05 : amount; // shield blocks ~95% from the front
   applied *= (1 - totalArmorReduction());
   if (player.absorb > 0) { const soak = Math.min(player.absorb, applied); player.absorb -= soak; applied -= soak; }
+  // Durability: shield when blocking, otherwise worn armor
+  if (frontBlock) damageShield(Math.max(1, Math.ceil(amount / 2)));
+  else if (applied > 0) damageWornArmor(applied);
   player.hp = Math.max(0, player.hp - applied);
   if (knockDir && knockStrength > 0) {
     const str = frontBlock ? knockStrength * 0.2 : knockStrength;
@@ -5017,9 +5329,11 @@ function knockbackEntity(ent, fromPos, strength) {
   const d = new THREE.Vector3(ent.pos.x - fromPos.x, 0, ent.pos.z - fromPos.z);
   if (d.lengthSq() < 1e-6) d.set(Math.sin(player.yaw || 0), 0, Math.cos(player.yaw || 0));
   d.normalize();
-  ent.vel.x += d.x * strength;
-  ent.vel.z += d.z * strength;
-  ent.vel.y = Math.max(ent.vel.y || 0, strength * 0.55);
+  const KB_SHOVE = 2.0;                        // sideways shove multiplier (was 1.0)
+  ent.vel.x = d.x * strength * KB_SHOVE;       // set (not add) so repeated hits don't stack into a launch
+  ent.vel.z = d.z * strength * KB_SHOVE;
+  ent.vel.y = Math.max(ent.vel.y || 0, 3.4);   // just a small hop: distance, not height
+  ent.kbT = 0.55;                              // AI steering is paused while the shove plays out
 }
 function healPlayer(amount) {
   if (amount <= 0) return;
@@ -5037,7 +5351,7 @@ function respawnPlayer() {
   player.hp = player.maxHp;
   player.hunger = player.maxHunger;
   player.saturation = 5;
-  player.absorb = 0; player.absorbT = 0; player.regenT = 0; player.regenTick = 0;
+  player.absorb = 0; player.absorbT = 0; player.regenT = 0; player.regenTick = 0; player.burnT = 0;
   updateHpUI();
 }
 // Right-click a bed: always sets your spawn point; at night it also sleeps through to morning.
@@ -6163,11 +6477,11 @@ function buildZombie() {
   const armGeo = new THREE.BoxGeometry(0.18, 0.55, 0.18);
   armGeo.translate(0, -0.2, 0);
   const armL = new THREE.Mesh(armGeo, skin);
-  armL.position.set(-0.38, 1.25, -0.28);
-  armL.rotation.x = -1.15;
+  armL.position.set(-0.38, 1.38, 0);
+  armL.rotation.x = -1.45;
   const armR = new THREE.Mesh(armGeo, skin);
-  armR.position.set(0.38, 1.25, -0.28);
-  armR.rotation.x = -1.15;
+  armR.position.set(0.38, 1.38, 0);
+  armR.rotation.x = -1.45;
   const legGeo = new THREE.BoxGeometry(0.2, 0.7, 0.22);
   legGeo.translate(0, -0.35, 0);
   const legL = new THREE.Mesh(legGeo, pants);
@@ -6178,6 +6492,8 @@ function buildZombie() {
   group.add(torso, head, armL, armR, legL, legR);
   group.userData.legs = [legL, legR];
   group.userData.arms = [armL, armR];
+  group.userData.armBase = -1.45;
+  group.userData.head = head;
   return group;
 }
 
@@ -6304,14 +6620,24 @@ function applyMobSnapshot(fromId, list) {
     if (!seen.has(a.id)) { a.alive = false; scene.remove(a.group); animals.splice(i, 1); }
   }
 }
+let jcNoLootUntil = 0;   // arrow kills don't get Looting (it's a sword enchant)
+function jcLootingLevel() {
+  if (performance.now() < jcNoLootUntil) return 0;
+  const h = currentItem();
+  if (!h || !isSword(h.type) || !h.ench) return 0;
+  return Math.max(0, Math.min(50, Math.trunc(Number(h.ench.looting) || 0)));
+}
 function giveMobLoot(kind) {
-  jcAddXp(JC_XP[kind] || 2);
+  const L = jcLootingLevel();
+  // Looting: +25% XP per level (IV = double), and up to +L extra of each drop
+  jcAddXp(Math.max(1, Math.round((JC_XP[kind] || 2) * (1 + 0.25 * L))));
+  const extra = () => L > 0 ? Math.floor(Math.random() * (L + 1)) : 0;
   if (kind === 'zombie') {
-    if (Math.random() < 0.08) addItemToInventory('iron_ingot', 1);
+    if (Math.random() < 0.08 + 0.04 * L) addItemToInventory('iron_ingot', 1 + (L > 0 && Math.random() < 0.25 * L ? 1 : 0));
   } else {
-    const dropCount = (kind === 'cow' ? 2 : 1) + Math.floor(Math.random()*2);   // cows drop a bit more
+    const dropCount = (kind === 'cow' ? 2 : 1) + Math.floor(Math.random()*2) + extra();   // cows drop a bit more
     addItemToInventory('raw_meat', dropCount);
-    if (kind === 'sheep') addItemToInventory('wool', 1 + Math.floor(Math.random()*2));   // 1-2 wool (3 wool + 3 planks = bed)
+    if (kind === 'sheep') addItemToInventory('wool', 1 + Math.floor(Math.random()*2) + extra());   // 1-2 wool (3 wool + 3 planks = bed)
   }
   renderHotbar();
   if (inventoryOpen) renderInventoryPanel();
@@ -6328,6 +6654,31 @@ function generateChunksNoMesh(px, pz, radius, maxNew) {
   }
 }
 
+// One shared animation pass for every mob (host-simulated and remote copies).
+// spd = horizontal speed in blocks/s, grounded = standing on something.
+function animateMob(a, dt, spd, grounded) {
+  const ud = a.group.userData, isZ = a.kind === 'zombie';
+  const sp = Math.min(spd, isZ ? 2.2 : 1.6);              // cap so a knockback slide can't make the legs spin
+  const moving = grounded && sp > 0.12;
+  a.amp = (a.amp || 0) + ((moving ? 1 : 0) - (a.amp || 0)) * Math.min(1, dt * 12);   // smooth in/out of walking
+  if (moving) a.walk = (a.walk || 0) + dt * (isZ ? 4 + sp * 3.2 : 3 + sp * 6);       // phase only advances while walking
+  const swing = Math.sin(a.walk || 0) * a.amp;
+  if (ud.legs) { ud.legs[0].rotation.x = swing * 0.75; ud.legs[1].rotation.x = -swing * 0.75; }
+  if (ud.legs4) {
+    const L = ud.legs4, s = swing * 0.6;                    // diagonal pairs move together
+    L[0].rotation.x = s; L[3].rotation.x = s; L[1].rotation.x = -s; L[2].rotation.x = -s;
+  }
+  if (ud.arms) {                                            // zombie: arms held out, gentle sway, jab when it hits
+    a.idle = (a.idle || 0) + dt * 2.2;
+    const base = ud.armBase != null ? ud.armBase : -1.45;
+    const atk = Math.max(0, ((a.attackCd || 0) - 0.75) / 0.35);
+    ud.arms[0].rotation.x = base + Math.sin(a.idle) * 0.05 + swing * 0.12 + atk * 0.9;
+    ud.arms[1].rotation.x = base + Math.sin(a.idle + 1.3) * 0.05 - swing * 0.12 + atk * 0.9;
+    ud.arms[0].rotation.z = 0.04; ud.arms[1].rotation.z = -0.04;
+  }
+  if (ud.head) ud.head.rotation.x = Math.sin((a.walk || 0) * 2) * 0.03 * a.amp;
+  a.bob = Math.abs(Math.sin(a.walk || 0)) * (isZ ? 0.04 : 0.025) * a.amp;   // little step bounce
+}
 function updateAnimals(dt) {
   const iAmHost = isMobHost();
   animals.forEach(a => {
@@ -6342,22 +6693,17 @@ function updateAnimals(dt) {
       else { a.pos.x += dx * k; a.pos.z += dz * k; a.pos.y += (t.y - a.pos.y) * k; }
       let df = t.f - a.facing; df = Math.atan2(Math.sin(df), Math.cos(df)); a.facing += df * k;
       const spd = Math.hypot(dx, dz) * 5;
-      if (a.kind === 'zombie' && a.group.userData.legs) {
-        const sw = spd > 0.15 ? Math.sin(performance.now() * 0.008) * 0.35 : 0;
-        a.group.userData.legs[0].rotation.x = sw; a.group.userData.legs[1].rotation.x = -sw;
-      } else if (a.group.userData.legs4) {
-        const L = a.group.userData.legs4;
-        a.walk = (a.walk || 0) + dt * (2 + spd * 7);
-        const sw = spd > 0.15 ? Math.sin(a.walk) * 0.55 : 0;
-        L[0].rotation.x = sw; L[3].rotation.x = sw; L[1].rotation.x = -sw; L[2].rotation.x = -sw;
-      }
+      animateMob(a, dt, spd, true);
       a.group.position.copy(a.pos);
+      a.group.position.y += a.bob || 0;
       a.group.rotation.y = a.facing;
       return;
     }
     // no ground generated under this mob yet (far from the host): freeze instead of falling
     if (!generatedChunks.has(Math.floor(a.pos.x / CHUNK_SIZE) + ',' + Math.floor(a.pos.z / CHUNK_SIZE))) return;
-    if (a.kind === 'zombie') {
+    if (a.kind === 'zombie' && a.kbT > 0) {
+      a.kbT -= dt;   // being knocked back: let the shove play out
+    } else if (a.kind === 'zombie') {
       const tgt = nearestPlayerTarget(a.pos);
       const toP = new THREE.Vector3(tgt.x - a.pos.x, 0, tgt.z - a.pos.z);
       const dist = toP.length();
@@ -6408,14 +6754,10 @@ function updateAnimals(dt) {
           }
         }
       }
-      if (a.group.userData.legs) {
-        const swing = Math.sin(performance.now() * 0.008) * 0.35;
-        a.group.userData.legs[0].rotation.x = swing;
-        a.group.userData.legs[1].rotation.x = -swing;
-      }
     } else {
+      if (a.kbT > 0) a.kbT -= dt;
       a.wanderTimer -= dt;
-      if (a.wanderTimer <= 0) {
+      if (a.wanderTimer <= 0 && !(a.kbT > 0)) {
         a.wanderTimer = 1.5 + Math.random()*2.5;
         if (Math.random() < 0.35) {
           a.vel.x = 0; a.vel.z = 0;
@@ -6427,12 +6769,6 @@ function updateAnimals(dt) {
         }
       }
     }
-    if (a.kind !== 'zombie' && a.group.userData.legs4) {      // walk cycle for pigs / cows / sheep
-      const L = a.group.userData.legs4, spd = Math.hypot(a.vel.x, a.vel.z);
-      a.walk = (a.walk || 0) + dt * (2 + spd * 7);
-      const sw = spd > 0.15 ? Math.sin(a.walk) * 0.55 : 0;
-      L[0].rotation.x = sw; L[3].rotation.x = sw; L[1].rotation.x = -sw; L[2].rotation.x = -sw;
-    }
     a.vel.y -= 20*dt;
     // Less friction so knockback shoves farther
     a.vel.x *= Math.pow(0.94, dt * 60);
@@ -6440,8 +6776,12 @@ function updateAnimals(dt) {
     const onGround = moveEntity(a.pos, a.vel, dt, a.radius, a.height);
     if (onGround && a.vel.y < 0.01) a.vel.y = 0;
     if (a.pos.y < -60) { a.alive = false; scene.remove(a.group); return; }
+    animateMob(a, dt, a.kbT > 0 ? 0 : Math.hypot(a.vel.x, a.vel.z), onGround);
     a.group.position.copy(a.pos);
-    a.group.rotation.y = a.facing;
+    a.group.position.y += a.bob || 0;
+    if (a.dispF == null) a.dispF = a.facing;
+    { let df = a.facing - a.dispF; df = Math.atan2(Math.sin(df), Math.cos(df)); a.dispF += df * Math.min(1, dt * 12); }   // smooth turning
+    a.group.rotation.y = a.dispF;
   });
 }
 
@@ -6584,7 +6924,7 @@ function spawnDroppedItem(type, count, pos, vel, opts) {
   // a neighboring solid block and end up visually wedged inside it.
   const v = vel ? vel.clone() : new THREE.Vector3((Math.random()-0.5)*0.6, 2.5, (Math.random()-0.5)*0.6);
   droppedItems.push({
-    id, sprite, type, count, ench: opts.ench || null,
+    id, sprite, type, count, ench: opts.ench || null, dur: opts.dur != null ? opts.dur : null,
     pos: pos.clone(),
     vel: v,
     radius: 0.15, height: 0.15,
@@ -6594,7 +6934,7 @@ function spawnDroppedItem(type, count, pos, vel, opts) {
   if (!opts.remote) {
     playersChannel.send({
       type: 'broadcast', event: 'drop',
-      payload: { from: MY_ID, id, itemType: type, count, ench: opts.ench || null, x: pos.x, y: pos.y, z: pos.z, vx: v.x, vy: v.y, vz: v.z }
+      payload: { from: MY_ID, id, itemType: type, count, ench: opts.ench || null, dur: opts.dur != null ? opts.dur : null, x: pos.x, y: pos.y, z: pos.z, vx: v.x, vy: v.y, vz: v.z }
     });
   }
 }
@@ -6632,7 +6972,7 @@ function updateDroppedItems(dt) {
       const dy = it.pos.y - (player.pos.y + player.height*0.5);
       if (dx*dx + dz*dz < 1.6*1.6 && Math.abs(dy) < 2.2) {
         const before = it.count;
-        const leftover = addItemToInventory(it.type, it.count, it.ench);
+        const leftover = addItemToInventory(it.type, it.count, it.ench, it.dur);
         renderHotbar();
         if (inventoryOpen) renderInventoryPanel();
         if (leftover < before) {
@@ -6650,6 +6990,167 @@ function updateDroppedItems(dt) {
   }
 }
 
+
+// ================= Bow & arrows =================
+// Hold right-click with a bow to draw (full power after 1s), release to fire one arrow from your bag.
+const BOW_FULL_DRAW = 1.0, BOW_MIN_DRAW = 0.15;
+const bow = { drawing: false, t: 0 };
+const arrows = [];
+const bowHudEl = (() => {
+  const d = document.createElement('div'); d.id = 'bowCharge';
+  d.innerHTML = '<div id="bowChargeFill"></div>'; document.body.appendChild(d); return d;
+})();
+const bowFillEl = document.getElementById('bowChargeFill');
+function bowHeld() { const h = currentItem(); return (h && h.type === 'bow') ? h : null; }
+function findArrowSlot() {
+  for (let i = 0; i < INV_SIZE; i++) { const it = inventory[i]; if (it && it.type === 'arrow' && it.count !== 0) return i; }
+  return -1;
+}
+function startBowDraw() {
+  if (bow.drawing) return true;
+  if (!bowHeld()) return false;
+  if (findArrowSlot() < 0) { jcXpPop('No arrows'); return true; }
+  bow.drawing = true; bow.t = 0;
+  return true;
+}
+function cancelBow() { bow.drawing = false; bow.t = 0; bowHudEl.style.display = 'none'; }
+function updateBow(dt) {
+  if (!bow.drawing) return;
+  if (!bowHeld() || !isPlaying()) { cancelBow(); return; }
+  bow.t += dt;
+  const p = Math.min(1, bow.t / BOW_FULL_DRAW);
+  bowHudEl.style.display = 'block';
+  bowFillEl.style.width = (p * 100).toFixed(0) + '%';
+  bowFillEl.style.background = p >= 1 ? '#ffd24a' : '#fff';
+}
+const _arrowMats = { shaft: new THREE.MeshLambertMaterial({ color: 0x8a6a3a }), tip: new THREE.MeshLambertMaterial({ color: 0xb5bcc2 }), fl: new THREE.MeshLambertMaterial({ color: 0xf2f2f2, side: THREE.DoubleSide }) };
+const _arrowGeos = { shaft: new THREE.CylinderGeometry(0.018, 0.018, 0.7, 6), tip: new THREE.ConeGeometry(0.045, 0.12, 6), fl: new THREE.PlaneGeometry(0.1, 0.12) };
+function makeArrowMesh() {
+  const g = new THREE.Group();
+  const shaft = new THREE.Mesh(_arrowGeos.shaft, _arrowMats.shaft);
+  const tip = new THREE.Mesh(_arrowGeos.tip, _arrowMats.tip); tip.position.y = 0.41;
+  const f1 = new THREE.Mesh(_arrowGeos.fl, _arrowMats.fl); f1.position.y = -0.3;
+  const f2 = new THREE.Mesh(_arrowGeos.fl, _arrowMats.fl); f2.position.y = -0.3; f2.rotation.y = Math.PI / 2;
+  g.add(shaft, tip, f1, f2);
+  return g;
+}
+const _arrowUp = new THREE.Vector3(0, 1, 0);
+function spawnArrow(pos, vel, opts) {
+  opts = opts || {};
+  const mesh = makeArrowMesh();
+  scene.add(mesh);
+  const a = { mesh, pos: pos.clone(), vel: vel.clone(), remote: !!opts.remote, power: opts.power || 1, powerLvl: opts.powerLvl || 0, charge: opts.charge || 0, noPickup: !!opts.noPickup, stuck: false, stuckAt: 0, age: 0 };
+  mesh.position.copy(a.pos);
+  if (a.vel.lengthSq() > 1e-6) mesh.quaternion.setFromUnitVectors(_arrowUp, a.vel.clone().normalize());
+  arrows.push(a);
+  return a;
+}
+function releaseBow() {
+  if (!bow.drawing) return;
+  const t = bow.t; cancelBow();
+  const b = bowHeld(); if (!b) return;
+  const power = Math.min(1, t / BOW_FULL_DRAW);
+  if (power < BOW_MIN_DRAW) return;
+  const idx = findArrowSlot();
+  if (idx < 0) { jcXpPop('No arrows'); return; }
+  const stack = inventory[idx];
+  const be = b.ench || {};
+  const infinite = (Number(be.infinity) || 0) > 0;   // Infinity: shooting doesn't consume the arrow
+  if (!infinite && stack.count > 0) { stack.count--; if (stack.count <= 0) inventory[idx] = null; }   // negative (admin) stacks are infinite
+  const ray = getAimRay();
+  const dir = ray.dir.clone().normalize();
+  const origin = ray.origin.clone().add(dir.clone().multiplyScalar(0.6)); origin.y -= 0.1;
+  const vel = dir.clone().multiplyScalar(8 + 30 * power);
+  spawnArrow(origin, vel, { power, powerLvl: Number(be.power) || 0, charge: Number(be.charge) || 0, noPickup: infinite });
+  playersChannel.send({ type: 'broadcast', event: 'arrow', payload: { from: MY_ID, x: origin.x, y: origin.y, z: origin.z, vx: vel.x, vy: vel.y, vz: vel.z } });
+  startSwing();
+  damageHeldTool(1);                 // bow wear (Unbreaking applies)
+  renderHotbar();
+  if (inventoryOpen) try { renderInventoryPanel(); } catch (e) {}
+  saveLocalPlayer();
+}
+function arrowEntityAt(pt) {
+  for (const m of animals) {
+    if (!m.alive) continue;
+    const h = m.height || (m.kind === 'zombie' ? 1.8 : 1.0), r = (m.radius || 0.45) + 0.12;
+    if (pt.y < m.pos.y - 0.1 || pt.y > m.pos.y + h + 0.1) continue;
+    if (Math.hypot(pt.x - m.pos.x, pt.z - m.pos.z) > r) continue;
+    return { mob: m };
+  }
+  for (const [id, entry] of otherPlayers) {
+    const g = entry.group.position;
+    if (pt.y < g.y - 0.1 || pt.y > g.y + 1.9) continue;
+    if (Math.hypot(pt.x - g.x, pt.z - g.z) > 0.5) continue;
+    return { id, entry };
+  }
+  return null;
+}
+function arrowHit(a, found, dir, pt) {
+  let dmg = 1.5 + 7.5 * a.power;   // full draw = 9
+  if (a.powerLvl > 0) dmg *= 1 + 0.25 * (a.powerLvl + 1);   // Power: +25% per level, +25% base (I = +50%)
+  const kbBonus = Math.max(0, a.charge);
+  if (found.mob) {
+    jcNoLootUntil = performance.now() + 1500;   // bow kills: no Looting
+    const d = jcIframe(found.mob, dmg);
+    if (d > 0) damageAnimal(found.mob, d, new THREE.Vector3(pt.x - dir.x * 2, pt.y, pt.z - dir.z * 2), 0.7 + 0.9 * kbBonus);   // Charge: more knockback
+  } else {
+    const g = found.entry.group.position;
+    const d = jcIframe(found.entry, dmg);
+    if (d > 0) {
+      playersChannel.send({ type: 'broadcast', event: 'hit', payload: { targetId: found.id, amount: d, attackerId: MY_ID, kx: dir.x, kz: dir.z, knock: 5 + 4 * kbBonus } });
+      flashRed(found.entry.group);
+    }
+  }
+}
+function removeArrow(i) { scene.remove(arrows[i].mesh); arrows.splice(i, 1); }
+function updateArrows(dt) {
+  const now = performance.now();
+  for (let i = arrows.length - 1; i >= 0; i--) {
+    const a = arrows[i];
+    a.age += dt;
+    if (a.stuck) {
+      const since = now - a.stuckAt;
+      if (!a.remote && !a.noPickup && since > 700) {   // walk over a landed arrow to pick it back up
+        const dx = a.pos.x - player.pos.x, dz = a.pos.z - player.pos.z, dy = a.pos.y - (player.pos.y + player.height * 0.5);
+        if (dx * dx + dz * dz < 1.4 * 1.4 && Math.abs(dy) < 2.2 && addItemToInventory('arrow', 1) === 0) {
+          renderHotbar(); if (inventoryOpen) try { renderInventoryPanel(); } catch (e) {}
+          removeArrow(i); continue;
+        }
+      }
+      if (since > (a.remote ? 8000 : 40000)) removeArrow(i);
+      continue;
+    }
+    const steps = Math.max(1, Math.ceil(a.vel.length() * dt / 0.4));
+    const h = dt / steps;
+    let done = false;
+    for (let s = 0; s < steps && !done; s++) {
+      a.vel.y -= 16 * h;
+      const move = a.vel.clone().multiplyScalar(h), len = move.length();
+      if (len < 1e-6) continue;
+      const dir = move.clone().divideScalar(len);
+      const hit = castVoxelRay(a.pos, dir, len);
+      const dHit = hit ? Math.hypot(hit.hx - a.pos.x, hit.hy - a.pos.y, hit.hz - a.pos.z) : len;
+      if (!a.remote) {
+        const n = Math.max(1, Math.ceil(dHit / 0.3));
+        for (let k = 1; k <= n; k++) {
+          const pt = { x: a.pos.x + dir.x * dHit * k / n, y: a.pos.y + dir.y * dHit * k / n, z: a.pos.z + dir.z * dHit * k / n };
+          const found = arrowEntityAt(pt);
+          if (found) { arrowHit(a, found, dir, pt); removeArrow(i); done = 'gone'; break; }
+        }
+        if (done === 'gone') break;
+      }
+      if (hit) {
+        a.pos.set(hit.hx + dir.x * 0.15, hit.hy + dir.y * 0.15, hit.hz + dir.z * 0.15);
+        a.stuck = true; a.stuckAt = now; a.vel.set(0, 0, 0); done = true;
+      } else a.pos.add(move);
+    }
+    if (done === 'gone') continue;
+    if (a.pos.y < -60 || a.age > 30) { removeArrow(i); continue; }
+    a.mesh.position.copy(a.pos);
+    if (!a.stuck && a.vel.lengthSq() > 1e-6) a.mesh.quaternion.setFromUnitVectors(_arrowUp, a.vel.clone().normalize());
+  }
+}
+
 // Throw the currently held item out in front of the player (Q).
 function throwCurrentItem() {
   const held = currentItem();
@@ -6659,7 +7160,7 @@ function throwCurrentItem() {
   const startPos = new THREE.Vector3(player.pos.x, player.pos.y + player.height*0.6, player.pos.z)
     .add(dir.clone().multiplyScalar(0.6));
   const vel = dir.clone().multiplyScalar(6.5).add(new THREE.Vector3(0, 2.8, 0));
-  spawnDroppedItem(held.type, 1, startPos, vel, { ench: held.ench });
+  spawnDroppedItem(held.type, 1, startPos, vel, { ench: held.ench, dur: held.dur });
   removeFromCurrentSlot(1);
   renderHotbar();
   if (inventoryOpen) renderInventoryPanel();
@@ -6737,9 +7238,10 @@ function jcRoll() {
   const wet = (typeof isInWater === 'function') && isInWater(player.pos);
   const crit = charged && !player.onGround && player.vel.y < -1.5 && !wet && !jcSprinting;
   if (crit) dmg *= 1.5;
-  const _h = currentItem(), _sh = (_h && _h.ench && _h.ench.sharpness) || 0;
-  // Sharpness any level (incl. admin -1 / 255 from cloud): +0.5*level+0.5 scaled by charge
-  if (_sh) dmg += (0.5 * _sh + 0.5) * s;
+  const _h = currentItem();
+  const _sh = Number(_h && _h.ench && _h.ench.sharpness) || 0;
+  // Sharpness any level (admin -100 / 100 / 255 from cloud): +0.5*level+0.5 scaled by charge
+  if (_sh) dmg += (0.5 * _sh + 0.5) * Math.max(s, 0.2);
   const sprint = charged && jcSprinting;
   const sweep = charged && st.kind === 'sword' && player.onGround && !jcSprinting && !crit;
   return { st, s, charged, dmg, crit, sprint, sweep, kb: (charged ? 1 : 0.6) * (sprint ? 1.9 : 1) };
@@ -6847,6 +7349,8 @@ function jcAttackAnimal(a) {
     jcAfterHit(r, ax, ay, az, h);
     jcSweep(r, { x: ax, y: ay, z: az, ref: a });
   }
+  // Weapon durability on every swing that targets a mob (hit or not still costs if charged contact)
+  if (r.st && r.st.kind !== 'hand') damageHeldTool(1);
   return true;
 }
 function jcAttackPlayer(pt) {
@@ -6865,6 +7369,7 @@ function jcAttackPlayer(pt) {
     jcAfterHit(r, g.x, g.y, g.z, 1.1);
     jcSweep(r, { x: g.x, y: g.y, z: g.z, id: pt.id });
   }
+  if (r.st && r.st.kind !== 'hand') damageHeldTool(1);
   return true;
 }
 
@@ -6917,59 +7422,100 @@ function jcXpPop(text) {
   const d = document.createElement('div'); d.className = 'xpPop'; d.textContent = text;
   document.body.appendChild(d); setTimeout(() => d.remove(), 1200);
 }
+// Mending: XP you earn first repairs damaged mended gear (main hand, off-hand, worn armor),
+// 2 durability per XP point; whatever isn't needed for repairs goes toward your level.
+function jcMendWithXp(n) {
+  let left = n, repaired = false;
+  while (left > 0) {
+    const cands = [];
+    const consider = it => {
+      if (!it || !it.ench || !(Number(it.ench.mending) > 0) || !isDurableItem(it.type)) return;
+      ensureDur(it);
+      if (it.dur < maxDurability(it.type)) cands.push(it);
+    };
+    consider(inventory[currentSlot]); consider(offhand);
+    for (const a of armorSlots) consider(a);
+    if (!cands.length) break;
+    const it = cands[Math.floor(Math.random() * cands.length)];
+    const max = maxDurability(it.type);
+    const use = Math.min(left, Math.ceil((max - it.dur) / 2));
+    it.dur = Math.min(max, it.dur + use * 2);
+    left -= use; repaired = true;
+  }
+  if (repaired) { renderHotbar(); if (inventoryOpen) try { renderInventoryPanel(); } catch (e) {} }
+  return { left, repaired };
+}
 function jcAddXp(n) {
   if (!(n > 0)) return;
   const before = xpState.level;
-  xpState.points += n;
+  const mend = jcMendWithXp(n);
+  xpState.points += mend.left;
   while (xpState.points >= xpNeed(xpState.level)) { xpState.points -= xpNeed(xpState.level); xpState.level++; }
   jcXpUI();
-  jcXpPop('+' + n + ' XP' + (xpState.level > before ? '  ·  Level ' + xpState.level + '!' : ''));
+  jcXpPop('+' + n + ' XP' + (mend.repaired ? '  ·  Mended' : '') + (xpState.level > before ? '  ·  Level ' + xpState.level + '!' : ''));
   saveLocalPlayer();
 }
 
 const JC_ROMAN = ['', 'I', 'II', 'III', 'IV', 'V'];
 // Low / Medium / High: the more XP levels you spend, the stronger the enchantment.
 const JC_ENCH_TIERS = [
-  { name: 'Low',    cost: 2, level: 1 },
-  { name: 'Medium', cost: 4, level: 2 },
-  { name: 'High',   cost: 6, level: 3 },
+  { name: 'Level I',   cost: 5,  level: 1 },
+  { name: 'Level II',  cost: 10, level: 2 },
+  { name: 'Level III', cost: 15, level: 3 },
+  { name: 'Level IV',  cost: 20, level: 4 },
+  { name: 'Level V',   cost: 25, level: 5 },
 ];
+// Highest level the table offers per enchant (default 4)
+const JC_ENCH_MAX = { unbreaking: 3, mending: 1, sharpness: 5, power: 5, charge: 2, infinity: 1 };
+// Per-enchant cost override (XP levels) for a given tier; others use the tier's normal cost
+const JC_ENCH_COST = { mending: 30, infinity: 30 };
+function jcEnchCost(id, t) { return JC_ENCH_COST[id] != null ? JC_ENCH_COST[id] : t.cost; }
+const JC_ENCH_TYPE_IDS = ['efficiency', 'fortune', 'sharpness', 'protection', 'unbreaking', 'mending', 'looting', 'power', 'charge', 'infinity'];
 const _fr = (a, b) => Array.from({ length: b - a + 1 }, (_, i) => a + i);
 // Total items dropped per Fortune level [I, II, III] (each list is picked from uniformly, so repeats weight the odds)
 const JC_FORTUNE = {
-  iron_ore:    [[1, 1, 2], [1, 2, 3], _fr(1, 4)],
-  gold_ore:    [[1, 1, 2], [1, 2, 3], _fr(1, 4)],
-  coal_ore:    [[1, 2, 3], _fr(1, 4), _fr(2, 5)],
-  redstone_ore:[_fr(4, 8), _fr(4, 11), _fr(5, 15)],
-  diamond_ore: [[1, 1, 2], [1, 1, 2, 3], _fr(1, 3)],
-  wood:        [[1, 1, 2], [1, 2, 2], [1, 2, 3]],
-  birch_wood:  [[1, 1, 2], [1, 2, 2], [1, 2, 3]],
+  iron_ore:    [[1, 1, 2], [1, 2, 3], _fr(1, 4), _fr(2, 5)],
+  gold_ore:    [[1, 1, 2], [1, 2, 3], _fr(1, 4), _fr(2, 5)],
+  coal_ore:    [[1, 2, 3], _fr(1, 4), _fr(2, 5), _fr(2, 6)],
+  redstone_ore:[_fr(4, 8), _fr(4, 11), _fr(5, 15), _fr(6, 18)],
+  diamond_ore: [[1, 1, 2], [1, 1, 2, 3], _fr(1, 3), _fr(1, 4)],
+  wood:        [[1, 1, 2], [1, 2, 2], [1, 2, 3], _fr(1, 4)],
+  birch_wood:  [[1, 1, 2], [1, 2, 2], [1, 2, 3], _fr(1, 4)],
 };
-const JC_ENCH_NAMES = { sharpness: 'Sharpness', protection: 'Protection', efficiency: 'Efficiency', fortune: 'Fortune' };
+const JC_ENCH_NAMES = { sharpness: 'Sharpness', protection: 'Protection', efficiency: 'Efficiency', fortune: 'Fortune', unbreaking: 'Unbreaking', mending: 'Mending', looting: 'Looting', power: 'Power', charge: 'Charge', infinity: 'Infinity' };
 let enchPick = 'efficiency';   // which tool enchant the table will apply (Efficiency / Fortune)
 function jcToolKind(type) { const m = /_(pickaxe|axe|shovel)$/.exec(type || ''); return m ? m[1] : null; }
 function jcEnchInfo(type) {
-  if (isSword(type)) return { id: 'sharpness', name: 'Sharpness', opts: ['sharpness'] };
-  if (isArmor(type)) return { id: 'protection', name: 'Protection', opts: ['protection'] };
-  const tk = jcToolKind(type);
-  if (tk) {
+  let opts = null;
+  if (isSword(type)) opts = ['sharpness', 'looting'];   // Looting: swords only
+  else if (isArmor(type)) opts = ['protection'];
+  else {
+    const tk = jcToolKind(type);
     // Axes can take Sharpness (combat), Efficiency, or Fortune; other tools as before
-    let opts;
     if (tk === 'axe') opts = ['sharpness', 'efficiency', 'fortune'];
     else if (tk === 'shovel') opts = ['efficiency'];
-    else opts = ['efficiency', 'fortune'];
-    const id = opts.includes(enchPick) ? enchPick : opts[0];
-    return { id, name: JC_ENCH_NAMES[id], opts };
+    else if (tk) opts = ['efficiency', 'fortune'];
+    else if (type === 'bow') opts = ['power', 'charge', 'infinity'];   // bow-only enchants (+ Unbreaking / Mending below)
   }
-  return null;
+  if (!opts) return null;
+  opts = opts.concat(['unbreaking', 'mending']);   // every sword / tool / armor piece
+  const id = opts.includes(enchPick) ? enchPick : opts[0];
+  return { id, name: JC_ENCH_NAMES[id], opts };
 }
 function jcCleanEnch(e) {
   if (!e || typeof e !== 'object') return null;
   const out = {}; let any = false;
-  // Allow admin levels set via cloud save: -255 … 255 (0 is ignored / cleared)
-  for (const k of ['sharpness', 'protection', 'efficiency', 'fortune', 'null']) {
-    const n = parseInt(e[k], 10);
-    if (Number.isFinite(n) && n !== 0 && n >= -255 && n <= 255) { out[k] = n; any = true; }
+  // Admin levels from cloud: -9999 … 9999 (0 ignored). Also accept alias keys.
+  const map = { sharpness:1, sharp:1, protection:1, prot:1, efficiency:1, eff:1, fortune:1, fort:1, unbreaking:1, unb:1, mending:1, mend:1, looting:1, loot:1, power:1, charge:1, infinity:1, null:1 };
+  const canon = { sharp: 'sharpness', prot: 'protection', eff: 'efficiency', fort: 'fortune', unb: 'unbreaking', mend: 'mending', loot: 'looting' };
+  for (const k of Object.keys(e)) {
+    const lk = String(k).toLowerCase();
+    if (!map[lk]) continue;
+    const id = canon[lk] || lk;
+    const n = Number(e[k]);
+    if (!Number.isFinite(n) || n === 0) continue;
+    out[id] = Math.max(-9999, Math.min(9999, Math.trunc(n)));
+    any = true;
   }
   return any ? out : null;
 }
@@ -6984,12 +7530,18 @@ function jcCopy(item, count) {
   const c = { type: item.type, count: count == null ? item.count : count };
   if (item.ench) c.ench = Object.assign({}, item.ench);
   if (item.uses != null) c.uses = item.uses;
+  if (item.dur != null) c.dur = item.dur;
+  else if (isDurableItem(item.type)) c.dur = maxDurability(item.type);
   return c;
 }
 function jcItemTitle(item) {
   let t = displayName(item.type);
   if (item.ench) for (const k in item.ench) t += '\n' + k.charAt(0).toUpperCase() + k.slice(1) + ' ' + (JC_ROMAN[item.ench[k]] || item.ench[k]);
   if (item.uses != null) t += '\nUses: ' + item.uses;
+  if (isDurableItem(item.type)) {
+    ensureDur(item);
+    t += '\nDurability: ' + item.dur + ' / ' + maxDurability(item.type);
+  }
   return t;
 }
 
@@ -7008,7 +7560,7 @@ function jcEnchPut(idx) {                       // bag -> enchant slot (swaps wi
 }
 function jcGiveBack(item) {                     // put an item into the first free bag slot (or drop it at your feet)
   for (let i = 0; i < INV_SIZE; i++) if (!inventory[i]) { inventory[i] = item; return true; }
-  spawnDroppedItem(item.type, 1, new THREE.Vector3(player.pos.x, player.pos.y + 1, player.pos.z), undefined, { ench: item.ench });
+  spawnDroppedItem(item.type, 1, new THREE.Vector3(player.pos.x, player.pos.y + 1, player.pos.z), undefined, { ench: item.ench, dur: item.dur });
   return false;
 }
 function jcEnchTake() {                         // enchant slot -> bag
@@ -7023,7 +7575,7 @@ function jcRenderEnchantChoices() {
   const typeRow = document.getElementById('enchTypeRow');
   if (typeRow) {
     typeRow.style.display = info && info.opts.length > 1 ? 'flex' : 'none';
-    ['efficiency', 'fortune', 'sharpness'].forEach((id, i) => {
+    JC_ENCH_TYPE_IDS.forEach((id, i) => {
       const tb = document.getElementById('enchType' + i);
       if (!tb) return;
       const show = !info || info.opts.includes(id);
@@ -7033,12 +7585,15 @@ function jcRenderEnchantChoices() {
   }
   JC_ENCH_TIERS.forEach((t, i) => {
     const b = document.getElementById('enchBtn' + i); if (!b) return;
+    const maxLv = info ? (JC_ENCH_MAX[info.id] || 4) : 4;
+    b.style.display = (info && t.level > maxLv) ? 'none' : '';
     let sub = info ? info.name + ' ' + JC_ROMAN[t.level] : 'Put a sword, armor or tool in the slot';
     let dis = !info;
+    const cost = info ? jcEnchCost(info.id, t) : t.cost;
     if (info && cur >= t.level) { sub += '  ·  you already have ' + JC_ROMAN[cur]; dis = true; }
-    else if (info && xpState.level < t.cost) { sub += '  ·  need level ' + t.cost; dis = true; }
+    else if (info && xpState.level < cost) { sub += '  ·  need level ' + cost; dis = true; }
     b.disabled = dis;
-    b.querySelector('.eb-t').textContent = t.name + ' — ' + t.cost + ' levels';
+    b.querySelector('.eb-t').textContent = t.name + ' — ' + cost + ' levels';
     b.querySelector('.eb-s').textContent = sub;
   });
   const lv = document.getElementById('enchantLvl'); if (lv) lv.textContent = xpState.level;
@@ -7067,8 +7622,10 @@ function jcEnchantApply(i) {
   const info = jcEnchInfo(enchSlot.type);
   if (!info) return;
   const cur = enchSlot.ench ? (enchSlot.ench[info.id] || 0) : 0;
-  if (cur >= t.level || xpState.level < t.cost) return;
-  xpState.level -= t.cost;
+  if (t.level > (JC_ENCH_MAX[info.id] || 4)) return;
+  const cost = jcEnchCost(info.id, t);
+  if (cur >= t.level || xpState.level < cost) return;
+  xpState.level -= cost;
   enchSlot.ench = Object.assign({}, enchSlot.ench || {}, { [info.id]: t.level });
   jcXpUI();
   jcEnchMsg(displayName(enchSlot.type) + ' enchanted: ' + info.name + ' ' + JC_ROMAN[t.level]);
@@ -7215,6 +7772,10 @@ playersChannel
     entry.sneak = !!payload.sneak;
     if (payload.mobs) applyMobSnapshot(payload.id, payload.mobs);
   })
+  .on('broadcast', { event: 'fire' }, ({ payload }) => {
+    if (!payload || payload.from === MY_ID) return;
+    remoteFire(payload.x, payload.y, payload.z, !!payload.on);
+  })
   .on('broadcast', { event: 'mob_hit' }, ({ payload }) => {
     if (!payload || !isMobHost()) return;
     const a = animals.find(q => q.id === payload.id && q.alive && !q.remote);
@@ -7286,7 +7847,11 @@ playersChannel
   .on('broadcast', { event: 'drop' }, ({ payload }) => {
     if (!payload || payload.from === MY_ID || !BLOCK_TYPES[payload.itemType] && !ITEM_INFO[payload.itemType]) return;
     spawnDroppedItem(payload.itemType, payload.count, new THREE.Vector3(payload.x, payload.y, payload.z),
-      new THREE.Vector3(payload.vx, payload.vy, payload.vz), { id: payload.id, remote: true, ench: jcCleanEnch(payload.ench) });
+      new THREE.Vector3(payload.vx, payload.vy, payload.vz), { id: payload.id, remote: true, ench: jcCleanEnch(payload.ench), dur: payload.dur });
+  })
+  .on('broadcast', { event: 'arrow' }, ({ payload }) => {
+    if (!payload || payload.from === MY_ID) return;
+    spawnArrow(new THREE.Vector3(payload.x, payload.y, payload.z), new THREE.Vector3(payload.vx, payload.vy, payload.vz), { remote: true });
   })
   .on('broadcast', { event: 'pickup' }, ({ payload }) => {
     if (!payload || payload.from === MY_ID) return;
@@ -7705,6 +8270,7 @@ function tryMobilePlace() {
   if (typeof tryUseLookedBlock === 'function' && tryUseLookedBlock()) return;
   if (typeof tryIgniteLookedTnt === 'function' && tryIgniteLookedTnt()) return;
   if (typeof startEating === 'function' && startEating()) return;
+  if (typeof startBowDraw === 'function' && startBowDraw()) return;
   const heldItem = currentItem();
   if (heldItem && isShield(heldItem.type) && performance.now() >= shieldDisableUntil) { isBlocking = true; return; }
   // Off-hand shield: still allow raising it when not aiming at a usable block
@@ -7894,7 +8460,7 @@ function initMobileControls() {
     }, () => { mobile.atkHold = false; mobileLongPressEnd(); });
     // Right click: place / use / light TNT / eat / block (hold)
     bindHoldButton('mBtnRClick', () => { if (isPlaying()) tryMobilePlace(); },
-      () => { if (eating.active) cancelEating(); isBlocking = false; });
+      () => { if (eating.active) cancelEating(); isBlocking = false; releaseBow(); });
     bindHoldButton('mBtnJump2', () => { mobile.jump = true; }, () => { mobile.jump = false; });
     // Run & Crouch are toggles
     const runBtn = document.getElementById('mBtnRun'), crBtn = document.getElementById('mBtnCrouch');
@@ -8042,10 +8608,8 @@ function toggleFullscreen() { if (isFullscreen()) exitFullscreen(); else enterFu
   bind('furnaceCloseBtn', () => { if (furnaceOpen) closeFurnace(); });
   bind('chestCloseBtn', () => { if (chestOpen) closeChest(); });
   bind('enchantCloseBtn', () => { if (enchantOpen) closeEnchant(); });
-  for (let i = 0; i < 3; i++) bind('enchBtn' + i, () => jcEnchantApply(i));
-  bind('enchType0', () => { enchPick = 'efficiency'; jcRenderEnchantChoices(); });
-  bind('enchType1', () => { enchPick = 'fortune'; jcRenderEnchantChoices(); });
-  bind('enchType2', () => { enchPick = 'sharpness'; jcRenderEnchantChoices(); });
+  for (let i = 0; i < JC_ENCH_TIERS.length; i++) bind('enchBtn' + i, () => jcEnchantApply(i));
+  JC_ENCH_TYPE_IDS.forEach((id, i) => bind('enchType' + i, () => { enchPick = id; jcRenderEnchantChoices(); }));
 })();
 
 function startGame() {
@@ -8133,9 +8697,40 @@ async function signInWithGoogle() {
   }
 }
 
+function friendlyAuthError(err) {
+  const raw = (err && (err.message || err.error_description || err.msg)) ? (err.message || err.error_description || err.msg) : String(err || 'Unknown error');
+  const m = raw.toLowerCase();
+  if (m.includes('email not confirmed') || m.includes('not confirmed')) {
+    return 'Email not confirmed. Open the link in your inbox, or in Supabase Dashboard → Authentication → Providers → Email turn OFF "Confirm email".';
+  }
+  if (m.includes('invalid login credentials') || m.includes('invalid_credentials')) {
+    return 'Wrong email or password. If you just signed up, confirm your email first (or disable email confirmation in Supabase).';
+  }
+  if (m.includes('user already registered') || m.includes('already been registered')) {
+    return 'That email is already registered — switch to Log in.';
+  }
+  if (m.includes('signup is disabled') || m.includes('signups not allowed')) {
+    return 'Sign-ups are disabled in this Supabase project.';
+  }
+  if (m.includes('password should be at least') || m.includes('password')) {
+    return raw;
+  }
+  return raw;
+}
+
+async function finishEmailSession(session, okMsg) {
+  if (!session || !session.user) {
+    setAuthMsg('No session returned. If you just signed up, confirm your email then log in.');
+    return false;
+  }
+  await applyAuthUser(session.user);
+  setAuthMsg(okMsg || 'Signed in.', true);
+  return true;
+}
+
 async function signInWithEmail(e) {
   if (e) e.preventDefault();
-  const email = (authEmailEl.value || '').trim();
+  const email = (authEmailEl.value || '').trim().toLowerCase();
   const password = authPasswordEl.value || '';
   if (!email || !password) { setAuthMsg('Enter email and password.'); return; }
   if (password.length < 6) { setAuthMsg('Password must be at least 6 characters.'); return; }
@@ -8144,30 +8739,54 @@ async function signInWithEmail(e) {
   try {
     try { localStorage.removeItem(MODE_KEY); } catch (err) {}
     try { saveLocalPlayer(); } catch (err) {}
+
     if (emailIsSignUp) {
-      const { data, error } = await sb.auth.signUp({ email, password });
-      if (error) throw error;
-      // If email confirmation is required, session may be null.
-      if (data && data.session && data.session.user) {
-        await applyAuthUser(data.session.user);
-        setAuthMsg('Account created — signed in.', true);
-      } else {
-        setAuthMsg('Check your email to confirm, then log in.', true);
-        setEmailMode(false);
+      const { data, error } = await sb.auth.signUp({
+        email,
+        password,
+        options: {
+          emailRedirectTo: (location.origin && location.origin !== 'null')
+            ? (location.origin + location.pathname + location.search)
+            : undefined
+        }
+      });
+      if (error) {
+        // Already registered → try logging in with the same credentials
+        if (/already/i.test(error.message || '')) {
+          setAuthMsg('Account exists — signing in…');
+          const { data: d2, error: e2 } = await sb.auth.signInWithPassword({ email, password });
+          if (e2) throw e2;
+          await finishEmailSession(d2 && d2.session, 'Signed in.');
+          setEmailMode(false);
+          return;
+        }
+        throw error;
       }
+      if (data && data.session && data.session.user) {
+        await finishEmailSession(data.session, 'Account created — signed in.');
+        return;
+      }
+      // No session: either confirm-email is ON, or project needs a moment — try password login
+      setAuthMsg('Account created. Signing in…');
+      const { data: d3, error: e3 } = await sb.auth.signInWithPassword({ email, password });
+      if (!e3 && d3 && d3.session) {
+        await finishEmailSession(d3.session, 'Account created — signed in.');
+        return;
+      }
+      // Confirm-email required
+      setAuthMsg(
+        'Account created, but email confirmation is required before login. ' +
+        'Check your inbox, or disable "Confirm email" in Supabase → Authentication → Providers → Email.',
+        true
+      );
+      setEmailMode(false);
     } else {
       const { data, error } = await sb.auth.signInWithPassword({ email, password });
       if (error) throw error;
-      if (data && data.session && data.session.user) {
-        await applyAuthUser(data.session.user);
-        setAuthMsg('Signed in.', true);
-      } else {
-        setAuthMsg('Sign-in failed: no session returned.');
-      }
+      await finishEmailSession(data && data.session, 'Signed in.');
     }
   } catch (err) {
-    const msg = (err && err.message) ? err.message : String(err);
-    setAuthMsg(msg);
+    setAuthMsg(friendlyAuthError(err));
   } finally {
     emailSubmitBtn.disabled = false;
   }
@@ -8214,23 +8833,48 @@ async function applyAuthUser(user) {
     let local = null, cloud = null, guest = null;
     try { const raw = localStorage.getItem(SAVE_KEY); if (raw) local = JSON.parse(raw); } catch (e) {}
     try {
-      const { data, error } = await sb.from('voltex_saves').select('data').eq('user_id', user.id).maybeSingle();
-      if (error) { cloudSaveOk = false; } else if (data && data.data) cloud = data.data;
+      const { data, error } = await sb.from('voltex_saves').select('data, updated_at').eq('user_id', user.id).maybeSingle();
+      if (error) { cloudSaveOk = false; }
+      else if (data && data.data) {
+        cloud = data.data;
+        // Prefer DB updated_at so an admin edit in Supabase beats a stale local ts
+        const cloudTs = data.updated_at ? Date.parse(data.updated_at) : 0;
+        if (cloudTs && (!cloud.ts || cloudTs >= (cloud.ts || 0))) cloud.ts = cloudTs;
+      }
     } catch (e) { cloudSaveOk = false; }
     // Prefer newest of account-local / cloud / guest. Migrating guest progress
     // prevents the wipe where loadLocalPlayer() filled inventory from the guest
     // key, then sign-in switched SAVE_KEY and found an empty account slot.
     try { const raw = localStorage.getItem(GUEST_SAVE_KEY); if (raw) guest = JSON.parse(raw); } catch (e) {}
+    function saveHasExtremeEnch(s) {
+      if (!s || !Array.isArray(s.inventory)) return false;
+      for (const it of s.inventory) {
+        if (!it || !it.ench) continue;
+        for (const k of Object.keys(it.ench)) {
+          const n = Number(it.ench[k]);
+          if (Number.isFinite(n) && (n < 1 || n > 3)) return true;
+        }
+      }
+      return false;
+    }
     function pickBestSave(...cands) {
+      // Signed-in: cloud is source of truth when it exists (admin edits in Supabase must win).
+      // If cloud is missing, fall back to newest local/guest by ts.
+      if (cloud) return cloud;
       let best = null;
       for (const c of cands) {
-        if (!c) continue;
+        if (!c || c === cloud) continue;
         if (!best || (c.ts || 0) > (best.ts || 0)) best = c;
       }
       return best;
     }
-    const best = pickBestSave(local, cloud, guest);
+    // If local still somehow preferred and only local has extreme enchants, keep those items
+    let best = pickBestSave(local, cloud, guest);
     if (best) applySaveData(best);
+    // Merge extreme-ench items from any other candidate that best lacked (safety net)
+    if (cloud && local && saveHasExtremeEnch(local) && !saveHasExtremeEnch(cloud)) {
+      /* cloud intentionally may clear admin items — do not override cloud */
+    }
     else if (!(Array.isArray(inventory) && inventory.some(s => s))) {
       // Truly brand-new only: never wipe items already loaded into memory
       inventory = new Array(INV_SIZE).fill(null); currentSlot = 1; respawnPoint = null; respawnPlayer();
@@ -8694,8 +9338,8 @@ function updateMining(dt) {
         if (slots) {
           slots.forEach(s => {
             if (!s) return;
-            const leftover = addItemToInventory(s.type, s.count, s.ench);
-            if (leftover > 0) spawnDroppedItem(s.type, leftover, new THREE.Vector3(hit.x, hit.y, hit.z), undefined, { ench: s.ench });
+            const leftover = addItemToInventory(s.type, s.count, s.ench, s.dur);
+            if (leftover > 0) spawnDroppedItem(s.type, leftover, new THREE.Vector3(hit.x, hit.y, hit.z), undefined, { ench: s.ench, dur: s.dur });
           });
           delete chestData[k];
           saveChestData();
@@ -8745,7 +9389,7 @@ function updateMining(dt) {
           let dropN = b.type === 'redstone_ore' ? 4 + Math.floor(Math.random() * 2) : 1;   // redstone drops 4-5 dust
           // Fortune: picks a random total from the table below (level I / II / III). Natural ore only —
           // ore that was mined and placed back down gets the normal drop. Pickaxe on ores, axe on logs.
-          const _fl = (held && held.ench && held.ench.fortune) || 0;
+          const _fl = Number(held && held.ench && held.ench.fortune) || 0;
           const _fortuneOk = (toolKind === 'pickaxe' && isOreType(b.type) && b.natural === true && !b.placed) ||
                              (toolKind === 'axe' && (b.type === 'wood' || b.type === 'birch_wood'));
           if (_fl && _fortuneOk) {
@@ -8754,19 +9398,21 @@ function updateMining(dt) {
               // Negative Fortune: often drop nothing
               if (Math.random() < Math.min(0.95, 0.35 * (-_fl))) dropN = 0;
             } else if (tbl) {
-              if (_fl <= 3) {
+              if (_fl <= 4) {
                 const opts = tbl[_fl - 1];
                 dropN = opts[Math.floor(Math.random() * opts.length)];
               } else {
-                // Admin Fortune IV+: scale above the Fortune III table
-                const opts = tbl[2];
-                dropN = opts[Math.floor(Math.random() * opts.length)] + Math.floor((_fl - 3) * (1 + Math.random() * 2));
+                // Admin Fortune V+: scale above the Fortune IV table
+                const opts = tbl[3];
+                dropN = opts[Math.floor(Math.random() * opts.length)] + Math.floor((_fl - 4) * (1 + Math.random() * 2));
               }
             }
           }
           spawnDroppedItem(drop, dropN, popPos);
         }
       }
+      // Tool durability: one use per block broken (insta-break soft blocks still count)
+      if (held && isDurableItem(held.type) && b.type !== 'fire') damageHeldTool(1);
       flushDirtyChunks(false);
       renderHotbar();
       if (inventoryOpen) renderInventoryPanel();
@@ -8787,6 +9433,7 @@ canvas.addEventListener('mouseup', e => {
   } else if (e.button === 2) {
     if (eating.active) cancelEating();
     isBlocking = false; blockFromOff = false;
+    releaseBow();
   }
 });
 document.addEventListener('pointerlockchange', () => {
@@ -8796,6 +9443,7 @@ document.addEventListener('pointerlockchange', () => {
     mining.target = null;
     mineProgressWrap.style.display = 'none';
     isBlocking = false;
+    cancelBow();
   }
 });
 
@@ -8810,6 +9458,7 @@ window.addEventListener('blur', () => {
   mining.active = false; mining.progress = 0; mining.target = null;
   mineProgressWrap.style.display = 'none';
   isBlocking = false;
+  cancelBow();
 });
 
 // Right-click is a game control: never show the browser's context menu (inspect etc.) anywhere except in text inputs.
@@ -8866,6 +9515,7 @@ canvas.addEventListener('mousedown', e => {
   }
   if (isFood(offhand.type)) { if (!tryIgniteLookedTnt()) startEating(true); e.stopImmediatePropagation(); return; }
   if (isShield(offhand.type) && performance.now() >= shieldDisableUntil) { isBlocking = true; blockFromOff = true; e.stopImmediatePropagation(); return; }
+  if (mainHeld && mainHeld.type === 'bow') return;   // bow in main hand: let the draw handler take the right-click
   offSwap = { main: inventory[currentSlot] };   // temporarily treat off hand as the item in use
   inventory[currentSlot] = offhand;
 });
@@ -8885,11 +9535,13 @@ canvas.addEventListener('mousedown', e => {
     mining.progress = 0;
     mining.target = null; // resolved fresh each frame in updateMining()
   } else if (e.button === 2) {
+    if (tryUseFlintAndSteel()) return; // flint and steel: light fire / ignite TNT
     if (tryIgniteLookedTnt()) return; // right-click TNT = light the fuse (works with any item in hand)
     // Functional blocks (chest / table / furnace / …) — already handled in the off-hand
     // listener above when that runs first; still check here for the no-offhand path.
     if (tryUseLookedBlock()) return;
     if (startEating()) return; // holding food takes priority over placing a block
+    if (startBowDraw()) return; // bow: hold right-click to draw
     const heldItem = currentItem();
     if (heldItem && isShield(heldItem.type) && performance.now() >= shieldDisableUntil) { isBlocking = true; return; } // hold right-click with a shield to block
     const dir = new THREE.Vector3();
@@ -9297,6 +9949,153 @@ function tryIgniteLookedTnt() {
   return igniteTntAt(hit.x, hit.y, hit.z, TNT_FUSE);
 }
 
+
+// ================= Fire & flint and steel =================
+// Fire is a flame block lit with flint and steel. The player who lit it runs its spreading / burn-out and tells
+// everyone else (broadcast 'fire'); other clients just show it (with a safety timeout). Flames burn flammable
+// blocks, light TNT, set mobs/you on fire and burn up dropped items. Left-click a flame to put it out.
+const FLAMMABLE = new Set(['wood','planks','birch_wood','birch_planks','leaves','birch_leaves','wool','bed','stairs','trapdoor','birch_trapdoor','sign','chest','crafting_table','sapling']);
+const FIRE_DIRS = [[1,0,0],[-1,0,0],[0,0,1],[0,0,-1],[0,1,0],[0,-1,0]];
+const fires = new Map();   // key -> { x, y, z, mine, life, spreadT }
+let _fireQuiet = false;
+function isFlammableAt(x, y, z) { const b = world.get(key(x, y, z)); return !!b && FLAMMABLE.has(b.type); }
+function setFireBlockLocal(x, y, z) {
+  const k = key(x, y, z);
+  if (world.has(k)) return false;
+  world.set(k, { type: 'fire', x, y, z, meta: 0 });
+  lightInvalidateNear(x, y, z);
+  syncBlockLight(x, y, z, 'fire');
+  markChunkDirty(x, z); markLightArea(x, y, z, false);
+  return true;
+}
+function canFireAt(x, y, z) {
+  if (world.has(key(x, y, z))) return false;
+  const below = world.get(key(x, y - 1, z));
+  if (below && below.type !== 'water' && (!BLOCK_TYPES[below.type].transparent || FLAMMABLE.has(below.type))) return true;
+  for (const d of FIRE_DIRS) if (isFlammableAt(x + d[0], y + d[1], z + d[2])) return true;
+  return false;
+}
+function placeFire(x, y, z, mine) {
+  x = Math.round(x); y = Math.round(y); z = Math.round(z);
+  if (!setFireBlockLocal(x, y, z)) return false;
+  fires.set(key(x, y, z), { x, y, z, mine, life: mine ? 7 + Math.random() * 6 : 25, spreadT: 0.4 });
+  if (mine) { try { playersChannel.send({ type: 'broadcast', event: 'fire', payload: { from: MY_ID, x, y, z, on: true } }); } catch (e) {} }
+  return true;
+}
+function onFireRemoved(x, y, z) {
+  fires.delete(key(x, y, z));
+  if (!_fireQuiet) { try { playersChannel.send({ type: 'broadcast', event: 'fire', payload: { from: MY_ID, x, y, z, on: false } }); } catch (e) {} }
+}
+function remoteFire(x, y, z, on) {
+  if (on) {
+    if (!generatedChunks.has(Math.floor(x / CHUNK_SIZE) + ',' + Math.floor(z / CHUNK_SIZE))) return;
+    if (placeFire(x, y, z, false)) flushDirtyChunks(false);
+  } else {
+    const b = world.get(key(x, y, z));
+    if (b && b.type === 'fire') { _fireQuiet = true; removeBlock(x, y, z); _fireQuiet = false; flushDirtyChunks(false); }
+    fires.delete(key(x, y, z));
+  }
+}
+function spawnBurnPuff(p) {
+  for (let i = 0; i < 6; i++) {
+    const m = _debrisMats[i % 2];
+    const mesh = new THREE.Mesh(_fxBoxGeo, m);
+    const sz = 0.06 + Math.random() * 0.08; mesh.scale.setScalar(sz);
+    mesh.position.set(p.x + (Math.random() - 0.5) * 0.3, p.y + 0.1, p.z + (Math.random() - 0.5) * 0.3);
+    scene.add(mesh);
+    tntFx.push({ kind: 'debris', mesh, mat: m, shared: true, size: sz, t: 0, life: 0.5 + Math.random() * 0.4,
+      v: new THREE.Vector3((Math.random() - 0.5) * 1.2, 1.5 + Math.random() * 1.5, (Math.random() - 0.5) * 1.2) });
+  }
+}
+// Right-click with flint and steel: TNT -> primed; anything else -> fire in the cell in front of the face you clicked.
+function tryUseFlintAndSteel() {
+  const held = currentItem();
+  if (!held || held.type !== 'flint_and_steel') return false;
+  const dir = new THREE.Vector3();
+  camera.getWorldDirection(dir);
+  const hit = castVoxelRay(camera.position, dir, RAY_DIST);
+  if (!hit) return true;
+  startSwing();
+  const b = getBlock(hit.x, hit.y, hit.z);
+  let used = false;
+  if (b && b.type === 'tnt') used = igniteTntAt(hit.x, hit.y, hit.z, TNT_FUSE);
+  else if (b && b.type === 'fire') used = false;
+  else if (canFireAt(hit.px, hit.py, hit.pz)) { used = placeFire(hit.px, hit.py, hit.pz, true); if (used) flushDirtyChunks(false); }
+  if (used) { tntSound('ignite'); damageHeldTool(1); }
+  return true;
+}
+function updateFires(dt) {
+  let changed = false;
+  for (const [k, f] of fires) {
+    const b = world.get(k);
+    if (!b || b.type !== 'fire') { fires.delete(k); continue; }
+    f.life -= dt;
+    if (f.mine) {
+      f.spreadT -= dt;
+      if (f.spreadT <= 0 && fires.size < 150) {
+        f.spreadT = 0.7 + Math.random() * 1.1;
+        for (const d of FIRE_DIRS) {
+          const nx = f.x + d[0], ny = f.y + d[1], nz = f.z + d[2];
+          const nb = world.get(key(nx, ny, nz));
+          if (nb && nb.type === 'tnt') { igniteTntAt(nx, ny, nz, TNT_FUSE); changed = true; }
+          else if (nb && FLAMMABLE.has(nb.type) && Math.random() < 0.3) {   // the block burns away, flames take its place
+            removeBlock(nx, ny, nz);
+            pushBlockDiff(nx, ny, nz, 'air');
+            placeFire(nx, ny, nz, true);
+            f.life = Math.max(f.life, 5 + Math.random() * 4);
+            changed = true;
+          }
+        }
+        if (Math.random() < 0.35) {   // creep onto a free cell beside something flammable
+          const d = FIRE_DIRS[Math.floor(Math.random() * 5)];
+          const cx = f.x + d[0], cy = f.y + d[1], cz = f.z + d[2];
+          let near = false;
+          for (const e of FIRE_DIRS) if (isFlammableAt(cx + e[0], cy + e[1], cz + e[2])) { near = true; break; }
+          if (near && !world.has(key(cx, cy, cz)) && placeFire(cx, cy, cz, true)) changed = true;
+        }
+      }
+    }
+    if (f.life <= 0) { _fireQuiet = !f.mine; removeBlock(f.x, f.y, f.z); _fireQuiet = false; changed = true; }
+  }
+  if (fires.size) {
+    const inFire = (px, py, pz, h) => {
+      for (const oy of [0.3, h * 0.6]) {
+        const b = world.get(key(Math.round(px), Math.round(py + oy), Math.round(pz)));
+        if (b && b.type === 'fire') return true;
+      }
+      return false;
+    };
+    if (inFire(player.pos.x, player.pos.y, player.pos.z, player.height)) player.burnT = 3.5;
+    for (let i = droppedItems.length - 1; i >= 0; i--) {      // dropped items burn up in flames
+      const it = droppedItems[i];
+      const b = world.get(key(Math.round(it.pos.x), Math.round(it.pos.y + 0.15), Math.round(it.pos.z)));
+      if (b && b.type === 'fire') {
+        spawnBurnPuff(it.pos);
+        scene.remove(it.sprite); droppedItems.splice(i, 1);
+        try { playersChannel.send({ type: 'broadcast', event: 'pickup', payload: { from: MY_ID, id: it.id, left: 0 } }); } catch (e) {}
+        tntSound('ignite');
+      }
+    }
+    for (const a of animals) {
+      if (!a.alive || a.remote) continue;
+      if (inFire(a.pos.x, a.pos.y, a.pos.z, a.height)) a.burnT = 4;
+    }
+  }
+  if (player.burnT > 0) {                                      // you: burning damage until it wears off / you hit water
+    if (isInWater(player.pos)) player.burnT = 0;
+    else {
+      player.burnT -= dt; player.burnTick = (player.burnTick || 0) - dt;
+      if (player.burnTick <= 0) { player.burnTick = 0.9; damagePlayer(1, null, 0); }
+    }
+  }
+  for (const a of animals) {                                   // mobs this client simulates
+    if (!(a.burnT > 0) || !a.alive || a.remote) continue;
+    a.burnT -= dt; a.burnTick = (a.burnTick || 0) - dt;
+    if (a.burnTick <= 0) { a.burnTick = 0.8; a.hp -= 1; flashRed(a.group); if (a.hp <= 0) killAnimal(a, MY_ID); }
+  }
+  if (changed) flushDirtyChunks(false);
+}
+
 function pushBlockDiffsBatch(list) { // [{x,y,z}] -> 'air'
   const stamp = ownStamp();
   for (let i = 0; i < list.length; i += 400) {
@@ -9382,7 +10181,7 @@ function explodeTnt(t) {
       broadcastChestRemove(k);
       const slots = chestData[k];
       if (slots) {
-        slots.forEach(s => { if (s) spawnDroppedItem(s.type, s.count, new THREE.Vector3(x, y, z)); });
+        slots.forEach(s => { if (s) spawnDroppedItem(s.type, s.count, new THREE.Vector3(x, y, z), undefined, { ench: s.ench, dur: s.dur }); });
         delete chestData[k]; saveChestData();
       }
     } else if (!isLeavesType(b.type) && b.type !== 'glass' && b.type !== 'torch' && b.type !== 'sapling' && drops < 10 && droppedItems.length < 120 && Math.random() < 0.15) {
@@ -9797,6 +10596,9 @@ function animate() {
   updateAnimals(dt);
   updateAnimalSpawning(dt);
   updateDroppedItems(dt);
+  updateBow(dt);
+  updateArrows(dt);
+  updateFires(dt);
   rsUpdate(dt);
   if (attackCooldown > 0) attackCooldown -= dt;
   jcUpdate(dt);
