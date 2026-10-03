@@ -8434,7 +8434,7 @@ function tryMobilePlace() {
   const heldItem = currentItem();
   if (heldItem && isShield(heldItem.type) && performance.now() >= shieldDisableUntil) { isBlocking = true; return; }
   // Off-hand shield: still allow raising it when not aiming at a usable block
-  if (offhand && isShield(offhand.type) && performance.now() >= shieldDisableUntil) {
+  if (offhand && isShield(offhand.type) && performance.now() >= shieldDisableUntil && !mainBlockPlaceable()) {
     isBlocking = true; blockFromOff = true; return;
   }
   const aim = getAimRay();
@@ -8639,8 +8639,31 @@ function initMobileControls() {
       mobileLongPressStart();
     }, () => { mobile.atkHold = false; mobileLongPressEnd(); });
     // Right click: place / use / light TNT / eat / block (hold)
-    bindHoldButton('mBtnRClick', () => { if (isPlaying()) tryMobilePlace(); },
-      () => { if (eating.active) cancelEating(); isBlocking = false; releaseBow(); });
+    const rTool = { t: null, long: false };
+    bindHoldButton('mBtnRClick', () => {
+      if (!isPlaying()) return;
+      const m = currentItem();
+      // tool in the main hand (and no off-hand shield to raise): the button uses the tool
+      if (m && isUseTool(m.type) && !(offhand && isShield(offhand.type))) {
+        if (tryUseLookedBlock()) return;               // tables / chests / doors still open
+        if (tryIgniteLookedTnt()) return;
+        rTool.long = false;
+        if (rTool.t) clearTimeout(rTool.t);
+        rTool.t = setTimeout(() => {                   // held: mine
+          rTool.t = null; rTool.long = true;
+          mobile.aimX = null; mobile.aimY = null;
+          mobileLongPressStart();
+        }, LONG_PRESS_MS);
+        return;
+      }
+      tryMobilePlace();
+    }, () => {
+      if (rTool.t) {                                   // released quickly: single click = attack
+        clearTimeout(rTool.t); rTool.t = null;
+        if (isPlaying()) mobileTryAttack();
+      } else if (rTool.long) { rTool.long = false; mobile.atkHold = false; mobileLongPressEnd(); }
+      if (eating.active) cancelEating(); isBlocking = false; releaseBow();
+    });
     bindHoldButton('mBtnJump2', () => { mobile.jump = true; }, () => { mobile.jump = false; });
     // Run & Crouch are toggles
     const runBtn = document.getElementById('mBtnRun'), crBtn = document.getElementById('mBtnCrouch');
@@ -9619,6 +9642,11 @@ canvas.addEventListener('mouseup', e => {
     if (eating.active) cancelEating();
     isBlocking = false; blockFromOff = false;
     releaseBow();
+    if (rightToolUse) {
+      rightToolUse = false;
+      mining.active = false; mining.progress = 0; mining.target = null;
+      mineProgressWrap.style.display = 'none';
+    }
   }
 });
 document.addEventListener('pointerlockchange', () => {
@@ -9678,6 +9706,35 @@ function tryUseLookedBlock() {
   return false;
 }
 
+// ---- Right hand = main hand. A tool / weapon (or a totem) in it owns the right-click ----
+function isUseTool(type) { return !!type && (isSword(type) || /_(pickaxe|axe|shovel|hoe)$/.test(type)); }
+function isTotemItem(type) { return type === 'totem_of_undying' || type === 'null_totem'; }
+// Right-click with a tool in the main hand uses THAT tool: click = attack, hold = mine.
+function mainHandOwnsRightClick() {
+  const m = currentItem();
+  return !!m && isUseTool(m.type);
+}
+// A placeable block in the main (right) hand and a block under the crosshair: right-click places the
+// MAIN-hand block, whatever is in the off hand (totem, shield, food, another block...).
+function mainBlockPlaceable() {
+  if (!currentBlockType()) return false;
+  let hit;
+  if (typeof getAimRay === 'function') { const aim = getAimRay(); hit = castVoxelRay(aim.origin, aim.dir, RAY_DIST); }
+  else { const d = new THREE.Vector3(); camera.getWorldDirection(d); hit = castVoxelRay(camera.position, d, RAY_DIST); }
+  return !!hit;
+}
+let rightToolUse = false;
+function rightHandToolUse() {
+  rightToolUse = true;
+  if (eating.active) cancelEating();
+  startSwing();
+  const playerTarget = findTargetPlayer();
+  if (playerTarget) { jcAttackPlayer(playerTarget); return; }
+  const target = findTargetAnimal();
+  if (target) { jcAttackAnimal(target); return; }
+  jcResetCd();
+  mining.active = true; mining.progress = 0; mining.target = null;
+}
 // ---- Off hand: right-click uses the off-hand item (food, shield, or placing a block) ----
 let offSwap = null;
 canvas.addEventListener('mousedown', e => {
@@ -9699,9 +9756,11 @@ canvas.addEventListener('mousedown', e => {
     }
     return;
   }
+  if (mainBlockPlaceable()) return;                   // block in the main hand: place it (off-hand item stays put)
   if (isFood(offhand.type)) { if (!tryIgniteLookedTnt()) startEating(true); e.stopImmediatePropagation(); return; }
   if (isShield(offhand.type) && performance.now() >= shieldDisableUntil) { isBlocking = true; blockFromOff = true; e.stopImmediatePropagation(); return; }
   if (mainHeld && mainHeld.type === 'bow') return;   // bow in main hand: let the draw handler take the right-click
+  if (mainHandOwnsRightClick()) return;               // tool / totem in the main hand: no off-hand block placing
   offSwap = { main: inventory[currentSlot] };   // temporarily treat off hand as the item in use
   inventory[currentSlot] = offhand;
 });
@@ -9730,6 +9789,7 @@ canvas.addEventListener('mousedown', e => {
     if (startBowDraw()) return; // bow: hold right-click to draw
     const heldItem = currentItem();
     if (heldItem && isShield(heldItem.type) && performance.now() >= shieldDisableUntil) { isBlocking = true; return; } // hold right-click with a shield to block
+    if (heldItem && isUseTool(heldItem.type)) { rightHandToolUse(); return; }   // tool on the right: click = attack, hold = mine
     const dir = new THREE.Vector3();
     camera.getWorldDirection(dir);
     const hit = castVoxelRay(camera.position, dir, RAY_DIST);
