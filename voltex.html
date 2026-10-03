@@ -56,7 +56,9 @@
   #absorbBar .fxTag { font: 700 11px 'Segoe UI', Arial, sans-serif; color: #ffe566; margin-left: 6px; text-shadow: 1px 1px 0 #000; }
   #heartsBar.regen .mcIcon img { animation: regenPulse 0.9s ease-in-out infinite; }
   @keyframes regenPulse { 50% { transform: translateY(-2px); } }
-  #hungerBar { margin-left: auto; flex-direction: row-reverse; } /* fills right-to-left */
+  #hungerBar { margin-left: auto; flex-direction: row-reverse; position: relative; } /* fills right-to-left */
+  #hungerBar .satLine { position: absolute; left: 0; right: 0; bottom: -5px; height: 3px; border-radius: 2px; background: rgba(0,0,0,0.45); overflow: hidden; pointer-events: none; }
+  #hungerBar .satLine > div { height: 100%; margin-left: auto; background: linear-gradient(#ffe27a, #e0a020); }
   .mcIcon {
     width: 20px; height: 20px; display: inline-block; flex-shrink: 0;
     image-rendering: pixelated; image-rendering: crisp-edges;
@@ -409,6 +411,13 @@
   #statsBoard .stRow span:last-child { font-weight: bold; text-align: right; }
   #statsBoard .stBar { height: 7px; border-radius: 4px; background: rgba(0,0,0,0.45); overflow: hidden; margin: 1px 0 5px; }
   #statsBoard .stBar > div { height: 100%; }
+  #statsBoard h3 { margin: 8px 0 3px; font-size: 12px; opacity: 0.85; text-transform: uppercase; letter-spacing: 0.5px; }
+  #statsBoard .stHeld { padding: 4px 0 5px; border-bottom: 1px solid rgba(255,255,255,0.1); }
+  #statsBoard .stHeld .hName { font-weight: bold; text-transform: capitalize; display: flex; justify-content: space-between; gap: 8px; }
+  #statsBoard .stHeld .hName span:first-child { opacity: 1; font-weight: bold; }
+  #statsBoard .stHeld .hDur { font-size: 11px; opacity: 0.8; font-weight: normal; }
+  #statsBoard .stHeld .hEnch { color: #c9a6ff; font-size: 11px; line-height: 1.35; }
+  #statsBoard .stHeld .hNone { opacity: 0.55; font-style: italic; }
   @media (max-width: 900px) { #statsBoard { display: none; } }
   #invHint { font-size: 12px; opacity: 0.8; margin-top: 6px; max-width: 480px; }
 
@@ -1572,12 +1581,12 @@ const ITEM_INFO = {
   diamond_boots:      { maxStack: 1, armor: 2, slot: 3, durability: 429 },
   raw_meat:       { food: 3 },
   apple:          { food: 2 },
-  golden_apple:   { food: 4, golden: true },   // always edible: Regeneration + 2 gold hearts
+  golden_apple:   { food: 4, golden: true, satRatio: 2.4 },   // always edible: Regeneration + 2 gold hearts
   sapling:        {},
   coal:           {},
   charcoal:       {},
   sign:           {},
-  cooked_meat:    { food: 6 },
+  cooked_meat:    { food: 6, satRatio: 1.6 },
   shield:         { maxStack: 1, durability: 336 },
   string:         {},
   arrow:          {},
@@ -4175,6 +4184,9 @@ let useOffHand = false;
 function mainItem() { return inventory[currentSlot]; }           // what the main hand really holds (visuals / network)
 function currentItem() { return useOffHand ? offhand : inventory[currentSlot]; }
 function setCurrentItem(v) { if (useOffHand) offhand = v; else inventory[currentSlot] = v; }
+// Hit knockback lives in its own vector so walking input can't wipe it (it used to vanish in ~0.1s).
+// It fades with Minecraft-style friction: 0.546 per tick on the ground, 0.91 per tick in the air.
+const knockV = { x: 0, z: 0 }, knockApplied = { x: 0, z: 0 };
 function currentBlockType() {
   const it = currentItem();
   return it && isPlaceable(it.type) ? it.type : null;
@@ -4645,12 +4657,36 @@ function renderStatsBoard() {
   const timeTxt = sun > 0.15 ? 'Day' : (sun > -0.15 ? 'Dusk / Dawn' : 'Night');
   const p = player.pos;
   const row = (a, b) => `<div class="stRow"><span>${a}</span><span>${b}</span></div>`;
+  // Held item card: name, durability bar and enchants (for the main hand and the off-hand)
+  const heldCard = (label, it) => {
+    if (!it) return `<div class="stHeld"><div class="hName"><span>${label}</span><span class="hNone">empty</span></div></div>`;
+    let dur = '', bar = '';
+    if (isDurableItem(it.type)) {
+      ensureDur(it);
+      const mx = maxDurability(it.type), cur = Math.max(0, Math.round(it.dur));
+      const pct = Math.max(0, Math.min(100, cur / mx * 100));
+      const col = pct > 50 ? '#5fd35f' : (pct > 25 ? '#e8c64a' : '#e65050');
+      dur = `<span class="hDur">${cur} / ${mx}</span>`;
+      bar = `<div class="stBar"><div style="width:${pct}%;background:${col}"></div></div>`;
+    }
+    const cnt = (!isDurableItem(it.type) && it.count > 1) ? ` ×${it.count}` : '';
+    let en = '';
+    if (it.ench) {
+      const parts = [];
+      for (const k in it.ench) { const lv = it.ench[k]; parts.push((JC_ENCH_NAMES[k] || (k.charAt(0).toUpperCase() + k.slice(1))) + ' ' + (JC_ROMAN[lv] || lv)); }
+      if (parts.length) en = `<div class="hEnch">${parts.join(' · ')}</div>`;
+    }
+    return `<div class="stHeld"><div class="hName"><span>${label}: ${displayName(it.type)}${cnt}</span>${dur}</div>${bar}${en}</div>`;
+  };
   statsBoardEl.innerHTML =
     '<h2>Stats</h2>' +
     `<div class="stRow"><span>Health</span><span>${Math.max(0, Math.round(player.hp))} / ${player.maxHp}</span></div>` +
     `<div class="stBar"><div style="width:${hpPct}%;background:linear-gradient(#ff5555,#cc2222)"></div></div>` +
     `<div class="stRow"><span>Hunger</span><span>${Math.max(0, Math.round(player.hunger))} / ${player.maxHunger}</span></div>` +
     `<div class="stBar"><div style="width:${hungPct}%;background:linear-gradient(#e0a040,#a06020)"></div></div>` +
+    `<div class="stRow"><span>Saturation</span><span>${(Math.min(player.hunger, player.saturation || 0)).toFixed(1)}</span></div>` +
+    `<div class="stBar"><div style="width:${Math.max(0, Math.min(100, (player.saturation || 0) / player.maxHunger * 100))}%;background:linear-gradient(#ffe27a,#e0a020)"></div></div>` +
+    '<h3>Holding</h3>' + heldCard('Main hand', held) + heldCard('Off-hand', offhand) +
     row('Armor', `${armorPts} pts (-${Math.round(totalArmorReduction() * 100)}% dmg)`) +
     row('Attack', `${atk} (${held ? displayName(held.type) : 'fist'})`) +
     row('Position', `${Math.floor(p.x)}, ${Math.floor(p.y)}, ${Math.floor(p.z)}`) +
@@ -5299,6 +5335,10 @@ function updateHpUI() {
   const hung = Math.max(0, Math.min(player.maxHunger, Math.ceil(player.hunger)));
   renderIconRow(heartsBarEl, hp, player.maxHp, ICON_HEART_FULL, ICON_HEART_HALF, ICON_HEART_EMPTY);
   renderIconRow(hungerBarEl, hung, player.maxHunger, ICON_HUNGER_FULL, ICON_HUNGER_HALF, ICON_HUNGER_EMPTY);
+  {   // saturation: thin gold bar under the hunger icons (fills right-to-left like the drumsticks)
+    const sat = Math.max(0, Math.min(player.hunger, player.saturation || 0));
+    hungerBarEl.insertAdjacentHTML('beforeend', '<div class="satLine" title="Saturation ' + sat.toFixed(1) + '"><div style="width:' + (sat / player.maxHunger * 100).toFixed(1) + '%"></div></div>');
+  }
   renderAbsorbBar();
 }
 function flashDamage() {
@@ -5343,8 +5383,8 @@ function damagePlayer(amount, knockDir, knockStrength, opts) {
     d.y = 0;
     if (d.lengthSq() < 1e-6) d.set(0, 0, 1);
     d.normalize();
-    player.vel.x += d.x * str;
-    player.vel.z += d.z * str;
+    knockV.x = knockV.x * 0.5 + d.x * str;     // a fresh hit halves any old shove and adds its own (like Minecraft)
+    knockV.z = knockV.z * 0.5 + d.z * str;
     player.vel.y = Math.max(player.vel.y, str * 0.55);
     player.onGround = false;
   }
@@ -5509,6 +5549,7 @@ function healPlayer(amount) {
   updateHpUI();
 }
 function respawnPlayer() {
+  knockV.x = knockV.z = 0; knockApplied.x = knockApplied.z = 0;   // no leftover shove after dying
   if (respawnPoint) {
     player.pos.set(respawnPoint.x, respawnPoint.y, respawnPoint.z);
   } else {
@@ -5575,7 +5616,7 @@ function eatCurrentFood() {
   // Restore hunger first (Minecraft-style); leftover helps HP a little if already full hunger
   const before = player.hunger;
   player.hunger = Math.min(player.maxHunger, player.hunger + food);
-  player.saturation = Math.min(player.hunger, player.saturation + food * 0.6);
+  player.saturation = Math.min(player.hunger, player.saturation + food * (ITEM_INFO[it.type].satRatio != null ? ITEM_INFO[it.type].satRatio : 0.6));   // Java: cooked meat 1.6x, golden apple 2.4x, others 0.6x
   const overflow = Math.max(0, (before + food) - player.maxHunger);
   if (overflow > 0 && !golden && player.hp < player.maxHp) healPlayer(Math.ceil(overflow * 0.5));
   if (golden) applyGoldenAppleEffects();
@@ -5586,6 +5627,7 @@ function eatCurrentFood() {
 }
 
 // Hunger drain, passive regen, and starvation — ticked from the main loop.
+let _lastSatKey = -1;
 let hungerExhaust = 0; // accumulates exhaustion; every 4 points drains 1 saturation/hunger
 let regenTimer = 0;
 let starveTimer = 0;
@@ -5615,17 +5657,25 @@ function updateHunger(dt, isMoving, sprinting) {
   { const secs = Math.ceil(player.regenT); if (secs !== _lastRegenSecs) { _lastRegenSecs = secs; updateHpUI(); } }
   if (sprinting && isMoving) addExhaustion(0.04 * dt * 20);       // was 0.15
   else if (isMoving) addExhaustion(0.0025 * dt * 20);             // was 0.01
-  // Peaceful-ish regen: when hunger >= 18, heal slowly
-  if (player.hunger >= 18 && player.hp < player.maxHp) {
-    regenTimer += dt;
-    if (regenTimer >= 4) { // every ~4s heal half a heart
+  // Java saturation regen (from the Java Saturation pack): every 12 ticks (0.6 s) while hurt,
+  //  - saturation >= 3 and hunger >= 18: heal 1 HP and burn 1.2 saturation
+  //  - otherwise, hunger > 18: heal 1 HP and burn 1 hunger
+  {
+    const hurt = player.hp < player.maxHp;
+    const canSat = hurt && player.saturation >= 3 && player.hunger >= 18;
+    const canHung = hurt && player.hunger > 18;
+    if (canSat || canHung) {
+      regenTimer += dt;
+      if (regenTimer >= 0.6) {
+        regenTimer = 0;
+        if (canSat) { player.saturation = Math.max(0, player.saturation - 1.2); healPlayer(1); }
+        else { player.hunger = Math.max(0, player.hunger - 1); healPlayer(1); updateHpUI(); }
+      }
+    } else {
       regenTimer = 0;
-      healPlayer(1);
-      addExhaustion(0.6); // regen costs a little hunger/saturation
     }
-  } else {
-    regenTimer = 0;
   }
+  { const k = Math.round((player.saturation || 0) * 2); if (k !== _lastSatKey) { _lastSatKey = k; updateHpUI(); } }
   // Starvation: hunger empty + take damage every few seconds (not lethal below 1 HP on easy-ish)
   if (player.hunger <= 0) {
     starveTimer += dt;
@@ -7384,7 +7434,7 @@ let attackCooldown = 0;
 // higher level = longer dash and more hunger used. Needs enough hunger. Aiming at a nearby block with no
 // target in reach counts as mining, not an attack, so it doesn't dash.
 const LUNGE_DIST   = [0, 3.5, 6, 8.5];   // blocks dashed per level
-const LUNGE_HUNGER = [0, 2, 3, 4];       // hunger points spent per level
+const LUNGE_HUNGER = [0, 0.5, 1, 1.5];   // hunger points per level (spent as exhaustion: saturation first, then hunger)
 const LUNGE_SPEED  = 18;                 // blocks / second while dashing
 const lunge = { t: 0, dx: 0, dz: 0 };
 let lungeCdUntil = 0;
@@ -7395,15 +7445,14 @@ function jcTryLunge() {
   if (!lv || !isPlaying() || player.hp <= 0) return false;
   const now = performance.now();
   if (now < lungeCdUntil) return false;
-  if (player.hunger < LUNGE_HUNGER[lv]) return false;
+  if (player.hunger + (player.saturation || 0) < LUNGE_HUNGER[lv]) return false;
   const hasTarget = touchMode ? !!jcPickTarget(getAimRay(), jcReach().max, 0.7, jcReach().min)
                               : !!(findTargetPlayer() || findTargetAnimal());
   if (!hasTarget) {
     const a = getAimRay();
     if (castVoxelRay(a.origin, a.dir, 3.5)) return false;      // a block right there: that's mining
   }
-  player.hunger = Math.max(0, player.hunger - LUNGE_HUNGER[lv]);
-  player.saturation = Math.min(player.saturation || 0, player.hunger);
+  addExhaustion(LUNGE_HUNGER[lv] * 4);   // 4 exhaustion = 1 saturation / hunger point
   lunge.dx = -Math.sin(player.yaw); lunge.dz = -Math.cos(player.yaw);
   lunge.t = LUNGE_DIST[lv] / LUNGE_SPEED;
   lungeCdUntil = now + lunge.t * 1000 + 250;
@@ -8718,7 +8767,9 @@ function initMobileControls() {
       const main = mainItem();
       if (offhand && !(main && main.type === 'bow')) {
         const mainEats = !!(main && isFood(main.type) && player.hunger < player.maxHunger);
-        if (!mainEats && !mainBlockPlaceable()) {      // a placeable main-hand block still wins, like on PC
+        if (offhand.type === 'bow') {
+          if (!mainEats) useOffHand = true;            // off-hand bow: draw it, whatever the main hand holds
+        } else if (!mainEats && !mainBlockPlaceable()) {      // a placeable main-hand block still wins, like on PC
           if (isShield(offhand.type)) {
             if (performance.now() >= shieldDisableUntil) { isBlocking = true; blockFromOff = true; return; }
           } else if (isFood(offhand.type)) {
@@ -9842,6 +9893,7 @@ canvas.addEventListener('mousedown', e => {
     }
     return;
   }
+  if (offhand.type === 'bow' && !(mainHeld && mainHeld.type === 'bow')) { useOffHand = true; return; }   // off-hand bow: right-click draws it, whatever the main hand holds
   if (mainBlockPlaceable()) return;                   // block in the main hand: place it (off-hand item stays put)
   if (isFood(offhand.type)) { if (!tryIgniteLookedTnt()) startEating(true); e.stopImmediatePropagation(); return; }
   if (isShield(offhand.type) && performance.now() >= shieldDisableUntil) { isBlocking = true; blockFromOff = true; e.stopImmediatePropagation(); return; }
@@ -10973,10 +11025,17 @@ function animate() {
 
     // Fade residual knockback (high horizontal speed from hits) into walk input.
     const kbF = Math.pow(0.88 * 0.55, dt * 60);   // per-frame factor at 60 fps, scaled by dt so 120 fps feels the same
-    const kbX = Math.abs(player.vel.x) > Math.abs(move.x) + 0.5 ? player.vel.x : 0;
-    const kbZ = Math.abs(player.vel.z) > Math.abs(move.z) + 0.5 ? player.vel.z : 0;
-    player.vel.x = move.x + kbX * kbF;
-    player.vel.z = move.z + kbZ * kbF;
+    const rvx = player.vel.x - knockApplied.x, rvz = player.vel.z - knockApplied.z;   // other impulses (explosions...) without last frame's hit knockback
+    const kbX = Math.abs(rvx) > Math.abs(move.x) + 0.5 ? rvx : 0;
+    const kbZ = Math.abs(rvz) > Math.abs(move.z) + 0.5 ? rvz : 0;
+    player.vel.x = move.x + kbX * kbF + knockV.x;
+    player.vel.z = move.z + kbZ * kbF + knockV.z;
+    knockApplied.x = knockV.x; knockApplied.z = knockV.z;
+    {
+      const kf = Math.pow(player.onGround ? 0.546 : 0.91, dt * 20);
+      knockV.x *= kf; knockV.z *= kf;
+      if (knockV.x * knockV.x + knockV.z * knockV.z < 0.04) { knockV.x = 0; knockV.z = 0; }
+    }
   } else {
     // Menu/chat open: let residual knockback decay, don't hard-stop mid shove.
     { const fr = Math.pow(0.9, dt * 60); player.vel.x *= fr; player.vel.z *= fr; }
