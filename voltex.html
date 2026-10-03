@@ -849,7 +849,7 @@
     <div id="enchantMsg"></div>
     <div id="enchantMainGrid"></div>
     <div id="enchantHotbarGrid"></div>
-    <p id="enchantHint">Tap an item in your bag to put it in the slot (tap the slot to take it back). Swords get <b>Sharpness</b> (more damage), armor gets <b>Protection</b> (less damage taken), tools get <b>Efficiency</b> (mine faster), pickaxes/axes also <b>Fortune</b> (more ore / wood drops), and axes can also take <b>Sharpness</b>. Craft a <b>shield</b> (planks + iron) to block frontal attacks — axes can temporarily disable a raised shield. Swords can also take <b>Looting</b> (I–IV, more XP and more drops from kills). Sharpness goes up to V (25 levels). Bows can take <b>Power</b> (I–V, arrow damage), <b>Charge</b> (I–II, arrow knockback) and <b>Infinity</b> (30 levels, shooting doesn't use up arrows; you still need one in your bag). A <b>bow</b> (3 sticks + 3 string at a crafting table; 1 wool = 4 string) shoots <b>arrows</b> (iron + stick + string = 4): hold right-click to draw, release to fire. Every tool, sword, bow and armor piece can also take <b>Unbreaking</b> (I–III, lasts longer) and <b>Mending</b> (I, XP you earn repairs your held item, off-hand and worn armor). Enchant costs: level I = 5, II = 10, III = 15, IV = 20 XP levels (Mending = 30). Kill mobs to earn XP · Press E to close</p>
+    <p id="enchantHint">Tap an item in your bag to put it in the slot (tap the slot to take it back). Swords get <b>Sharpness</b> (more damage), armor gets <b>Protection</b> (less damage taken), tools get <b>Efficiency</b> (mine faster), pickaxes/axes also <b>Fortune</b> (more ore / wood drops), and axes can also take <b>Sharpness</b>. Craft a <b>shield</b> (planks + iron) to block frontal attacks — axes can temporarily disable a raised shield. Swords can also take <b>Looting</b> (I–IV, 20 levels, more XP and more drops from kills). Sharpness goes up to V (25 levels). Bows can take <b>Power</b> (I–V, arrow damage), <b>Charge</b> (I–II, arrow knockback) and <b>Infinity</b> (25 levels, shooting doesn't use up arrows; you still need one in your bag). A <b>bow</b> (3 sticks + 3 string at a crafting table; 1 wool = 4 string) shoots <b>arrows</b> (iron + stick + string = 4): hold right-click to draw, release to fire. Every tool, sword, bow and armor piece can also take <b>Unbreaking</b> (I–III, lasts longer) and <b>Mending</b> (I, XP you earn repairs your held item, off-hand and worn armor). Enchant costs: level I = 5, II = 10, III = 15, IV = 20 XP levels (Mending = 30). Kill mobs to earn XP · Press E to close</p>
   </div>
 </div>
 
@@ -4320,6 +4320,7 @@ function quickMove(zone) {
       renderInventoryPanel(); renderHotbar(); saveLocalPlayer(); return;
     }
     const item = jcCopy(src);
+    const _fqBefore = zone.k === 'fout' ? src.count : 0;
     if (zone.k === 'inv') {
       if (chestOpen && chestSlots) stashInto(chestSlots, 0, CHEST_SIZE, item);
       else if (furnaceOpen) stashFurnace(item);
@@ -4334,6 +4335,7 @@ function quickMove(zone) {
       stashBackpack(item);                                                            // craft / furnace -> hotbar, then inventory
     }
     setZoneItem(zone, item.count !== 0 ? item : null);
+    if (_fqBefore) jcFurnaceXpTaken(_fqBefore, _fqBefore - item.count);
   }
   renderInventoryPanel();
   if (furnaceOpen) renderFurnacePanel();
@@ -4345,6 +4347,7 @@ function quickMove(zone) {
 // --- generic pick up / place logic shared by every slot type ---
 function clickSlot(getItem, setItem, isRight) {
   const slotItem = getItem();
+  const _fOutBefore = (slotItem && slotItem === furnaceSlots.output) ? slotItem.count : 0;   // furnace output: pay XP for what you take
   if (!cursorItem) {
     if (!slotItem) return;
     if (isRight) {
@@ -4383,6 +4386,11 @@ function clickSlot(getItem, setItem, isRight) {
       setItem(cursorItem);
       cursorItem = slotItem;
     }
+  }
+  if (_fOutBefore) {
+    const o = furnaceSlots.output;
+    const left = (o && o.type === slotItem.type) ? o.count : 0;
+    jcFurnaceXpTaken(_fOutBefore, _fOutBefore - left);
   }
   renderInventoryPanel();
   if (furnaceOpen) renderFurnacePanel();
@@ -4599,6 +4607,18 @@ let furnaceSlots = { input: null, fuel: null, output: null };
 let furnaceBurnLeft = 0;   // seconds of current fuel charge remaining
 let furnaceBurnTotal = 0;  // that charge's starting size, for the flame gauge
 let furnaceCookTime = 0;   // seconds accumulated smelting the current input
+// XP for each smelted item, banked while it sits in the output slot and paid out when you take it
+const SMELT_XP = { glass: 1, stone: 1, charcoal: 1, cooked_meat: 2, iron_ingot: 3, gold_ingot: 4 };
+let furnaceXpBank = 0;
+function jcFurnaceXpTaken(before, removed) {
+  if (!(before > 0) || !(removed > 0)) return;
+  if (furnaceXpBank <= 0) return;
+  removed = Math.min(removed, before);
+  const xp = removed >= before ? furnaceXpBank : Math.round(furnaceXpBank * removed / before);
+  furnaceXpBank = Math.max(0, furnaceXpBank - xp);
+  if (!furnaceSlots.output) furnaceXpBank = 0;
+  if (xp > 0) jcAddXp(xp);
+}
 
 function currentSmeltRecipe() {
   const inp = furnaceSlots.input;
@@ -4629,6 +4649,7 @@ function updateFurnace(dt) {
         if (furnaceSlots.input.count === 0) furnaceSlots.input = null;
         if (furnaceSlots.output) furnaceSlots.output.count++;
         else furnaceSlots.output = { type: recipe.out, count: 1 };
+        furnaceXpBank += SMELT_XP[recipe.out] || 1;
       }
       furnaceCookTime = 0;
     }
@@ -7166,6 +7187,22 @@ function throwCurrentItem() {
   if (inventoryOpen) renderInventoryPanel();
 }
 
+function throwCurrentStack() {
+  const held = currentItem();
+  if (!held) return;
+  if (!(held.count > 1)) { throwCurrentItem(); return; }
+  const dir = new THREE.Vector3();
+  camera.getWorldDirection(dir);
+  const startPos = new THREE.Vector3(player.pos.x, player.pos.y + player.height*0.6, player.pos.z)
+    .add(dir.clone().multiplyScalar(0.6));
+  const vel = dir.clone().multiplyScalar(6.5).add(new THREE.Vector3(0, 2.8, 0));
+  const n = held.count;
+  spawnDroppedItem(held.type, n, startPos, vel, { ench: held.ench, dur: held.dur });
+  removeFromCurrentSlot(n);
+  renderHotbar();
+  if (inventoryOpen) renderInventoryPanel();
+}
+
 const PLAYER_HIT_RANGE = 2.5;   // how far (in blocks, eye -> nearest part of the body) you can hit mobs and players
 function bodyReach(from, px, py, pz, height, radius) {
   const cy = Math.max(py, Math.min(py + height, from.y));
@@ -7468,7 +7505,7 @@ const JC_ENCH_TIERS = [
 // Highest level the table offers per enchant (default 4)
 const JC_ENCH_MAX = { unbreaking: 3, mending: 1, sharpness: 5, power: 5, charge: 2, infinity: 1 };
 // Per-enchant cost override (XP levels) for a given tier; others use the tier's normal cost
-const JC_ENCH_COST = { mending: 30, infinity: 30 };
+const JC_ENCH_COST = { mending: 30, infinity: 25, looting: 20 };
 function jcEnchCost(id, t) { return JC_ENCH_COST[id] != null ? JC_ENCH_COST[id] : t.cost; }
 const JC_ENCH_TYPE_IDS = ['efficiency', 'fortune', 'sharpness', 'protection', 'unbreaking', 'mending', 'looting', 'power', 'charge', 'infinity'];
 const _fr = (a, b) => Array.from({ length: b - a + 1 }, (_, i) => a + i);
@@ -8402,11 +8439,31 @@ function initMobileControls() {
     if (!gameStarted) return;
     if (inventoryOpen) closeInventory(); else if (!menusOpen()) openInventory();
   }, { passive: false });
-  document.getElementById('mBtnDrop').addEventListener('touchstart', e => {
-    e.preventDefault(); e.stopPropagation();
-    if (!isPlaying()) return;
-    throwCurrentItem();
-  }, { passive: false });
+  // Tap = throw one item; hold (~0.45 s) = throw the whole stack at once
+  (function () {
+    const dropBtn = document.getElementById('mBtnDrop');
+    let dropTimer = null, dropLong = false;
+    dropBtn.addEventListener('touchstart', e => {
+      e.preventDefault(); e.stopPropagation();
+      if (!isPlaying()) return;
+      dropLong = false;
+      if (dropTimer) clearTimeout(dropTimer);
+      dropTimer = setTimeout(() => {
+        dropTimer = null; dropLong = true;
+        if (isPlaying()) throwCurrentStack();
+        if (navigator.vibrate) try { navigator.vibrate(30); } catch (_) {}
+      }, 450);
+    }, { passive: false });
+    const dropEnd = e => {
+      e.preventDefault(); e.stopPropagation();
+      if (dropTimer) {            // released before the long-press fired = normal single drop
+        clearTimeout(dropTimer); dropTimer = null;
+        if (e.type === 'touchend' && isPlaying()) throwCurrentItem();
+      }
+    };
+    dropBtn.addEventListener('touchend', dropEnd, { passive: false });
+    dropBtn.addEventListener('touchcancel', dropEnd, { passive: false });
+  })();
   // Also allow a quick mouse/click on Drop for hybrid devices
   document.getElementById('mBtnDrop').addEventListener('click', e => {
     e.preventDefault(); e.stopPropagation();
@@ -9409,6 +9466,11 @@ function updateMining(dt) {
             }
           }
           spawnDroppedItem(drop, dropN, popPos);
+          // Mining natural ore with a pickaxe gives XP; Fortune raises it (+50% per level)
+          if (toolKind === 'pickaxe' && isOreType(b.type) && b.natural === true && !b.placed) {
+            const baseXp = { coal_ore: 2, iron_ore: 3, gold_ore: 4, redstone_ore: 4, diamond_ore: 8 }[b.type] || 2;
+            jcAddXp(Math.max(1, Math.round(baseXp * (1 + 0.5 * Math.max(0, _fl)))));
+          }
         }
       }
       // Tool durability: one use per block broken (insta-break soft blocks still count)
