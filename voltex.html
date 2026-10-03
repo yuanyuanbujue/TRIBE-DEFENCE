@@ -8640,8 +8640,39 @@ function initMobileControls() {
     }, () => { mobile.atkHold = false; mobileLongPressEnd(); });
     // Right click: place / use / light TNT / eat / block (hold)
     const rTool = { t: null, long: false };
+    // Off-hand (left hand) tool: swap it into the main slot while the button is held so mining,
+    // attacking and axe-vs-shield all use it, then swap it back on release.
+    let offToolSwap = null;
+    const offToolWanted = () => {
+      if (!offhand || !isUseTool(offhand.type)) return false;
+      const m = currentItem();
+      if (!m) return true;
+      return !isUseTool(m.type) && !isFood(m.type) && !isShield(m.type) && m.type !== 'bow' && !currentBlockType();
+    };
+    const endOffToolSwap = () => {
+      if (!offToolSwap) return;
+      const sw = offToolSwap; offToolSwap = null;
+      offhand = inventory[sw.slot]; inventory[sw.slot] = sw.main;
+      renderHotbar(); if (inventoryOpen) renderInventoryPanel();
+    };
     bindHoldButton('mBtnRClick', () => {
       if (!isPlaying()) return;
+      if (offToolSwap) endOffToolSwap();
+      if (offToolWanted()) {
+        if (tryUseLookedBlock()) return;               // tables / chests / doors still open
+        if (tryIgniteLookedTnt()) return;
+        offToolSwap = { slot: currentSlot, main: inventory[currentSlot] };
+        inventory[currentSlot] = offhand; offhand = null;
+        renderHotbar(); if (inventoryOpen) renderInventoryPanel();
+        rTool.long = false;
+        if (rTool.t) clearTimeout(rTool.t);
+        rTool.t = setTimeout(() => {                   // held: mine
+          rTool.t = null; rTool.long = true;
+          mobile.aimX = null; mobile.aimY = null;
+          mobileLongPressStart();
+        }, LONG_PRESS_MS);
+        return;
+      }
       const m = currentItem();
       // tool in the main hand (and no off-hand shield to raise): the button uses the tool
       if (m && isUseTool(m.type) && !(offhand && isShield(offhand.type))) {
@@ -8662,6 +8693,7 @@ function initMobileControls() {
         clearTimeout(rTool.t); rTool.t = null;
         if (isPlaying()) mobileTryAttack();
       } else if (rTool.long) { rTool.long = false; mobile.atkHold = false; mobileLongPressEnd(); }
+      endOffToolSwap();
       if (eating.active) cancelEating(); isBlocking = false; releaseBow();
     });
     bindHoldButton('mBtnJump2', () => { mobile.jump = true; }, () => { mobile.jump = false; });
