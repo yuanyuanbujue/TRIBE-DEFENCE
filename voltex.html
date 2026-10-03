@@ -849,7 +849,7 @@
     <div id="enchantMsg"></div>
     <div id="enchantMainGrid"></div>
     <div id="enchantHotbarGrid"></div>
-    <p id="enchantHint">Tap an item in your bag to put it in the slot (tap the slot to take it back). Swords get <b>Sharpness</b> (more damage), armor gets <b>Protection</b> (less damage taken), tools get <b>Efficiency</b> (mine faster), pickaxes/axes also <b>Fortune</b> (more ore / wood drops), and axes can also take <b>Sharpness</b>. Craft a <b>shield</b> (planks + iron) to block frontal attacks — axes can temporarily disable a raised shield. Swords can also take <b>Looting</b> (I–IV, 20 levels, more XP and more drops from kills). Sharpness goes up to V (25 levels). Bows can take <b>Power</b> (I–V, arrow damage), <b>Charge</b> (I–II, arrow knockback) and <b>Infinity</b> (25 levels, shooting doesn't use up arrows; you still need one in your bag). A <b>bow</b> (3 sticks + 3 string at a crafting table; 1 wool = 4 string) shoots <b>arrows</b> (iron + stick + string = 4): hold right-click to draw, release to fire. Every tool, sword, bow and armor piece can also take <b>Unbreaking</b> (I–III, lasts longer) and <b>Mending</b> (I, XP you earn repairs your held item, off-hand and worn armor). Enchant costs: level I = 5, II = 10, III = 15, IV = 20 XP levels (Mending = 30). Kill mobs to earn XP · Press E to close</p>
+    <p id="enchantHint">Tap an item in your bag to put it in the slot (tap the slot to take it back). Swords get <b>Sharpness</b> (more damage), armor gets <b>Protection</b> (less damage taken), tools get <b>Efficiency</b> (mine faster), pickaxes/axes also <b>Fortune</b> (more ore / wood drops), and axes can also take <b>Sharpness</b>. Craft a <b>shield</b> (planks + iron) to block frontal attacks — axes can temporarily disable a raised shield. Swords can also take <b>Looting</b> (I–V, more XP and more drops from kills). Sharpness goes up to V (25 levels). Bows can take <b>Power</b> (I–V, arrow damage), <b>Charge</b> (I–II, arrow knockback) and <b>Infinity</b> (25 levels, shooting doesn't use up arrows; you still need one in your bag). A <b>bow</b> (3 sticks + 3 string at a crafting table; 1 wool = 4 string) shoots <b>arrows</b> (iron + stick + string = 4): hold right-click to draw, release to fire. Every tool, sword, bow and armor piece can also take <b>Unbreaking</b> (I–III, lasts longer) and <b>Mending</b> (I, XP you earn repairs your held item, off-hand and worn armor). Enchant costs: level I = 5, II = 10, III = 15, IV = 20 XP levels (Mending = 25). Kill mobs to earn XP · Press E to close</p>
   </div>
 </div>
 
@@ -1496,6 +1496,7 @@ const BLOCK_TYPES = {
   torch: { transparent: true, hardness: 0.1, tool: null, cross: true },
   furnace: { transparent: false, hardness: 1.75, tool: 'pickaxe' },
   chest: { transparent: false, hardness: 1.0, tool: 'axe' },
+  ender_chest: { transparent: false, hardness: 3.0, tool: 'pickaxe' },
   bed:   { transparent: false, hardness: 0.3, tool: null },
   tnt:   { transparent: false, hardness: 0.1, tool: null },
   // Partial-volume blocks: drawn/collided from sub-boxes (see blockBoxes). Marked
@@ -1976,6 +1977,7 @@ function blockFaceCanvases(type) {            // -> { top, side } source canvase
     case 'crafting_table': return { top: T('craftTop'), side: T('planks') };
     case 'enchanting_table': return { top: T('enchTop'), side: T('enchSide') };
     case 'chest': return { top: T('chestTop'), side: T('chest') };
+    case 'ender_chest': return { top: T('enderChestTop'), side: T('enderChest') };
     case 'bed':   return { top: T('bedTop'), side: T('bedSide') };
     case 'tnt':   return { top: T('tntTop'), side: T('tnt') };
     case 'coal_ore': return { top: T('coalOre'), side: T('coalOre') };
@@ -2121,6 +2123,8 @@ const RECIPES = [
   { shape: [['charcoal'],['stick']], out: 'torch', outCount: 4, needsTable: false },
   { shape: [['cobblestone','cobblestone','cobblestone'],['cobblestone',null,'cobblestone'],['cobblestone','cobblestone','cobblestone']], out: 'furnace', outCount: 1, needsTable: true },
   { shape: [['planks','planks','planks'],['planks',null,'planks'],['planks','planks','planks']], out: 'chest', outCount: 1, needsTable: true },
+  // Ender chest: 8 iron ingots around 1 diamond. Its 27 slots belong to YOU — the same items show up in every ender chest.
+  { shape: [['iron_ingot','iron_ingot','iron_ingot'],['iron_ingot','diamond','iron_ingot'],['iron_ingot','iron_ingot','iron_ingot']], out: 'ender_chest', outCount: 1, needsTable: true },
   // Enchanting table: 2 diamond + 4 wood (logs OR planks) + 1 iron ingot
   { shape: [[null,'iron_ingot',null],['diamond','wood','diamond'],['wood','wood','wood']], out: 'enchanting_table', outCount: 1, needsTable: true },
   { shape: [[null,'iron_ingot',null],['diamond','planks','diamond'],['planks','planks','planks']], out: 'enchanting_table', outCount: 1, needsTable: true },
@@ -2314,6 +2318,20 @@ TEX.enchTop = makeTexture(ctx => {
   ctx.fillStyle = '#4fd8ec';
   [[0, 0], [14, 0], [0, 14], [14, 14]].forEach(([x, y]) => ctx.fillRect(x, y, 2, 2));
 });
+// ---- ender chest (dark obsidian-style body, teal latch) ----
+TEX.enderChest = makeTexture(ctx => {
+  speckle(ctx, '#1d2638', ['#161e2e', '#26314a', '#1a2335'], 40);
+  ctx.strokeStyle = '#0b1220'; ctx.lineWidth = 1; ctx.strokeRect(0.5, 0.5, 15, 15);
+  ctx.fillStyle = '#10343b'; ctx.fillRect(0, 6, 16, 3);       // seam band
+  ctx.fillStyle = '#4fe3c1'; ctx.fillRect(7, 7, 2, 4);        // glowing latch
+});
+TEX.enderChestTop = makeTexture(ctx => {
+  speckle(ctx, '#222c42', ['#1a2236', '#2b3852', '#1e283d'], 40);
+  ctx.strokeStyle = '#0b1220'; ctx.lineWidth = 1; ctx.strokeRect(0.5, 0.5, 15, 15); ctx.strokeRect(2.5, 2.5, 11, 11);
+  ctx.fillStyle = '#4fe3c1'; ctx.fillRect(7, 1, 2, 2);
+});
+MI.enderChest    = regMat(TEX.enderChest);
+MI.enderChestTop = regMat(TEX.enderChestTop);
 MI.enchTop  = regMat(TEX.enchTop);
 MI.enchSide = regMat(TEX.enchSide);
 MI.birch_door     = MI.birchDoorLower;   // held / icon material
@@ -2469,6 +2487,7 @@ function faceMatIndex(type, faceIdx) {
     case 'crafting_table': return (faceIdx===2 || faceIdx===3) ? MI.craftTop : MI.craftSide;
     case 'enchanting_table': return (faceIdx===2 || faceIdx===3) ? MI.enchTop : MI.enchSide;
     case 'chest': return (faceIdx===2 || faceIdx===3) ? MI.chestTop : MI.chest;
+    case 'ender_chest': return (faceIdx===2 || faceIdx===3) ? MI.enderChestTop : MI.enderChest;
     case 'bed':   return (faceIdx===2 || faceIdx===3) ? MI.bedTop : MI.bedSide;
     case 'tnt':   return (faceIdx===2 || faceIdx===3) ? MI.tntTop : MI.tnt;
     case 'campfire': return (faceIdx===2) ? MI.campfireTop : MI.campfire;
@@ -2560,9 +2579,8 @@ function markLightArea(x, y, z, force, extra) {
   const R = TORCH_LIGHT_RADIUS + (extra || 0);
   let near = !!force;
   if (!near) {
-    for (const k of blockLights.keys()) {
-      const p = k.split(',');
-      if (Math.abs(p[0]-x) <= R && Math.abs(p[1]-y) <= R && Math.abs(p[2]-z) <= R) { near = true; break; }
+    for (const L of blockLights.values()) {
+      if (Math.abs(L.bx-x) <= R && Math.abs(L.by-y) <= R && Math.abs(L.bz-z) <= R) { near = true; break; }
     }
   }
   if (!near) return;
@@ -2611,11 +2629,43 @@ function lightInvalidateNear(x, y, z) {
     if (Math.abs(f.tx - x) <= R && Math.abs(f.ty - y) <= R && Math.abs(f.tz - z) <= R) floodCache.delete(k);
   });
 }
-function floodTorchCached(k, tx, ty, tz, into) {
-  if (floodCacheVersion !== lightVersion) { floodCache.clear(); floodCacheVersion = lightVersion; }
+// Fast flood: integer visited-grid (no string Set), results kept in parallel typed arrays so a chunk
+// rebuild can copy a torch's light into its local grid with plain array loops (no Map merging).
+const _FR = TORCH_LIGHT_RADIUS, _FW = _FR * 2 + 1;
+const _floodSeen = new Uint8Array(_FW * _FW * _FW);
+function floodTorchFast(tx, ty, tz) {
+  _floodSeen.fill(0);
+  const xs = [], ys = [], zs = [], vs = [];
+  let qx = [tx], qy = [ty], qz = [tz];
+  _floodSeen[((0 + _FR) * _FW + _FR) * _FW + _FR] = 1;
+  for (let level = TORCH_LIGHT_LEVEL; level > 0 && qx.length; level--) {
+    const nx2 = [], ny2 = [], nz2 = [];
+    for (let i = 0; i < qx.length; i++) {
+      const x = qx[i], y = qy[i], z = qz[i];
+      xs.push(x); ys.push(y); zs.push(z); vs.push(level);
+      if (level === 1) continue;
+      for (let f = 0; f < 6; f++) {
+        const d = FACES[f].dir;
+        const nx = x + d[0], ny = y + d[1], nz = z + d[2];
+        if (ny < Y_MIN || ny > Y_MAX) continue;
+        const sx = nx - tx + _FR, sy = ny - ty + _FR, sz = nz - tz + _FR;
+        const si = (sx * _FW + sy) * _FW + sz;
+        if (_floodSeen[si]) continue;
+        _floodSeen[si] = 1;
+        const nb = world.get(nx + ',' + ny + ',' + nz);
+        if (nb && !BLOCK_TYPES[nb.type].transparent) {      // opaque: lit on its face, blocks further spread
+          xs.push(nx); ys.push(ny); zs.push(nz); vs.push(level - 1);
+        } else { nx2.push(nx); ny2.push(ny); nz2.push(nz); }
+      }
+    }
+    qx = nx2; qy = ny2; qz = nz2;
+  }
+  return { tx, ty, tz, n: vs.length, xs: Int16Array.from(xs), ys: Int16Array.from(ys), zs: Int16Array.from(zs), vs: Uint8Array.from(vs) };
+}
+function floodTorchCachedFast(k, tx, ty, tz) {
   let f = floodCache.get(k);
-  if (!f) { f = new Map(); f.tx = tx; f.ty = ty; f.tz = tz; floodTorchLight(tx, ty, tz, f); floodCache.set(k, f); }
-  f.forEach((v, kk) => { if ((into.get(kk) || 0) < v) into.set(kk, v); });
+  if (!f) { f = floodTorchFast(tx, ty, tz); floodCache.set(k, f); }
+  return f;
 }
 function floodTorchLight(tx, ty, tz, field) {
   const seen = new Set();
@@ -2941,14 +2991,20 @@ function rebuildChunk(cx, cz) {
 
   // Torch light field for this chunk: flood-fill every torch close enough to
   // reach it (walls block the light).
-  const torchField = new Map();
+  const torchFloods = [];
+  let torchGrid = null;
   blockLights.forEach((light, k) => {
-    const [tx, ty, tz] = k.split(',').map(Number);
+    const tx = light.bx, ty = light.by, tz = light.bz;
     if (tx >= x0 - TORCH_LIGHT_RADIUS && tx <= x1 + TORCH_LIGHT_RADIUS &&
         tz >= z0 - TORCH_LIGHT_RADIUS && tz <= z1 + TORCH_LIGHT_RADIUS) {
-      floodTorchCached(k, tx, ty, tz, torchField);
+      torchFloods.push(floodTorchCachedFast(k, tx, ty, tz));
     }
   });
+  function slowTorchAt(x, y, z) {                       // only for cells outside the local grid (rare)
+    let best = 0;
+    for (const f of torchFloods) for (let i = 0; i < f.n; i++) if (f.xs[i] === x && f.ys[i] === y && f.zs[i] === z && f.vs[i] > best) best = f.vs[i];
+    return best;
+  }
 
   // Light level of the CELL (x,y,z), which is the air/water cell in front of a
   // face, not the solid block itself — so a roof's underside is dark, its top is bright.
@@ -2969,7 +3025,7 @@ function rebuildChunk(cx, cz) {
     lvl = skyLevelAt(y, topAt(x - 1, z)) - SKY_BLEED_PENALTY; if (lvl > sky) sky = lvl;
     lvl = skyLevelAt(y, topAt(x, z + 1)) - SKY_BLEED_PENALTY; if (lvl > sky) sky = lvl;
     lvl = skyLevelAt(y, topAt(x, z - 1)) - SKY_BLEED_PENALTY; if (lvl > sky) sky = lvl;
-    const torchRaw = torchField.size ? (torchField.get(key(x, y, z)) || 0) : 0;
+    const torchRaw = torchFloods.length ? (gi >= 0 && torchGrid ? torchGrid[gi] : slowTorchAt(x, y, z)) : 0;
     // steeper falloff than linear: bright pool of light near the flame, fading softly
     const torch = torchRaw > 0 ? LIGHT_MAX * Math.pow(torchRaw / TORCH_LIGHT_LEVEL, 1.5) : 0;
     const skyL = Math.max(sky, 0);
@@ -2983,6 +3039,17 @@ function rebuildChunk(cx, cz) {
   const yLo = _yr ? Math.max(Y_MIN, _yr[0]) : Y_MAX + 1, yHi = _yr ? Math.min(Y_MAX, _yr[1]) : Y_MAX;
   const GW = CHUNK_SIZE + 2, GY = yHi - yLo + 3;
   const grid = new Array(GW*GW*GY);
+  if (torchFloods.length) {
+    torchGrid = new Uint8Array(GW*GW*GY);
+    for (const f of torchFloods) {
+      for (let i = 0; i < f.n; i++) {
+        const lx = f.xs[i] - x0 + 1, lz = f.zs[i] - z0 + 1, ly = f.ys[i] - yLo + 1;
+        if (lx < 0 || lx >= GW || lz < 0 || lz >= GW || ly < 0 || ly >= GY) continue;
+        const gi2 = (lx * GW + lz) * GY + ly;
+        if (torchGrid[gi2] < f.vs[i]) torchGrid[gi2] = f.vs[i];
+      }
+    }
+  }
   shadeCache = new Float32Array(GW*GW*GY).fill(NaN);
   warmCache = new Float32Array(GW*GW*GY);
   for (let gx=0; gx<GW; gx++) for (let gz=0; gz<GW; gz++) {
@@ -3223,11 +3290,12 @@ function syncBlockLight(x,y,z,type,deferRerank) {
   if (type === 'torch' || type === 'campfire' || type === 'fire') {
     if (!blockLights.has(k)) {
       const yOff = type === 'campfire' ? 0.85 : 0.6;
-      blockLights.set(k, { position: new THREE.Vector3(x+0.5, y+yOff, z+0.5) });
+      blockLights.set(k, { position: new THREE.Vector3(x+0.5, y+yOff, z+0.5), bx: x, by: y, bz: z });
       if (!deferRerank) scheduleTorchRerank();
     }
   } else if (blockLights.has(k)) {
     blockLights.delete(k);
+    floodCache.delete(k);
     scheduleTorchRerank();
   }
 }
@@ -3236,7 +3304,8 @@ function syncBlockLight(x,y,z,type,deferRerank) {
 // accumulated timer) since it sorts every torch in the map — cheap for a
 // handful of them, but no need to do it every frame.
 function updateTorchShadows() {
-  const near = Array.from(blockLights.values());
+  const near = [];
+  for (const L of blockLights.values()) if (L.position.distanceToSquared(player.pos) < 34 * 34) near.push(L);
   near.sort((a, b) => a.position.distanceToSquared(player.pos) - b.position.distanceToSquared(player.pos));
   fxTorchList = near.filter(t => t.position.distanceToSquared(player.pos) < 34 * 34).slice(0, GLOW_POOL);
   torchPool.forEach((l, i) => {
@@ -3286,7 +3355,7 @@ function updateTorchLightFades(dt) {
 // ---------- Torch flame visuals: soft glow sprites + rising embers ----------
 var fxTorchList = [];
 var dayBrightness = 1;
-const GLOW_POOL = 20, EMBER_TORCHES = 8, EMBERS_PER = 3;
+const GLOW_POOL = 12, EMBER_TORCHES = 6, EMBERS_PER = 3;
 function makeGlowTexture() {
   const c = document.createElement('canvas'); c.width = c.height = 64;
   const g = c.getContext('2d'), gr = g.createRadialGradient(32, 32, 0, 32, 32, 32);
@@ -3824,9 +3893,12 @@ function updateSaplingGrowth(dt) {
 // refresh drops you back where you were.
 const GUEST_SAVE_KEY = 'voltex_save_v2';
 let SAVE_KEY = GUEST_SAVE_KEY; // switches to a per-account key once a Google session is found
+const ENDER_SIZE = 27;                      // ender chest: 3 rows of 9, personal to the player (saved with the player, not the world)
+const ENDER_KEY = '__ender__';
+let enderChest = new Array(ENDER_SIZE).fill(null);
 const CHEST_SAVE_KEY = 'voltex_chests_v1'; // chest contents, keyed by block position — local to this device/browser, same as the rest of the local save (world_blocks itself has no per-block inventory column)
 function snapshotSave() {
-  return {
+  const snap = {
     playerPos: [player.pos.x, player.pos.y, player.pos.z],
     inventory,
     armorSlots,
@@ -3841,6 +3913,12 @@ function snapshotSave() {
     respawnPoint,
     ts: Date.now()
   };
+  try { snap.enderChest = enderChest; } catch (e) {}
+  // furnace + enchant-table contents, so items left in them survive leaving / rejoining
+  try { snap.furnace = { input: furnaceSlots.input, fuel: furnaceSlots.fuel, output: furnaceSlots.output,
+                         burnLeft: furnaceBurnLeft, burnTotal: furnaceBurnTotal, cook: furnaceCookTime, xp: furnaceXpBank }; } catch (e) {}
+  try { snap.enchSlot = enchSlot || null; } catch (e) {}
+  return snap;
 }
 function saveLocalPlayer() {
   try { localStorage.setItem(SAVE_KEY, JSON.stringify(snapshotSave())); } catch(e) { /* storage may be unavailable; fail silently */ }
@@ -3908,6 +3986,34 @@ function applySaveData(data) {
   if (data.respawnPoint && typeof data.respawnPoint.x === 'number') respawnPoint = data.respawnPoint;
   if (Number.isInteger(data.xpLevel) && data.xpLevel >= 0) xpState.level = data.xpLevel;
   if (typeof data.xpPoints === 'number' && data.xpPoints >= 0) xpState.points = data.xpPoints;
+  if (Array.isArray(data.enderChest)) {
+    const ec = normalizeInvArray(data.enderChest, ENDER_SIZE);
+    if (ec) for (let i = 0; i < ENDER_SIZE; i++) enderChest[i] = ec[i];    // in place: an open panel keeps its reference
+  }
+  try {
+    if (data.furnace && typeof data.furnace === 'object') {
+      const f = data.furnace;
+      furnaceSlots.input  = f.input  ? normalizeItem(f.input)  : null;
+      furnaceSlots.fuel   = f.fuel   ? normalizeItem(f.fuel)   : null;
+      furnaceSlots.output = f.output ? normalizeItem(f.output) : null;
+      furnaceBurnLeft  = Math.max(0, Number(f.burnLeft)  || 0);
+      furnaceBurnTotal = Math.max(0, Number(f.burnTotal) || 0);
+      furnaceCookTime  = Math.max(0, Number(f.cook)      || 0);
+      furnaceXpBank    = Math.max(0, Number(f.xp)        || 0);
+      furnaceLastSig = '';
+    }
+  } catch (e) {}
+  try {
+    // an item that was sitting in the enchanting-table slot goes back to the bag so it can't be lost
+    if (data.enchSlot) {
+      const it = normalizeItem(data.enchSlot);
+      if (it) {
+        let placed = false;
+        for (let i = 0; i < INV_SIZE; i++) if (!inventory[i]) { inventory[i] = it; placed = true; break; }
+        if (!placed) enchSlot = it;
+      }
+    }
+  } catch (e) {}
   try { jcXpUI(); } catch (e) {}
   try { renderHotbar(); } catch (e) {}
 }
@@ -4610,6 +4716,7 @@ let furnaceCookTime = 0;   // seconds accumulated smelting the current input
 // XP for each smelted item, banked while it sits in the output slot and paid out when you take it
 const SMELT_XP = { glass: 1, stone: 1, charcoal: 1, cooked_meat: 2, iron_ingot: 3, gold_ingot: 4 };
 let furnaceXpBank = 0;
+let _furnaceLastSave = 0;
 function jcFurnaceXpTaken(before, removed) {
   if (!(before > 0) || !(removed > 0)) return;
   if (furnaceXpBank <= 0) return;
@@ -4650,6 +4757,7 @@ function updateFurnace(dt) {
         if (furnaceSlots.output) furnaceSlots.output.count++;
         else furnaceSlots.output = { type: recipe.out, count: 1 };
         furnaceXpBank += SMELT_XP[recipe.out] || 1;
+        if (performance.now() - _furnaceLastSave > 4000) { _furnaceLastSave = performance.now(); saveLocalPlayer(); }
       }
       furnaceCookTime = 0;
     }
@@ -4774,6 +4882,10 @@ function broadcastChestRemove(k) {
 function chestSyncTick() {
   if (!chestOpen || !chestSlots || !chestKey) return;
   const str = JSON.stringify(chestSlots);
+  if (chestKey === ENDER_KEY) {                 // personal storage: save with the player, no world sync
+    if (str !== chestSyncedStr) { chestSyncedStr = str; saveLocalPlayer(); }
+    return;
+  }
   if (str === chestSyncedStr) return;
   chestSyncedStr = str;
   chestStamps[chestKey] = Date.now();
@@ -4892,7 +5004,18 @@ function renderChestPanel() {
   cursorItemEl.style.display = cursorItem ? 'block' : 'none';
   if (cursorItem) cursorItemEl.innerHTML = iconHtml(cursorItem);
 }
+function openEnderChest() {
+  chestOpen = true;
+  chestKey = ENDER_KEY;
+  chestSlots = enderChest;
+  chestSyncedStr = JSON.stringify(chestSlots);
+  const h = chestPanel.querySelector('h2'); if (h) h.textContent = 'Ender Chest';
+  chestPanel.style.display = 'flex';
+  renderChestPanel();
+  document.exitPointerLock();
+}
 function openChest(x, y, z) {
+  const _h = chestPanel.querySelector('h2'); if (_h) _h.textContent = 'Chest';
   chestOpen = true;
   chestKey = key(x, y, z);
   chestSlots = getChestSlots(chestKey);
@@ -7503,9 +7626,9 @@ const JC_ENCH_TIERS = [
   { name: 'Level V',   cost: 25, level: 5 },
 ];
 // Highest level the table offers per enchant (default 4)
-const JC_ENCH_MAX = { unbreaking: 3, mending: 1, sharpness: 5, power: 5, charge: 2, infinity: 1 };
+const JC_ENCH_MAX = { unbreaking: 3, mending: 1, sharpness: 5, looting: 5, power: 5, charge: 2, infinity: 1 };
 // Per-enchant cost override (XP levels) for a given tier; others use the tier's normal cost
-const JC_ENCH_COST = { mending: 30, infinity: 25, looting: 20 };
+const JC_ENCH_COST = { mending: 25, infinity: 25 };
 function jcEnchCost(id, t) { return JC_ENCH_COST[id] != null ? JC_ENCH_COST[id] : t.cost; }
 const JC_ENCH_TYPE_IDS = ['efficiency', 'fortune', 'sharpness', 'protection', 'unbreaking', 'mending', 'looting', 'power', 'charge', 'infinity'];
 const _fr = (a, b) => Array.from({ length: b - a + 1 }, (_, i) => a + i);
@@ -9547,6 +9670,7 @@ function tryUseLookedBlock() {
   if (targeted.type === 'enchanting_table') { openEnchant(); return true; }
   if (targeted.type === 'furnace') { openFurnace(); return true; }
   if (targeted.type === 'chest') { openChest(hit.x, hit.y, hit.z); return true; }
+  if (targeted.type === 'ender_chest') { openEnderChest(); return true; }
   if (isDoorType(targeted.type) || isTrapType(targeted.type)) { toggleOpenable(targeted); return true; }
   if (typeof rsInteract === 'function' && rsInteract(targeted)) return true;
   if (targeted.type === 'bed') { useBed(hit.x, hit.y, hit.z); return true; }
