@@ -601,6 +601,7 @@
     grid-template-columns: 64px 64px 64px; gap: 10px; pointer-events: auto;
     transform: scale(var(--btn-scale, 1)); transform-origin: bottom right;
   }
+  #mBtnView { background: rgba(190,140,255,0.4); grid-column: 1; grid-row: 1; }
   #mBtnLClick { background: rgba(255,90,90,0.4); grid-column: 2; grid-row: 1; }
   #mBtnRClick { background: rgba(90,200,120,0.4); grid-column: 3; grid-row: 1; }
   #mBtnRun { grid-column: 1; grid-row: 2; }
@@ -897,6 +898,7 @@
   </div>
   <div id="joyBase"><div id="joyKnob"></div></div>
   <div id="pcBtns">
+    <div class="mBtn" id="mBtnView">View</div>
     <div class="mBtn" id="mBtnLClick">Left<br>click</div>
     <div class="mBtn" id="mBtnRClick">Right<br>click</div>
     <div class="mBtn" id="mBtnRun">Run</div>
@@ -1039,7 +1041,7 @@ scene.add(camera);
 const viewModelState = { heldType: undefined, heldMesh: null };
 const viewModelOffState = { heldType: undefined, heldMesh: null };
 const _restHeldEuler = new THREE.Euler(0.2, -0.6, -0.15);
-const _restOffEuler = new THREE.Euler(0.15, 0.55, 0.12);
+const _restOffEuler = new THREE.Euler(0.2, 0.35, -0.12);
 const renderer = new THREE.WebGLRenderer({ antialias: true, powerPreference: 'high-performance' });
 // Cap devicePixelRatio: on a 2x/3x retina/high-DPI screen an uncapped ratio
 // means the GPU shades 4x-9x the fragments for a barely-visible sharpness
@@ -5734,6 +5736,13 @@ function updateEating(dt) {
 // Local player's own visible body. Hidden in first-person (camera sits
 // inside the head), shown when third-person view is toggled with F5.
 let thirdPerson = false;
+let selfieView = false;   // third-person variant: camera in FRONT of you, looking back, so you can see how you look
+function cycleView() {   // first person -> third person (behind) -> front view -> first person
+  if (!thirdPerson) { thirdPerson = true; selfieView = false; }
+  else if (!selfieView) { selfieView = true; }
+  else { thirdPerson = false; selfieView = false; }
+  myModel.group.visible = thirdPerson;
+}
 const myModel = buildHumanoid(colorForId(MY_ID));
 myModel.group.visible = false;
 myModel.heldState = { heldType: undefined, heldMesh: null };
@@ -5765,12 +5774,65 @@ function applySneakPose(m, on) {
 // Arm angles: +x rotation swings the arm FORWARD (the model faces -z).
 // While holding an item the right arm is raised out in front, with the item turned
 // toward the side, so other players can see what you're carrying (it used to hang at the hip).
-const HOLD_ARM_X = 1.1;
+const HOLD_ARM_X = 0.95;
+// Hand-held item orientation (as others see it): flat faces point outward from the body, tools point forward and up
+// from the fist, other items stand upright. Built once as quaternions relative to the raised arm.
+const _holdQuatCache = {};
+function holdQuat(left, tool, mesh) {
+  const key = (left ? 'L' : 'R') + (tool ? 'T' : 'O');
+  if (_holdQuatCache[key]) return _holdQuatCache[key];
+  const sx = left ? -1 : 1, V = THREE.Vector3;
+  if (tool && mesh) {
+    // Tool meshes carry their own mirror + turn, so work from where the blade tip and flat side really point.
+    mesh.updateMatrix();
+    const a1 = new V(1, 1, 0).transformDirection(mesh.matrix);     // tip direction in anchor space
+    const a2 = new V(0, 0, 1).transformDirection(mesh.matrix);     // flat side normal
+    a2.sub(a1.clone().multiplyScalar(a1.dot(a2))).normalize();
+    const a3 = new V().crossVectors(a1, a2);
+    const ta = 0.45;                                              // blade points forward, a little up
+    const w1 = new V(0, Math.sin(ta), -Math.cos(ta));
+    const w2 = new V(sx, 0, 0);                                    // flat side faces outward from the body
+    const w3 = new V().crossVectors(w1, w2);
+    const A = new THREE.Matrix4().makeBasis(a1, a2, a3);
+    const W = new THREE.Matrix4().makeBasis(w1, w2, w3);
+    const Rm = W.multiply(A.transpose());                          // A is a rotation: transpose = inverse
+    const armInvT = new THREE.Quaternion().setFromAxisAngle(new V(1, 0, 0), HOLD_ARM_X).conjugate();
+    return (_holdQuatCache[key] = armInvT.multiply(new THREE.Quaternion().setFromRotationMatrix(Rm)));
+  }
+  const t = tool ? 0.55 : 0.3, s = Math.sin(t), c = Math.cos(t);
+  const ez = new V(sx, 0, 0), ex = new V(), ey = new V();
+  if (tool) {
+    const d = new V(0, s, -c), w = new V(0, sx * c, sx * s);
+    ex.copy(d).sub(w).multiplyScalar(Math.SQRT1_2);
+    ey.copy(d).add(w).multiplyScalar(Math.SQRT1_2);
+  } else {
+    ey.set(0, c, -s);
+    ex.copy(ey).cross(ez);
+  }
+  const world = new THREE.Quaternion().setFromRotationMatrix(new THREE.Matrix4().makeBasis(ex, ey, ez));
+  const armInv = new THREE.Quaternion().setFromAxisAngle(new V(1, 0, 0), HOLD_ARM_X).conjugate();
+  return (_holdQuatCache[key] = armInv.multiply(world));
+}
+// Two-part look: the HEAD follows where you look first; once it has turned HEAD_YAW_LIMIT away from the body the body
+// is dragged round after it, and while you walk the body turns to face where you look.
+const HEAD_YAW_LIMIT = 1.05;   // ~60 degrees
+function angDiff(a, b) { let d = (a - b) % (Math.PI * 2); if (d > Math.PI) d -= Math.PI * 2; else if (d < -Math.PI) d += Math.PI * 2; return d; }
+function updateHeadBody(m, st, lookYaw, pitch, moving, dt) {
+  if (st.bodyYaw === undefined) st.bodyYaw = lookYaw;
+  let diff = angDiff(lookYaw, st.bodyYaw);
+  if (moving) st.bodyYaw += diff * Math.min(1, dt * 12);                          // walking: body faces where you look
+  else if (Math.abs(diff) > HEAD_YAW_LIMIT) st.bodyYaw = lookYaw - Math.sign(diff) * HEAD_YAW_LIMIT;   // limit reached: body follows
+  diff = angDiff(lookYaw, st.bodyYaw);
+  m.group.rotation.y = st.bodyYaw;
+  m.head.rotation.order = 'YXZ';
+  m.head.rotation.set(pitch || 0, Math.max(-HEAD_YAW_LIMIT, Math.min(HEAD_YAW_LIMIT, diff)), 0);
+}
+const myHeadState = {};
 // st: { swing, blocking, eating, eatProg, mining, mineCycle, pulse, holding, offHolding, shieldInOff }
 function poseArms(m, st, walkSwing) {
   const rest = st.holding ? HOLD_ARM_X : 0;
-  const offRest = st.offHolding ? HOLD_ARM_X * 0.85 : 0;
-  m.armL.rotation.set(-walkSwing * (st.offHolding ? 0.15 : 1) + offRest * 0.15, 0, 0);
+  const offRest = st.offHolding ? HOLD_ARM_X : 0;
+  m.armL.rotation.set(-walkSwing * (st.offHolding ? 0.15 : 1) + offRest, 0, 0);
   m.armR.rotation.set(rest + walkSwing * (st.holding ? 0.15 : 1), 0, 0);
   if (st.swing > 0 && st.swingOff) {
     // off-hand chop: the LEFT arm slashes down from raised, the right arm stays put
@@ -5782,7 +5844,7 @@ function poseArms(m, st, walkSwing) {
     const e = 1 - Math.pow(1 - st.swing, 2);
     m.armR.rotation.x = 2.7 + (rest - 2.7) * e;
     m.armR.rotation.z = -0.4 * (1 - e);
-    m.armL.rotation.x = -0.3 * (1 - e) + offRest * 0.1;
+    m.armL.rotation.x = st.offHolding ? offRest : -0.3 * (1 - e);
   } else if (st.blocking) {
     // Shield guard: the arm holding the shield pushes it forward across the body.
     if (st.shieldInOff) {
@@ -5817,7 +5879,8 @@ function poseArms(m, st, walkSwing) {
       // Rest: face outward at the side
       m.handAnchor.rotation.set(-0.35, Math.PI * 0.45, 0.1);
     } else {
-      m.handAnchor.rotation.set(st.holding ? -0.5 : 0, (st.holding && it && !it.userData.isTool) ? -0.8 : 0, 0);
+      if (st.holding && it) m.handAnchor.quaternion.copy(holdQuat(false, !!(it.userData.heldMain||it).userData.isTool, it.userData.heldMain||it));
+      else m.handAnchor.rotation.set(0, 0, 0);
     }
   }
   if (m.offhandAnchor) {
@@ -5828,7 +5891,8 @@ function poseArms(m, st, walkSwing) {
     } else if (isSh) {
       m.offhandAnchor.rotation.set(-0.35, -Math.PI * 0.45, -0.1);
     } else {
-      m.offhandAnchor.rotation.set(st.offHolding ? -0.5 : 0, (st.offHolding && ot && !ot.userData.isTool) ? 0.8 : 0, 0);
+      if (st.offHolding && ot) m.offhandAnchor.quaternion.copy(holdQuat(true, !!(ot.userData.heldMain||ot).userData.isTool, ot.userData.heldMain||ot));
+      else m.offhandAnchor.rotation.set(0, 0, 0);
     }
   }
   applySneakPose(m, !!st.sneak);
@@ -5842,7 +5906,7 @@ function poseArms(m, st, walkSwing) {
 
 function updateMyModel(dt, isMoving) {
   myModel.group.position.set(player.pos.x, player.pos.y, player.pos.z);
-  myModel.group.rotation.y = player.yaw;
+  updateHeadBody(myModel, myHeadState, player.yaw, player.pitch, isMoving, dt);
   const held = mainItem();
   const off = offhand;
   setHeldVisual(myModel.heldState, myModel.handAnchor, held ? held.type : null, held && held.ench);
@@ -5864,7 +5928,6 @@ function updateMyModel(dt, isMoving) {
     holding: !!held, offHolding: !!off, shieldInOff: shieldInOff && isBlocking,
     heldIsShield, sneak: player.crouched
   }, walkSwing);
-  myModel.head.rotation.x = player.pitch;
 }
 
 // First-person hand + guard shield (the held item alone can't show a punch when your hand is empty).
@@ -6278,12 +6341,12 @@ function buildHumanoid(color) {
   // holding gets parented here, so it swings and rotates with the arm for
   // free (mining punches, eating, blocking, walking).
   const handAnchor = new THREE.Group();
-  handAnchor.position.set(0, -0.68, 0.14);
+  handAnchor.position.set(0, -0.68, 0.02);
   handAnchor.scale.setScalar(1.5);      // bigger in-hand item so other players can actually see what you hold
   armR.add(handAnchor);
   // Left-hand (off-hand) item anchor — any off-hand item is shown here for others.
   const offhandAnchor = new THREE.Group();
-  offhandAnchor.position.set(0, -0.68, 0.14);
+  offhandAnchor.position.set(0, -0.68, 0.02);
   offhandAnchor.scale.setScalar(1.5);
   armL.add(offhandAnchor);
 
@@ -6558,6 +6621,14 @@ function setHeldVisual(state, anchor, type, ench) {
   }
   const mesh = makeHeldItemMesh(type);
   if (!mesh) { state.heldMesh = null; return; }
+  // First-person LEFT hand: mirror flat item sprites so the tip leans toward the centre like the right hand's does.
+  if (state === viewModelOffState && mesh.isMesh && mesh.geometry && mesh.geometry.userData && mesh.geometry.userData.gx !== undefined) {
+    mesh.scale.x *= -1; mesh.rotation.y *= -1; mesh.updateMatrix();
+    const gu = mesh.geometry.userData;
+    mesh.userData.centerOffset = new THREE.Vector3(-gu.gx, -gu.gy, 0).applyMatrix4(mesh.matrix);
+  }
+  // Third-person shields were oversized next to the arm.
+  if (mesh.userData && mesh.userData.isShield && state !== viewModelState && state !== viewModelOffState) mesh.scale.setScalar(0.8);
   if (!hasEnch) {
     anchor.add(mesh);
     state.heldMesh = mesh;
@@ -7991,7 +8062,8 @@ function createOtherPlayer(id, name) {
     group: model.group, head: model.head, legL: model.legL, legR: model.legR, armL: model.armL, armR: model.armR,
     handAnchor: model.handAnchor, offhandAnchor: model.offhandAnchor, torso: model.torso, armor: model.armor,
     heldState: { heldType: undefined, heldMesh: null }, offheldState: { heldType: undefined, heldMesh: null }, sneak: false,
-    target: { x: model.group.position.x, y: model.group.position.y, z: model.group.position.z, yaw: 0 },
+    target: { x: model.group.position.x, y: model.group.position.y, z: model.group.position.z, yaw: 0, pitch: 0 },
+    lookYaw: 0, lookPitch: 0, moveHold: 0,
     name, walkCycle: 0, lastPos: { x: 0, y: 0, z: 0 },
     shield: model.shield, swing: { active: false, t: 0 }, blocking: false, mining: false, mineCycle: 0, shieldPulse: 0,
     offType: null
@@ -8043,7 +8115,7 @@ playersChannel
     if (!payload || payload.id === MY_ID) return;
     let entry = otherPlayers.get(payload.id);
     if (!entry) entry = createOtherPlayer(payload.id, payload.name || 'Player');
-    entry.target.x = payload.x; entry.target.y = payload.y; entry.target.z = payload.z; entry.target.yaw = payload.yaw;
+    entry.target.x = payload.x; entry.target.y = payload.y; entry.target.z = payload.z; entry.target.yaw = payload.yaw; entry.target.pitch = payload.pitch || 0;
     setHeldVisual(entry.heldState, entry.handAnchor, payload.heldType || null, payload.heldEnch ? { _r: 1 } : null);
     if (entry.offhandAnchor) setHeldVisual(entry.offheldState, entry.offhandAnchor, payload.offType || null, payload.offEnch ? { _r: 1 } : null);
     entry.offType = payload.offType || null;
@@ -8187,7 +8259,7 @@ function broadcastMyPosition(dt) {
   playersChannel.send({
     type: 'broadcast', event: 'pos',
     payload: {
-      id: MY_ID, name: MY_NAME, x: player.pos.x, y: player.pos.y, z: player.pos.z, yaw: player.yaw,
+      id: MY_ID, name: MY_NAME, x: player.pos.x, y: player.pos.y, z: player.pos.z, yaw: player.yaw, pitch: player.pitch,
       heldType: mainItem() ? mainItem().type : null,
       heldEnch: !!(mainItem() && mainItem().ench),
       offType: offhand ? offhand.type : null,
@@ -8211,7 +8283,11 @@ function updateOtherPlayerVisuals(dt) {
     entry.group.position.x += dx * lerpT;
     entry.group.position.y += (entry.target.y - entry.group.position.y) * lerpT;
     entry.group.position.z += dz * lerpT;
-    entry.group.rotation.y = entry.target.yaw;
+    // smooth the (10 Hz) look data, then split it into head turn + body turn
+    entry.lookYaw += angDiff(entry.target.yaw, entry.lookYaw) * Math.min(1, dt * 14);
+    entry.lookPitch += ((entry.target.pitch || 0) - entry.lookPitch) * Math.min(1, dt * 14);
+    entry.moveHold = (moving || Math.hypot(dx, dz) > 0.05) ? 0.25 : Math.max(0, entry.moveHold - dt);
+    updateHeadBody(entry, entry, entry.lookYaw, entry.lookPitch, entry.moveHold > 0, dt);
 
     if (moving) entry.walkCycle += dt * 8;
     const walkAmt = moving ? Math.sin(entry.walkCycle) * 0.6 : 0;
@@ -8388,7 +8464,7 @@ const BIND_LABELS = [
   ['forward', 'Move forward'], ['back', 'Move backward'], ['left', 'Move left'], ['right', 'Move right'],
   ['jump', 'Jump / swim up'], ['sneak', 'Sneak (no falling off edges)'], ['sprint', 'Sprint (hold)'],
   ['inventory', 'Inventory'], ['eat', 'Eat held food'], ['drop', 'Throw held item'],
-  ['thirdPerson', 'Third-person view'], ['chat', 'Chat'],
+  ['thirdPerson', 'Change view (1st / 3rd / front)'], ['chat', 'Chat'],
 ];
 const binds = Object.assign({}, BIND_DEFAULTS);
 try {
@@ -8434,7 +8510,7 @@ document.addEventListener('keydown', e => {
   if (signOpen) return;
   if (!e.ctrlKey && !e.metaKey && !e.altKey && isBoundCode(e.code)) e.preventDefault();   // e.g. Space / Tab / arrows must not scroll or move focus
   if (e.code === binds.inventory) { if (signOpen) { closeSignEditor(true); return; } if (enchantOpen) closeEnchant(); else if (furnaceOpen) closeFurnace(); else if (chestOpen) closeChest(); else if (!settingsOpen) toggleInventory(); return; }
-  if (e.code === binds.thirdPerson) { thirdPerson = !thirdPerson; myModel.group.visible = thirdPerson; e.preventDefault(); return; }
+  if (e.code === binds.thirdPerson) { cycleView(); e.preventDefault(); return; }
   if (e.code === binds.eat) { startEating(); return; }
   if (e.code === binds.drop) { throwCurrentItem(); return; }
   if (e.code === binds.chat) { openChat(); e.preventDefault(); return; }
@@ -8550,7 +8626,9 @@ function bindHoldButton(id, onDown, onUp) {
 
 function tryMobilePlace() {
   if (!isPlaying()) return;
-  // Functional blocks always open, even with food / shield / any item in either hand.
+  // Functional blocks always open, even with food / shield / any item in either hand
+  // (except while crouching with a block in hand: then right-click just places it).
+  if (!(player.crouched && currentBlockType())) {
   if (typeof tryUseLookedBlock === 'function' && tryUseLookedBlock()) return;
   if (typeof tryIgniteLookedTnt === 'function' && tryIgniteLookedTnt()) return;
   if (typeof startEating === 'function' && startEating()) return;
@@ -8560,6 +8638,7 @@ function tryMobilePlace() {
   // Off-hand shield: still allow raising it when not aiming at a usable block
   if (offhand && isShield(offhand.type) && performance.now() >= shieldDisableUntil && !mainBlockPlaceable()) {
     isBlocking = true; blockFromOff = true; return;
+  }
   }
   const aim = getAimRay();
   const hit = castVoxelRay(aim.origin, aim.dir, RAY_DIST);
@@ -8772,6 +8851,8 @@ function initMobileControls() {
     bindHoldButton('mBtnRClick', () => {
       if (!isPlaying()) return;
       useOffHand = false;
+      { const sp = sneakPlaceItemHand();               // crouching with a block in hand: just place it (main block, else off-hand block)
+        if (sp) { if (sp === 'off') useOffHand = true; tryMobilePlace(); return; } }
       if (tryUseLookedBlock()) return;                 // tables / chests / doors still open
       if (tryIgniteLookedTnt()) return;
       const main = mainItem();
@@ -8816,6 +8897,7 @@ function initMobileControls() {
       if (eating.active) cancelEating(); isBlocking = false; blockFromOff = false; releaseBow();
       useOffHand = false;
     });
+    bindHoldButton('mBtnView', () => { cycleView(); });
     bindHoldButton('mBtnJump2', () => { mobile.jump = true; }, () => { mobile.jump = false; });
     // Run & Crouch are toggles
     const runBtn = document.getElementById('mBtnRun'), crBtn = document.getElementById('mBtnCrouch');
@@ -9861,6 +9943,15 @@ function tryUseLookedBlock() {
 }
 
 // ---- Right hand = main hand. A tool / weapon (or a totem) in it owns the right-click ----
+// Sneak-place (Minecraft style): while crouching with a placeable block in either hand, right-click ALWAYS places it,
+// even when aiming at a crafting table / chest / furnace / door / sign (so a sign can be put on a sign).
+function sneakPlaceItemHand() {            // 'main' | 'off' | null
+  if (!player.crouched) return null;
+  const m = mainItem(), o = offhand;
+  if (m && isPlaceable(m.type)) return 'main';
+  if (o && isPlaceable(o.type)) return 'off';
+  return null;
+}
 function isUseTool(type) { return !!type && (isSword(type) || isSpear(type) || /_(pickaxe|axe|shovel|hoe)$/.test(type)); }
 function isTotemItem(type) { return type === 'totem_of_undying' || type === 'null_totem'; }
 // Right-click with a tool in the main hand uses THAT tool: click = attack, hold = mine.
@@ -9895,6 +9986,8 @@ canvas.addEventListener('mousedown', e => {
   if (e.button !== 2 || !pointerLocked) return;
   blockFromOff = false;
   useOffHand = false;   // start clean: a stale flag would make the "main hand" lookups read the off-hand
+  { const sp = sneakPlaceItemHand();      // crouching with a block in hand: skip every "use" and just place it
+    if (sp) { if (sp === 'off') useOffHand = true; return; } }
   // Functional blocks always win — open them before off-hand / shield / food logic.
   if (tryUseLookedBlock()) { e.stopImmediatePropagation(); return; }
   const mainHeld = currentItem();   // food in your main (right) hand: right-click eats it, even with an off-hand item
@@ -9938,6 +10031,8 @@ canvas.addEventListener('mousedown', e => {
     mining.progress = 0;
     mining.target = null; // resolved fresh each frame in updateMining()
   } else if (e.button === 2) {
+    const sneakPlacing = !!(player.crouched && currentBlockType());   // crouching + placeable block in the active hand
+    if (!sneakPlacing) {
     if (tryUseFlintAndSteel()) return; // flint and steel: light fire / ignite TNT
     if (tryIgniteLookedTnt()) return; // right-click TNT = light the fuse (works with any item in hand)
     // Functional blocks (chest / table / furnace / …) — already handled in the off-hand
@@ -9948,6 +10043,7 @@ canvas.addEventListener('mousedown', e => {
     const heldItem = currentItem();
     if (heldItem && isShield(heldItem.type) && performance.now() >= shieldDisableUntil) { isBlocking = true; return; } // hold right-click with a shield to block
     if (heldItem && isUseTool(heldItem.type)) { rightHandToolUse(); return; }   // tool on the right: click = attack, hold = mine
+    }
     const dir = new THREE.Vector3();
     camera.getWorldDirection(dir);
     const hit = castVoxelRay(camera.position, dir, RAY_DIST);
@@ -11124,7 +11220,7 @@ function animate() {
   updateMyModel(dt, isMoving);
   if (typeof pulseHeldEnchantGlints === 'function') pulseHeldEnchantGlints(performance.now() * 0.001);
 
-  if (thirdPerson) {
+  if (thirdPerson && !selfieView) {
     // Orbit camera behind and slightly above the player's head, pulled in
     // if a wall/block is in the way so it doesn't clip through terrain.
     const dir = new THREE.Vector3(-Math.sin(player.yaw)*Math.cos(player.pitch), Math.sin(player.pitch), -Math.cos(player.yaw)*Math.cos(player.pitch));
@@ -11172,20 +11268,20 @@ function animate() {
     setHeldVisual(viewModelOffState, viewModelOffGroup, offNow ? offNow.type : null, offNow && offNow.ench);
 
     // ---- Main (right) hand ----
-    let vx = 0.32, vy = -0.28, vz = -0.55, rx = 0.2, ry = -0.6, rz = -0.15;
+    let vx = 0.46, vy = -0.37, vz = -0.60, rx = 0.2, ry = -0.6, rz = -0.15;
     if (shieldInMain) {
       // Rest: lower-right, face outward — stays out of the crosshair
-      vx = 0.30; vy = -0.28; vz = -0.48;
-      rx = 0.08; ry = Math.PI * 0.85; rz = 0.18;
+      vx = 0.34; vy = -0.34; vz = -0.50;
+      rx = 0.10; ry = Math.PI * 0.80; rz = 0.20;
       if (blockAmt > 0.01) {
-        const t = 1 - Math.pow(1 - blockAmt, 2);
-        // Guard: raise slightly but keep on the RIGHT so center view stays clear
-        vx += (0.22 - vx) * t;
-        vy += (-0.18 - vy) * t;
+        const t = 1 - Math.pow(1 - blockAmt, 3);
+        // Guard: lift the shield up and across in front of you (kept low enough to leave the crosshair clear)
+        vx += (0.13 - vx) * t;
+        vy += (-0.19 - vy) * t;
         vz += (-0.40 - vz) * t;
-        rx += (0.05 - rx) * t;
-        ry += (Math.PI * 0.92 - ry) * t;
-        rz += (0.12 - rz) * t;
+        rx += (-0.10 - rx) * t;
+        ry += (Math.PI * 0.96 - ry) * t;
+        rz += (0.05 - rz) * t;
       }
     } else {
       const offEats = eating.active && (eating.fromOff || useOffHand);
@@ -11203,7 +11299,7 @@ function animate() {
       if (co && !shieldInMain) viewModelGroup.position.sub(co.clone().applyEuler(_restHeldEuler));
       else if (co && shieldInMain) viewModelGroup.position.sub(co);
       viewModelGroup.rotation.set(rx, ry, rz);
-      const sc = 1 + Math.min(0.4, myShieldPulse) * 0.1 * (shieldInMain ? 1 : 0);
+      const sc = shieldInMain ? (0.72 + 0.2 * blockAmt) * (1 + Math.min(0.4, myShieldPulse) * 0.12) : 1;
       viewModelGroup.scale.setScalar(sc);
     } else {
       fpArm.position.set(vx + 0.05, vy - 0.02, vz + 0.3);
@@ -11211,20 +11307,20 @@ function animate() {
     }
 
     // ---- Off (left) hand — any item, including shield ----
-    let ox = -0.34, oy = -0.30, oz = -0.52, orx = 0.15, ory = 0.55, orz = 0.12;
+    let ox = -0.46, oy = -0.37, oz = -0.60, orx = 0.2, ory = 0.35, orz = -0.12;
     if (shieldInOff) {
       // Rest: lower-left, face outward — stays out of the crosshair
-      ox = -0.30; oy = -0.28; oz = -0.48;
-      orx = 0.08; ory = -Math.PI * 0.85; orz = -0.18;
+      ox = -0.34; oy = -0.34; oz = -0.50;
+      orx = 0.10; ory = -Math.PI * 0.80; orz = -0.20;
       if (blockAmt > 0.01) {
-        const t = 1 - Math.pow(1 - blockAmt, 2);
-        // Guard: raise slightly but keep on the LEFT so center view stays clear
-        ox += (-0.22 - ox) * t;
-        oy += (-0.18 - oy) * t;
+        const t = 1 - Math.pow(1 - blockAmt, 3);
+        // Guard: lift the shield up and across in front of you (kept low enough to leave the crosshair clear)
+        ox += (-0.13 - ox) * t;
+        oy += (-0.19 - oy) * t;
         oz += (-0.40 - oz) * t;
-        orx += (0.05 - orx) * t;
-        ory += (-Math.PI * 0.92 - ory) * t;
-        orz += (-0.12 - orz) * t;
+        orx += (-0.10 - orx) * t;
+        ory += (-Math.PI * 0.96 - ory) * t;
+        orz += (-0.05 - orz) * t;
       }
     }
     if (!shieldInOff) {   // off-hand swing / mining / eating (right-click with an off-hand item)
@@ -11239,7 +11335,7 @@ function animate() {
       if (oco && !shieldInOff) viewModelOffGroup.position.sub(oco.clone().applyEuler(_restOffEuler));
       else if (oco && shieldInOff) viewModelOffGroup.position.sub(oco);
       viewModelOffGroup.rotation.set(orx, ory, orz);
-      const osc = 1 + Math.min(0.4, myShieldPulse) * 0.12 * (shieldInOff && blockAmt > 0.2 ? 1 : 0);
+      const osc = shieldInOff ? (0.72 + 0.2 * blockAmt) * (1 + Math.min(0.4, myShieldPulse) * 0.12) : 1;
       viewModelOffGroup.scale.setScalar(osc);
     }
   } else {
@@ -11271,7 +11367,24 @@ function animate() {
       renderer.shadowMap.needsUpdate = _shadowTick;
     } else if (!renderer.shadowMap.autoUpdate) renderer.shadowMap.autoUpdate = true;
   }
-  renderer.render(scene, camera);
+  if (selfieView && thirdPerson) {
+    // Front view: put the camera ahead of the player looking back at them for this render only, then restore the
+    // first-person pose so aiming / mining / attacks (which read the camera) keep pointing where you look.
+    const sp = camera.position.clone(), sr = camera.rotation.clone();
+    const dir = new THREE.Vector3(-Math.sin(player.yaw) * Math.cos(player.pitch), Math.sin(player.pitch), -Math.cos(player.yaw) * Math.cos(player.pitch));
+    const eye = new THREE.Vector3(player.pos.x, player.pos.y + player.height * 0.9, player.pos.z);
+    const want = 3.4; let dist = want;
+    for (let i = 1; i <= 16; i++) {
+      const t = want * i / 16;
+      if (solidAt(eye.x + dir.x * t, eye.y + dir.y * t, eye.z + dir.z * t)) { dist = Math.max(0.8, t - want / 16); break; }
+    }
+    camera.position.set(eye.x + dir.x * dist, eye.y + dir.y * dist, eye.z + dir.z * dist);
+    camera.rotation.order = 'YXZ';
+    camera.rotation.set(-player.pitch, player.yaw + Math.PI, 0);
+    camera.updateMatrixWorld(true);
+    renderer.render(scene, camera);
+    camera.position.copy(sp); camera.rotation.copy(sr); camera.updateMatrixWorld(true);
+  } else renderer.render(scene, camera);
 }
 let _shadowTick = false;
 
