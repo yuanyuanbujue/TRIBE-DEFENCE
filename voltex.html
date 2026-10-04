@@ -8419,7 +8419,7 @@ playersChannel
     const a = animals.find(q => q.id === payload.id && q.alive && !q.remote);
     if (!a) return;
     a.hp -= (Number(payload.dmg) || 0) * zArmorMul(a); flashRed(a.group);
-    knockbackEntity(a, new THREE.Vector3(a.pos.x - payload.kx, a.pos.y, a.pos.z - payload.kz), (a.kind === 'zombie' ? 9.5 : 7.5) * (payload.kb == null ? 1 : payload.kb));
+    knockbackEntity(a, new THREE.Vector3(a.pos.x + (Number(payload.kx) || 0), a.pos.y, a.pos.z + (Number(payload.kz) || 0))   /* kx,kz point from the mob to the attacker, so the shove must come FROM that point */, (a.kind === 'zombie' ? 9.5 : 7.5) * (payload.kb == null ? 1 : payload.kb));
     if (a.hp <= 0) killAnimal(a, payload.by);
   })
   .on('broadcast', { event: 'mob_dmg' }, ({ payload }) => {
