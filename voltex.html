@@ -994,6 +994,14 @@
         <option value="0">Unlimited</option>
       </select>
     </label>
+    <div class="settingRow">
+      <label for="brightnessSlider">Brightness</label>
+      <span><input type="range" id="brightnessSlider" min="50" max="200" step="5"> <span id="brightnessValue">100%</span></span>
+    </div>
+    <label class="settingRow" for="rainToggle">
+      Rain
+      <input type="checkbox" id="rainToggle">
+    </label>
     <label class="settingRow" for="shadowsToggle">
       Shadows
       <input type="checkbox" id="shadowsToggle">
@@ -5243,6 +5251,72 @@ let timeOffset = 0;   // seconds added to Date.now()/1000
 function sharedClock() { return Date.now() / 1000 + timeOffset; }
 function clockToWorldTime(c) { return (((c / DAY_LENGTH) + 0.25) % 1 + 1) % 1; }
 function adoptSharedClock(c) { if (typeof c === 'number' && isFinite(c)) timeOffset = c - Date.now() / 1000; }
+// ================= Weather: rain =================
+// Weather is derived from the shared clock, so every player sees rain start and stop together.
+let rainLevel = 0, weatherForce = null;   // weatherForce: null = natural, 0 = clear, 1 = rain (set by /rain)
+const RAIN_SLOT = 420;                    // seconds per weather slot
+function _wHash(n) { const x = Math.sin(n * 127.1 + 311.7) * 43758.5453; return x - Math.floor(x); }
+function rainTargetAt(t) {
+  const sl = Math.floor(t / RAIN_SLOT), f = t / RAIN_SLOT - sl;
+  if (_wHash(sl) > 0.28) return 0;                       // ~28% of slots are rainy
+  const ramp = 0.12, edge = Math.max(0, Math.min(1, f / ramp, (1 - f) / ramp));
+  return edge * (0.65 + 0.35 * _wHash(sl + 99));         // some storms are lighter than others
+}
+function brightMul() { try { return settings.brightness / 100; } catch (e) { return 1; } }
+const RAIN_N = 900, RAIN_W = 26, RAIN_H = 22;
+const _rainX = new Float32Array(RAIN_N), _rainY = new Float32Array(RAIN_N), _rainZ = new Float32Array(RAIN_N);
+const _rainSpd = new Float32Array(RAIN_N);
+const _rainPos = new Float32Array(RAIN_N * 6);
+const _rainGeo = new THREE.BufferGeometry();
+_rainGeo.setAttribute('position', new THREE.BufferAttribute(_rainPos, 3));
+const _rainMat = new THREE.LineBasicMaterial({ color: 0xa9c4ee, transparent: true, opacity: 0, depthWrite: false, fog: false });
+const rainMesh = new THREE.LineSegments(_rainGeo, _rainMat);
+rainMesh.frustumCulled = false; rainMesh.visible = false; rainMesh.renderOrder = 5;
+scene.add(rainMesh);
+let _rainInit = false, _rainShelter = 0, _rainShelterT = 0, _rainCovered = false;
+const _rainSky = new THREE.Color(0x4a5260);
+function updateWeather(dt) {
+  let target = 0;
+  try { target = (settings.rain === false) ? 0 : (weatherForce != null ? weatherForce : rainTargetAt(sharedClock())); } catch (e) {}
+  rainLevel += (target - rainLevel) * Math.min(1, dt * 0.6);
+  if (Math.abs(target - rainLevel) < 0.002) rainLevel = target;
+  if (document.hidden) return;                           // nothing to draw in a hidden tab
+  if (rainLevel < 0.02) { rainMesh.visible = false; return; }
+  const cx = camera.position.x, cy = camera.position.y, cz = camera.position.z;
+  if (!_rainInit) {
+    _rainInit = true;
+    for (let i = 0; i < RAIN_N; i++) {
+      _rainX[i] = cx + (Math.random() - 0.5) * RAIN_W; _rainZ[i] = cz + (Math.random() - 0.5) * RAIN_W;
+      _rainY[i] = cy + (Math.random() - 0.5) * RAIN_H; _rainSpd[i] = 17 + Math.random() * 7;
+    }
+  }
+  // Is there a roof / tree over the player? Then the rain is hidden (re-checked a few times a second).
+  _rainShelterT -= dt;
+  if (_rainShelterT <= 0) {
+    _rainShelterT = 0.2; _rainCovered = false;
+    for (let y = cy + 0.6; y < cy + 40; y += 1) if (solidAt(cx, y, cz)) { _rainCovered = true; break; }
+  }
+  _rainShelter += ((_rainCovered ? 1 : 0) - _rainShelter) * Math.min(1, dt * 5);
+  const op = 0.5 * Math.min(1, rainLevel * 1.2) * (1 - _rainShelter);
+  _rainMat.opacity = op;
+  rainMesh.visible = op > 0.01;
+  if (!rainMesh.visible) return;
+  const n = Math.max(120, Math.floor(RAIN_N * Math.min(1, rainLevel + 0.2)));   // light rain = fewer drops
+  const wind = 0.9, len = 0.7, hw = RAIN_W / 2;
+  for (let i = 0; i < RAIN_N; i++) {
+    if (i >= n) { const o = i * 6; _rainPos[o] = _rainPos[o+3] = 0; _rainPos[o+1] = _rainPos[o+4] = -9999; _rainPos[o+2] = _rainPos[o+5] = 0; continue; }
+    _rainY[i] -= _rainSpd[i] * dt; _rainX[i] += wind * dt;
+    if (_rainY[i] < cy - RAIN_H * 0.5) { _rainY[i] = cy + RAIN_H * 0.5 + Math.random() * 3; _rainX[i] = cx + (Math.random() - 0.5) * RAIN_W; _rainZ[i] = cz + (Math.random() - 0.5) * RAIN_W; }
+    // keep the drop box centred on the player as they move
+    _rainX[i] = cx + ((_rainX[i] - cx + hw * 3) % RAIN_W) - hw;
+    _rainZ[i] = cz + ((_rainZ[i] - cz + hw * 3) % RAIN_W) - hw;
+    const o = i * 6;
+    _rainPos[o] = _rainX[i]; _rainPos[o+1] = _rainY[i]; _rainPos[o+2] = _rainZ[i];
+    _rainPos[o+3] = _rainX[i] + wind * 0.04; _rainPos[o+4] = _rainY[i] + len; _rainPos[o+5] = _rainZ[i];
+  }
+  _rainGeo.attributes.position.needsUpdate = true;
+}
+
 function updateDayNight(dt) {
   worldTime = clockToWorldTime(sharedClock());
   const angle = worldTime * Math.PI * 2;
@@ -5256,15 +5330,18 @@ function updateDayNight(dt) {
   // Nights (and, thanks to shadow mapping, anywhere the sun can't reach —
   // caves, overhangs, the underside of a roof) now drop close to black
   // instead of the old 0.15-0.2 floor, so a torch actually matters.
-  const brightness = Math.max(0.12, sunHeight * 0.5 + 0.5); // sky-lit areas now stay noticeably brighter at night too, not near-black
+  updateWeather(dt);
+  const brightness = Math.max(0.12, sunHeight * 0.5 + 0.5) * (1 - 0.3 * rainLevel); // overcast while it rains
   dayBrightness = brightness;
-  sun.intensity = 0.08 + brightness * 0.9;
-  ambient.intensity = 0.08 + brightness * 0.4;
-  hemi.intensity = 0.12 + brightness * 0.35;
+  const bm = brightMul(), lift = Math.max(0, bm - 1) * 0.15;   // Settings > Graphics > Brightness
+  sun.intensity = (0.08 + brightness * 0.9) * (0.5 + 0.5 * bm);
+  ambient.intensity = (0.08 + brightness * 0.4) * bm + lift;
+  hemi.intensity = (0.12 + brightness * 0.35) * bm + lift;
 
   const dayCol = new THREE.Color(0x7ec0ee);
   const nightCol = new THREE.Color(0x02030a);
-  const mixed = dayCol.clone().lerp(nightCol, 1 - brightness);
+  const mixed = dayCol.clone().lerp(nightCol, 1 - Math.min(1, brightness));
+  if (rainLevel > 0.001) mixed.lerp(_rainSky, 0.6 * rainLevel * Math.min(1, brightness * 1.5));   // grey sky
   scene.background = mixed;
   scene.fog.color = mixed;
 }
@@ -5783,7 +5860,7 @@ function applySneakPose(m, on) {
 // Arm angles: +x rotation swings the arm FORWARD (the model faces -z).
 // While holding an item the right arm is raised out in front, with the item turned
 // toward the side, so other players can see what you're carrying (it used to hang at the hip).
-const HOLD_ARM_X = 0.95;
+const HOLD_ARM_X = 0.22;   // was 0.95: arm barely lifts when holding an item (as seen by other players)
 // Hand-held item orientation (as others see it): flat faces point outward from the body, tools point forward and up
 // from the fist, other items stand upright. Built once as quaternions relative to the raised arm.
 const _holdQuatCache = {};
@@ -6797,11 +6874,179 @@ function buildZombie() {
   legR.position.set(0.14, 0.7, 0);
 
   group.add(torso, head, armL, armR, legL, legR);
+  group.userData.torso = torso;
   group.userData.legs = [legL, legR];
   group.userData.arms = [armL, armR];
   group.userData.armBase = -1.45;
   group.userData.head = head;
   return group;
+}
+
+// ================= Zombie gear =================
+// eq (int, streamed to other players): bits 0-3 weapon (0 none, 1-5 sword, 6-10 spear, 11-15 axe; wood..diamond),
+// bits 4-11 two bits per armor slot (0 none, 1 iron, 2 gold, 3 diamond). Zombies never drop their gear.
+const Z_MATS = ['wood', 'stone', 'iron', 'gold', 'diamond'];
+const Z_KINDS = ['sword', 'spear', 'axe'];
+const Z_ARMOR_SLOTS = ['helmet', 'chestplate', 'leggings', 'boots'];
+const Z_ARMOR_TIERS = ['iron', 'gold', 'diamond'];
+const ZOMBIE_ARM_X = -1.45;
+function _pickW(weights) { let t = 0; for (const w of weights) t += w; let r = Math.random() * t; for (let i = 0; i < weights.length; i++) { r -= weights[i]; if (r < 0) return i; } return weights.length - 1; }
+function rollZombieGear() {
+  let eq = 0;
+  if (Math.random() < 0.35) {                                   // weapon
+    const kind = Math.floor(Math.random() * 3), mat = _pickW([30, 30, 24, 10, 6]);
+    eq |= (kind * 5 + mat + 1);
+  }
+  if (Math.random() < 0.4) {                                    // armor: each piece independently
+    for (let i = 0; i < 4; i++) if (Math.random() < 0.6) eq |= (_pickW([60, 25, 15]) + 1) << (4 + 2 * i);
+  }
+  return eq;
+}
+function zombieWeaponType(eq) {
+  const w = eq & 15; if (!w || w > 15) return null;
+  return Z_MATS[(w - 1) % 5] + '_' + Z_KINDS[Math.floor((w - 1) / 5)];
+}
+function zombieHoldQuat(mesh) {
+  const V = THREE.Vector3;
+  if (!mesh || !(mesh.userData && mesh.userData.isTool)) return new THREE.Quaternion();
+  mesh.updateMatrix();
+  const a1 = new V(1, 1, 0).transformDirection(mesh.matrix);       // blade tip direction
+  const a2 = new V(0, 0, 1).transformDirection(mesh.matrix);       // flat side normal
+  a2.sub(a1.clone().multiplyScalar(a1.dot(a2))).normalize();
+  const a3 = new V().crossVectors(a1, a2);
+  const ta = 0.45;
+  const w1 = new V(0, Math.sin(ta), Math.cos(ta));                 // blade points forward (+z, a zombie faces +z) and a little up
+  const w2 = new V(1, 0, 0);
+  const w3 = new V().crossVectors(w1, w2);
+  const A = new THREE.Matrix4().makeBasis(a1, a2, a3);
+  const W = new THREE.Matrix4().makeBasis(w1, w2, w3);
+  const Rm = W.multiply(A.transpose());
+  const armInv = new THREE.Quaternion().setFromAxisAngle(new V(1, 0, 0), ZOMBIE_ARM_X).conjugate();
+  return armInv.multiply(new THREE.Quaternion().setFromRotationMatrix(Rm));
+}
+function applyZombieGear(a) {
+  const ud = a.group && a.group.userData; if (!ud) return;
+  if (a.gear) for (const o of a.gear) { if (o.parent) o.parent.remove(o); if (o.geometry) o.geometry.dispose(); if (o.userData && o.userData.mat) o.userData.mat.dispose(); }
+  a.gear = [];
+  ud._flashMeshes = null;                       // rebuild the red-flash list so the armor flashes too
+  const eq = a.eq | 0;
+  const addBox = (parent, w, h, d, x, y, z, color) => {
+    const mat = new THREE.MeshLambertMaterial({ color });
+    const m = new THREE.Mesh(new THREE.BoxGeometry(w, h, d), mat);
+    m.position.set(x, y, z); m.userData.mat = mat; parent.add(m); a.gear.push(m); return m;
+  };
+  let pts = 0;
+  for (let i = 0; i < 4; i++) {
+    const t = (eq >> (4 + 2 * i)) & 3; if (!t) continue;
+    const col = ARMOR_TIER_COLOR[t - 1];
+    const info = ITEM_INFO[Z_ARMOR_TIERS[t - 1] + '_' + Z_ARMOR_SLOTS[i]];
+    pts += (info && info.armor) || 0;
+    if (i === 0 && ud.head) addBox(ud.head, 0.5, 0.5, 0.5, 0, 0, 0, col);
+    else if (i === 1 && ud.torso) addBox(ud.torso, 0.64, 0.78, 0.4, 0, 0, 0, col);
+    else if (i === 2 && ud.legs) for (const leg of ud.legs) addBox(leg, 0.27, 0.42, 0.3, 0, -0.2, 0, col);
+    else if (i === 3 && ud.legs) for (const leg of ud.legs) addBox(leg, 0.27, 0.2, 0.31, 0, -0.6, 0.01, col);
+  }
+  a.armorPts = pts;
+  // weapon in the right hand
+  const wt = zombieWeaponType(eq);
+  let dmg = 3, reach = 1.35, cd = 1.1, axe = false;
+  if (wt && ud.arms) {
+    const mesh = makeHeldItemMesh(wt);
+    if (mesh) {
+      const anchor = new THREE.Group();
+      anchor.position.set(0, -0.42, 0.02); anchor.scale.setScalar(1.25);
+      anchor.add(mesh); anchor.quaternion.copy(zombieHoldQuat(mesh));
+      ud.arms[1].add(anchor); a.gear.push(anchor);
+    }
+    const kind = wt.split('_')[1], mat = wt.split('_')[0];
+    const att = (JC_DMG[kind] && JC_DMG[kind][mat]) || 2;
+    dmg = 3 + (att - 2) * 0.5;                    // fist 3 ... diamond axe 7
+    if (kind === 'spear') reach = 2.2;
+    if (kind === 'axe') { axe = true; cd = 1.5; } // slow swings, but an axe hit breaks a raised shield
+  }
+  a.atkDmg = dmg; a.atkReach = reach; a.atkCd = cd; a.axe = axe;
+}
+function zArmorMul(a) { return a && a.kind === 'zombie' && a.armorPts ? (1 - Math.min(0.8, a.armorPts * 0.04)) : 1; }
+
+// ================= Zombie pathfinding (A* over the block grid) =================
+// A node is the cell a zombie's feet are in: two clear cells with a solid block under them. Moves: walk to a
+// neighbour, step/jump up 1, or drop down up to 3.
+function _zWalk(x, y, z) { return !solidAt(x, y, z) && !solidAt(x, y + 1, z) && solidAt(x, y - 1, z); }
+function _zKey(x, y, z) { return (((x + 4096) * 8192) + (z + 4096)) * 512 + (y + 64); }
+const _Z_DIRS = [[1, 0], [-1, 0], [0, 1], [0, -1]];
+function zFindPath(sx, sy, sz, gx, gy, gz, maxNodes) {
+  const open = [], g = new Map(), from = new Map(), nodeOf = new Map();
+  const h = (x, y, z) => (Math.abs(x - gx) + Math.abs(z - gz) + Math.abs(y - gy) * 0.5) * 1.15;
+  const push = (f, x, y, z) => { open.push([f, x, y, z]); let i = open.length - 1; while (i > 0) { const p = (i - 1) >> 1; if (open[p][0] <= open[i][0]) break; const t = open[p]; open[p] = open[i]; open[i] = t; i = p; } };
+  const pop = () => { const top = open[0], last = open.pop(); if (open.length) { open[0] = last; let i = 0; for (;;) { let l = i * 2 + 1, r = l + 1, m = i; if (l < open.length && open[l][0] < open[m][0]) m = l; if (r < open.length && open[r][0] < open[m][0]) m = r; if (m === i) break; const t = open[m]; open[m] = open[i]; open[i] = t; i = m; } } return top; };
+  const sk = _zKey(sx, sy, sz);
+  g.set(sk, 0); nodeOf.set(sk, [sx, sy, sz]); push(h(sx, sy, sz), sx, sy, sz);
+  let best = sk, bestH = h(sx, sy, sz), goalK = null, n = 0;
+  while (open.length && n < maxNodes) {
+    const [, x, y, z] = pop(), ck = _zKey(x, y, z); n++;
+    const dxg = Math.abs(x - gx) + Math.abs(z - gz);
+    if (dxg <= 1 && Math.abs(y - gy) <= 1) { goalK = ck; break; }
+    const cg = g.get(ck);
+    for (const [dx, dz] of _Z_DIRS) {
+      const nx = x + dx, nz = z + dz;
+      let ny = null;
+      if (_zWalk(nx, y, nz)) ny = y;
+      else if (_zWalk(nx, y + 1, nz) && !solidAt(x, y + 2, z)) ny = y + 1;              // step / jump up one block
+      else if (!solidAt(nx, y, nz) && !solidAt(nx, y + 1, nz)) {                         // walk off an edge: drop up to 3
+        for (let d = 1; d <= 3; d++) { if (solidAt(nx, y - d + 1, nz)) break; if (_zWalk(nx, y - d, nz)) { ny = y - d; break; } }
+      }
+      if (ny === null) continue;
+      const nk = _zKey(nx, ny, nz), ng = cg + 1 + (ny !== y ? 0.6 : 0);
+      if (g.has(nk) && g.get(nk) <= ng) continue;
+      g.set(nk, ng); from.set(nk, ck); nodeOf.set(nk, [nx, ny, nz]);
+      const hh = h(nx, ny, nz); push(ng + hh, nx, ny, nz);
+      if (hh < bestH) { bestH = hh; best = nk; }
+    }
+  }
+  let endK = goalK != null ? goalK : best;          // no full route: walk to the closest reachable spot
+  const path = [];
+  while (endK !== undefined && endK !== sk) { path.push(nodeOf.get(endK)); endK = from.get(endK); }
+  path.reverse();
+  return path;
+}
+function zClearLine(a, tx, ty, tz) {
+  const dx = tx - a.pos.x, dz = tz - a.pos.z, dist = Math.hypot(dx, dz);
+  if (Math.abs(ty - a.pos.y) > 1.0) return false;
+  for (let d = 0.5; d < dist; d += 0.5) {
+    const px = a.pos.x + dx / dist * d, pz = a.pos.z + dz / dist * d;
+    if (checkCollision(px, a.pos.y + 0.05, pz, a.radius, a.height)) return false;
+    if (!solidAt(px, a.pos.y - 0.6, pz)) return false;             // a pit / edge ahead
+  }
+  return true;
+}
+let _zPathBudget = 0;
+// Returns the next waypoint {x,z,fy} for this zombie to walk to, or null to just walk straight at the target.
+function zombieWaypoint(a, tgt, dt) {
+  a.pathT = (a.pathT || 0) + dt;
+  const dxT = tgt.x - a.pos.x, dzT = tgt.z - a.pos.z, distT = Math.hypot(dxT, dzT);
+  if (distT < 2.2 || zClearLine(a, tgt.x, tgt.y, tgt.z)) { a.path = null; return null; }
+  // stuck? (no progress for a while) -> force a fresh route
+  a.stuckT = (a.stuckT || 0) + dt;
+  if (!a.lastPX || Math.hypot(a.pos.x - a.lastPX, a.pos.z - a.lastPZ) > 0.15) { a.lastPX = a.pos.x; a.lastPZ = a.pos.z; a.stuckT = 0; }
+  const goalMoved = a.pathGoal && Math.hypot(tgt.x - a.pathGoal[0], tgt.z - a.pathGoal[1]) > 2.5;
+  if ((!a.path || a.pathT > 1.0 || goalMoved || a.stuckT > 1.2) && _zPathBudget > 0) {
+    _zPathBudget--; a.pathT = Math.random() * 0.3; a.stuckT = 0;
+    const sx = Math.round(a.pos.x), sz = Math.round(a.pos.z);
+    let sy = Math.round(a.pos.y + 0.5);
+    if (!_zWalk(sx, sy, sz)) { if (_zWalk(sx, sy + 1, sz)) sy++; else if (_zWalk(sx, sy - 1, sz)) sy--; }
+    const gx = Math.round(tgt.x), gz = Math.round(tgt.z);
+    let gy = Math.round(tgt.y + 0.5);
+    for (let d = 0; d < 5 && !_zWalk(gx, gy, gz); d++) gy--;       // target is mid-jump: aim for the ground under it
+    a.path = zFindPath(sx, sy, sz, gx, gy, gz, 700); a.pathIdx = 0; a.pathGoal = [tgt.x, tgt.z];
+  }
+  if (!a.path || !a.path.length) return null;
+  while (a.pathIdx < a.path.length) {
+    const n = a.path[a.pathIdx];
+    if (Math.hypot(n[0] - a.pos.x, n[2] - a.pos.z) < 0.4 && Math.abs((n[1] - 0.5) - a.pos.y) < 1.2) a.pathIdx++; else break;
+  }
+  if (a.pathIdx >= a.path.length) { a.path = null; return null; }
+  const n = a.path[a.pathIdx];
+  return { x: n[0], z: n[2], fy: n[1] - 0.5 };
 }
 
 // Passive animals: build fn, health, collision size, spawn drop height, wander speed
@@ -6813,7 +7058,7 @@ const ANIMAL_DEFS = {
 const PASSIVE_KINDS = ['pig', 'cow', 'sheep'];
 const animals = [];
 let mobSeq = 0;
-function createMob(kind, px, py, pz, id, remote) {
+function createMob(kind, px, py, pz, id, remote, eq) {
   const isZ = kind === 'zombie';
   const def = ANIMAL_DEFS[kind] || ANIMAL_DEFS.pig;
   const group = isZ ? buildZombie() : def.build();
@@ -6828,9 +7073,11 @@ function createMob(kind, px, py, pz, id, remote) {
     radius: isZ ? 0.32 : def.radius, height: isZ ? 1.7 : def.height,
     wanderTimer: Math.random()*2, facing: 0,
     attackCd: 0,
+    eq: isZ ? (eq | 0) : 0, atkDmg: 3, atkReach: 1.35, atkCd: 1.1, axe: false, armorPts: 0,
     target: remote ? { x: px, y: py, z: pz, f: 0 } : null,
   };
   animals.push(e);
+  if (isZ) applyZombieGear(e);
   return e;
 }
 function spawnAnimal(x, z, surfaceY, kind) {
@@ -6839,7 +7086,7 @@ function spawnAnimal(x, z, surfaceY, kind) {
   if (h <= WATER_LEVEL) return false;
   const isZ = kind === 'zombie';
   const def = ANIMAL_DEFS[kind] || ANIMAL_DEFS.pig;
-  createMob(kind, x + 0.5, h + (isZ ? 1.1 : def.drop), z + 0.5, null, false);
+  createMob(kind, x + 0.5, h + (isZ ? 1.1 : def.drop), z + 0.5, null, false, isZ ? rollZombieGear() : 0);
   return true;
 }
 function spawnAnimals(count, centerX, centerZ, radius) {
@@ -6901,8 +7148,8 @@ function buildMobSnapshot() {
   const out = [];
   for (const a of animals) {
     if (!a.alive || a.remote) continue;
-    out.push([a.id, a.kind, +a.pos.x.toFixed(2), +a.pos.y.toFixed(2), +a.pos.z.toFixed(2), +a.facing.toFixed(2), a.hp]);
-    if (out.length >= 90) break;
+    out.push([a.id, a.kind, +a.pos.x.toFixed(2), +a.pos.y.toFixed(2), +a.pos.z.toFixed(2), +a.facing.toFixed(2), a.hp, a.eq | 0]);
+    if (out.length >= 160) break;
   }
   return out;
 }
@@ -6916,7 +7163,8 @@ function applyMobSnapshot(fromId, list) {
     if (!ANIMAL_DEFS[kind] && kind !== 'zombie') continue;
     seen.add(id);
     let a = byId.get(id);
-    if (!a) a = createMob(kind, m[2], m[3], m[4], id, true);
+    if (!a) a = createMob(kind, m[2], m[3], m[4], id, true, m[7] | 0);
+    else if (kind === 'zombie' && (m[7] | 0) !== (a.eq | 0)) { a.eq = m[7] | 0; applyZombieGear(a); }
     if (!a.remote) { a.remote = true; a.target = { x: a.pos.x, y: a.pos.y, z: a.pos.z, f: a.facing }; }
     if (m[6] < a.hp) flashRed(a.group);
     a.hp = m[6];
@@ -6988,6 +7236,7 @@ function animateMob(a, dt, spd, grounded) {
 }
 function updateAnimals(dt) {
   const iAmHost = isMobHost();
+  _zPathBudget = 2;   // at most 2 path searches per update, so a crowd of zombies can't stall a frame
   animals.forEach(a => {
     if (!a.alive) return;
     // host changed (someone joined with a lower id / the old host left)
@@ -7014,8 +7263,11 @@ function updateAnimals(dt) {
       const tgt = nearestPlayerTarget(a.pos);
       const toP = new THREE.Vector3(tgt.x - a.pos.x, 0, tgt.z - a.pos.z);
       const dist = toP.length();
-      if (dist < 18 && tgt.alive) {
+      if (dist < 20 && tgt.alive) {
         if (dist > 1.15) {
+          // follow the A* route around walls / up ledges; walk straight when the way is clear
+          const wp = zombieWaypoint(a, tgt, dt);
+          if (wp) { toP.set(wp.x - a.pos.x, 0, wp.z - a.pos.z); if (toP.lengthSq() < 1e-6) toP.set(tgt.x - a.pos.x, 0, tgt.z - a.pos.z); }
           toP.normalize();
           const speed = 1.55;
           a.vel.x = toP.x * speed;
@@ -7028,10 +7280,9 @@ function updateAnimals(dt) {
             const aheadZ = a.pos.z + toP.z * 0.7;
             const blocked = checkCollision(aheadX, a.pos.y, aheadZ, a.radius, a.height);
             const spaceAbove = !checkCollision(aheadX, a.pos.y + 1.05, aheadZ, a.radius, a.height * 0.85);
-            const playerHigher = tgt.y > a.pos.y + 0.45;
-            // On ground flag set after move; use vel.y ~ 0 as standing
+            const playerHigher = wp ? (wp.fy > a.pos.y + 0.45) : (tgt.y > a.pos.y + 0.45 && dist < 6);
             const grounded = Math.abs(a.vel.y) < 0.2;
-            if (grounded && ((blocked && spaceAbove) || (playerHigher && dist < 6))) {
+            if (grounded && ((blocked && spaceAbove) || playerHigher)) {
               a.vel.y = 7.2; // similar to player jump (~8)
               a.jumpCd = 0.85;
             }
@@ -7043,11 +7294,12 @@ function updateAnimals(dt) {
         // Horizontal distance alone let zombies hit you through floors/ceilings and from the
         // bottom of a tall pillar. Also require the two bodies to overlap vertically.
         const dyP = tgt.y - a.pos.y;
-        if (dist < 1.35 && dyP > -1.3 && dyP < 1.3 && a.attackCd <= 0 && tgt.alive) {
-          a.attackCd = 1.1;
+        if (dist < (a.atkReach || 1.35) && dyP > -1.3 && dyP < 1.3 && a.attackCd <= 0 && tgt.alive) {
+          a.attackCd = a.atkCd || 1.1;
           const kdir = new THREE.Vector3(tgt.x - a.pos.x, 0, tgt.z - a.pos.z);
-          if (tgt.local) damagePlayer(3, kdir, 8.5);
-          else playersChannel.send({ type: 'broadcast', event: 'mob_dmg', payload: { to: tgt.id, dmg: 3, kx: kdir.x, kz: kdir.z, kb: 8.5 } });
+          const aopts = a.axe ? { axeHit: true } : undefined;   // an axe hit breaks a raised shield
+          if (tgt.local) damagePlayer(a.atkDmg || 3, kdir, 8.5, aopts);
+          else playersChannel.send({ type: 'broadcast', event: 'mob_dmg', payload: { to: tgt.id, dmg: a.atkDmg || 3, kx: kdir.x, kz: kdir.z, kb: 8.5, ax: a.axe ? 1 : 0 } });
         }
       } else {
         a.wanderTimer -= dt;
@@ -7093,6 +7345,8 @@ function updateAnimals(dt) {
 }
 
 // ---- natural spawning: keep a few animals around the player as they explore ----
+const ZOMBIE_CAP = 40;         // max zombies near each player at night
+let zombieDawnTimer = 0;
 const ANIMAL_CAP = 14;          // max living animals within ANIMAL_NEAR of the player
 const ANIMAL_NEAR = 70;         // counts as "nearby"
 const ANIMAL_DESPAWN = 110;     // wandered/left behind this far -> removed to keep things light
@@ -7127,46 +7381,65 @@ function updateAnimalSpawning(dt) {
     remoteGenTimer = 0.4;
     for (const p of anchors) if (!p.local) generateChunksNoMesh(p.x, p.z, 3, 1);
   }
+  const night = isNightTime();
+  // Daytime: zombies burn away a few at a time instead of all popping out at once.
+  if (!night) {
+    zombieDawnTimer -= dt;
+    if (zombieDawnTimer <= 0) {
+      zombieDawnTimer = 0.25;
+      for (let i = 0; i < animals.length; i++) { const a = animals[i]; if (a.alive && a.kind === 'zombie') { a.alive = false; scene.remove(a.group); animals.splice(i, 1); break; } }
+    }
+  }
   animalSpawnTimer -= dt;
   if (animalSpawnTimer > 0) return;
-  animalSpawnTimer = (3 + Math.random() * 4) / anchors.length;
+  // Night: a new wave every ~0.6s per player. Day: the usual slow trickle of animals.
+  animalSpawnTimer = (night ? 0.6 : (3 + Math.random() * 4)) / anchors.length;
   spawnAnchorIdx = (spawnAnchorIdx + 1) % anchors.length;
   const P = anchors[spawnAnchorIdx];
   let near = 0, nearZ = 0;
   for (const a of animals) {
     const dx = a.pos.x - P.x, dz = a.pos.z - P.z;
     if (dx*dx + dz*dz < ANIMAL_NEAR * ANIMAL_NEAR) {
-      near++;
-      if (a.kind === 'zombie') nearZ++;
+      if (a.kind === 'zombie') nearZ++; else near++;
     }
   }
-  if (near >= ANIMAL_CAP) return;
-  // Night-ish (sun below horizon): prefer zombies; daytime: mostly pigs.
-  const night = isNightTime();
-  const wantZombie = night ? (Math.random() < 0.7) : (Math.random() < 0.12);
-  if (wantZombie && nearZ >= 6) return; // soft cap on zombies nearby
-
   const camDir = new THREE.Vector3(); camera.getWorldDirection(camDir);
-  for (let tries = 0; tries < 12; tries++) {
-    const ang = Math.random() * Math.PI * 2, dist = 24 + Math.random() * 36;
-    const x = Math.floor(P.x + Math.cos(ang) * dist), z = Math.floor(P.z + Math.sin(ang) * dist);
-    if (P.local && Math.abs(Math.cos(ang) * camDir.x + Math.sin(ang) * camDir.z) > 0.8 && dist < 34) continue;
-    if (!generatedChunks.has(Math.floor(x / CHUNK_SIZE) + ',' + Math.floor(z / CHUNK_SIZE))) continue;
-    const y = findGrassSurface(x, z);
-    if (y == null) continue;
-    if (wantZombie) {
-      if (spawnAnimal(x, z, y, 'zombie')) return;
-    } else {
-      const herd = 1 + Math.floor(Math.random() * 3);
-      const herdKind = PASSIVE_KINDS[Math.floor(Math.random() * PASSIVE_KINDS.length)];   // pig, cow or sheep herd
-      let made = 0;
-      for (let i = 0; i < herd && near + made < ANIMAL_CAP; i++) {
-        const hx = x + Math.floor((Math.random() - 0.5) * 4), hz = z + Math.floor((Math.random() - 0.5) * 4);
-        const hy = findGrassSurface(hx, hz);
-        if (hy != null && spawnAnimal(hx, hz, hy, herdKind)) made++;
-      }
-      if (made) return;
+  const findSpot = () => {
+    for (let tries = 0; tries < 12; tries++) {
+      const ang = Math.random() * Math.PI * 2, dist = 20 + Math.random() * 40;
+      const x = Math.floor(P.x + Math.cos(ang) * dist), z = Math.floor(P.z + Math.sin(ang) * dist);
+      if (P.local && Math.abs(Math.cos(ang) * camDir.x + Math.sin(ang) * camDir.z) > 0.8 && dist < 30) continue;
+      if (!generatedChunks.has(Math.floor(x / CHUNK_SIZE) + ',' + Math.floor(z / CHUNK_SIZE))) continue;
+      const y = findGrassSurface(x, z);
+      if (y == null) continue;
+      return { x, z, y };
     }
+    return null;
+  };
+  if (night) {
+    // Zombies only come out at night, and a LOT of them: groups of 3-6 until ~40 are around each player.
+    if (nearZ < ZOMBIE_CAP) {
+      const spot = findSpot();
+      if (spot) {
+        const n = Math.min(ZOMBIE_CAP - nearZ, 3 + Math.floor(Math.random() * 4));
+        for (let i = 0; i < n; i++) {
+          const hx = spot.x + Math.floor((Math.random() - 0.5) * 8), hz = spot.z + Math.floor((Math.random() - 0.5) * 8);
+          const hy = findGrassSurface(hx, hz);
+          if (hy != null) spawnAnimal(hx, hz, hy, 'zombie');
+        }
+      }
+    }
+    return;
+  }
+  if (near >= ANIMAL_CAP) return;
+  const spot = findSpot();
+  if (!spot) return;
+  const herd = 1 + Math.floor(Math.random() * 3);
+  const herdKind = PASSIVE_KINDS[Math.floor(Math.random() * PASSIVE_KINDS.length)];   // pig, cow or sheep herd
+  for (let i = 0, made = 0; i < herd && near + made < ANIMAL_CAP; i++) {
+    const hx = spot.x + Math.floor((Math.random() - 0.5) * 4), hz = spot.z + Math.floor((Math.random() - 0.5) * 4);
+    const hy = findGrassSurface(hx, hz);
+    if (hy != null && spawnAnimal(hx, hz, hy, herdKind)) made++;
   }
 }
 
@@ -7179,7 +7452,7 @@ function damageAnimal(animal, dmg, fromPos, kbMul) {
       id: animal.id, dmg, kx: fp.x - animal.pos.x, kz: fp.z - animal.pos.z, kb: kbMul == null ? 1 : kbMul, by: MY_ID } });
     return;
   }
-  animal.hp -= dmg;
+  animal.hp -= dmg * zArmorMul(animal);
   flashRed(animal.group);
   knockbackEntity(animal, fromPos || player.pos, (animal.kind === 'zombie' ? 9.5 : 7.5) * (kbMul == null ? 1 : kbMul));
   if (animal.hp <= 0) killAnimal(animal, MY_ID);
@@ -8145,13 +8418,13 @@ playersChannel
     if (!payload || !isMobHost()) return;
     const a = animals.find(q => q.id === payload.id && q.alive && !q.remote);
     if (!a) return;
-    a.hp -= payload.dmg; flashRed(a.group);
+    a.hp -= (Number(payload.dmg) || 0) * zArmorMul(a); flashRed(a.group);
     knockbackEntity(a, new THREE.Vector3(a.pos.x - payload.kx, a.pos.y, a.pos.z - payload.kz), (a.kind === 'zombie' ? 9.5 : 7.5) * (payload.kb == null ? 1 : payload.kb));
     if (a.hp <= 0) killAnimal(a, payload.by);
   })
   .on('broadcast', { event: 'mob_dmg' }, ({ payload }) => {
     if (!payload || payload.to !== MY_ID || player.hp <= 0) return;
-    damagePlayer(payload.dmg, new THREE.Vector3(payload.kx, 0, payload.kz), payload.kb || 8.5);
+    damagePlayer(Math.max(0, Math.min(12, Number(payload.dmg) || 0)), new THREE.Vector3(payload.kx, 0, payload.kz), payload.kb || 8.5, payload.ax ? { axeHit: true } : undefined);
   })
   .on('broadcast', { event: 'mob_dead' }, ({ payload }) => {
     if (payload && payload.to === MY_ID) giveMobLoot(payload.kind);
@@ -8425,7 +8698,14 @@ function runChatCommand(text) {
     sys('Given Null Totem (10 uses, Null I).');
     return;
   }
-  if (cmd === 'help') { sys('/tp @s <x> <y> <z> | /tp @s <player> | /biome | /nulltotem'); return; }
+  if (cmd === 'rain' || cmd === 'weather') {
+    const a = (parts[0] || '').toLowerCase();
+    if (a === 'clear' || a === 'off') { weatherForce = 0; sys('Weather: clear (this client only)'); }
+    else if (a === 'on' || a === 'rain') { weatherForce = 1; sys('Weather: rain (this client only)'); }
+    else { weatherForce = null; sys('Weather: natural (usage: /rain on | off | auto)'); }
+    return;
+  }
+  if (cmd === 'help') { sys('/tp @s <x> <y> <z> | /tp @s <player> | /biome | /nulltotem | /rain on|off|auto'); return; }
   sys('Unknown command: /' + cmd + ' (try /help)');
 }
 
@@ -9428,6 +9708,8 @@ let settings = {
   sensitivity: 1,    // look sensitivity multiplier (mouse + touch)
   btnSize: 1,        // mobile on-screen button scale
   ctrl: 'classic',   // 'classic' (D-pad + tap) | 'joy' (PC style: joystick + click buttons)
+  brightness: 100,   // game brightness in % (50-200)
+  rain: true,        // weather: rain on/off
   maxFps: 120,       // frame-rate cap (0 = unlimited / follow the display). A browser can't go above the monitor's refresh rate.
 };
 try {
@@ -9438,6 +9720,8 @@ try {
 settings.sensitivity = Math.max(0.2, Math.min(3, Number(settings.sensitivity) || 1));
 settings.btnSize = Math.max(0.4, Math.min(3, Number(settings.btnSize) || 1));
 if (settings.ctrl !== 'joy') settings.ctrl = 'classic';
+settings.brightness = Math.max(50, Math.min(200, Number(settings.brightness) || 100));
+settings.rain = settings.rain !== false;
 { const okFps = [0, 30, 60, 90, 120, 144, 165, 240]; settings.maxFps = okFps.indexOf(Number(settings.maxFps)) >= 0 ? Number(settings.maxFps) : 120; }
 function saveSettings() {
   try { localStorage.setItem(SETTINGS_KEY, JSON.stringify(settings)); } catch(e) {}
@@ -9576,6 +9860,19 @@ qualitySelect.addEventListener('change', () => {
   applyRenderQuality(settings.quality);
   saveSettings();
 });
+
+const brightnessSlider = document.getElementById('brightnessSlider');
+const brightnessValue = document.getElementById('brightnessValue');
+brightnessSlider.value = String(settings.brightness);
+brightnessValue.textContent = settings.brightness + '%';
+brightnessSlider.addEventListener('input', () => {
+  settings.brightness = Math.max(50, Math.min(200, parseInt(brightnessSlider.value, 10) || 100));
+  brightnessValue.textContent = settings.brightness + '%';
+  saveSettings();
+});
+const rainToggle = document.getElementById('rainToggle');
+rainToggle.checked = settings.rain !== false;
+rainToggle.addEventListener('change', () => { settings.rain = rainToggle.checked; saveSettings(); });
 
 const maxFpsSelect = document.getElementById('maxFpsSelect');
 maxFpsSelect.value = String(settings.maxFps);
@@ -10201,7 +10498,7 @@ if (!hadLocalPos) {
 ensureChunksNear(player.pos.x, player.pos.z, RENDER_CHUNKS, Infinity);
 flushDirtyChunks();
 spawnAnimals(10, player.pos.x, player.pos.z, 40);
-spawnZombies(3, player.pos.x, player.pos.z, 55);
+// zombies only spawn at night now (see updateAnimalSpawning)
 renderHotbar();
 updateHpUI();
 
@@ -11059,6 +11356,31 @@ function rsInteract(b) {
   return true;
 }
 
+// A hidden tab stops requestAnimationFrame, which froze every mob the (hidden) mob host was simulating and
+// stopped its mob/position stream, so nobody else could kill anything. A Worker timer isn't throttled like page
+// timers, so while the tab is hidden it keeps the mob simulation and the position/mob broadcast going.
+let _bgLast = performance.now();
+function bgTick() {
+  const now = performance.now();
+  let dt = Math.min(0.5, (now - _bgLast) / 1000); _bgLast = now;
+  if (!document.hidden) return;
+  try {
+    while (dt > 0.0001) {
+      const step = Math.min(0.05, dt); dt -= step;
+      updateDayNight(step);
+      updateAnimals(step);
+      updateAnimalSpawning(step);
+    }
+    broadcastMyPosition(0.1);
+  } catch (e) { console.warn('bgTick', e); }
+}
+try {
+  const _bgBlob = new Blob(['setInterval(function(){postMessage(0)},50)'], { type: 'text/javascript' });
+  const _bgWorker = new Worker(URL.createObjectURL(_bgBlob));
+  _bgWorker.onmessage = bgTick;
+} catch (e) { setInterval(bgTick, 250); }
+document.addEventListener('visibilitychange', () => { _bgLast = performance.now(); });
+
 let _nextFrameAt = 0;
 function animate() {
   requestAnimationFrame(animate);
@@ -11277,10 +11599,10 @@ function animate() {
     setHeldVisual(viewModelOffState, viewModelOffGroup, offNow ? offNow.type : null, offNow && offNow.ench);
 
     // ---- Main (right) hand ----
-    let vx = 0.46, vy = -0.37, vz = -0.60, rx = 0.2, ry = -0.6, rz = -0.15;
+    let vx = 0.46, vy = -0.47, vz = -0.60, rx = 0.2, ry = -0.6, rz = -0.15;   // vy was -0.37: items now sit a bit lower
     if (shieldInMain) {
       // Rest: lower-right, face outward — stays out of the crosshair
-      vx = 0.34; vy = -0.34; vz = -0.50;
+      vx = 0.34; vy = -0.42; vz = -0.50;
       rx = 0.10; ry = Math.PI * 0.80; rz = 0.20;
       if (blockAmt > 0.01) {
         const t = 1 - Math.pow(1 - blockAmt, 3);
@@ -11311,15 +11633,15 @@ function animate() {
       const sc = shieldInMain ? (0.72 + 0.2 * blockAmt) * (1 + Math.min(0.4, myShieldPulse) * 0.12) : 1;
       viewModelGroup.scale.setScalar(sc);
     } else {
-      fpArm.position.set(vx + 0.05, vy - 0.02, vz + 0.3);
+      fpArm.position.set(vx + 0.05, vy + 0.08, vz + 0.3);   // empty hand keeps its old height
       fpArm.rotation.set(rx, ry, rz);
     }
 
     // ---- Off (left) hand — any item, including shield ----
-    let ox = -0.46, oy = -0.37, oz = -0.60, orx = 0.2, ory = 0.35, orz = -0.12;
+    let ox = -0.46, oy = -0.47, oz = -0.60, orx = 0.2, ory = 0.35, orz = -0.12;
     if (shieldInOff) {
       // Rest: lower-left, face outward — stays out of the crosshair
-      ox = -0.34; oy = -0.34; oz = -0.50;
+      ox = -0.34; oy = -0.42; oz = -0.50;
       orx = 0.10; ory = -Math.PI * 0.80; orz = -0.20;
       if (blockAmt > 0.01) {
         const t = 1 - Math.pow(1 - blockAmt, 3);
