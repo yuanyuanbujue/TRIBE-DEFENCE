@@ -2013,13 +2013,15 @@ function blockFaceCanvases(type) {            // -> { top, side } source canvase
 }
 const _iconCanvasCache = {};
 // Item sprites from the pack (only the apple exists in the pack's items folder that the game uses)
-const PACK_ITEMS = { gold_nugget: "data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAABAAAAAQCAYAAAAf8/9hAAAArElEQVR4nOWSrQ7CMBRGDwuZmMKNh6lALVOzS6Z4jGnUHmOKgEUtKEQFj7K9AGLmYujSkdssYBCcpEl/7vna5BZ+zSp0UGWJuPnx+gjWqWKVJSLjfRqnw0b8QJ+1dmthYgAGuwegrDtocgB5f02kyWXdTbIfpBH5C01eIlougdS03wekpuXc5FzsqHZjtlFliRQmZme2ANxsHxQdsy68CgV6gEU5iPsLH4t/yhPDNEr1XX6z+wAAAABJRU5ErkJggg==", golden_apple: "data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAABAAAAAQCAYAAAAf8/9hAAAAy0lEQVR42mNgoAeQlJT8j0uOiRLNFNvOwMDAwEhIo/if1wwvWUQZnj9/zkiUFyQlJf9LSkr+v3jVjsGa+wODCj8rw6HOX3BxvC6AaUQGH7fsYeD3cWH4uGUPAwMDA4NdORuKa7AGoqjgCgZRwRUMDAwMDPw+Lig0Ti/AbIdpfP0+AqsGmHeIjkZCgAVdAJfNZCck5MDEa8Dz588Z9bUPYVWILIYeCyyk2EZ00r29SPj/7UXC/03FWf+birPC+UTnC/RUhysVMjAwMAAAprVV3jDXbi4AAAAASUVORK5CYII=", iron_helmet: "data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAABAAAAAQCAYAAAAf8/9hAAAAmUlEQVR42tVSsQ3EIBAzUXoWQZRsxErU7IIooAOxCBPcVx8BfyTfxg06bHMnc8DrIdYLYwzdGXLOYksaY4iIqJSyPdcGYjSnlFBrvcje+08TKSWstdckx0g+mQEgxjjV51horVFrRe8drbVJqJRiHzzXCb5m7/0kTCkhhIDHAJ1zxP3Ejt9mwIHjjzWDO3C84BZotyz/aF6ID1hucr6ph8znAAAAAElFTkSuQmCC", iron_chestplate: "data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAABAAAAAQCAYAAAAf8/9hAAAApElEQVR42uWRsQ0DIQxFTXTzUPomYiUoaNgFUeAOxCJM4FScyMlESJcuv8ESz98fDPBQahSIyKMmIiXBSwYRmZm5lMIzJBncuWNc1lohpQTeezDGiCY5Z3DOrZ3nCdJprWVE/Eig5rcRkUJEzjlDrRV679eQ1hqEEC5m8C8p6r35m0QDrfX2GpcJdnVIe9daQ4xx2TTzv0kg/YG4712D8zzhj/QG31uCnOHNTkwAAAAASUVORK5CYII=", iron_leggings: "data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAABAAAAAQCAYAAAAf8/9hAAAAmklEQVR42t1SsQ0DIQw8UHo2oTQTsRe7IBp3oF/EE5AKCR5ISBXp3RiD73w+Afw7VDsQUf0FyMxquCCiWmutOeevuR/26klKKVMWEcQYAQAxRlzXNQzWfWGtHR5TShPgHnqloIFDCAghwBhzRtAUNDAzK2ZW3vstyaRARJaN9/WOPNitd+TBSsHKUH3S9Il8+AfOua0C7z0eGm9y6Ww84LNpjAAAAABJRU5ErkJggg==", iron_boots: "data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAABAAAAAQCAYAAAAf8/9hAAAAdUlEQVR42u2RwRXAEBBEl5d6HCl1D+pxGEedqCA5bUKyRAHmhP+MsUO0ZWThvT9bkHM27X7EbXsIgGKMw9c03hmUUiilNDTQeGfgnJv+V+OfBDNp3MqAAFCtdSkBgHuoh1xm5t/KJAEzEwAKIZzmXc9qjVuPLl6YPuT3JjzIAAAAAElFTkSuQmCC", gold_helmet: "data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAABAAAAAQCAYAAAAf8/9hAAAAqUlEQVR42mNgGPKAEV3AXpf/Pz4NBy9/ZMQpaa/L///f/73//9+wxUmjW8CIrHn/pXUMjDcb4JIPb33GsERejZfBIfQS3CVMKKYR0MzAwMCwbtEbFD4LMue/egMD480Ghoe3PjOcPfETRaGxBTtWA1nQXQDTPGnzMxSF+1vXMTzaXMxAMADXVmn+xxYTuORxhgHWOMciz4QeBvgANnlGbAkIV2IhRs0QBADA52nbNkQ7ygAAAABJRU5ErkJggg==", gold_chestplate: "data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAABAAAAAQCAYAAAAf8/9hAAAAt0lEQVR42mNgoBAwwhj2uvz/YeyDlz8yYlOMU429Lv//f//3/v9/w/Y/siJsBqCrY4E75WYDw7pFbxgOrNZjcAi9hNWQ/ZfWMayvzsFtMrIN2Oi1VZr/7XX5UVzAiOy3g5c/Mtrr8v/ff2kdA+PNBoaHtz7DLTl74ifDpM3P4Gpg6pmwhiyaZnwAqwH/1RuIjkacLiAWsGCL9//qDQwMt4pxakJWTx0XYAuDs4tyyDfAUS+IYQQBAI/zecgZL271AAAAAElFTkSuQmCC", gold_leggings: "data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAABAAAAAQCAYAAAAf8/9hAAAAsElEQVR42mNgGGjACGPY6/L/J0XjwcsfGVEE7HX5///7v/f//xu2BGlky1BccGC1HoZND299RuGfPfGTYdLmZ3AXMCFL/ldvQFG8btEbhrMnfuL1CgtKgNxsQNE8afMzBgYGBoYDcXoYLoEBrC6AaT54+SPjwcsfGR1CLzHIq/ESNoDxZgNOm9C9h9cFWOP7ZgNxLsAF/qs3YA1QJmIU4TMcJRYc9YJwusAh9BLDMAUAhnRo9pIqym4AAAAASUVORK5CYII=", gold_boots: "data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAABAAAAAQCAYAAAAf8/9hAAAAgklEQVR42mNgGAWMMIa9Lv9/ZImDlz8yIvNxyTMhC+6/tI7hwGo9nLZhk0cxgPFmA8O6RW9wOxeLPIoB/9Ub8PoXmzyGC/AG2E0cBtjr8v/ff2kdw8Nbn4lywf5L6+CBygLTvL46h3CUQV2wvjqHYf+ldQyOekH/GdGjh9hoHAUIAACC9DprCyCQKwAAAABJRU5ErkJggg==", diamond_helmet: "data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAABAAAAAQCAYAAAAf8/9hAAAAqUlEQVR42mNgGPKAEV2A18r0Pz4Nn4+dZsQpyWtl+v/p/1//vd7exEmjW8CIrPnG0aMMqe/uwyWfPX6KYYmUrDTDYd8YuEuYkCUJaWZgYGC4tXkHCp8FmTNbSJEh9d19hmePnzJ8uXAZRSGPgS5WA1nQXQDT/HLWEhSFB48eZfC+eISBYACqLJj4H1tM4JLHGQbYADZ5JvQwwAewyTNiS0C4EgsxaoYgAAAmLW2iExkjdwAAAABJRU5ErkJggg==", diamond_chestplate: "data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAABAAAAAQCAYAAAAf8/9hAAAAtklEQVR42mNgoBAwwhi8Vqb/YezPx04zYlOMUw2vlen/p/9//fd6e/M/siJsBqCrY4FJpr67z3Br8w4G281LGA77xmA15MbRowz2C6fjNhnZBmy0yoKJ/3mtTFFcwIjst8/HTjPyWpn+v3H0KEPqu/sMzx4/hVvy5cJlhpezlsDVwNQzYXMqumZ8AKsBs4UUiY5GnC4gFrBgi/fZQooM3ni8gKyeOi7AFgb2m3eQb4CGtTXDCAIAmiB9DkupwCoAAAAASUVORK5CYII=", diamond_leggings: "data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAABAAAAAQCAYAAAAf8/9hAAAArElEQVR42mNgGGjACGPwWpn+J0Xj52OnGVEEeK1M/z/9/+u/19ubBGlky1BcYLt5CYZNzx4/ReF/uXCZ4eWsJXAXMCFLzhZSRFF8a/MOhi8XLuP1CgsyJ/XdfRTNL2dBXKS2eQmGS2AAqwtgmj8fO834+dhpxsO+MQxSstKEDUh9dx+nTejew+sCbADZe3hdgAvMFlLEGqBMxCjCZzhKLGhYW+N0wWHfGIZhCgAp5mkEv+S6UAAAAABJRU5ErkJggg==", diamond_boots: "data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAABAAAAAQCAYAAAAf8/9hAAAAf0lEQVR42mNgGAWMMAavlel/ZInPx04zIvNxyTMhC944epTBdvMSnLZhk0cxIPXdfYZbm3fgNACbPIoBs4UU8foXmzyGC/ABbPJMsAC6cfQow7PHT4lywY2jR+GBygLTbL9wOsEog7nAfuF0hhtHjzJoWFv/Z0SPHmKjcRQgAAAVgTyY+we4SgAAAABJRU5ErkJggg==", apple: "data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAABAAAAAQCAYAAAAf8/9hAAABCklEQVR4nL2STUoDQRCFvw6DkpCIjSYwEELAA8SF4AVcu/IAuYUriZKL5ACuXHuBKK4UBDfKoAT8YfLnhEwSKgtx7GFmtFHwLetVf6+6uuE/dLhTkiwvZ3P46jnM9H8EAJx7U2XTF5PWWs42arJddmSvtpp5hQT5ptEQ6Y1RbpHj9zsAmn6ZbhgA0B69qkzAdWVLlFtMTXp49AHohkEMYrUDgHpVU6/qRD0CfJduanelwFFpM9qJ9QSmbudfz/orgKkIcL+Y/Q2w/+ZZfZZO0Od0Mox6HdO88F6o5D5K5sYHT0N8WaQCE6kH+TVpFtYBOHF6ALTmbmp6YgLgs0EALiczBdDJ98XwYloCVg1WWG8S5iYAAAAASUVORK5CYII=" , charcoal: "data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAABAAAAAQCAYAAAAf8/9hAAABgklEQVR42q2TS28TMRSFv3k4dqI82swkGmkELEACgbqgEqzaJf9/QyWCAAVSQUmBQjPMy55xF1GjTjNBlcrd2NLx+XyvdQz3LOdfopLCXu/zQjt3Bnieh/BdG03HeK6DEIL54qwV4u4yT8M9wv0hD+MpWmviKGh01ArwPI8wDAHoKsmg3yXLCo5fvwBohWx1IKUEwBjD0avnhOMhJ+8XTMYjhBBbkC3A8vs3G0cBcRSw+HqO7AjGe32q2pJmOT8vVkyC0Qbi3p79zfFLtKnIcs27D6d8+nLGyewzxhiKQgOQ/M13jzA/XQIwCUb0eorLJAXYrIN+t/0Rhe/aOAoA6HUVs48L0nR9U5LmFIXm8OAJAFle7O7g4NkjtNY8ffyA819/KLVZB8Z1eDubb85pUzuNICkp7CQYoXWFUh08dy2V2rBKMuq6xvd9Sm0wxqBN7VRV1UziNQRglWSNmcvSYK3lMkk35tYoKymskh0AhoMeyx+/G/pN886/cDMotw3/va4AGJytBqZp1KgAAAAASUVORK5CYII=", sign: "data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAABAAAAAQCAYAAAAf8/9hAAAAl0lEQVR42mNgGGjACGPMb/H9T4rGUxeeMUxfc5aRCVlwwcqDWBU3Td0Hl0NXg2LAozd/GZqm7sPQBJNbsPIgw6M3f2noBWQnLlh5EMUFuLzAgu5XZCfDNCA7m+peYEEWIAfADbjx4B1lCQkbSPLV+c/AwMBw//lXhv1n7mNVy4TPAClRIYIuYKI0L1BsAAs+yaOXHhM0AAA31VKGTW05XgAAAABJRU5ErkJggg==", shield: "data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAABAAAAAQCAYAAAAf8/9hAAABIklEQVR42q2SvU4CQRSFv/1niWxiVqJUSkJpTQilL+PzGEsrX8NEaysT7SwMb8Am6/7NzA5YsO6C4A/CqeaenLlz5txrXF3fzPknirzABpg83pJmBQCe6yCkou17ZLlYcJ6DEArf98gr7vziEgCTHWEDlFqjtQZASJBS4ThWwwkQUmGaBkKqlQYmgGPbdPsjuv0RcZwAoJRG6xlaz2pxeDZESoVcamJ/Hl6f7gDwW+63dicvDyhV1nUUTfeUAUAQHNQOikICYNnWivjk+IhpFK9noMrGVttvbeVgqy9kebFbgx8d9AZjeoMxcfy+WWgYhKdDkjQjSbPKUVaFOG/GGB526ku6XCyS5S7eeXu+/30KQdBZS3pZs3ET97IHf4Xxpf4Ax3ZzR3wG7Z0AAAAASUVORK5CYII=", totem_of_undying: "data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAABAAAAAQCAYAAAAf8/9hAAAB4ElEQVR42o2STUhUYRSGn+/OzZJiylDpz6k0Z6agRS7btYiIFIO2tQsqahG0i1oFuXEVEjERZAkRLUQSJ5CCLGyTZSrZ1MiU5JTdGbWm+fHeO99pEY0Yd4Y5y5dznu+c93sVZSq/2CdILTlrjkwySc/NfrofxdT/fYbXcNa6L7V1J5VWv1n4/J0PQ+MUXPF8yPQS17/tQzK9ol700m4pTteY5Rb1BiTMIJOjLxnbGsb9lecbybIAzxOWtcNaFP6UhnwOEUGkyhMKCw8kk54BDFIzCTY21dGws54aR3A6RCKP46riBpl0oiTXt+zGyfkYG5wgdKSZ9r27ONsZkrIA69N1GY085cqlu4gUGbkR5Xn0HYPvY/gDAVoPt3A0uIPzHSuQEiAV75JXt58xHJvjWvcplPKx71iYtoONnGg7wOWL99gc2F7ZxH9mNQavKtA07GnGv2kbqqgxDMPT85IhFzr3i4vNrYG/abPTD2XqdRR3Nst8fIkn018wjHU4slzqWfULPQOTq9zVStMUCpIu/GA+vkTBdbkzNFFdlJ38lJjmFsSxsbEB2LDGrD5ITu4Npv+Qcl0XrTWVyhM7Oz7C9PAZ+fnVQhazuD6F9ilPgKd67nhYjOJKXhxTiPR/9Oz9AycHz8M3VCgwAAAAAElFTkSuQmCC"};
+const PACK_ITEMS = { wood_spear: "data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAABgAAAAYCAYAAADgdz34AAAAAXNSR0IArs4c6QAAAARnQU1BAACxjwv8YQUAAAAJcEhZcwAADr8AAA6/ATgFUyQAAAAZdEVYdFNvZnR3YXJlAFBhaW50Lk5FVCA1LjEuMTITAUd0AAAAuGVYSWZJSSoACAAAAAUAGgEFAAEAAABKAAAAGwEFAAEAAABSAAAAKAEDAAEAAAACAAAAMQECABEAAABaAAAAaYcEAAEAAABsAAAAAAAAAKZ2AQDoAwAApnYBAOgDAABQYWludC5ORVQgNS4xLjEyAAADAACQBwAEAAAAMDIzMAGgAwABAAAAAQAAAAWgBAABAAAAlgAAAAAAAAACAAEAAgAEAAAAUjk4AAIABwAEAAAAMDEwMAAAAAC8FLx49dea3QAAAPhJREFUSEtjZKABMNcU+A9lMjBBaaoAkMEww31NxRhevv/FQBUfILsYZDAIzNn1BExTbIG4v9p/hVuv4AY/+fCD4er9rwyPX39nePDiGyNFQQRyeS4/A8MDNYThz9/8ZvhabQfmgwDFPgBZArIg8P8PhvWMHGAxzpNPwK4HsakSydKR2mDDLV5/Bhv+3VwGKkOhD0DhD2WCDZYV5YSHPVSYfGC0IhCcJEE0VIhBQYILzqYIgFwOMhxkILIvqAJghlPdYBDI8JODuxwqRD0wajhWMGo4VjBqODoAF9cgw0HFLagOpUpJiAxAhoNKRJoECwjQLMzBgIEBAIFqjTnYCGXyAAAAAElFTkSuQmCC", stone_spear: "data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAABgAAAAYCAYAAADgdz34AAAAAXNSR0IArs4c6QAAAARnQU1BAACxjwv8YQUAAAAJcEhZcwAADsIAAA7CARUoSoAAAAAZdEVYdFNvZnR3YXJlAFBhaW50Lk5FVCA1LjEuMTITAUd0AAAAuGVYSWZJSSoACAAAAAUAGgEFAAEAAABKAAAAGwEFAAEAAABSAAAAKAEDAAEAAAACAAAAMQECABEAAABaAAAAaYcEAAEAAABsAAAAAAAAAPJ2AQDoAwAA8nYBAOgDAABQYWludC5ORVQgNS4xLjEyAAADAACQBwAEAAAAMDIzMAGgAwABAAAAAQAAAAWgBAABAAAAlgAAAAAAAAACAAEAAgAEAAAAUjk4AAIABwAEAAAAMDEwMAAAAACDfy8cctDT3wAAAQNJREFUSEtjZKAB8PT0/A9lMjBDaYrBsdXd/599YWlQVVVtaG5uZnj27BnD9evXGajiA5Dh+27+BLM9PDwYlixZwvDw4UOGR48eMTCBRSkA4ODglgAbDMKXLl2CG3727FlGiiwAGW5tbQ1mgwyGYWRAsQ/evHnDwPD1BZgNcz0yoDgOQL6oTXKCcIBBBQK5tRPAwQNiU2QBKHLBhgJ9sOroU7DrS6OsGKxCSylPPBl+cv/NNQX+gy0BAmNj4/8gDJakFIAMP7ZtMdxwqgKYyxUkuEYNR4BRw7GCUcOxglHDsQEmUAnIoRTE8PL9L4YHL75RpY5GBuAa7fDhwzQxnIGBgQEAFcylMdaudkgAAAAASUVORK5CYII=", iron_spear: "data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAABgAAAAYCAYAAADgdz34AAAAAXNSR0IArs4c6QAAAARnQU1BAACxjwv8YQUAAAAJcEhZcwAADsIAAA7CARUoSoAAAAAZdEVYdFNvZnR3YXJlAFBhaW50Lk5FVCA1LjEuMTITAUd0AAAAuGVYSWZJSSoACAAAAAUAGgEFAAEAAABKAAAAGwEFAAEAAABSAAAAKAEDAAEAAAACAAAAMQECABEAAABaAAAAaYcEAAEAAABsAAAAAAAAAPJ2AQDoAwAA8nYBAOgDAABQYWludC5ORVQgNS4xLjEyAAADAACQBwAEAAAAMDIzMAGgAwABAAAAAQAAAAWgBAABAAAAlgAAAAAAAAACAAEAAgAEAAAAUjk4AAIABwAEAAAAMDEwMAAAAACDfy8cctDT3wAAATZJREFUSEtjZKABcHFx+Q+inz9/DuZTDYAMBmEQWLFixX8JCYn/TFA5igDMYBB79+7dDNevX2c4cOAAWI5iADIY5Np9+/aBXX7k0///GRkZYNeD5KniAzExMYbvco4M+/fvZ3iybSXDhg0boDIUWgALlhkzZjB4KTMwvHr1Ch40L168oCwBwcIdFjSgIAEFjba2Njx4QIBoW3YwKf/3+HcXrL4HyJYA0kd8fjOcv/2JwdA+AiVYkF1PkjdAllwB0iVAizL85P6rbGFlAFlUIvYVLE9xsMAAyHBzTYH/ChJc/8G+QQoSdEByJIMMBwXLy/e/GB68+AZ2MU1cDhUCA5AvoEzyAcjwM2fOYBhOFYDL5VQBQ9vw0TDHAKOGYwNMoPKbQcoLpWyhJgAXdocPH6aJ4QwMDAwAbt/G7VtCe2AAAAAASUVORK5CYII=", gold_spear: "data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAABgAAAAYCAYAAADgdz34AAAAAXNSR0IArs4c6QAAAARnQU1BAACxjwv8YQUAAAAJcEhZcwAADsIAAA7CARUoSoAAAAAZdEVYdFNvZnR3YXJlAFBhaW50Lk5FVCA1LjEuMTITAUd0AAAAuGVYSWZJSSoACAAAAAUAGgEFAAEAAABKAAAAGwEFAAEAAABSAAAAKAEDAAEAAAACAAAAMQECABEAAABaAAAAaYcEAAEAAABsAAAAAAAAAPJ2AQDoAwAA8nYBAOgDAABQYWludC5ORVQgNS4xLjEyAAADAACQBwAEAAAAMDIzMAGgAwABAAAAAQAAAAWgBAABAAAAlgAAAAAAAAACAAEAAgAEAAAAUjk4AAIABwAEAAAAMDEwMAAAAACDfy8cctDT3wAAAOdJREFUSEtjZKABaI4V/Q9lUheADAbh/697/v9/HPnfXo+PehaBDQYaCjYcCFbl6VFuAczFcMOh4MFEG+oYDjYU6uqTvgr/1zpL/X+6wRbF9WRFMshwKBMMavrKGRhEihl2c8gxfEgXZJh64AHDwUufyE9AyBbsYpeFhAvQJyDXUzViQcHydLkJOGhABmMLeyYoTTLI8JP7/+TbL4arCS8Zgvc+AwfHqbufwHIUA5Dh5poC/xUkuOCuBbmcKsEDMhwU3jQzHN3lVAPYXE41MOpyrGBoGw4qHUddjgKGrstBgGYuBwMGBgAjoc/Ai5ZE4AAAAABJRU5ErkJggg==", diamond_spear: "data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAABgAAAAYCAYAAADgdz34AAAAAXNSR0IArs4c6QAAAARnQU1BAACxjwv8YQUAAAAJcEhZcwAADsIAAA7CARUoSoAAAAAZdEVYdFNvZnR3YXJlAFBhaW50Lk5FVCA1LjEuMTITAUd0AAAAuGVYSWZJSSoACAAAAAUAGgEFAAEAAABKAAAAGwEFAAEAAABSAAAAKAEDAAEAAAACAAAAMQECABEAAABaAAAAaYcEAAEAAABsAAAAAAAAAPJ2AQDoAwAA8nYBAOgDAABQYWludC5ORVQgNS4xLjEyAAADAACQBwAEAAAAMDIzMAGgAwABAAAAAQAAAAWgBAABAAAAlgAAAAAAAAACAAEAAgAEAAAAUjk4AAIABwAEAAAAMDEwMAAAAACDfy8cctDT3wAAATlJREFUSEtjZKAy4HOx+Q9lUheADAbhRZ9//T/z7ReY5jLUpo5lIIPddh6CG668/dB/wehEsAVkBxFyUFiUtjHEWFkwaDEzMIQfPMHw/fNThu8bdzH8vHYKqoJEgOximKtBYiAXS61a/l+suAoePExgHWSCnEAnMAYB0eI2MP3n5GWG3y+eg9kgQFEQfdpzhBFEwwwHBQ3Igi/7NjJ8O3+VOikUFjSw4IEFDQyQHUQwg0G+gLkW5Hp0QJYFyMECAiCL2LXMUMKebAAyHFsmAvHRxUCApIgAGc4srgpO31SLRBjI8JP7b64pgNWVFAOY4QoSXKOGI8Co4TAALMERAJQE/716w/Dy/S+GBy++USWdwy0AZSJWRT2GV0wsDC8v3aVuJsKV/akCQIaD6lCaGA4CIINpZjgDAwMAAtzJDUVX1ygAAAAASUVORK5CYII=", gold_nugget: "data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAABAAAAAQCAYAAAAf8/9hAAAArElEQVR4nOWSrQ7CMBRGDwuZmMKNh6lALVOzS6Z4jGnUHmOKgEUtKEQFj7K9AGLmYujSkdssYBCcpEl/7vna5BZ+zSp0UGWJuPnx+gjWqWKVJSLjfRqnw0b8QJ+1dmthYgAGuwegrDtocgB5f02kyWXdTbIfpBH5C01eIlougdS03wekpuXc5FzsqHZjtlFliRQmZme2ANxsHxQdsy68CgV6gEU5iPsLH4t/yhPDNEr1XX6z+wAAAABJRU5ErkJggg==", golden_apple: "data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAABAAAAAQCAYAAAAf8/9hAAAAy0lEQVR42mNgoAeQlJT8j0uOiRLNFNvOwMDAwEhIo/if1wwvWUQZnj9/zkiUFyQlJf9LSkr+v3jVjsGa+wODCj8rw6HOX3BxvC6AaUQGH7fsYeD3cWH4uGUPAwMDA4NdORuKa7AGoqjgCgZRwRUMDAwMDPw+Lig0Ti/AbIdpfP0+AqsGmHeIjkZCgAVdAJfNZCck5MDEa8Dz588Z9bUPYVWILIYeCyyk2EZ00r29SPj/7UXC/03FWf+birPC+UTnC/RUhysVMjAwMAAAprVV3jDXbi4AAAAASUVORK5CYII=", iron_helmet: "data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAABAAAAAQCAYAAAAf8/9hAAAAmUlEQVR42tVSsQ3EIBAzUXoWQZRsxErU7IIooAOxCBPcVx8BfyTfxg06bHMnc8DrIdYLYwzdGXLOYksaY4iIqJSyPdcGYjSnlFBrvcje+08TKSWstdckx0g+mQEgxjjV51horVFrRe8drbVJqJRiHzzXCb5m7/0kTCkhhIDHAJ1zxP3Ejt9mwIHjjzWDO3C84BZotyz/aF6ID1hucr6ph8znAAAAAElFTkSuQmCC", iron_chestplate: "data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAABAAAAAQCAYAAAAf8/9hAAAApElEQVR42uWRsQ0DIQxFTXTzUPomYiUoaNgFUeAOxCJM4FScyMlESJcuv8ESz98fDPBQahSIyKMmIiXBSwYRmZm5lMIzJBncuWNc1lohpQTeezDGiCY5Z3DOrZ3nCdJprWVE/Eig5rcRkUJEzjlDrRV679eQ1hqEEC5m8C8p6r35m0QDrfX2GpcJdnVIe9daQ4xx2TTzv0kg/YG4712D8zzhj/QG31uCnOHNTkwAAAAASUVORK5CYII=", iron_leggings: "data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAABAAAAAQCAYAAAAf8/9hAAAAmklEQVR42t1SsQ0DIQw8UHo2oTQTsRe7IBp3oF/EE5AKCR5ISBXp3RiD73w+Afw7VDsQUf0FyMxquCCiWmutOeevuR/26klKKVMWEcQYAQAxRlzXNQzWfWGtHR5TShPgHnqloIFDCAghwBhzRtAUNDAzK2ZW3vstyaRARJaN9/WOPNitd+TBSsHKUH3S9Il8+AfOua0C7z0eGm9y6Ww84LNpjAAAAABJRU5ErkJggg==", iron_boots: "data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAABAAAAAQCAYAAAAf8/9hAAAAdUlEQVR42u2RwRXAEBBEl5d6HCl1D+pxGEedqCA5bUKyRAHmhP+MsUO0ZWThvT9bkHM27X7EbXsIgGKMw9c03hmUUiilNDTQeGfgnJv+V+OfBDNp3MqAAFCtdSkBgHuoh1xm5t/KJAEzEwAKIZzmXc9qjVuPLl6YPuT3JjzIAAAAAElFTkSuQmCC", gold_helmet: "data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAABAAAAAQCAYAAAAf8/9hAAAAqUlEQVR42mNgGPKAEV3AXpf/Pz4NBy9/ZMQpaa/L///f/73//9+wxUmjW8CIrHn/pXUMjDcb4JIPb33GsERejZfBIfQS3CVMKKYR0MzAwMCwbtEbFD4LMue/egMD480Ghoe3PjOcPfETRaGxBTtWA1nQXQDTPGnzMxSF+1vXMTzaXMxAMADXVmn+xxYTuORxhgHWOMciz4QeBvgANnlGbAkIV2IhRs0QBADA52nbNkQ7ygAAAABJRU5ErkJggg==", gold_chestplate: "data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAABAAAAAQCAYAAAAf8/9hAAAAt0lEQVR42mNgoBAwwhj2uvz/YeyDlz8yYlOMU429Lv//f//3/v9/w/Y/siJsBqCrY4E75WYDw7pFbxgOrNZjcAi9hNWQ/ZfWMayvzsFtMrIN2Oi1VZr/7XX5UVzAiOy3g5c/Mtrr8v/ff2kdA+PNBoaHtz7DLTl74ifDpM3P4Gpg6pmwhiyaZnwAqwH/1RuIjkacLiAWsGCL9//qDQwMt4pxakJWTx0XYAuDs4tyyDfAUS+IYQQBAI/zecgZL271AAAAAElFTkSuQmCC", gold_leggings: "data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAABAAAAAQCAYAAAAf8/9hAAAAsElEQVR42mNgGGjACGPY6/L/J0XjwcsfGVEE7HX5///7v/f//xu2BGlky1BccGC1HoZND299RuGfPfGTYdLmZ3AXMCFL/ldvQFG8btEbhrMnfuL1CgtKgNxsQNE8afMzBgYGBoYDcXoYLoEBrC6AaT54+SPjwcsfGR1CLzHIq/ESNoDxZgNOm9C9h9cFWOP7ZgNxLsAF/qs3YA1QJmIU4TMcJRYc9YJwusAh9BLDMAUAhnRo9pIqym4AAAAASUVORK5CYII=", gold_boots: "data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAABAAAAAQCAYAAAAf8/9hAAAAgklEQVR42mNgGAWMMIa9Lv9/ZImDlz8yIvNxyTMhC+6/tI7hwGo9nLZhk0cxgPFmA8O6RW9wOxeLPIoB/9Ub8PoXmzyGC/AG2E0cBtjr8v/ff2kdw8Nbn4lywf5L6+CBygLTvL46h3CUQV2wvjqHYf+ldQyOekH/GdGjh9hoHAUIAACC9DprCyCQKwAAAABJRU5ErkJggg==", diamond_helmet: "data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAABAAAAAQCAYAAAAf8/9hAAAAqUlEQVR42mNgGPKAEV2A18r0Pz4Nn4+dZsQpyWtl+v/p/1//vd7exEmjW8CIrPnG0aMMqe/uwyWfPX6KYYmUrDTDYd8YuEuYkCUJaWZgYGC4tXkHCp8FmTNbSJEh9d19hmePnzJ8uXAZRSGPgS5WA1nQXQDT/HLWEhSFB48eZfC+eISBYACqLJj4H1tM4JLHGQbYADZ5JvQwwAewyTNiS0C4EgsxaoYgAAAmLW2iExkjdwAAAABJRU5ErkJggg==", diamond_chestplate: "data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAABAAAAAQCAYAAAAf8/9hAAAAtklEQVR42mNgoBAwwhi8Vqb/YezPx04zYlOMUw2vlen/p/9//fd6e/M/siJsBqCrY4FJpr67z3Br8w4G281LGA77xmA15MbRowz2C6fjNhnZBmy0yoKJ/3mtTFFcwIjst8/HTjPyWpn+v3H0KEPqu/sMzx4/hVvy5cJlhpezlsDVwNQzYXMqumZ8AKsBs4UUiY5GnC4gFrBgi/fZQooM3ni8gKyeOi7AFgb2m3eQb4CGtTXDCAIAmiB9DkupwCoAAAAASUVORK5CYII=", diamond_leggings: "data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAABAAAAAQCAYAAAAf8/9hAAAArElEQVR42mNgGGjACGPwWpn+J0Xj52OnGVEEeK1M/z/9/+u/19ubBGlky1BcYLt5CYZNzx4/ReF/uXCZ4eWsJXAXMCFLzhZSRFF8a/MOhi8XLuP1CgsyJ/XdfRTNL2dBXKS2eQmGS2AAqwtgmj8fO834+dhpxsO+MQxSstKEDUh9dx+nTejew+sCbADZe3hdgAvMFlLEGqBMxCjCZzhKLGhYW+N0wWHfGIZhCgAp5mkEv+S6UAAAAABJRU5ErkJggg==", diamond_boots: "data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAABAAAAAQCAYAAAAf8/9hAAAAf0lEQVR42mNgGAWMMAavlel/ZInPx04zIvNxyTMhC944epTBdvMSnLZhk0cxIPXdfYZbm3fgNACbPIoBs4UU8foXmzyGC/ABbPJMsAC6cfQow7PHT4lywY2jR+GBygLTbL9wOsEog7nAfuF0hhtHjzJoWFv/Z0SPHmKjcRQgAAAVgTyY+we4SgAAAABJRU5ErkJggg==", apple: "data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAABAAAAAQCAYAAAAf8/9hAAABCklEQVR4nL2STUoDQRCFvw6DkpCIjSYwEELAA8SF4AVcu/IAuYUriZKL5ACuXHuBKK4UBDfKoAT8YfLnhEwSKgtx7GFmtFHwLetVf6+6uuE/dLhTkiwvZ3P46jnM9H8EAJx7U2XTF5PWWs42arJddmSvtpp5hQT5ptEQ6Y1RbpHj9zsAmn6ZbhgA0B69qkzAdWVLlFtMTXp49AHohkEMYrUDgHpVU6/qRD0CfJduanelwFFpM9qJ9QSmbudfz/orgKkIcL+Y/Q2w/+ZZfZZO0Od0Mox6HdO88F6o5D5K5sYHT0N8WaQCE6kH+TVpFtYBOHF6ALTmbmp6YgLgs0EALiczBdDJ98XwYloCVg1WWG8S5iYAAAAASUVORK5CYII=" , charcoal: "data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAABAAAAAQCAYAAAAf8/9hAAABgklEQVR42q2TS28TMRSFv3k4dqI82swkGmkELEACgbqgEqzaJf9/QyWCAAVSQUmBQjPMy55xF1GjTjNBlcrd2NLx+XyvdQz3LOdfopLCXu/zQjt3Bnieh/BdG03HeK6DEIL54qwV4u4yT8M9wv0hD+MpWmviKGh01ArwPI8wDAHoKsmg3yXLCo5fvwBohWx1IKUEwBjD0avnhOMhJ+8XTMYjhBBbkC3A8vs3G0cBcRSw+HqO7AjGe32q2pJmOT8vVkyC0Qbi3p79zfFLtKnIcs27D6d8+nLGyewzxhiKQgOQ/M13jzA/XQIwCUb0eorLJAXYrIN+t/0Rhe/aOAoA6HUVs48L0nR9U5LmFIXm8OAJAFle7O7g4NkjtNY8ffyA819/KLVZB8Z1eDubb85pUzuNICkp7CQYoXWFUh08dy2V2rBKMuq6xvd9Sm0wxqBN7VRV1UziNQRglWSNmcvSYK3lMkk35tYoKymskh0AhoMeyx+/G/pN886/cDMotw3/va4AGJytBqZp1KgAAAAASUVORK5CYII=", sign: "data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAABAAAAAQCAYAAAAf8/9hAAAAl0lEQVR42mNgGGjACGPMb/H9T4rGUxeeMUxfc5aRCVlwwcqDWBU3Td0Hl0NXg2LAozd/GZqm7sPQBJNbsPIgw6M3f2noBWQnLlh5EMUFuLzAgu5XZCfDNCA7m+peYEEWIAfADbjx4B1lCQkbSPLV+c/AwMBw//lXhv1n7mNVy4TPAClRIYIuYKI0L1BsAAs+yaOXHhM0AAA31VKGTW05XgAAAABJRU5ErkJggg==", shield: "data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAABAAAAAQCAYAAAAf8/9hAAABIklEQVR42q2SvU4CQRSFv/1niWxiVqJUSkJpTQilL+PzGEsrX8NEaysT7SwMb8Am6/7NzA5YsO6C4A/CqeaenLlz5txrXF3fzPknirzABpg83pJmBQCe6yCkou17ZLlYcJ6DEArf98gr7vziEgCTHWEDlFqjtQZASJBS4ThWwwkQUmGaBkKqlQYmgGPbdPsjuv0RcZwAoJRG6xlaz2pxeDZESoVcamJ/Hl6f7gDwW+63dicvDyhV1nUUTfeUAUAQHNQOikICYNnWivjk+IhpFK9noMrGVttvbeVgqy9kebFbgx8d9AZjeoMxcfy+WWgYhKdDkjQjSbPKUVaFOG/GGB526ku6XCyS5S7eeXu+/30KQdBZS3pZs3ET97IHf4Xxpf4Ax3ZzR3wG7Z0AAAAASUVORK5CYII=", totem_of_undying: "data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAABAAAAAQCAYAAAAf8/9hAAAB4ElEQVR42o2STUhUYRSGn+/OzZJiylDpz6k0Z6agRS7btYiIFIO2tQsqahG0i1oFuXEVEjERZAkRLUQSJ5CCLGyTZSrZ1MiU5JTdGbWm+fHeO99pEY0Yd4Y5y5dznu+c93sVZSq/2CdILTlrjkwySc/NfrofxdT/fYbXcNa6L7V1J5VWv1n4/J0PQ+MUXPF8yPQS17/tQzK9ol700m4pTteY5Rb1BiTMIJOjLxnbGsb9lecbybIAzxOWtcNaFP6UhnwOEUGkyhMKCw8kk54BDFIzCTY21dGws54aR3A6RCKP46riBpl0oiTXt+zGyfkYG5wgdKSZ9r27ONsZkrIA69N1GY085cqlu4gUGbkR5Xn0HYPvY/gDAVoPt3A0uIPzHSuQEiAV75JXt58xHJvjWvcplPKx71iYtoONnGg7wOWL99gc2F7ZxH9mNQavKtA07GnGv2kbqqgxDMPT85IhFzr3i4vNrYG/abPTD2XqdRR3Nst8fIkn018wjHU4slzqWfULPQOTq9zVStMUCpIu/GA+vkTBdbkzNFFdlJ38lJjmFsSxsbEB2LDGrD5ITu4Npv+Qcl0XrTWVyhM7Oz7C9PAZ+fnVQhazuD6F9ilPgKd67nhYjOJKXhxTiPR/9Oz9AycHz8M3VCgwAAAAAElFTkSuQmCC"};
 Object.keys(PACK_ITEMS).forEach(k => {
   const img = new Image();
   img.onload = () => {
-    const c = document.createElement('canvas'); c.width = c.height = 16;
-    const g = c.getContext('2d'); g.imageSmoothingEnabled = false; g.drawImage(img, 0, 0, 16, 16);
+    const n = /_spear$/.test(k) ? (img.naturalWidth || 24) : 16;   // spear art from the Spears Refreshed pack is 24x24: keep it sharp
+    const c = document.createElement('canvas'); c.width = c.height = n;
+    const g = c.getContext('2d'); g.imageSmoothingEnabled = false; g.drawImage(img, 0, 0, n, n);
     _sprite16Cache[k] = c;
+    if (typeof _voxelGeoCache !== 'undefined') delete _voxelGeoCache[k];
     if (typeof _iconCanvasCache !== 'undefined') for (const key in _iconCanvasCache) delete _iconCanvasCache[key];
     try { if (typeof renderHotbar === 'function') renderHotbar(); } catch (e) {}
   };
@@ -5741,14 +5743,14 @@ let myWalkCycle = 0;
 let mineSwingCycle = 0;
 
 // ---------- Attack swing / block pose (shared by my model and other players) ----------
-const swing = { active: false, t: 0 };   // my own attack swing, t = 0..1
+const swing = { active: false, t: 0, off: false };   // my own attack swing, t = 0..1
 const SWING_DURATION = 0.3;
 let myShieldPulse = 0;                    // brief shield flash when a blocked hit lands
 let blockAmt = 0;                         // 0..1 eased first-person guard pose
 function startSwing() {
   if (swing.active) return;
-  swing.active = true; swing.t = 0.001;
-  playersChannel.send({ type: 'broadcast', event: 'swing', payload: { id: MY_ID } });
+  swing.active = true; swing.t = 0.001; swing.off = !!useOffHand;   // right-click with an off-hand item swings the LEFT arm
+  playersChannel.send({ type: 'broadcast', event: 'swing', payload: { id: MY_ID, off: swing.off } });
 }
 // st: { swing (0..1 progress or 0), blocking, eating, eatProg, mining, mineCycle, pulse }
 // Crouch pose: lean the upper body forward and drop the head/shoulders (model faces -z).
@@ -5770,7 +5772,12 @@ function poseArms(m, st, walkSwing) {
   const offRest = st.offHolding ? HOLD_ARM_X * 0.85 : 0;
   m.armL.rotation.set(-walkSwing * (st.offHolding ? 0.15 : 1) + offRest * 0.15, 0, 0);
   m.armR.rotation.set(rest + walkSwing * (st.holding ? 0.15 : 1), 0, 0);
-  if (st.swing > 0) {
+  if (st.swing > 0 && st.swingOff) {
+    // off-hand chop: the LEFT arm slashes down from raised, the right arm stays put
+    const e = 1 - Math.pow(1 - st.swing, 2), baseL = m.armL.rotation.x;
+    m.armL.rotation.x = 2.7 + (baseL - 2.7) * e;
+    m.armL.rotation.z = 0.4 * (1 - e);
+  } else if (st.swing > 0) {
     // overhead chop: arm starts raised and slashes down/forward to its resting pose
     const e = 1 - Math.pow(1 - st.swing, 2);
     m.armR.rotation.x = 2.7 + (rest - 2.7) * e;
@@ -5795,10 +5802,10 @@ function poseArms(m, st, walkSwing) {
     }
   } else if (st.eating) {
     // Raise the arm to the mouth and give it a quick "bite" bob.
-    m.armR.rotation.x = 2.1 + Math.sin(st.eatProg * 16) * 0.12;
+    (st.eatingOff ? m.armL : m.armR).rotation.x = 2.1 + Math.sin(st.eatProg * 16) * 0.12;
   } else if (st.mining) {
     // Punch/swing the mining arm forward and back, faster than a walk cycle.
-    m.armR.rotation.x = 1.9 + Math.sin(st.mineCycle) * 0.9;
+    (st.miningOff ? m.armL : m.armR).rotation.x = 1.9 + Math.sin(st.mineCycle) * 0.9;
   }
   if (m.handAnchor) {
     const it = m.handAnchor.children[0];
@@ -5851,8 +5858,9 @@ function updateMyModel(dt, isMoving) {
   const shieldInOff = !!(off && isShield(off.type));
   const heldIsShield = !!(held && isShield(held.type));
   poseArms(myModel, {
-    swing: swing.active ? swing.t : 0, blocking: isBlocking, eating: eating.active, eatProg: eating.progress,
-    mining: mining.active, mineCycle: mineSwingCycle, pulse: myShieldPulse,
+    swing: swing.active ? swing.t : 0, swingOff: swing.off, blocking: isBlocking, eating: eating.active, eatProg: eating.progress,
+    eatingOff: !!(eating.active && (eating.fromOff || useOffHand)),
+    mining: mining.active, miningOff: !!useOffHand, mineCycle: mineSwingCycle, pulse: myShieldPulse,
     holding: !!held, offHolding: !!off, shieldInOff: shieldInOff && isBlocking,
     heldIsShield, sneak: player.crouched
   }, walkSwing);
@@ -6393,11 +6401,12 @@ const _voxelGeoCache = {};
 function makeVoxelItemMesh(type) {
   const spr = sprite16(type); if (!spr) return null;
   if (!_voxelGeoCache[type]) {
-    const P = 18, px = new Array(P * P).fill(null);        // 1px padding for the outline
-    const d = spr.getContext('2d').getImageData(0, 0, 16, 16).data;
+    const N = spr.width || 16;                              // 16 for most items, 24 for the spears
+    const P = N + 2, px = new Array(P * P).fill(null);     // 1px padding for the outline
+    const d = spr.getContext('2d').getImageData(0, 0, N, N).data;
     const filled = (x, y) => x >= 0 && y >= 0 && x < P && y < P && !!px[y * P + x];
-    for (let y = 0; y < 16; y++) for (let x = 0; x < 16; x++) {
-      const i = (y * 16 + x) * 4;
+    for (let y = 0; y < N; y++) for (let x = 0; x < N; x++) {
+      const i = (y * N + x) * 4;
       if (d[i + 3] > 40) px[(y + 1) * P + (x + 1)] = [d[i] / 255, d[i + 1] / 255, d[i + 2] / 255];
     }
     const base = px.slice();
@@ -6410,13 +6419,13 @@ function makeVoxelItemMesh(type) {
       }
       if (near) px[y * P + x] = [0.09, 0.07, 0.05];
     }
-    const pos = [], col = [], S = 0.5 / P;
+    const pos = [], col = [], S = 0.5 / (18 * N / 16);   // same on-screen size whatever the sprite resolution
     // Totem of Undying: one pixel thick (flat plate). Other items stay slightly chunkier.
     const T = (type === 'totem_of_undying') ? S : S * 1.6;
     // Tools pivot around their grip (handle, bottom-left of the sprite) instead of
     // their middle, so swinging turns them from where the player holds them.
     const isTool = /_(sword|pickaxe|axe|shovel|spear)$/.test(type);
-    const gpx = isTool ? 3 : P / 2, gpy = isTool ? 14 : P / 2;      // grip pixel (padded coords)
+    const gpx = isTool ? 1 + Math.round(2 * N / 16) : P / 2, gpy = isTool ? 1 + Math.round(13 * N / 16) : P / 2;      // grip pixel (padded coords)
     const gx = (gpx - P / 2 + 0.5) * S, gy = (P / 2 - gpy - 0.5) * S;
     const quad = (v, c, sh) => { for (const i of [0, 1, 2, 0, 2, 3]) { pos.push(v[i][0], v[i][1], v[i][2]); col.push(c[0] * sh, c[1] * sh, c[2] * sh); } };
     for (let y = 0; y < P; y++) for (let x = 0; x < P; x++) {
@@ -7927,7 +7936,7 @@ jcXpUI();
 // Per-frame: recharge, item-switch reset, particles, and the centre indicator.
 function jcUpdate(dt) {
   const held = currentItem();
-  const key = held ? held.type : '';
+  const key = mainItem() ? mainItem().type : '';                  // keyed on the real hotbar item: right-click's off-hand use must not reset the charge
   if (key !== jcLastHeld) { jcLastHeld = key; atkTicks = 0; }   // swapping weapons restarts the cooldown
   const st = jcStats(held);
   if (mining.active && isPlaying()) atkTicks = 0;                // breaking blocks keeps it empty
@@ -8043,6 +8052,7 @@ playersChannel
     setArmorVisual(entry.armor, payload.armor | 0, payload.armorEnch | 0);
     entry.blocking = !!payload.blocking;
     entry.mining = !!payload.mining;
+    entry.miningOff = !!payload.miningOff;
     entry.sneak = !!payload.sneak;
     if (payload.mobs) applyMobSnapshot(payload.id, payload.mobs);
   })
@@ -8115,7 +8125,7 @@ playersChannel
   .on('broadcast', { event: 'swing' }, ({ payload }) => {
     if (!payload || payload.id === MY_ID) return;
     const entry = otherPlayers.get(payload.id);
-    if (entry && !entry.swing.active) { entry.swing.active = true; entry.swing.t = 0.001; }
+    if (entry && !entry.swing.active) { entry.swing.active = true; entry.swing.t = 0.001; entry.swing.off = !!payload.off; }
   })
   // Dropped items: another player threw / dropped something, or picked something up.
   .on('broadcast', { event: 'drop' }, ({ payload }) => {
@@ -8184,7 +8194,7 @@ function broadcastMyPosition(dt) {
       offEnch: !!(offhand && offhand.ench),
       armor: armorMask(),
       armorEnch: (armorSlots || []).reduce((m, a, i) => m | ((a && a.ench) ? (1 << i) : 0), 0),
-      blocking: isBlocking, mining: mining.active, sneak: !!player.crouched,
+      blocking: isBlocking, mining: mining.active, miningOff: !!(mining.active && useOffHand), sneak: !!player.crouched,
       mobs: (isMobHost() && (mobSnapTick = (mobSnapTick + 1) % 2) === 0) ? buildMobSnapshot() : undefined
     }
   });
@@ -8213,8 +8223,8 @@ function updateOtherPlayerVisuals(dt) {
     const offT = entry.offType || (entry.offheldState && entry.offheldState.heldType);
     const heldT = entry.heldState && entry.heldState.heldType;
     poseArms(entry, {
-      swing: entry.swing.active ? entry.swing.t : 0, blocking: entry.blocking,
-      mining: entry.mining, mineCycle: entry.mineCycle, pulse: entry.shieldPulse,
+      swing: entry.swing.active ? entry.swing.t : 0, swingOff: !!entry.swing.off, blocking: entry.blocking,
+      mining: entry.mining, miningOff: !!entry.miningOff, mineCycle: entry.mineCycle, pulse: entry.shieldPulse,
       holding: !!heldT, offHolding: !!offT,
       shieldInOff: !!(entry.blocking && offT && isShield(offT)),
       heldIsShield: !!(heldT && isShield(heldT)),
@@ -8785,6 +8795,11 @@ function initMobileControls() {
       if (m && isUseTool(m.type)) {                    // tool: tap = attack, hold = mine
         rTool.long = false;
         if (rTool.t) clearTimeout(rTool.t);
+        if (mobileFindTargetAlongAim(5)) {             // enemy in the crosshair: hit now, keep hitting while held
+          rTool.long = true; mobile.longActive = true; mobile.atkHold = true;
+          mobileTryAttack();
+          return;
+        }
         rTool.t = setTimeout(() => {
           rTool.t = null; rTool.long = true;
           mobile.aimX = null; mobile.aimY = null;
@@ -11173,9 +11188,10 @@ function animate() {
         rz += (0.12 - rz) * t;
       }
     } else {
-      if (!mining.active && eating.active) { vy += 0.06; vz += 0.1; }
-      let swAmt = swing.active ? Math.sin(swing.t * Math.PI) : 0;
-      if (mining.active) swAmt = Math.max(swAmt, Math.abs(Math.sin(mineSwingCycle * 0.5)));
+      const offEats = eating.active && (eating.fromOff || useOffHand);
+      if (!mining.active && eating.active && !offEats) { vy += 0.06; vz += 0.1; }
+      let swAmt = (swing.active && !swing.off) ? Math.sin(swing.t * Math.PI) : 0;
+      if (mining.active && !useOffHand) swAmt = Math.max(swAmt, Math.abs(Math.sin(mineSwingCycle * 0.5)));
       if (swAmt > 0) {
         const sw = swAmt;
         vx += sw * 0.02; vy -= sw * 0.05; vz -= sw * 0.28; rx -= sw * 1.2;
@@ -11210,6 +11226,12 @@ function animate() {
         ory += (-Math.PI * 0.92 - ory) * t;
         orz += (-0.12 - orz) * t;
       }
+    }
+    if (!shieldInOff) {   // off-hand swing / mining / eating (right-click with an off-hand item)
+      if (eating.active && (eating.fromOff || useOffHand) && !mining.active) { oy += 0.06; oz += 0.1; }
+      let osw = (swing.active && swing.off) ? Math.sin(swing.t * Math.PI) : 0;
+      if (mining.active && useOffHand) osw = Math.max(osw, Math.abs(Math.sin(mineSwingCycle * 0.5)));
+      if (osw > 0) { ox -= osw * 0.02; oy -= osw * 0.05; oz -= osw * 0.28; orx -= osw * 1.2; }
     }
     if (offNow) {
       const oco = viewModelOffState.heldMesh && viewModelOffState.heldMesh.userData.centerOffset;
