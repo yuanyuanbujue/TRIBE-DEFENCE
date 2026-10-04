@@ -8765,17 +8765,19 @@ function initMobileControls() {
       if (tryUseLookedBlock()) return;                 // tables / chests / doors still open
       if (tryIgniteLookedTnt()) return;
       const main = mainItem();
-      if (offhand && !(main && main.type === 'bow')) {
+      if (offhand) {
+        const mainBow = !!(main && main.type === 'bow');
         const mainEats = !!(main && isFood(main.type) && player.hunger < player.maxHunger);
-        if (offhand.type === 'bow') {
-          if (!mainEats) useOffHand = true;            // off-hand bow: draw it, whatever the main hand holds
-        } else if (!mainEats && !mainBlockPlaceable()) {      // a placeable main-hand block still wins, like on PC
+        if (isUseTool(offhand.type) || offhand.type === 'bow') {
+          // off-hand tool / bow owns the button, whatever the main hand holds (only a bow in both hands lets the main one draw)
+          if (!(offhand.type === 'bow' && mainBow)) useOffHand = true;
+        } else if (!mainBow && !mainEats && !mainBlockPlaceable()) {   // a placeable main-hand block still wins, like on PC
           if (isShield(offhand.type)) {
             if (performance.now() >= shieldDisableUntil) { isBlocking = true; blockFromOff = true; return; }
           } else if (isFood(offhand.type)) {
             if (startEating(true)) return;
           } else if (!(main && (isUseTool(main.type) || isTotemItem(main.type)))) {
-            useOffHand = true;                         // off-hand tool / block / item is "in hand" until release
+            useOffHand = true;                         // off-hand block / item is "in hand" until release
           }
         }
       }
@@ -9877,6 +9879,7 @@ function rightHandToolUse() {
 canvas.addEventListener('mousedown', e => {
   if (e.button !== 2 || !pointerLocked) return;
   blockFromOff = false;
+  useOffHand = false;   // start clean: a stale flag would make the "main hand" lookups read the off-hand
   // Functional blocks always win — open them before off-hand / shield / food logic.
   if (tryUseLookedBlock()) { e.stopImmediatePropagation(); return; }
   const mainHeld = currentItem();   // food in your main (right) hand: right-click eats it, even with an off-hand item
@@ -9893,7 +9896,9 @@ canvas.addEventListener('mousedown', e => {
     }
     return;
   }
-  if (offhand.type === 'bow' && !(mainHeld && mainHeld.type === 'bow')) { useOffHand = true; return; }   // off-hand bow: right-click draws it, whatever the main hand holds
+  // Off-hand pickaxe / axe / sword / shovel / hoe / spear / bow: right-click uses it, whatever the main hand holds
+  // (tool, bow or a placeable block). Only a bow in BOTH hands lets the main one draw.
+  if (isUseTool(offhand.type) || (offhand.type === 'bow' && !(mainHeld && mainHeld.type === 'bow'))) { useOffHand = true; return; }
   if (mainBlockPlaceable()) return;                   // block in the main hand: place it (off-hand item stays put)
   if (isFood(offhand.type)) { if (!tryIgniteLookedTnt()) startEating(true); e.stopImmediatePropagation(); return; }
   if (isShield(offhand.type) && performance.now() >= shieldDisableUntil) { isBlocking = true; blockFromOff = true; e.stopImmediatePropagation(); return; }
