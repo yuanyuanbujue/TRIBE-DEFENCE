@@ -85,6 +85,12 @@
     word-break: break-word;
   }
   #chatLog .chatLine .chatName { font-weight: bold; }
+  #chatFilter { position: fixed; left: 12px; bottom: 284px; z-index: 16; display: none; gap: 4px; }
+  #chatFilter button { font: bold 12px monospace; color: #fff; background: rgba(0,0,0,0.55); border: 1px solid rgba(255,255,255,0.4); border-radius: 4px; padding: 3px 9px; cursor: pointer; }
+  #chatFilter button.on { background: rgba(80,160,255,0.75); border-color: #fff; }
+  body.touch-mode #chatFilter { bottom: 304px; }
+  #chatLog.f-chat .chatLine.sys { display: none; }
+  #chatLog.f-sys .chatLine:not(.sys) { display: none; }
   #chatInputWrap {
     position: fixed; bottom: 100px; left: 12px; width: 340px; z-index: 16; display: none;
   }
@@ -929,6 +935,7 @@
 </div>
 <div id="xpWrap"><span id="xpLvl">0</span><div id="xpTrack"><div id="xpFill"></div></div></div>
 <div id="chatLog"></div>
+<div id="chatFilter"><button type="button" data-f="all">All</button><button type="button" data-f="chat">Players</button><button type="button" data-f="sys">System</button></div>
 <div id="chatInputWrap"><input id="chatInput" type="text" maxlength="200" enterkeyhint="send" autocomplete="off" autocorrect="off" placeholder="Say something... (Enter to send, Esc to cancel)"><button type="button" class="chatBtn" id="chatSendBtn">Send</button><button type="button" class="chatBtn" id="chatCancelBtn" aria-label="Cancel chat">✕</button></div>
 <div id="damageFlash"></div>
 <div id="hud">Mine blocks to collect materials · place them from your inventory.<br>Press <b id="hkInv">E</b> for inventory · <b id="hkTp">F5</b> for third-person · <b id="hkEat">F</b> to eat food · <b id="hkDrop">Q</b> to throw item · <b>Right-click</b> uses your off-hand item (or raise a <b>shield</b> to block) · <b id="hkChat">T</b> to chat. Right-click a crafting table/furnace/chest to use it, a <b>sign</b> to edit its text, <b>TNT</b> to light it, or a bed to set your respawn point. Place a <b>campfire</b> for light. Smelt logs in a furnace for <b>charcoal</b>. World auto-saves as you play.</div>
@@ -7832,8 +7839,9 @@ function createMob(kind, px, py, pz, id, remote, eq) {
   const isZ = kind === 'zombie';
   const def = ANIMAL_DEFS[kind] || ANIMAL_DEFS.pig;
   const isS = kind === 'skeleton';
-  const isB = kind === 'spoke';
+  const isB = isSpk(kind);
   const group = isB ? buildZombie(SPOKE_SKIN) : isZ ? buildZombie((eq >> 12) & 31) : (isS ? buildSkeleton((eq >> 12) & 31) : def.build());
+  if (kind === 'null') group.traverse(o => { if (o.isMesh && o.material && o.material.color) o.material.color.setHex(0xb48cff); });   // purple tint so Null reads differently
   scene.add(group);
   const pos = new THREE.Vector3(px, py, pz);
   group.position.copy(pos);
@@ -7933,13 +7941,13 @@ function applyMobSnapshot(fromId, list) {
   const seen = new Set();
   for (const m of list) {
     const id = m[0], kind = m[1];
-    if (!ANIMAL_DEFS[kind] && kind !== 'zombie' && kind !== 'skeleton' && kind !== 'spoke') continue;
+    if (!ANIMAL_DEFS[kind] && kind !== 'zombie' && kind !== 'skeleton' && !isSpk(kind)) continue;
     seen.add(id);
     let a = byId.get(id);
     if (!a) a = createMob(kind, m[2], m[3], m[4], id, true, m[7] | 0);
     else if (kind === 'zombie' && (m[7] | 0) !== (a.eq | 0)) { a.eq = m[7] | 0; applyZombieGear(a); }
     else if (kind === 'skeleton' && (m[7] | 0) !== (a.eq | 0)) { a.eq = m[7] | 0; applySkeletonGear(a); }
-    else if (kind === 'spoke' && (m[7] | 0) !== (a.eq | 0)) { const oldEq = a.eq | 0; a.eq = m[7] | 0; spokeSync(a, oldEq); }
+    else if (isSpk(kind) && (m[7] | 0) !== (a.eq | 0)) { const oldEq = a.eq | 0; a.eq = m[7] | 0; spokeSync(a, oldEq); }
     if (!a.remote) { a.remote = true; a.target = { x: a.pos.x, y: a.pos.y, z: a.pos.z, f: a.facing }; }
     if (m[6] < a.hp) flashRed(a.group);
     a.hp = m[6];
@@ -7973,6 +7981,13 @@ function giveMobLoot(kind, eq) {
     addChatLine('System', 'Spoke was defeated!', true);
     return;
   }
+  if (kind === 'null') {
+    addItemToInventory('golden_apple', 1 + Math.floor(Math.random() * 3));
+    addItemToInventory('arrow', 4 + Math.floor(Math.random() * 8));
+    if (Math.random() < 0.3) { try { addItemToInventory('diamond', 1); } catch (e) {} }
+    renderHotbar(); if (inventoryOpen) renderInventoryPanel();
+    return;
+  }
   if (kind === 'skeleton') {
     const n = Math.floor(Math.random() * 3) + extra();                        // 0-2 arrows (+ Looting)
     if (n > 0) addItemToInventory('arrow', n);
@@ -8003,7 +8018,7 @@ function generateChunksNoMesh(px, pz, radius, maxNew) {
 // One shared animation pass for every mob (host-simulated and remote copies).
 // spd = horizontal speed in blocks/s, grounded = standing on something.
 function animateMob(a, dt, spd, grounded) {
-  const ud = a.group.userData, isZ = a.kind === 'zombie' || a.kind === 'spoke';
+  const ud = a.group.userData, isZ = a.kind === 'zombie' || isSpk(a.kind);
   const sp = Math.min(spd, isZ ? 2.2 : 1.6);              // cap so a knockback slide can't make the legs spin
   const moving = grounded && sp > 0.12;
   a.amp = (a.amp || 0) + ((moving ? 1 : 0) - (a.amp || 0)) * Math.min(1, dt * 12);   // smooth in/out of walking
@@ -8033,14 +8048,18 @@ function animateMob(a, dt, spd, grounded) {
 // Streamed to other players through the mob's eq int: bits 12-18 armor durability %, 19-25 gapples left,
 // 26 totem still held, 27 eating, 28 drawing the bow, 29 melee weapon in hand, 30 that weapon is the axe (else sword).
 // Same stats as a player: 20 HP, walk 4.2 / sprint 6, jump 7.5, diamond sword 7 dmg, full diamond armor = 80% reduction, golden apple = +4 HP + regen
-const SPOKE_HP = 20, SPOKE_GAPPLES = 99, SPOKE_TOTEMS = 8, SPOKE_GAP_HEAL = 4, SPOKE_ARROW_DMG = 3, SPOKE_SWORD_DMG = 4, SPOKE_AXE_DMG = 6, SPOKE_HUD_RANGE = 30;
-const SPOKE_NOOB_AIM = 0.55, SPOKE_NOOB_REACH = 1.4, SPOKE_HIT_CHANCE = 0.3;   // bad at PvP: wild arrow spread, short sword/axe reach
+const SPOKE_HP = 20, SPOKE_GAPPLES = 99, SPOKE_TOTEMS = 8, SPOKE_GAP_HEAL = 4, SPOKE_ARROW_DMG = 6, SPOKE_SWORD_DMG = 7, SPOKE_AXE_DMG = 9, SPOKE_HUD_RANGE = 30;
+const NULL_MAX_ALIVE = 14, NULL_PER_POP = 3;
+const SPOKE_NOOB_AIM = 0.025, SPOKE_NOOB_REACH = 3.0, SPOKE_HIT_CHANCE = 0.92;   // PvP: tight aim, player-like reach, rarely whiffs
+function isSpk(k) { return k === 'spoke' || k === 'null'; }
+function spokeName(a) { return a.kind === 'null' ? 'Null' : 'Spoke'; }
 function spokeGet(a) { const e = a.eq | 0; return { dur: (e >> 12) & 127, gap: (e >> 19) & 127, totem: e & 15, eat: (e >> 27) & 1, draw: (e >> 28) & 1, melee: (e >> 29) & 1, axe: (e >> 30) & 1 }; }
 function spokeSet(a, o) {
   const g = spokeGet(a); for (const k in o) g[k] = o[k];
   a.eq = (Math.max(0, Math.min(100, Math.round(g.dur))) << 12) | (Math.max(0, Math.min(99, g.gap | 0)) << 19) | Math.max(0, Math.min(15, g.totem | 0)) | ((g.eat ? 1 : 0) << 27) | ((g.draw ? 1 : 0) << 28) | ((g.melee ? 1 : 0) << 29) | ((g.axe ? 1 : 0) << 30);
 }
 function spokeInitEq() { return (100 << 12) | (SPOKE_GAPPLES << 19) | SPOKE_TOTEMS; }
+function nullInitEq() { return (100 << 12) | (SPOKE_GAPPLES << 19) | 1; }   // same kit as Spoke, 1 normal totem, no Null Totem
 // Diamond armor built the same way as the player model's armor (pack ARMOR_TEX sheet, same UV layout and piece sizes).
 function spokePlayerArmor(a) {
   const ud = a.group.userData, P = ud.armorParts, S = SK_S, tex = ARMOR_TEX[2] || ARMOR_TEX[0];
@@ -8082,8 +8101,8 @@ function summonSpoke(x, y, z) {
 }
 function spokeSync(a, old) {
   const o = { dur: (old >> 12) & 127, totem: old & 15 }, n = spokeGet(a);
-  if (o.totem > n.totem) { a.totemFx = 1.6; addChatLine('System', n.totem > 0 ? 'Spoke popped a Null Totem! (' + n.totem + ' left)' : 'Spoke popped its last Null Totem!', true); }
-  if (o.dur > 0 && n.dur <= 0) { addChatLine('System', "Spoke's armor broke!", true); applySpokeGear(a); }
+  if (o.totem > n.totem) { a.totemFx = 1.6; if (a.kind === 'null') addChatLine('System', 'A Null popped its Totem!', true); else addChatLine('System', n.totem > 0 ? 'Spoke popped a Null Totem! (' + n.totem + ' left)' : 'Spoke popped its last Null Totem!', true); }
+  if (o.dur > 0 && n.dur <= 0) { if (a.kind === 'spoke') addChatLine('System', "Spoke's armor broke!", true); applySpokeGear(a); }
 }
 function spokeHurt(a, dmg, fromPos, kbMul, by) {
   if (!a.alive) return;
@@ -8096,29 +8115,93 @@ function spokeHurt(a, dmg, fromPos, kbMul, by) {
   flashRed(a.group);
   knockbackEntity(a, fromPos, 7.5 * (kbMul == null ? 1 : kbMul));   // normal knockback, like any player
   if (a.hp <= 0) {
-    if (g.totem > 0) { spokeSet(a, { totem: g.totem - 1 }); a.hp = a.maxHp * 0.45; a.regenT = 5; a.eatCd = Math.max(a.eatCd || 0, 1.5); }   // Null Totem cancels the kill
+    if (g.totem > 0) { spokeSet(a, { totem: g.totem - 1 }); a.hp = a.maxHp * 0.45; a.regenT = 5; a.eatCd = Math.max(a.eatCd || 0, 1.5); if (a.kind === 'spoke') summonNullArmy(a); }   // Totem cancels the kill; Spoke calls its Null army
     else { killAnimal(a, by); return; }
   }
   spokeSync(a, old);
 }
+function summonNullArmy(sp) {
+  let alive = 0; for (const q of animals) if (q.alive && q.kind === 'null') alive++;
+  let made = 0;
+  for (let i = 0; i < 24 && made < NULL_PER_POP && alive + made < NULL_MAX_ALIVE; i++) {
+    const ang = Math.random() * 6.283, r = 1.8 + Math.random() * 1.8;
+    const x = sp.pos.x + Math.sin(ang) * r, z = sp.pos.z + Math.cos(ang) * r;
+    let y = sp.pos.y + 0.1;
+    if (checkCollision(x, y, z, 0.42, 1.8)) { y += 1.05; if (checkCollision(x, y, z, 0.42, 1.8)) continue; }
+    const e = createMob('null', x, y, z, null, false, nullInitEq());
+    e.durF = 100; e.eatCd = 2 + Math.random() * 3; e.shootCd = 0.8 + Math.random() * 1.5;
+    e.vel.y = 5; e.totemFx = 1.0;
+    made++;
+  }
+  if (made > 0) addChatLine('System', 'Spoke summoned the Null army! (' + made + ')', true);
+}
+// ---- block editing for Spoke / Null (host-side, synced through the same world_blocks table players use) ----
+const SPOKE_NOBREAK = new Set(['bedrock', 'water', 'lava', 'chest', 'spawner', 'obsidian', 'sign', 'bed']);
+function spokeBreak(x, y, z) {
+  x = Math.round(x); y = Math.round(y); z = Math.round(z);
+  const b = world.get(key(x, y, z));
+  if (!b || SPOKE_NOBREAK.has(b.type) || y < 2) return false;
+  removeBlock(x, y, z);
+  pushBlockDiff(x, y, z, 'air');
+  return true;
+}
+function spokePlace(x, y, z) {
+  x = Math.round(x); y = Math.round(y); z = Math.round(z);
+  const k = key(x, y, z);
+  if (world.has(k)) return false;
+  removedDiffs.delete(k);
+  if (!addBlock(x, y, z, 'cobblestone')) return false;
+  markPlaced(x, y, z);
+  pushBlockDiff(x, y, z, 'cobblestone');
+  return true;
+}
+const _solidB = (x, y, z) => { const b = world.get(key(Math.round(x), Math.round(y), Math.round(z))); return !!b && b.type !== 'water' && solidAt(x, y, z); };
+function spokeBuilder(a, dt, mx, mz, tgt, dist) {
+  a.bldCd = (a.bldCd || 0) - dt;
+  if (a.bldCd > 0 || Math.abs(a.vel.y) > 9) return;
+  const ml = Math.hypot(mx, mz), grounded = Math.abs(a.vel.y) < 0.3;
+  const bf = Math.round(a.pos.y + 0.5);                 // block level of the feet
+  const ux = ml > 0.1 ? mx / ml : Math.sin(a.facing), uz = ml > 0.1 ? mz / ml : Math.cos(a.facing);
+  const ax = a.pos.x + ux * 0.95, az = a.pos.z + uz * 0.95;
+  // 1) break whatever walls it in on the way to the target
+  if (ml > 0.1 && grounded && checkCollision(a.pos.x + ux * 0.6, a.pos.y, a.pos.z + uz * 0.6, a.radius, a.height)) {
+    const f = _solidB(ax, bf, az), h = _solidB(ax, bf + 1, az), u = _solidB(ax, bf + 2, az);
+    let y = null;
+    if (f && h) y = bf + 1; else if (h) y = bf + 1; else if (f && u) y = bf + 2; else if (u) y = bf + 2;
+    if (y != null && spokeBreak(ax, y, az)) { a.bldCd = 0.28; return; }
+    if (f && h && spokeBreak(ax, bf, az)) { a.bldCd = 0.28; return; }
+  }
+  // 2) target far below: dig a stair down
+  if (grounded && tgt.y < a.pos.y - 2.5 && dist < 5 && _solidB(a.pos.x, bf - 1, a.pos.z)) {
+    if (spokeBreak(a.pos.x, bf - 1, a.pos.z)) { a.bldCd = 0.45; return; }
+  }
+  // 3) target high above: jump and pillar up under its own feet
+  if (tgt.y > a.pos.y + 1.6 && dist < 4.5) {
+    if (grounded) { a.vel.y = 7.5; a.bldCd = 0.1; return; }
+    const under = Math.round(a.pos.y - 0.55);
+    if (a.vel.y < 3.5 && !world.has(key(Math.round(a.pos.x), under, Math.round(a.pos.z))) && spokePlace(a.pos.x, under, a.pos.z)) { a.bldCd = 0.25; return; }
+  }
+  // 4) bridge across gaps (2+ deep) while chasing
+  if (ml > 0.1 && grounded && dist > 2) {
+    const gx = Math.round(ax), gz = Math.round(az);
+    if (!world.has(key(gx, bf - 1, gz)) && !world.has(key(gx, bf - 2, gz)) && !_solidB(ax, bf, az)) {
+      if (spokePlace(ax, bf - 1, az)) { a.bldCd = 0.22; return; }
+    }
+  }
+}
 function spokeShoot(a, tgt) {
   const speed = 44, eye = new THREE.Vector3(a.pos.x, a.pos.y + 1.55, a.pos.z), pv = a.tgtVel || { x: 0, z: 0 };
-  const tp = new THREE.Vector3(tgt.x, tgt.y + 1.2, tgt.z);
-  let tt = tp.distanceTo(eye) / speed;
-  // no leading the target: aims at where the player WAS
+  const d0 = Math.hypot(tgt.x - eye.x, tgt.y - eye.y, tgt.z - eye.z);
+  let tt = d0 / speed;
+  const tp = new THREE.Vector3(tgt.x + pv.x * tt, tgt.y + 1.2, tgt.z + pv.z * tt);   // leads a moving target like a good player
   tt = tp.distanceTo(eye) / speed;
+  tp.x = tgt.x + pv.x * tt; tp.z = tgt.z + pv.z * tt;
   const to = tp.sub(eye); to.y += 0.5 * 16 * tt * tt * 0.92;
-  to.x += (Math.random() - 0.5) * 8; to.z += (Math.random() - 0.5) * 8;   // can't aim: arrows land all around the target
-  a.volley = (a.volley || 0) + 1;
-  const n = 1;                                                        // one arrow per shot, like a player's bow
-  for (let i = 0; i < n; i++) {
-    const dir = to.clone().normalize(), off = n > 1 ? (i - 1) * 0.09 : 0;
-    const dx = dir.x, dz = dir.z;
-    dir.x += -dz * off + (Math.random() - 0.5) * SPOKE_NOOB_AIM; dir.z += dx * off + (Math.random() - 0.5) * SPOKE_NOOB_AIM; dir.y += (Math.random() - 0.5) * SPOKE_NOOB_AIM * 0.8; dir.normalize();
-    const origin = eye.clone().add(dir.clone().multiplyScalar(0.7)), vel = dir.clone().multiplyScalar(speed);
-    spawnArrow(origin, vel, { hostile: true, hDmg: SPOKE_ARROW_DMG, hKb: 7, noPickup: true });
-    playersChannel.send({ type: 'broadcast', event: 'arrow', payload: { from: MY_ID, x: origin.x, y: origin.y, z: origin.z, vx: vel.x, vy: vel.y, vz: vel.z } });
-  }
+  const dir = to.clone().normalize();
+  dir.x += (Math.random() - 0.5) * SPOKE_NOOB_AIM; dir.z += (Math.random() - 0.5) * SPOKE_NOOB_AIM; dir.y += (Math.random() - 0.5) * SPOKE_NOOB_AIM * 0.8; dir.normalize();
+  const origin = eye.clone().add(dir.clone().multiplyScalar(0.7)), vel = dir.clone().multiplyScalar(speed);
+  spawnArrow(origin, vel, { hostile: true, hDmg: SPOKE_ARROW_DMG, hKb: 7, noPickup: true });
+  playersChannel.send({ type: 'broadcast', event: 'arrow', payload: { from: MY_ID, x: origin.x, y: origin.y, z: origin.z, vx: vel.x, vy: vel.y, vz: vel.z } });
 }
 function spokeAI(a, dt) {
   a.shootCd = (a.shootCd || 0) - dt; a.attackCd = (a.attackCd || 0) - dt; a.swordCd = (a.swordCd || 0) - dt;
@@ -8128,14 +8211,12 @@ function spokeAI(a, dt) {
   const d = spokeGet(a), tgt = nearestPlayerTarget(a.pos);
   const dx = tgt.x - a.pos.x, dz = tgt.z - a.pos.z, dist = Math.hypot(dx, dz) || 0.001, nx = dx / dist, nz = dz / dist;
   const awake = tgt.alive && dist < 60;
-  // follow the target's velocity so arrows can be led
   const pv = a.tgtVel || (a.tgtVel = { x: 0, z: 0 });
   if (a.prevTgt && dt > 0) { const k = Math.min(1, dt * 8); pv.x += ((tgt.x - a.prevTgt.x) / dt - pv.x) * k; pv.z += ((tgt.z - a.prevTgt.z) / dt - pv.z) * k; const l = Math.hypot(pv.x, pv.z); if (l > 9) { pv.x *= 9 / l; pv.z *= 9 / l; } }
   a.prevTgt = { x: tgt.x, z: tgt.z };
-  // eating a golden apple: stands still for 1.6s, then heals + regenerates
-  if (a.eatT > 0) {
-    a.eatT -= dt; a.vel.x *= 0.2; a.vel.z *= 0.2; a.facing = Math.atan2(dx, dz);
-    if (a.eatT <= 0) { const g = spokeGet(a); a.hp = Math.min(a.maxHp, a.hp + SPOKE_GAP_HEAL); a.regenT = 5; spokeSet(a, { eat: 0, gap: Math.max(0, g.gap - 1) }); a.eatCd = 4; }
+  if (a.eatT > 0) {   // eating a golden apple: slows right down for a moment, then heals
+    a.eatT -= dt; a.vel.x *= 0.5; a.vel.z *= 0.5; a.facing = Math.atan2(dx, dz);
+    if (a.eatT <= 0) { const g = spokeGet(a); a.hp = Math.min(a.maxHp, a.hp + SPOKE_GAP_HEAL); a.regenT = 5; spokeSet(a, { eat: 0, gap: Math.max(0, g.gap - 1) }); a.eatCd = 3; }
     return;
   }
   if (!awake) {
@@ -8144,47 +8225,53 @@ function spokeAI(a, dt) {
     if (a.wanderTimer <= 0) { a.wanderTimer = 2 + Math.random() * 3; if (Math.random() < 0.5) { a.vel.x = 0; a.vel.z = 0; } else { a.facing = Math.random() * 6.283; a.vel.x = Math.sin(a.facing) * 0.7; a.vel.z = Math.cos(a.facing) * 0.7; } }
     return;
   }
-  if (d.gap > 0 && a.eatCd <= 0 && (a.hp < a.maxHp * 0.85 || dist > 14 || Math.random() < 0.25 * dt)) { a.eatT = 2.2; a.bowT = 0; spokeSet(a, { eat: 1, draw: 0 }); return; }   // panics and stands still to eat
+  // heals when actually low (or safely far away), not in the middle of a sword fight at high HP
+  if (d.gap > 0 && a.eatCd <= 0 && (a.hp < a.maxHp * 0.5 || (a.hp < a.maxHp * 0.8 && dist > 9))) { a.eatT = 1.6; a.bowT = 0; spokeSet(a, { eat: 1, draw: 0 }); return; }
   a.facing = Math.atan2(dx, dz);
   let melee = !!d.melee;
-  if (!melee && dist < 3.8 && a.forceRangedT <= 0) melee = true;
-  else if (melee && (dist > 7.5 || a.forceRangedT > 0)) melee = false;
+  if (!melee && dist < 6.5 && a.forceRangedT <= 0) melee = true;
+  else if (melee && (dist > 11 || a.forceRangedT > 0)) melee = false;
   if (melee !== !!d.melee) {
-    const axe = melee && Math.random() < 0.5;   // each time it closes in it pulls either the sword or the axe
+    const axe = melee && Math.random() < 0.4;   // axe hits harder and breaks shields; sword is faster
     spokeSet(a, { melee: melee ? 1 : 0, axe: axe ? 1 : 0, draw: 0 }); a.bowT = 0;
   }
   a.strafeT = (a.strafeT || 0) - dt;
-  if (a.strafeT <= 0) { a.strafeT = 1.2 + Math.random() * 1.6; a.strafeDir = Math.random() < 0.5 ? -1 : 1; }
+  if (a.strafeT <= 0) { a.strafeT = 0.8 + Math.random() * 1.2; a.strafeDir = Math.random() < 0.5 ? -1 : 1; }
   let mx = 0, mz = 0, wp = null;
+  const eyeP = new THREE.Vector3(a.pos.x, a.pos.y + 1.55, a.pos.z), tgtP = new THREE.Vector3(tgt.x, tgt.y + 1.2, tgt.z);
   if (melee) {
-    if (dist > 1.6) { wp = zombieWaypoint(a, tgt, dt); let wx = wp ? wp.x - a.pos.x : dx, wz = wp ? wp.z - a.pos.z : dz; const wl = Math.hypot(wx, wz) || 1; const sp = dist > 10 ? 3.6 : 2.4; mx = wx / wl * sp; mz = wz / wl * sp; }
-    const dyP = tgt.y - a.pos.y;
-    if (dist < SPOKE_NOOB_REACH && dyP > -1.3 && dyP < 1.3 && a.swordCd <= 0 && tgt.alive) {
-      const swing = Math.random() < SPOKE_HIT_CHANCE; /* 70% of swings whiff */
-      const useAxe = !!spokeGet(a).axe, wdmg = useAxe ? SPOKE_AXE_DMG : SPOKE_SWORD_DMG;
-      a.swordCd = useAxe ? 3.2 : 2.4; a.attackCd = a.swordCd + 0.4; a.hits = (a.hits || 0) + 1;
-      const kdir = new THREE.Vector3(dx, 0, dz);
-      if (!swing) { /* missed */ }
-      else if (tgt.local) damagePlayer(wdmg, kdir, 9, useAxe ? { axeHit: true } : undefined);   // an axe hit breaks a raised shield
-      else if (swing) playersChannel.send({ type: 'broadcast', event: 'mob_dmg', payload: { to: tgt.id, dmg: wdmg, kx: kdir.x, kz: kdir.z, kb: 9, ax: useAxe ? 1 : 0 } });
-      if (a.hits >= 6 && a.dashCd <= 0) { a.hits = 0; a.dashCd = 6; a.forceRangedT = 2.5; a.vel.x = -nx * 9; a.vel.z = -nz * 9; a.vel.y = 6; }   // leap back to kite again
+    const ideal = 2.4;
+    if (dist > ideal + 0.4) { wp = zombieWaypoint(a, tgt, dt); let wx = wp ? wp.x - a.pos.x : dx, wz = wp ? wp.z - a.pos.z : dz; const wl = Math.hypot(wx, wz) || 1; const sp = 5.4; mx = wx / wl * sp; mz = wz / wl * sp; }
+    else {   // inside sword range: circle-strafe and keep spacing like a player
+      const back = dist < ideal - 0.5 ? -1.8 : 0.6;
+      mx = nx * back - nz * a.strafeDir * 3.2; mz = nz * back + nx * a.strafeDir * 3.2;
     }
+    const dyP = tgt.y - a.pos.y;
+    if (dist < SPOKE_NOOB_REACH && dyP > -1.6 && dyP < 1.6 && a.swordCd <= 0 && tgt.alive && skLos(eyeP, tgtP)) {
+      const useAxe = !!spokeGet(a).axe, wdmg = useAxe ? SPOKE_AXE_DMG : SPOKE_SWORD_DMG;
+      a.swordCd = useAxe ? 1.0 : 0.62; a.attackCd = 1.1; a.hits = (a.hits || 0) + 1;
+      const kdir = new THREE.Vector3(dx, 0, dz);
+      if (Math.random() < SPOKE_HIT_CHANCE) {
+        if (tgt.local) damagePlayer(wdmg, kdir, 9, useAxe ? { axeHit: true } : undefined);   // an axe hit breaks a raised shield
+        else playersChannel.send({ type: 'broadcast', event: 'mob_dmg', payload: { to: tgt.id, dmg: wdmg, kx: kdir.x, kz: kdir.z, kb: 9, ax: useAxe ? 1 : 0 } });
+      }
+      if (a.hits >= 7 && a.dashCd <= 0) { a.hits = 0; a.dashCd = 7; a.forceRangedT = 1.6; a.vel.x = -nx * 9; a.vel.z = -nz * 9; a.vel.y = 6; }   // hit-and-run: leaps back to shoot
+    }
+    // jump-crit / dodge hop
+    a.hopCd = (a.hopCd || 0) - dt;
+    if (a.hopCd <= 0 && dist < 4 && Math.abs(a.vel.y) < 0.2) { a.hopCd = 1.0 + Math.random() * 1.2; a.vel.y = 7.0; }
   } else {
-    if (dist > 18) { wp = zombieWaypoint(a, tgt, dt); let wx = wp ? wp.x - a.pos.x : dx, wz = wp ? wp.z - a.pos.z : dz; const wl = Math.hypot(wx, wz) || 1; mx = wx / wl * 6; mz = wz / wl * 6; }
-    else if (dist < 9) { mx = -nx * 4.2 - nz * a.strafeDir * 1.0; mz = -nz * 4.2 + nx * a.strafeDir * 1.0; }
-    else { mx = -nz * a.strafeDir * 2.6; mz = nx * a.strafeDir * 2.6; }
-    if (a.bowT > 0) { mx *= 0.4; mz *= 0.4; }
+    if (dist > 22) { wp = zombieWaypoint(a, tgt, dt); let wx = wp ? wp.x - a.pos.x : dx, wz = wp ? wp.z - a.pos.z : dz; const wl = Math.hypot(wx, wz) || 1; mx = wx / wl * 5.6; mz = wz / wl * 5.6; }
+    else if (dist < 10) { mx = -nx * 4.4 - nz * a.strafeDir * 2.4; mz = -nz * 4.4 + nx * a.strafeDir * 2.4; }
+    else { mx = -nz * a.strafeDir * 3.2; mz = nx * a.strafeDir * 3.2; }
+    if (a.bowT > 0) { mx *= 0.5; mz *= 0.5; }
     if (a.bowT > 0) {
       a.bowT -= dt;
       if (a.bowT <= 0) { a.bowT = 0; spokeSet(a, { draw: 0 }); spokeShoot(a, tgt); }
-    } else if (a.shootCd <= 0 && dist < 40 && dist > 3) {
-      const eye = new THREE.Vector3(a.pos.x, a.pos.y + 1.55, a.pos.z), tp = new THREE.Vector3(tgt.x, tgt.y + 1.2, tgt.z);
-      if (skLos(eye, tp)) { a.bowT = 1.8; spokeSet(a, { draw: 1 }); a.shootCd = 3.0 + Math.random() * 2.5; } else a.shootCd = 0.8;
+    } else if (a.shootCd <= 0 && dist < 45 && dist > 4) {
+      if (skLos(eyeP, tgtP)) { a.bowT = 0.9; spokeSet(a, { draw: 1 }); a.shootCd = 1.3 + Math.random() * 1.1; } else a.shootCd = 0.5;
     }
   }
-  a.derpT = (a.derpT || 0) - dt; a.derpCd = (a.derpCd || 0) - dt;
-  if (a.derpT <= 0 && a.derpCd <= 0) { a.derpCd = 1 + Math.random() * 1.5; if (Math.random() < 0.35) { a.derpT = 0.5 + Math.random() * 0.9; const ang = Math.random() < 0.3 ? 0 : Math.random() * 6.283, sp = ang === 0 ? 0 : 3; a.derpX = Math.sin(ang) * sp; a.derpZ = Math.cos(ang) * sp; } }
-  if (a.derpT > 0) { mx = a.derpX; mz = a.derpZ; }   // stumbles in a random direction (or freezes)
   a.vel.x = mx; a.vel.z = mz;
   a.jumpCd = (a.jumpCd || 0) - dt;
   const ml = Math.hypot(mx, mz);
@@ -8194,6 +8281,7 @@ function spokeAI(a, dt) {
     const spaceAbove = !checkCollision(ax, a.pos.y + 1.05, az, a.radius, a.height * 0.85);
     if (Math.abs(a.vel.y) < 0.2 && ((blocked && spaceAbove) || (wp && wp.fy > a.pos.y + 0.45))) { a.vel.y = 7.5; a.jumpCd = 0.5; }
   }
+  spokeBuilder(a, dt, mx, mz, tgt, dist);   // breaks walls, bridges gaps, pillars up
 }
 // client side, every frame: held item, enchant glint, eating pose
 function spokeVisualTick(a, dt) {
@@ -8209,15 +8297,21 @@ function spokeVisualTick(a, dt) {
   if (a.totemFx > 0) a.totemFx -= dt;
   if (a.gear) for (const m of a.gear) {
     const mt = m.userData && m.userData.mat; if (!mt || !mt.emissive) continue;
-    const p = 0.5 + 0.5 * Math.sin(t * 2.2 + (m.id % 7));
     mt.emissive.setRGB(fx * 0.5, fx * 0.25, fx * 0.5);   // plain diamond armor; only flashes when the totem pops
   }
-  if (ud.arms) {   // arms like a player: swing opposite the legs, raised only for the bow / sword / apple
+  if (ud.arms) {   // player-style arms (NOT the zombie both-arms-out pose): free arm swings with the legs, only the item arm lifts
     const sw = Math.sin(a.walk || 0) * (a.amp || 0), A = ud.arms;
-    A[0].rotation.x = -sw * 0.75; A[1].rotation.x = sw * 0.75; A[0].rotation.z = A[1].rotation.z = 0;
-    if (d.eat) A[1].rotation.x = -2.25 + Math.sin(t * 16) * 0.14;
-    else if (want === 'bow') { A[1].rotation.x = -1.45; A[0].rotation.x = -1.35 - (d.draw ? 0.15 : 0); }
-    else if (want === 'diamond_sword' || want === 'diamond_axe') { const atk = Math.max(0, ((a.attackCd || 0) - 0.75) / 0.35); A[1].rotation.x = -1.2 - atk * 0.9; }
+    A[0].rotation.set(-sw * 0.75, 0, 0.05); A[1].rotation.set(sw * 0.75, 0, -0.05);
+    if (d.eat) { A[1].rotation.x = -2.0 + Math.sin(t * 16) * 0.12; A[1].rotation.y = 0.35; A[0].rotation.x = -0.25; }
+    else if (want === 'bow') {
+      A[1].rotation.x = -1.5; A[1].rotation.y = 0.12;                                   // bow arm points at the target
+      if (d.draw) { A[0].rotation.x = -1.35; A[0].rotation.y = -0.75; A[0].rotation.z = 0; }   // string hand pulled back across the chest
+      else { A[0].rotation.x = -0.35 - sw * 0.3; }
+    } else {
+      const atk = Math.max(0, ((a.attackCd || 0) - 0.75) / 0.35);                         // 1 -> 0 over the swing
+      A[1].rotation.x = -0.85 - atk * 1.3 + sw * 0.25;                                    // sword held ready, chops down-forward on a hit
+      A[1].rotation.y = 0.1 - atk * 0.2;
+    }
   }
 }
 // boss bars: HP bar + resource bar (armor durability left, golden apples left)
@@ -8230,8 +8324,9 @@ function _spokeIcon(type) {
 function updateSpokeHud(dt) {
   let best = null, bd = 1e9;
   for (const a of animals) {
-    if (a.kind !== 'spoke' || !a.alive) continue;
+    if (!isSpk(a.kind) || !a.alive) continue;
     spokeVisualTick(a, dt);
+    if (a.kind !== 'spoke') continue;
     const dd = Math.hypot(a.pos.x - player.pos.x, a.pos.z - player.pos.z);
     if (dd < bd) { bd = dd; best = a; }
   }
@@ -8341,7 +8436,7 @@ function updateAnimals(dt) {
           }
         }
       }
-    } else if (a.kind === 'spoke') {
+    } else if (isSpk(a.kind)) {
       spokeAI(a, dt);
     } else if (a.kind === 'skeleton') {
       skeletonAI(a, dt);
@@ -8549,7 +8644,7 @@ function damageAnimal(animal, dmg, fromPos, kbMul) {
       id: animal.id, dmg, kx: fp.x - animal.pos.x, kz: fp.z - animal.pos.z, kb: kbMul == null ? 1 : kbMul, by: MY_ID } });
     return;
   }
-  if (animal.kind === 'spoke') { spokeHurt(animal, dmg, fromPos || player.pos, kbMul, MY_ID); return; }
+  if (isSpk(animal.kind)) { spokeHurt(animal, dmg, fromPos || player.pos, kbMul, MY_ID); return; }
   animal.hp -= dmg * zArmorMul(animal);
   flashRed(animal.group);
   knockbackEntity(animal, fromPos || player.pos, (animal.kind === 'zombie' ? 9.5 : 7.5) * (kbMul == null ? 1 : kbMul));
@@ -9157,7 +9252,7 @@ function jcPickTarget(ray, reach, pad, minReach) {
 }
 
 // ================= XP & enchanting =================
-const JC_XP = { spoke: 150, skeleton: 8, zombie: 8, cow: 4, sheep: 3, pig: 3 };           // XP per kill
+const JC_XP = { spoke: 150, null: 40, skeleton: 8, zombie: 8, cow: 4, sheep: 3, pig: 3 };           // XP per kill
 function xpNeed(level) { return 7 + level * 2; }                  // XP points to climb from `level` to level+1
 const xpLvlEl = document.getElementById('xpLvl'), xpFillEl = document.getElementById('xpFill');
 function jcXpUI() {
@@ -9540,13 +9635,17 @@ playersChannel
     if (!payload || !isMobHost()) return;
     const a = animals.find(q => q.id === payload.id && q.alive && !q.remote);
     if (!a) return;
-    if (a.kind === 'spoke') { spokeHurt(a, Number(payload.dmg) || 0, new THREE.Vector3(a.pos.x + (Number(payload.kx) || 0), a.pos.y, a.pos.z + (Number(payload.kz) || 0)), payload.kb == null ? 1 : Number(payload.kb), payload.by); return; }
+    if (isSpk(a.kind)) { spokeHurt(a, Number(payload.dmg) || 0, new THREE.Vector3(a.pos.x + (Number(payload.kx) || 0), a.pos.y, a.pos.z + (Number(payload.kz) || 0)), payload.kb == null ? 1 : Number(payload.kb), payload.by); return; }
     a.hp -= (Number(payload.dmg) || 0) * zArmorMul(a); flashRed(a.group);
     knockbackEntity(a, new THREE.Vector3(a.pos.x + (Number(payload.kx) || 0), a.pos.y, a.pos.z + (Number(payload.kz) || 0))   /* kx,kz point from the mob to the attacker, so the shove must come FROM that point */, (a.kind === 'zombie' ? 9.5 : 7.5) * (payload.kb == null ? 1 : payload.kb));
     if (a.hp <= 0) killAnimal(a, payload.by);
   })
   .on('broadcast', { event: 'kill_player' }, ({ payload }) => { if (payload && payload.to === MY_ID) killPlayerNow(); })
   .on('broadcast', { event: 'kill_all_mobs' }, () => { if (isMobHost()) killAllMobs(); })
+  .on('broadcast', { event: 'force_update' }, ({ payload }) => {
+    if (!payload || payload.from === MY_ID || payload.name !== 'Yuan') return; // only the creator can force an update
+    doForcedUpdate(filterText(String(payload.text || 'The game was updated! Refreshing the page...').slice(0, 120)));
+  })
   .on('broadcast', { event: 'spoke_summon' }, ({ payload }) => {
     if (!payload || !isMobHost()) return;
     const x = Number(payload.x), y = Number(payload.y), z = Number(payload.z);
@@ -9566,10 +9665,11 @@ playersChannel
   })
   .on('broadcast', { event: 'chat' }, ({ payload }) => {
     if (!payload || payload.id === MY_ID) return;
-    addChatLine(payload.name || 'Player', payload.text || '', false);
+    const cleanText = filterText(payload.text || '');
+    addChatLine(payload.name || 'Player', cleanText, false);
     let entry = otherPlayers.get(payload.id);
     if (!entry) entry = createOtherPlayer(payload.id, payload.name || 'Player');
-    showChatBubbleOn(entry, payload.text || '');
+    showChatBubbleOn(entry, cleanText);
   })
   // PvP: the attacker broadcasts who they hit and for how much. Everyone
   // who can see the target flashes their model red; only the actual target
@@ -9736,9 +9836,58 @@ function escapeHtml(s) {
   d.textContent = s;
   return d.innerHTML;
 }
+let chatFilterMode = 'all';
+try { chatFilterMode = localStorage.getItem('voltex_chat_filter') || 'all'; } catch (e) {}
+function setChatFilter(m) {
+  chatFilterMode = m; try { localStorage.setItem('voltex_chat_filter', m); } catch (e) {}
+  chatLog.classList.remove('f-chat', 'f-sys'); if (m !== 'all') chatLog.classList.add('f-' + m);
+  document.querySelectorAll('#chatFilter button').forEach(b => b.classList.toggle('on', b.dataset.f === m));
+  chatLog.scrollTop = chatLog.scrollHeight;
+}
+document.querySelectorAll('#chatFilter button').forEach(b => {
+  b.addEventListener('pointerdown', e => { e.preventDefault(); e.stopPropagation(); setChatFilter(b.dataset.f); });
+  b.addEventListener('click', e => { e.preventDefault(); e.stopPropagation(); });
+});
+setChatFilter(chatFilterMode);
+
+// ---------- Profanity / slur filter ----------
+// Censors swear words and slurs (also leetspeak like b1tch, f*ck, sh!t, n1gg3r, and f.u.c.k style spacing with symbols).
+const BAD_WORDS = [ // [word, needsWordBoundaryAtStart]
+  ['nigger', 0], ['nigga', 0], ['nigg', 0], ['faggot', 0], ['fuck', 0], ['fuk', 1], ['fck', 1], ['shit', 0],
+  ['bitch', 0], ['bastard', 0], ['asshole', 0], ['cunt', 1], ['whore', 1], ['slut', 1], ['pussy', 1], ['retard', 1]
+];
+const LEET_MAP = { a: 'a@4*', e: 'e3*', i: 'i1!|*', o: 'o0*', u: 'uv*', s: 's$5', l: 'l1|', t: 't7+', g: 'g9', b: 'b8', c: 'c(' };
+const BAD_SEP = '[._\\-*]*';
+const BAD_REGEXES = BAD_WORDS.map(([w, strict]) => {
+  const body = w.split('').map(ch => '[' + (LEET_MAP[ch] || ch).replace(/[\\\]\[\^\-]/g, '\\$&') + ']+').join(BAD_SEP);
+  return new RegExp((strict ? '\\b' : '') + body, 'gi');
+});
+function filterText(str) {
+  if (str == null) return '';
+  let out = String(str).replace(/[\u200B-\u200D\uFEFF]/g, '');
+  for (const re of BAD_REGEXES) out = out.replace(re, m => '*'.repeat(m.length));
+  return out;
+}
+// ---------- /update : show a message, then refresh the page for everyone ----------
+let _forcedUpdating = false;
+function doForcedUpdate(text) {
+  if (_forcedUpdating) return;
+  _forcedUpdating = true;
+  try { saveLocalPlayer(); } catch (e) {}
+  try { document.exitPointerLock(); } catch (e) {}
+  const ov = document.createElement('div');
+  ov.style.cssText = 'position:fixed;inset:0;z-index:99999;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:14px;background:rgba(10,12,24,0.93);color:#fff;font:bold 22px monospace;text-align:center;padding:24px;';
+  const t = document.createElement('div'); t.textContent = text;
+  const c = document.createElement('div'); c.style.cssText = 'font-size:16px;color:#7ec8ff;';
+  ov.appendChild(t); ov.appendChild(c); document.body.appendChild(ov);
+  let n = 5;
+  const tick = () => { c.textContent = 'Refreshing in ' + n + '...'; if (n-- <= 0) { location.reload(); return; } setTimeout(tick, 1000); };
+  tick();
+}
 function addChatLine(name, text, isMe) {
   const div = document.createElement('div');
-  div.className = 'chatLine';
+  div.className = 'chatLine' + (name === 'System' ? ' sys' : '');
+  if (name !== 'System') { name = filterText(name); text = filterText(text); }
   div.innerHTML = `<span class="chatName" style="color:${isMe ? '#7ec8ff' : '#ffd54a'}">${escapeHtml(name)}:</span> ${escapeHtml(text)}`;
   chatLog.appendChild(div);
   while (chatLog.children.length > 50) chatLog.removeChild(chatLog.firstChild);
@@ -9760,7 +9909,7 @@ function showChatBubbleOn(target, text) {
 function openChat() {
   if (chatOpen || !gameStarted) return;
   chatOpen = true;
-  chatInputWrap.classList.add('open');
+  chatInputWrap.classList.add('open'); document.getElementById('chatFilter').style.display = 'flex';
   chatInputWrap.style.display = touchMode ? 'flex' : 'block';
   chatInput.value = '';
   chatInput.focus();
@@ -9768,7 +9917,7 @@ function openChat() {
 }
 function closeChat() {
   chatOpen = false;
-  chatInputWrap.classList.remove('open');
+  chatInputWrap.classList.remove('open'); document.getElementById('chatFilter').style.display = 'none';
   chatInputWrap.style.display = 'none';
   chatInput.blur();
   resumeGameplay();
@@ -9862,6 +10011,14 @@ function runChatCommand(text) {
     sys('Summoned Spoke.');
     return;
   }
+  // /update [message] - shows a message to everyone, then refreshes the website for everyone. Creator only.
+  if (cmd === 'update') {
+    const msg = filterText(parts.join(' ').trim().slice(0, 120)) || 'The game was updated! Refreshing the page...';
+    playersChannel.send({ type: 'broadcast', event: 'force_update', payload: { from: MY_ID, name: MY_NAME, text: msg } });
+    sys('Update sent to everyone.');
+    doForcedUpdate(msg);
+    return;
+  }
   if (cmd === 'biome') { sys('Biome: ' + biomeAt(Math.floor(player.pos.x), Math.floor(player.pos.z))); return; }
   // /nulltotem — give a Null Totem (10 uses, Null enchant). Creator only.
   if (cmd === 'nulltotem' || cmd === 'null_totem' || (cmd === 'give' && (parts[0] || '').toLowerCase() === 'null_totem')) {
@@ -9880,12 +10037,13 @@ function runChatCommand(text) {
     else { weatherForce = null; sys('Weather: natural (usage: /rain on | off | auto)'); }
     return;
   }
-  if (cmd === 'help') { sys('/tp @s <x> <y> <z> | /tp @s <player> | /biome | /spawner [tp] | /nulltotem | /spoke | /kill <player|@s|@e> | /rain on|off|auto'); return; }
+  if (cmd === 'help') { sys('/tp @s <x> <y> <z> | /tp @s <player> | /biome | /spawner [tp] | /nulltotem | /spoke | /kill <player|@s|@e> | /rain on|off|auto | /update [message]'); return; }
   sys('Unknown command: /' + cmd + ' (try /help)');
 }
 
 function sendChatMessage() {
-  const text = chatInput.value.trim().slice(0, 200);
+  const rawText = chatInput.value.trim().slice(0, 200);
+  const text = rawText[0] === '/' ? rawText : filterText(rawText);
   closeChat();
   if (!text) return;
   if (text[0] === '/') { runChatCommand(text); return; }
@@ -10537,7 +10695,7 @@ function toggleFullscreen() { if (isFullscreen()) exitFullscreen(); else enterFu
 })();
 
 function startGame() {
-  MY_NAME = (nameInput.value || MY_NAME).trim().slice(0, 16) || MY_NAME;
+  MY_NAME = filterText((nameInput.value || MY_NAME).trim().slice(0, 16)) || MY_NAME;
   startScreen.style.display = 'none';
   gameStarted = true;
   if (touchMode) {
@@ -11807,7 +11965,7 @@ function broadcastSign(k, text) {
 }
 function applySignPayload(p) {
   if (!p || !p.key) return;
-  if (p.text) signData[p.key] = String(p.text).slice(0, 120);
+  if (p.text) signData[p.key] = filterText(String(p.text).slice(0, 120));
   else delete signData[p.key];
   saveSignData();
   refreshSignLabel(p.key);
@@ -11823,7 +11981,7 @@ function openSignEditor(x, y, z) {
 }
 function closeSignEditor(save) {
   if (save && signEditKey) {
-    const t = (signTextEl.value || '').replace(/\r/g,'').slice(0, 120);
+    const t = filterText((signTextEl.value || '').replace(/\r/g,'').slice(0, 120));
     if (t.trim()) signData[signEditKey] = t; else delete signData[signEditKey];
     saveSignData();
     broadcastSign(signEditKey, signData[signEditKey] || '');
