@@ -1,1 +1,553 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>CHERO</title>
+<style>
+:root{--ink:#000;--paper:#fff;--a:#ff2e88;--b:#2f6bff;--hl:#ffd400;font-family:"Helvetica Neue",Arial,sans-serif}
+*{box-sizing:border-box}
+html,body{margin:0;height:100%;background:var(--ink);color:var(--paper)}
+.screen{display:none;min-height:100%;flex-direction:column;align-items:center;justify-content:center;padding:20px}
+.screen.on{display:flex}
+button{font:inherit;cursor:pointer}
+button:focus-visible{outline:4px solid var(--hl);outline-offset:3px}
+/* cover */
+#cover{background:conic-gradient(var(--ink) 25%,#1c1c1c 0 50%,var(--ink) 0 75%,#1c1c1c 0) 0 0/90px 90px}
+.card{background:var(--paper);color:var(--ink);padding:34px 40px;border:6px solid var(--ink);box-shadow:12px 12px 0 var(--a);text-align:center;max-width:460px;width:100%}
+h1{margin:0;font-family:"Arial Black",Impact,sans-serif;font-size:clamp(56px,16vw,104px);letter-spacing:-3px;line-height:.9}
+.tag{margin:12px 0 26px;font-size:17px}
+.btns{display:flex;flex-direction:column;gap:12px}
+.btn{padding:14px 20px;font-size:20px;font-weight:800;border:4px solid var(--ink);background:var(--paper);color:var(--ink)}
+.btn:hover{background:var(--hl)}
+.btn.main{background:var(--ink);color:var(--paper)}
+.btn.main:hover{background:var(--a)}
+/* info pages */
+.page{background:var(--paper);color:var(--ink);max-width:640px;width:100%;padding:28px 32px;border:6px solid var(--ink);box-shadow:12px 12px 0 var(--b);margin:10px 0}
+.page h2{margin:0 0 14px;font-family:"Arial Black",sans-serif;font-size:32px}
+.page p,.page li{line-height:1.5;font-size:16px}
+.page ul,.page ol{padding-left:22px;margin:8px 0 16px}
+table{border-collapse:collapse;width:100%;margin:6px 0 16px;font-size:15px}
+td{border:2px solid var(--ink);padding:6px 8px;vertical-align:top}
+td:first-child{white-space:nowrap;font-weight:800}
+.pc{display:inline-grid;place-items:center;width:26px;height:26px;border-radius:50%;background:var(--a);color:#fff;font-weight:800;font-size:14px;margin-right:6px}
+/* game */
+#game{justify-content:flex-start;gap:10px;padding:10px}
+.bar{display:flex;align-items:center;gap:10px;flex-wrap:wrap;justify-content:center}
+#status{font-weight:800;font-size:18px;padding:6px 14px;border:3px solid var(--paper)}
+.sm{padding:6px 12px;font-size:15px;border:3px solid var(--paper);background:var(--ink);color:var(--paper);font-weight:700}
+.sm:hover{background:var(--paper);color:var(--ink)}
+#win,#spell,#book{z-index:8}
+#game:has(#spell.on) .pcs,#game:has(#book.on) .pcs,#game:has(#spell.on) .bdg,#game:has(#book.on) .bdg{visibility:hidden}
+.sm:disabled{opacity:.5;cursor:not-allowed}
+#enbars{display:flex;gap:14px;justify-content:center;flex-wrap:wrap}
+.en{display:flex;align-items:center;gap:6px;font-weight:800;font-size:14px}
+.en .tr{width:min(34vw,150px);height:14px;border:3px solid var(--paper);background:#222}
+.en .tr i{display:block;height:100%;background:var(--c);transition:width .3s}
+.en.low .tr i{background:#ff2020}
+.en.low b{color:#ff5a5a}
+.ec{font-weight:800;color:#b85c00;font-size:13px}.sm:disabled:hover{background:var(--ink);color:var(--paper)}
+#board{--s:min(calc((100vw - 28px)/9),calc((100vh - 128px)/18),52px);display:grid;grid-template-columns:repeat(9,var(--s));grid-template-rows:repeat(18,var(--s));border:4px solid var(--paper)}
+.sq{position:relative;width:var(--s);height:var(--s);display:grid;place-items:center;cursor:pointer}
+.sq.w{background:#fff}.sq.k{background:#000}
+.sq.sel{box-shadow:inset 0 0 0 4px var(--hl)}
+.sq.dng{box-shadow:inset 0 0 0 5px #ff2020,inset 0 0 14px 4px #ff2020}
+.sq.go::after{content:"";position:absolute;width:30%;height:30%;border-radius:50%;background:var(--hl);border:2px solid #000}
+.sq.cap::after{width:84%;height:84%;background:none;border:4px solid var(--hl)}
+.pcs{width:80%;height:80%;border-radius:50%;display:grid;place-items:center;color:#fff;font-weight:900;font-size:calc(var(--s)*.46);border:2px solid #888;z-index:1}
+.pcs.s0{background:var(--a)}.pcs.s1{background:var(--b)}
+#win,#spell,#book{position:fixed;inset:0;background:rgba(0,0,0,.85);display:none;align-items:center;justify-content:center;padding:20px}
+#win.on,#spell.on,#book.on{display:flex}
+#word{width:100%;padding:12px;font-size:22px;border:4px solid #000;margin:6px 0;text-align:center}
+#spell .card,#book .card{max-height:92vh;overflow:auto}
+#book .card{max-width:520px}
+.sp{border:3px solid #000;padding:8px;margin:8px 0;text-align:left;font-size:15px}
+.hard #pbook,.hard #bookbtn,.hard #obook{display:none}
+#modes,#opp{display:flex;margin:0 0 8px;border:4px solid #000}
+#modes button,#opp button{flex:1;padding:8px;font-weight:800;background:#fff;color:#000;border:0}
+#modes button.on,#opp button.on{background:#000;color:#fff}
+.sp.dim{opacity:.45}
+.sp.go{cursor:pointer;border-color:var(--a);background:#fff0f6}
+.sp.go:hover{background:var(--hl)}
+.sp .hg{font-size:30px;display:block;letter-spacing:4px}
+#slots{display:flex;gap:8px;justify-content:center;margin:8px 0}
+.slot{width:46px;height:52px;border:4px solid #000;display:grid;place-items:center;font-size:28px}
+.mini{grid-template-columns:repeat(auto-fill,minmax(46px,1fr));gap:6px;margin:8px 0}
+.mini button{background:#fff;color:#000;border:3px solid #000;font-size:26px;padding:2px;line-height:1.3}
+.mini button:hover{background:var(--hl)}
+@keyframes poof{0%{transform:scale(1);opacity:1}40%{transform:scale(1.35) rotate(8deg);filter:drop-shadow(0 0 8px #b100ff) brightness(2)}100%{transform:scale(0) rotate(40deg);opacity:0}}
+.pcs.poof{animation:poof .7s forwards}
+.sq:has(.poof) .bdg{display:none}
+#cover{position:relative;overflow:hidden}
+#cover .card{position:relative;z-index:1}
+#float{position:absolute;inset:0;pointer-events:none}
+#float span{position:absolute;bottom:-70px;font-size:44px;color:#ffffff30}
+.pcs{position:relative}
+.pcs.bound{filter:grayscale(1) brightness(.8);outline:3px dashed #fff;outline-offset:-5px}
+.pcs.bound::after{content:"⛓";position:absolute;font-size:calc(var(--s)*.4);bottom:-3px;left:0}
+.pcs.shield{box-shadow:0 0 0 3px #ffd400,0 0 14px 4px #ffd400}
+.fx{position:absolute;inset:0;pointer-events:none;display:none;z-index:3;border-radius:50%}
+#banner{position:fixed;inset:0;display:none;flex-direction:column;align-items:center;justify-content:center;z-index:9;background:rgba(0,0,0,.8)}
+#banner.on{display:flex}
+#banner.destroy{background:radial-gradient(circle,#6a00a8cc,#000e)}
+#banner.bind{background:radial-gradient(circle,#666c,#000e)}
+#banner.protect{background:radial-gradient(circle,#b98f00cc,#000e)}
+#banner.revive{background:radial-gradient(circle,#00a35ccc,#000e)}
+#banner.push,#banner.haste{background:radial-gradient(circle,#0a6fb5cc,#000e)}
+#banner.blind,#banner.curse{background:radial-gradient(circle,#8a1c1ccc,#000e)}
+#banner.stop,#banner.immune{background:radial-gradient(circle,#4b4bd1cc,#000e)}
+#banner.convert,#banner.summon{background:radial-gradient(circle,#c25a00cc,#000e)}
+.pcs.shield::before{content:"🛡" attr(data-sh);position:absolute;top:-4px;left:-3px;font-size:calc(var(--s)*.3);background:#000;color:#fff;border-radius:6px;padding:0 2px;z-index:3}
+#toast{position:fixed;top:12px;left:50%;transform:translateX(-50%);background:#fff;color:#000;border:4px solid #000;padding:8px 16px;font-weight:800;z-index:12;display:none;max-width:90vw;text-align:center}
+#toast.on{display:block}
+.pcs.blind::after{content:"🚫";position:absolute;font-size:calc(var(--s)*.4);bottom:-3px;right:0}
+.bw{display:flex;gap:10px}
+.bw span{font-size:min(16vw,90px);color:#fff;text-shadow:0 0 18px #fff}
+.bn{margin-top:14px;font:900 28px "Arial Black",sans-serif;color:#fff}
+@media (prefers-reduced-motion:no-preference){
+.card,.page{animation:pop .4s backwards}
+@keyframes pop{from{transform:scale(.85);opacity:0}}
+#cover{animation:drift 14s linear infinite}
+@keyframes drift{to{background-position:90px 90px}}
+#cover h1 span{display:inline-block;animation:wave 2.4s ease-in-out infinite}
+@keyframes wave{50%{transform:translateY(-8%) rotate(-3deg)}}
+#float span{animation:rise linear infinite}
+@keyframes rise{to{transform:translateY(-115vh) rotate(40deg)}}
+.btn{transition:transform .12s}
+.btn:hover{transform:translate(-3px,-3px)}
+.fx{display:block}
+.fx.land{border:3px solid #fff;animation:ring .5s ease-out forwards}
+.fx.bind{border:4px dashed #ccc;animation:ring .75s ease-out forwards}
+.fx.cap{background:radial-gradient(circle,#fff,#ffd400 40%,transparent 70%);animation:burst .6s ease-out forwards}
+.fx.destroy{background:radial-gradient(circle,#fff,#b100ff 45%,transparent 70%);animation:burst .75s ease-out forwards}
+.fx.protect{background:radial-gradient(circle,#fff8,#ffd400 55%,transparent 72%);animation:burst .75s ease-out forwards}
+.fx.push{border:4px solid #4db8ff;animation:ring .75s ease-out forwards}
+.fx.blind,.fx.curse{background:radial-gradient(circle,#fff,#ff2a2a 45%,transparent 70%);animation:burst .75s ease-out forwards}
+.fx.convert,.fx.summon{background:radial-gradient(circle,#fff,#ff9a2e 45%,transparent 70%);animation:burst .75s ease-out forwards}
+.fx.revive{background:radial-gradient(circle,#fff,#4dff9f 45%,transparent 70%);animation:burst .75s ease-out forwards}
+@keyframes ring{from{transform:scale(.4);opacity:1}to{transform:scale(1.8);opacity:0}}
+@keyframes burst{from{transform:scale(.3);opacity:1}to{transform:scale(2.2);opacity:0}}
+.pcs.land{animation:land .35s}
+@keyframes land{0%{transform:scale(1.4)}60%{transform:scale(.9)}100%{transform:scale(1)}}
+.sq.sel .pcs{animation:bob .8s ease-in-out infinite}
+@keyframes bob{50%{transform:translateY(-12%) scale(1.1)}}
+.sq.go::after{animation:pulse 1s infinite}
+@keyframes pulse{50%{transform:scale(1.35)}}
+.sq.dng .pcs{animation:dng .7s infinite}
+@keyframes dng{50%{transform:scale(1.15);filter:drop-shadow(0 0 8px red)}}
+.pcs.shield{animation:glow 1.4s infinite}
+@keyframes glow{50%{box-shadow:0 0 0 3px #ffd400,0 0 22px 8px #ffd400}}
+.pcs.bound{animation:shake 1.6s infinite}
+@keyframes shake{0%,90%,100%{transform:none}93%{transform:translateX(-6%)}96%{transform:translateX(6%)}}
+.sq.tg{animation:tgp 1s infinite}
+@keyframes tgp{50%{filter:brightness(1.5)}}
+#board.intro .pcs{animation:drop .5s backwards}
+@keyframes drop{from{transform:translateY(-300%) scale(.4);opacity:0}}
+.bw span{animation:rune .5s backwards}
+@keyframes rune{from{transform:scale(3) rotate(-30deg);opacity:0;filter:blur(8px)}}
+#spell.shake .card{animation:shk .4s}
+@keyframes shk{25%{transform:translateX(-12px)}75%{transform:translateX(12px)}}
+}
+.sq.tg{box-shadow:inset 0 0 0 5px #b100ff,inset 0 0 14px 4px #b100ff}
+.hg{font-family:"Noto Sans Egyptian Hieroglyphs","Segoe UI Historic","Apple Symbols","Noto Sans Symbols 2",serif}
+.pcs.hg{font-size:calc(var(--s)*.6);font-weight:400}
+.pcs.king{border:3px solid var(--hl);box-shadow:0 0 0 2px #000}
+.bdg{position:absolute;top:0;right:2px;font-size:calc(var(--s)*.28);color:#fff;text-shadow:0 0 2px #000,0 0 2px #000;z-index:2;pointer-events:none}
+#pick{justify-content:flex-start;--c:var(--a)}
+.pbar{display:flex;gap:12px;align-items:center;flex-wrap:wrap;justify-content:center;margin:10px 0}
+.pt{font-weight:800;font-size:20px;padding:6px 14px;border:3px solid var(--c)}
+.grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(78px,1fr));gap:8px;max-width:680px;width:100%}
+.tile{background:#fff;color:#000;border:4px solid #fff;padding:4px 2px;text-align:center;font-size:12px;font-weight:800}
+.tile .g{display:block;font-size:38px;line-height:1.25}
+.tile.on{background:var(--c);color:#fff;border-color:var(--hl)}
+.tile.lock{border-style:dashed}
+#pgo{padding:8px 18px;font-size:17px;background:#fff;color:#000;border-color:#fff}
+#pgo:disabled{opacity:.4;cursor:not-allowed}
+@media (prefers-reduced-motion:no-preference){.pcs{transition:transform .12s}.sq.sel .pcs{transform:scale(1.12)}}
+</style>
+</head>
+<body>
+
+<section id="cover" class="screen on">
+  <div class="card">
+    <h1>CHERO</h1>
+    <p class="tag">Protect your King. A tall board. Not chess.</p>
+    <div id="opp"><button data-o="human" class="on">2 Players</button><button data-o="bot">vs Bot</button></div>
+    <div id="modes"><button data-m="easy">Easy</button><button data-m="normal" class="on">Normal</button><button data-m="hard">Hard</button></div>
+    <p class="tag" id="modetxt" style="margin:0 0 16px;font-size:14px"></p>
+    <div class="btns">
+      <button class="btn main" data-go="pick">Play</button>
+      <button class="btn" data-go="how">How to Play</button>
+      <button class="btn" data-go="rules">Rules</button>
+    </div>
+  </div>
+</section>
+
+<section id="how" class="screen">
+  <div class="page">
+    <h2>How to Play</h2>
+    <ol>
+      <li>Two players share one device. <b>Pink</b> picks first and moves first from the bottom. <b>Blue</b> plays from the top.</li><li>Each player picks 15 hieroglyphs. Every hieroglyph is a piece, and the small mark on it shows its type (see the table). Your King is always included.</li>
+      <li>Tap one of your pieces. Yellow dots show where it can go.</li>
+      <li>Tap a dot to move. A yellow ring means you can capture a piece there.</li>
+      <li>Players take turns, one move each.</li>
+      <li>Protect your <b>King (👑)</b>. If it is captured, you lose the game.</li><li>Capture the other player's King to win.</li><li>Magic: if you picked the Mage ✨, press <b>Cast magic</b> instead of moving. Craft a true Egyptian magic word from the Spellbook, using hieroglyphs you picked that are still alive. Unknown words have no power. Then follow the prompt to aim the spell.</li>
+    </ol>
+    <p><b>Your pieces</b></p>
+    <table>
+      <tr><td><span class="pc">👑</span>King</td><td>Steps 1 square in any direction.</td></tr>
+      <tr><td><span class="pc">✚</span>Runner</td><td>Slides up to 4 squares straight (up, down, left, right). Cannot jump.</td></tr>
+      <tr><td><span class="pc">✖</span>Guard</td><td>Slides up to 2 squares diagonally. Cannot jump.</td></tr>
+      <tr><td><span class="pc">◆</span>Leaper</td><td>Jumps exactly 2 squares in any of 8 directions, over anything.</td></tr>
+      <tr><td><span class="pc">●</span>Pawn</td><td>Steps 1 forward (2 on its first move). Captures 1 square diagonally forward.</td></tr>
+      <tr><td><span class="pc">✨</span>Mage</td><td>Steps 1 square in any direction. While it is alive, you can cast a magic word. After a cast, wait 3 of your own turns before casting again.</td></tr>
+    </table>
+    <button class="btn" data-go="cover">Back</button>
+  </div>
+</section>
+
+<section id="rules" class="screen">
+  <div class="page">
+    <h2>Rules</h2>
+    <ul>
+      <li>The board is 9 squares wide and 18 squares tall, black and white.</li>
+      <li>Before the game, each player picks 15 of the 26 alphabet hieroglyphs. Each one is a fixed piece type: 👑 King, ✚ Runner, ✖ Guard, ◆ Leaper, ● Pawn, ✨ Mage. The King hieroglyph is always one of your 15.</li><li>Pieces are placed in the order you picked them: King in the middle of the back row, then the rest of the back row, then the front row.</li>
+      <li>You must move one piece every turn. There is no passing.</li>
+      <li>Moving onto an enemy piece captures it. You cannot land on your own pieces.</li>
+      <li>Runners and Guards are blocked by any piece in their path. Leapers are never blocked.</li>
+      <li>A Pawn that reaches the far end of the board becomes a Runner.</li><li><b>Magic:</b> if your Mage ✨ is alive and your magic is ready, press Cast magic instead of moving. After a cast you must wait 3 of your own turns before you can cast again. <b>Energy:</b> every spell drains your ⚡ energy bar (the cost is shown in the Spellbook) and you regain a little each turn. If a cast empties your bar you burn out and lose. Craft a word from the Spellbook below, using only hieroglyphs you picked whose pieces are still alive. A word that is not in the Spellbook has no power and fizzles (see Modes).</li><li><b>Modes:</b> Easy: your Spellbook lists the spells you can make and crafts them when you tap. Normal: the Spellbook is a reference, you craft each word yourself, and a wrong word fizzles at no cost. Hard: no Spellbook during play, and a wrong word wastes your cast and your turn.</li>
+      <li>When your King can be captured on the next move, it glows red and the status says it is in danger. The game will not stop you from leaving it there.</li>
+      <li><b>Goal:</b> keep your King alive. The game ends the moment a King is captured, and that player loses.</li>
+    </ul>
+    <div id="rbook"></div>
+    <button class="btn" data-go="cover">Back</button>
+  </div>
+</section>
+
+<section id="pick" class="screen">
+  <div class="pbar"><button class="sm" data-go="cover">Menu</button><div id="ptitle" class="pt"></div><button class="sm" id="pbook">Spellbook</button></div>
+  <div class="grid" id="grid"></div>
+  <div class="pbar"><span id="pcount"></span><button class="sm" id="prand">Random</button><button class="sm" id="pclear">Clear</button><button class="btn" id="pgo">Confirm</button></div>
+</section>
+
+<section id="game" class="screen">
+  <div class="bar">
+    <button class="sm" data-go="cover">Menu</button>
+    <div id="status"></div>
+    <button class="sm" id="bookbtn">Spellbook</button>
+    <button class="sm" id="hadi" style="display:none">Cast magic</button>
+    <button class="sm" id="restart">Restart</button>
+  </div>
+  <div id="enbars"><div class="en" id="en0" style="--c:var(--a)"><span class="nm"></span><div class="tr"><i></i></div><b></b></div><div class="en" id="en1" style="--c:var(--b)"><span class="nm"></span><div class="tr"><i></i></div><b></b></div></div>
+  <div id="board"></div>
+  <div id="spell"><div class="card"><h1 style="font-size:32px">Craft your magic word</h1><p class="tag" id="ctag"></p><p class="tag" id="ecast" style="margin:0 0 8px;font-weight:800"></p><div id="slots"></div><div class="grid mini" id="sgrid"></div><p id="fizz" style="min-height:1.4em;margin:6px 0"></p><div class="btns"><button class="btn main" id="cast">Cast</button><button class="btn" id="uncraft">Undo</button><button class="btn" id="obook">Spellbook</button><button class="btn" id="nospell">Cancel</button></div></div></div>
+  <div id="book"><div class="card"><h1 style="font-size:32px">Spellbook</h1><div id="blist"></div><div class="btns"><button class="btn" id="bclose">Close</button></div></div></div>
+  <div id="banner"></div>
+  <div id="toast"></div>
+  <div id="win"><div class="card"><h1 style="font-size:48px">King captured</h1><p class="tag" id="wintxt"></p><div class="btns"><button class="btn main" id="again">Play again</button><button class="btn" data-go="cover">Menu</button></div></div></div>
+</section>
+
+<script>
+const W=9,H=18,NEED=15,COOLDOWN=3;
+const EYE=14; /* Eye of Horus: secret, cuts the wait between casts to 1 turn */
+const MAXEN=100,REGEN=5;
+const ECOST={protect:15,bind:20,blind:20,push:20,convert:25,summon:25,revive:30,haste:30,immune:30,curse:35,stop:40,destroy:40};
+const cdFor=side=>(ARMY[side].includes(EYE)?1:COOLDOWN)+1;
+const CODES=[0x1313F,0x130C0,0x132F4,0x130A7,0x131CC,0x13191,0x133BC,0x13254,0x131CB,0x13193,0x133A1,0x130ED,0x13153,0x13216,0x13080,0x132AA,0x1320E,0x1308B,0x13283,0x133CF,0x13171,0x131A3,0x13143,0x132F9,0x131F3,0x13000];
+const GL=CODES.map(c=>String.fromCodePoint(c));
+const TYPES='CRGLPPGRPLGLRPLPGRGPLGPRLZ';
+const MARK={C:'👑',R:'✚',G:'✖',L:'◆',P:'●',Z:'✨'},TN={C:'King',R:'Runner',G:'Guard',L:'Leaper',P:'Pawn',Z:'Mage: magic'};
+const SLOTS=[[4,0],[0,0],[1,0],[2,0],[3,0],[5,0],[6,0],[7,0],[8,0],[1,1],[2,1],[3,1],[5,1],[6,1],[7,1]];
+let ARMY=[[],[]],pp=0,picks=[0];
+const SPELLS=[
+ {w:'HADI',n:'Ha-di',m:'destroy',mode:'destroy',d:'Destroy one enemy piece (not the King).'},
+ {w:'TAS',n:'Tas',m:'bind',mode:'bind',d:'Bind an enemy piece. It cannot move for 2 of its owner\'s turns.'},
+ {w:'SA',n:'Sa',m:'protection',mode:'protect',d:'Shield one of your pieces. For 3 enemy turns it cannot be captured or hit by spells.'},
+ {w:'ANKH',n:'Ankh',m:'life',mode:'revive',d:'Bring back your last fallen piece on a free square in your first two rows.'},
+ {w:'HAWI',n:'Hawi',m:'gale',mode:'push',d:'Blow an enemy piece 2 squares back toward its own side. Blocked squares stop it.'},
+ {w:'AMAX',n:'Amax',m:'haste',mode:'haste',d:'Move twice this turn. Casting is free.'},
+ {w:'SAHEI',n:'Sahei',m:'blind',mode:'blind',d:'Blind an enemy piece. It cannot capture for 2 of its owner\'s turns.'},
+ {w:'STAHP',n:'Stahp',m:'stop',mode:'stop',d:'Time stops. Your opponent skips their next turn.'},
+ {w:'NDAH',n:'Ndah',m:'turn',mode:'convert',d:'Turn an enemy Pawn to your side.'},
+ {w:'DROWAH',n:'Drowah',m:'curse',mode:'curse',d:'Curse an enemy Runner, Guard, Leaper or Mage so it becomes a Pawn.'},
+ {w:'IMUN',n:'Imun',m:'immunity',mode:'immune',d:'Your King cannot be captured or hit by spells for 4 enemy turns.'},
+ {w:'HINEHM',n:'Hinehm',m:'summon',mode:'summon',d:'Summon a new Pawn on a free square in your first two rows.'}];
+let MODE='normal';
+const MODES={easy:'Your Spellbook crafts your spells with one tap.',normal:'You craft your own spells. The Spellbook is a reference.',hard:'No Spellbook in play. A wrong word wastes your cast and turn.'};
+const DONE={destroy:'Piece destroyed.',bind:'Piece bound for 2 of its turns.',protect:'Shielded for 3 enemy turns. It cannot be captured or hit by spells.',revive:'Piece brought back.',push:'Piece blown back.',blind:'Piece blinded for 2 of its turns.',convert:'Pawn turned to your side.',curse:'Piece cursed into a Pawn.',summon:'Pawn summoned.',haste:'Move twice this turn.',stop:'Time stops. Your opponent skips a turn.',immune:'Your King is immune for 4 enemy turns.'};
+const idx=w=>[...w].map(c=>c.charCodeAt(0)-65);
+const PROMPT={destroy:'tap an enemy piece to destroy',bind:'tap an enemy piece to bind',protect:'tap your piece to shield',revive:'tap a free square near your side',push:'tap an enemy piece to blow back',blind:'tap an enemy piece to blind',convert:'tap an enemy Pawn to turn',curse:'tap an enemy piece to curse',summon:'tap a free square near your side'};
+const bookHTML=(l=SPELLS,click=false)=>l.map(x=>'<div class="sp'+(click?' go':'')+'" data-w="'+x.w+'"><span class="hg">'+idx(x.w).map(i=>GL[i]).join('')+'</span><b>'+x.n+'</b> ('+x.m+') <span class="ec">⚡'+ECOST[x.mode]+'</span><br>'+x.d+(click?'<br><small>Tap to craft</small>':'')+'</div>').join('');
+const NAMES=['Pink','Blue'];
+let VSBOT=false,botActing=false,botTimer=null;
+const VAL={P:1,R:4,G:3,L:3,Z:5,C:6};
+const rnd=a=>a[Math.floor(Math.random()*a.length)];
+function botArmy(){
+  const core=[0,25,7,3,8,19,18,13,12,4,10];
+  const extra=[...Array(26).keys()].filter(i=>!core.includes(i)).sort(()=>Math.random()-.5).slice(0,15-core.length);
+  return core.concat(extra);
+}
+function findKing(s){let k=null;G.forEach((r,y)=>r.forEach((q,x)=>{if(q&&q.t==='C'&&q.s===s)k=[x,y]}));return k}
+function botCheck(){
+  if(!VSBOT||botActing||botTimer||over||busy||turn!==1||!$('game').classList.contains('on'))return;
+  botTimer=setTimeout(()=>{botTimer=null;botPlay()},target?500:850);
+}
+function botTargets(m){const o=target;target=m;const r=[];for(let y=0;y<H;y++)for(let x=0;x<W;x++)if(okT(x,y))r.push([x,y]);target=o;return r}
+function botSpells(){
+  if(cd[1]||!G.some(r=>r.some(q=>q&&q.t==='Z'&&q.s===1)))return [];
+  const al=new Set(G.flat().filter(q=>q&&q.s===1).map(q=>q.g));
+  return SPELLS.filter(sp=>idx(sp.w).every(i=>ARMY[1].includes(i)&&al.has(GL[i]))).filter(sp=>{
+    if(sp.mode==='revive')return lost[1].length>0&&botTargets('revive').length>0;
+    if(['immune','haste','stop'].includes(sp.mode))return true;
+    return botTargets(sp.mode).length>0;
+  });
+}
+function botMove(){
+  const mv=[];
+  for(let y=0;y<H;y++)for(let x=0;x<W;x++){const p=G[y][x];if(p&&p.s===1&&!p.b)legal(x,y).forEach(m=>mv.push([x,y,m[0],m[1]]))}
+  if(!mv.length)return null;
+  const ek=findKing(0);let best=null,bs=-1e9;
+  for(const [sx,sy,dx,dy] of mv){
+    const p=G[sy][sx],hit=G[dy][dx];let sc=Math.random()*3;
+    if(hit)sc+=hit.t==='C'?10000:VAL[hit.t]*10;
+    G[dy][dx]=p;G[sy][sx]=null;
+    const kp=p.t==='C'?[dx,dy]:findKing(1);let kT=false,pT=false;
+    for(let y=0;y<H&&!kT;y++)for(let x=0;x<W;x++){const e=G[y][x];if(!e||e.s!==0||e.b)continue;
+      for(const m of legal(x,y)){if(kp&&m[0]===kp[0]&&m[1]===kp[1]){kT=true;break}if(m[0]===dx&&m[1]===dy)pT=true}
+      if(kT)break}
+    G[sy][sx]=p;G[dy][dx]=hit;
+    if(kT)sc-=5000;else if(pT)sc-=VAL[p.t]*9;
+    if(p.t==='P')sc+=1+dy*.25;else if(ek)sc-=(Math.abs(dx-ek[0])+Math.abs(dy-ek[1]))*.05;
+    if(sc>bs){bs=sc;best=[sx,sy,dx,dy]}
+  }
+  return best;
+}
+function botPlay(){
+  if(!VSBOT||over||busy||turn!==1||!$('game').classList.contains('on'))return;
+  botActing=true;
+  try{
+    if(target){
+      const c=botTargets(target),m=target;
+      if(!c.length){cd[1]=cdFor(1);target=null;render();return}
+      const sc=([x,y])=>{const q=G[y][x];return q?VAL[q.t]+Math.random():Math.random()};
+      let t;
+      if(m==='protect'){const k=findKing(1);t=(k&&inDanger(1))?k:c.sort((a,b)=>sc(b)-sc(a))[0]}
+      else if(m==='revive'||m==='summon'||m==='convert')t=rnd(c);
+      else t=c.sort((a,b)=>sc(b)-sc(a))[0];
+      tap(t[0],t[1]);return;
+    }
+    const dgr=inDanger(1),opts=botSpells().filter(x=>en[1]-ECOST[x.mode]>=(dgr?5:20));let pick=null;
+    if(opts.length){
+      const by=m=>opts.find(x=>x.mode===m);
+      if(inDanger(1))pick=by('immune')||by('protect')||null;
+      else if(Math.random()<.75){
+        const c=opts.filter(x=>x.mode!=='immune'&&x.mode!=='protect');
+        pick=(by('destroy')&&Math.random()<.5)?by('destroy'):(c.length?rnd(c):null);
+      }
+    }
+    if(pick){en[1]-=ECOST[pick.mode];craft=idx(pick.w);spellWord=craft.map(i=>GL[i]).join('');sel=null;moves=[];banner(pick);return}
+    const mv=botMove();
+    if(!mv){endTurn();render();return}
+    tap(mv[0],mv[1]);tap(mv[2],mv[3]);
+  }finally{botActing=false;botCheck()}
+}
+
+let G,turn,sel,moves,over,cd,en,target,busy=false,lost=[[],[]],intro=false,again=false,skip=[false,false];
+const $=id=>document.getElementById(id);
+
+function show(id){document.querySelectorAll('.screen').forEach(s=>s.classList.toggle('on',s.id===id));if(id==='pick'){pp=0;ARMY=[[],[]];picks=[0];renderPick()}}
+document.addEventListener('click',e=>{const t=e.target.closest('[data-go]');if(t)show(t.dataset.go)});
+
+function newGame(){
+  G=Array.from({length:H},()=>Array(W).fill(null));
+  [0,1].forEach(s=>ARMY[s].forEach((gi,k)=>{const[c,r]=SLOTS[k],y=s===0?17-r:r;G[y][c]={t:TYPES[gi],s,g:GL[gi],m:0}}));
+  turn=0;sel=null;moves=[];over=false;cd=[0,0];en=[MAXEN,MAXEN];target=null;lost=[[],[]];again=false;skip=[false,false];intro=true;$('board').classList.add('intro');setTimeout(()=>{intro=false;$('board').classList.remove('intro')},1500);$('win').classList.remove('on');render();
+}
+
+const inb=(x,y)=>x>=0&&x<W&&y>=0&&y<H;
+function legal(x,y){
+  const p=G[y][x],out=[],ok=(a,b)=>inb(a,b)&&(!G[b][a]||(G[b][a].s!==p.s&&!G[b][a].sh));
+  const slide=(dirs,n)=>dirs.forEach(([dx,dy])=>{for(let i=1;i<=n;i++){const a=x+dx*i,b=y+dy*i;if(!inb(a,b)||(G[b][a]&&(G[b][a].s===p.s||G[b][a].sh)))break;out.push([a,b]);if(G[b][a])break}});
+  const orth=[[1,0],[-1,0],[0,1],[0,-1]],diag=[[1,1],[1,-1],[-1,1],[-1,-1]];
+  if(p.t==='C'||p.t==='Z')[...orth,...diag].forEach(([dx,dy])=>ok(x+dx,y+dy)&&out.push([x+dx,y+dy]));
+  if(p.t==='R')slide(orth,4);
+  if(p.t==='G')slide(diag,2);
+  if(p.t==='L')[...orth,...diag].forEach(([dx,dy])=>ok(x+dx*2,y+dy*2)&&out.push([x+dx*2,y+dy*2]));
+  if(p.t==='P'){
+    const d=p.s===0?-1:1,home=p.s===0?16:1;
+    if(inb(x,y+d)&&!G[y+d][x]){out.push([x,y+d]);if(!p.m&&inb(x,y+2*d)&&!G[y+2*d][x])out.push([x,y+2*d])}
+    [-1,1].forEach(dx=>{const a=x+dx,b=y+d;if(inb(a,b)&&G[b][a]&&G[b][a].s!==p.s&&!G[b][a].sh)out.push([a,b])});
+  }
+  return p.bl?out.filter(([a,b])=>!G[b][a]):out;
+}
+
+function toast(m){const t=$('toast');t.textContent=m;t.classList.add('on');clearTimeout(toast.t);toast.t=setTimeout(()=>t.classList.remove('on'),2600)}
+const sq=(x,y)=>$('board').children[y*W+x];
+function fx(x,y,k){const f=document.createElement('span');f.className='fx '+k;sq(x,y).appendChild(f);setTimeout(()=>f.remove(),900)}
+function land(x,y,k){const e=sq(x,y).querySelector('.pcs');if(e)e.classList.add('land');fx(x,y,k)}
+function dec(){G.forEach(r=>r.forEach(q=>{if(!q)return;if(q.s===turn){if(q.b)q.b--;if(q.bl)q.bl--}else if(q.sh)q.sh--}))}
+function endTurn(){if(cd[turn]>0)cd[turn]--;en[turn]=Math.min(MAXEN,en[turn]+REGEN);dec();turn=1-turn;if(skip[turn]){skip[turn]=false;dec();turn=1-turn}}
+function okT(x,y){const q=G[y][x];
+  if(target==='destroy')return q&&q.s!==turn&&q.t!=='C'&&!q.sh;
+  if(target==='bind')return q&&q.s!==turn&&!q.sh;
+  if(target==='protect')return q&&q.s===turn;
+  if(target==='revive'||target==='summon')return !q&&(turn===0?y>=16:y<=1);
+  if(target==='push'||target==='blind')return q&&q.s!==turn&&!q.sh;
+  if(target==='convert')return q&&q.s!==turn&&q.t==='P'&&!q.sh;
+  if(target==='curse')return q&&q.s!==turn&&!'CP'.includes(q.t)&&!q.sh}
+function tap(x,y){
+  if(over||busy)return;
+  if(VSBOT&&turn===1&&!botActing)return;
+  if(target){
+    if(!okT(x,y)){if(G[y][x]&&G[y][x].sh&&G[y][x].s!==turn)toast('That piece is shielded.');return}
+    const mode=target,hit=G[y][x];let ny=y;busy=true;fx(x,y,mode);
+    const el=sq(x,y).querySelector('.pcs');if(el&&mode==='destroy')el.classList.add('poof');
+    setTimeout(()=>{
+      if(mode==='destroy'){lost[hit.s].push(hit);G[y][x]=null}
+      if(mode==='bind')hit.b=2;
+      if(mode==='protect')hit.sh=3;
+      if(mode==='revive'){const r=lost[turn].pop();r.m=0;r.b=0;r.sh=0;G[y][x]=r}
+      if(mode==='summon')G[y][x]={t:'P',s:turn,g:GL[4],m:0};
+      if(mode==='blind')hit.bl=2;
+      if(mode==='convert')hit.s=turn;
+      if(mode==='curse'){hit.t='P';hit.m=1}
+      if(mode==='push'){const dy=hit.s===0?1:-1;for(let k=0;k<2;k++){const t=ny+dy;if(t<0||t>=H||G[t][x])break;ny=t}if(ny!==y){G[ny][x]=hit;G[y][x]=null}}
+      cd[turn]=cdFor(turn);target=null;sel=null;moves=[];busy=false;endTurn();render();
+      if(mode==='revive'||mode==='summon')land(x,y,mode);
+      if(mode==='push'&&ny!==y)land(x,ny,'land');
+      toast(DONE[mode]);
+    },750);
+    return;
+  }
+  const p=G[y][x];
+  if(sel&&moves.some(m=>m[0]===x&&m[1]===y)){
+    const mv=G[sel[1]][sel[0]],hit=G[y][x];mv.m=1;
+    G[y][x]=mv;G[sel[1]][sel[0]]=null;
+    if(mv.t==='P'&&y===(mv.s===0?0:17))mv.t='R';
+    sel=null;moves=[];
+    if(hit&&hit.t==='C'){over=true;render();$('win').querySelector('h1').textContent='King captured';$('wintxt').textContent=NAMES[hit.s]+"'s King has fallen. "+NAMES[mv.s]+' wins.';$('win').classList.add('on');return}
+    if(hit)lost[hit.s].push(hit);
+    if(again)again=false;else endTurn();render();land(x,y,hit?'cap':'land');return;
+  }
+  if(p&&p.s===turn&&!p.b){sel=[x,y];moves=legal(x,y)}else{sel=null;moves=[]}
+  render();
+}
+
+const ksh=s=>{let n=0;G.forEach(r=>r.forEach(q=>{if(q&&q.t==='C'&&q.s===s)n=q.sh||0}));return n};
+function inDanger(s){
+  let k=null;G.forEach((r,y)=>r.forEach((q,x)=>{if(q&&q.t==='C'&&q.s===s)k=[x,y]}));
+  if(!k||over)return null;
+  return G.some((r,y)=>r.some((q,x)=>q&&q.s!==s&&legal(x,y).some(m=>m[0]===k[0]&&m[1]===k[1])))?k:null;
+}
+function render(){
+  const kd=inDanger(turn);
+  const b=$('board');b.innerHTML='';
+  for(let y=0;y<H;y++)for(let x=0;x<W;x++){
+    const d=document.createElement('div'),p=G[y][x];
+    d.className='sq '+((x+y)%2?'k':'w');
+    if(kd&&kd[0]===x&&kd[1]===y)d.classList.add('dng');
+    if(target&&okT(x,y))d.classList.add('tg');
+    if(sel&&sel[0]===x&&sel[1]===y)d.classList.add('sel');
+    if(moves.some(m=>m[0]===x&&m[1]===y))d.classList.add('go',...(p?['cap']:[]));
+    if(p){const e=document.createElement('div');e.className='pcs hg s'+p.s+(p.t==='C'?' king':'')+(p.b?' bound':'')+(p.sh?' shield':'')+(p.bl?' blind':'');e.dataset.sh=p.sh||'';if(intro)e.style.animationDelay=((x+Math.min(y,17-y))*45)+'ms';e.textContent=p.g;d.appendChild(e);const m=document.createElement('span');m.className='bdg';m.textContent=MARK[p.t];d.appendChild(m)}
+    d.onclick=()=>tap(x,y);b.appendChild(d);
+  }
+  const st=$('status');if(target)st.innerHTML=NAMES[turn]+' <span class="hg">'+spellWord+'</span> '+PROMPT[target];else st.textContent=over?'Game over':NAMES[turn]+"'s turn"+(again?' (extra move)':'')+(ksh(turn)?' (King shielded: '+ksh(turn)+')':'')+(kd?': King in danger!':'');
+  const hb=$('hadi');hb.style.display=(!over&&!(VSBOT&&turn===1)&&G.some(r=>r.some(q=>q&&q.t==='Z'&&q.s===turn)))?'':'none';hb.disabled=!target&&cd[turn]>0;hb.textContent=target?'Cancel spell':(cd[turn]>0?'Magic ready in '+cd[turn]:'Cast magic');
+  st.style.borderColor=turn===0?'var(--a)':'var(--b)';
+  [0,1].forEach(q=>{const e=$('en'+q);e.querySelector('.nm').textContent='⚡'+NAMES[q];e.querySelector('i').style.width=Math.max(0,en[q])+'%';e.querySelector('b').textContent=Math.max(0,en[q]);e.classList.toggle('low',en[q]<=25)});
+  botCheck();
+}
+function renderPick(){
+  const g=$('grid');g.innerHTML='';
+  $('pick').style.setProperty('--c',pp?'var(--b)':'var(--a)');
+  $('ptitle').textContent=NAMES[pp]+': pick your 15 ('+MODE+' mode)';
+  GL.forEach((s,i)=>{
+    const t=document.createElement('button');
+    t.className='tile'+(picks.includes(i)?' on':'')+(i===0?' lock':'');
+    t.innerHTML='<span class="g hg">'+s+'</span>'+MARK[TYPES[i]]+' '+TN[TYPES[i]];
+    t.onclick=()=>{if(i===0)return;const k=picks.indexOf(i);if(k>=0)picks.splice(k,1);else if(picks.length<NEED)picks.push(i);renderPick()};
+    g.appendChild(t);
+  });
+  $('pcount').textContent=picks.length+' / '+NEED;
+  $('pgo').disabled=picks.length<NEED;
+}
+$('prand').onclick=()=>{const r=[...Array(25).keys()].map(i=>i+1).sort(()=>Math.random()-.5);picks=[0,...r.slice(0,NEED-1)];renderPick()};
+$('pclear').onclick=()=>{picks=[0];renderPick()};
+$('pgo').onclick=()=>{if(picks.length<NEED)return;ARMY[pp]=picks.slice();if(pp===0&&VSBOT){ARMY[1]=botArmy();show('game');newGame();return}if(pp===0){pp=1;picks=[0];renderPick();scrollTo(0,0)}else{show('game');newGame()}};
+let craft=[],spellWord='',confirmDeath=false;
+function drawCraft(){
+  const sl=$('slots');sl.innerHTML='';
+  for(let i=0;i<6;i++){const d=document.createElement('div');d.className='slot hg';d.textContent=craft[i]!==undefined?GL[craft[i]]:'';sl.appendChild(d)}
+}
+function openSpell(){
+  craft=[];confirmDeath=false;$('ecast').textContent='⚡ Energy: '+en[turn]+' / '+MAXEN;$('fizz').textContent='';drawCraft();
+  $('ctag').textContent=MODE==='hard'?'Tap the hieroglyphs of a true Egyptian magic word from memory. Wrong words cost you.':'Tap the hieroglyphs of a true Egyptian magic word. Words that are not in the Spellbook have no power.';
+  const g=$('sgrid');g.innerHTML='';
+  const alive=new Set(G.flat().filter(q=>q&&q.s===turn).map(q=>q.g));
+  ARMY[turn].filter(i=>alive.has(GL[i])).forEach(i=>{const b=document.createElement('button');b.className='hg';b.textContent=GL[i];b.onclick=()=>{if(craft.length<6){craft.push(i);confirmDeath=false;drawCraft()}};g.appendChild(b)});
+  $('spell').classList.add('on');
+}
+$('hadi').onclick=()=>{if(busy||(VSBOT&&turn===1))return;if(target){target=false;render();return}openSpell()};
+$('nospell').onclick=()=>$('spell').classList.remove('on');
+$('uncraft').onclick=()=>{craft.pop();confirmDeath=false;drawCraft();$('fizz').textContent=''};
+function applyNow(mode){
+  cd[turn]=cdFor(turn);toast(DONE[mode]);
+  if(mode==='haste')again=true;
+  if(mode==='stop')endTurn(skip[1-turn]=true);
+  if(mode==='immune'){G.forEach(r=>r.forEach(q=>{if(q&&q.s===turn&&q.t==='C')q.sh=4}));endTurn()}
+}
+function die(sd){over=true;busy=false;target=null;render();$('win').querySelector('h1').textContent='Burned out';$('wintxt').textContent=NAMES[sd]+' burned out their life force. '+NAMES[1-sd]+' wins.';$('win').classList.add('on')}
+function banner(sp){
+  const b=$('banner');
+  b.innerHTML='<div class="bw">'+craft.map((i,k)=>'<span class="hg" style="animation-delay:'+k*.2+'s">'+GL[i]+'</span>').join('')+'</div><div class="bn">'+sp.n+': '+sp.m+'</div>';
+  b.className='on '+sp.mode;busy=true;
+  setTimeout(()=>{b.className='';busy=false;if(en[turn]<=0){die(turn);return}if(['haste','stop','immune'].includes(sp.mode))applyNow(sp.mode);else target=sp.mode;render()},1600);
+}
+$('cast').onclick=()=>{
+  if(!craft.length){$('fizz').textContent='Tap hieroglyphs to craft a word.';return}
+  const sp=SPELLS.find(x=>idx(x.w).join()===craft.join());
+  if(!sp){$('fizz').textContent='No power. That is not a true Egyptian magic word.';craft=[];drawCraft();const e=$('spell');e.classList.add('shake');setTimeout(()=>e.classList.remove('shake'),500);
+    if(MODE==='hard'){busy=true;$('fizz').textContent+=' Your cast and turn are lost.';setTimeout(()=>{$('spell').classList.remove('on');busy=false;cd[turn]=cdFor(turn);endTurn();render()},1100)}
+    return}
+  if(sp.mode==='revive'&&!lost[turn].length){$('fizz').textContent='You have no fallen piece to bring back.';return}
+  if((sp.mode==='convert'||sp.mode==='curse')&&!G.flat().some(q=>q&&q.s!==turn&&!q.sh&&(sp.mode==='convert'?q.t==='P':!'CP'.includes(q.t)))){$('fizz').textContent='No valid target for this spell right now.';return}
+  const cost=ECOST[sp.mode];
+  if(MODE!=='hard'&&cost>=en[turn]&&!confirmDeath){confirmDeath=true;$('fizz').textContent='This costs ⚡'+cost+' but you only have ⚡'+en[turn]+'. Casting it will burn you out and you will lose. Press Cast again to confirm.';return}
+  confirmDeath=false;en[turn]-=cost;
+  spellWord=craft.map(i=>GL[i]).join('');$('spell').classList.remove('on');sel=null;moves=[];banner(sp);
+};
+const canCastNow=()=>!over&&!busy&&!(VSBOT&&turn===1)&&!target&&!cd[turn]&&G.some(r=>r.some(q=>q&&q.t==='Z'&&q.s===turn));
+function openBook(){
+  const inGame=$('game').classList.contains('on')&&G&&!over,el=$('blist');
+  if(!inGame)el.innerHTML=bookHTML();
+  else if(MODE==='normal'){
+    const a=new Set(G.flat().filter(q=>q&&q.s===(VSBOT?0:turn)).map(q=>q.g));
+    el.innerHTML=SPELLS.map(x=>bookHTML([x]).replace('class="sp"',idx(x.w).every(i=>a.has(GL[i]))?'class="sp"':'class="sp dim"')).join('')+'<p><small>Faded spells need hieroglyphs you do not have.</small></p>';
+  }else{
+    const a=new Set(G.flat().filter(q=>q&&q.s===(VSBOT?0:turn)).map(q=>q.g));
+    const list=SPELLS.filter(x=>idx(x.w).every(i=>a.has(GL[i]))),hid=SPELLS.length-list.length,ok=canCastNow();
+    el.innerHTML=(ok?'':'<p>You can cast when your Mage ✨ is alive and your magic is ready.</p>')+(list.length?bookHTML(list,ok):'<p>You have no hieroglyphs for any spell right now.</p>')+(hid?'<p><small>'+hid+' more spells need hieroglyphs you do not have.</small></p>':'');
+  }
+  $('book').classList.add('on');
+}
+$('blist').onclick=e=>{
+  const d=e.target.closest('.sp.go');if(!d)return;
+  const sp=SPELLS.find(x=>x.w===d.dataset.w);
+  if(!$('spell').classList.contains('on'))openSpell();
+  craft=idx(sp.w);confirmDeath=false;drawCraft();$('fizz').textContent='';$('book').classList.remove('on');
+};
+$('blist').innerHTML=bookHTML();
+$('modes').onclick=e=>{const b=e.target.closest('button');if(!b)return;MODE=b.dataset.m;document.body.className=MODE==='hard'?'hard':'';[...$('modes').children].forEach(c=>c.classList.toggle('on',c===b));$('modetxt').textContent=MODES[MODE]};
+$('opp').onclick=e=>{const b=e.target.closest('button');if(!b)return;VSBOT=b.dataset.o==='bot';NAMES[1]=VSBOT?'Bot':'Blue';[...$('opp').children].forEach(c=>c.classList.toggle('on',c===b))};
+$('modetxt').textContent=MODES[MODE];$('rbook').innerHTML='<p><b>Spellbook</b></p>'+bookHTML();
+$('bookbtn').onclick=$('obook').onclick=$('pbook').onclick=openBook;
+$('bclose').onclick=()=>$('book').classList.remove('on');
+$('cover').querySelector('h1').innerHTML=[...'CHERO'].map((c,i)=>'<span style="animation-delay:'+i*.15+'s">'+c+'</span>').join('');
+const fl=document.createElement('div');fl.id='float';$('cover').prepend(fl);
+for(let i=0;i<14;i++){const e=document.createElement('span');e.className='hg';e.textContent=GL[(i*5)%26];e.style.cssText='left:'+(i*7.3)+'%;animation-duration:'+(9+i%5*3)+'s;animation-delay:-'+(i*1.3)+'s';fl.appendChild(e)}
+$('restart').onclick=newGame;$('again').onclick=newGame;
+</script>
+</body>
+</html>
 
