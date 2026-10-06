@@ -200,7 +200,7 @@ td:first-child{white-space:nowrap;font-weight:800}
       <tr><td><span class="pc">✖</span>Guard</td><td>Slides up to 2 squares diagonally. Cannot jump.</td></tr>
       <tr><td><span class="pc">◆</span>Leaper</td><td>Jumps exactly 2 squares in any of 8 directions, over anything.</td></tr>
       <tr><td><span class="pc">●</span>Pawn</td><td>Steps 1 forward (2 on its first move). Captures 1 square diagonally forward.</td></tr>
-      <tr><td><span class="pc">✨</span>Mage</td><td>Steps 1 square in any direction. While it is alive, you can cast a magic word. After a cast, wait 3 of your own turns before casting again.</td></tr>
+      <tr><td><span class="pc">✨</span>Mage</td><td>Steps 1 square in any direction. While it is alive, you can cast a magic word. After a cast, wait 3 of your own turns before casting again. In the first round, both Mages are protected: they cannot be destroyed, cursed or captured.</td></tr>
     </table>
     <button class="btn" data-go="cover">Back</button>
   </div>
@@ -352,7 +352,7 @@ function botPlay(){
   }finally{botActing=false;botCheck()}
 }
 
-let G,turn,sel,moves,over,cd,en,target,busy=false,lost=[[],[]],intro=false,again=false,skip=[false,false];
+let G,turn,sel,moves,over,cd,en,ply,target,busy=false,lost=[[],[]],intro=false,again=false,skip=[false,false];
 const $=id=>document.getElementById(id);
 
 function show(id){document.querySelectorAll('.screen').forEach(s=>s.classList.toggle('on',s.id===id));if(id==='pick'){pp=0;ARMY=[[],[]];picks=[0];renderPick()}}
@@ -361,13 +361,14 @@ document.addEventListener('click',e=>{const t=e.target.closest('[data-go]');if(t
 function newGame(){
   G=Array.from({length:H},()=>Array(W).fill(null));
   [0,1].forEach(s=>ARMY[s].forEach((gi,k)=>{const[c,r]=SLOTS[k],y=s===0?17-r:r;G[y][c]={t:TYPES[gi],s,g:GL[gi],m:0}}));
-  turn=0;sel=null;moves=[];over=false;cd=[0,0];en=[MAXEN,MAXEN];target=null;lost=[[],[]];again=false;skip=[false,false];intro=true;$('board').classList.add('intro');setTimeout(()=>{intro=false;$('board').classList.remove('intro')},1500);$('win').classList.remove('on');render();
+  turn=0;ply=0;sel=null;moves=[];over=false;cd=[0,0];en=[MAXEN,MAXEN];target=null;lost=[[],[]];again=false;skip=[false,false];intro=true;$('board').classList.add('intro');setTimeout(()=>{intro=false;$('board').classList.remove('intro')},1500);$('win').classList.remove('on');render();
 }
 
 const inb=(x,y)=>x>=0&&x<W&&y>=0&&y<H;
+const mageSafe=q=>q&&q.t==='Z'&&ply<2;
 function legal(x,y){
-  const p=G[y][x],out=[],ok=(a,b)=>inb(a,b)&&(!G[b][a]||(G[b][a].s!==p.s&&!G[b][a].sh));
-  const slide=(dirs,n)=>dirs.forEach(([dx,dy])=>{for(let i=1;i<=n;i++){const a=x+dx*i,b=y+dy*i;if(!inb(a,b)||(G[b][a]&&(G[b][a].s===p.s||G[b][a].sh)))break;out.push([a,b]);if(G[b][a])break}});
+  const p=G[y][x],out=[],ok=(a,b)=>inb(a,b)&&(!G[b][a]||(G[b][a].s!==p.s&&!(G[b][a].sh||mageSafe(G[b][a]))));
+  const slide=(dirs,n)=>dirs.forEach(([dx,dy])=>{for(let i=1;i<=n;i++){const a=x+dx*i,b=y+dy*i;if(!inb(a,b)||(G[b][a]&&(G[b][a].s===p.s||(G[b][a].sh||mageSafe(G[b][a])))))break;out.push([a,b]);if(G[b][a])break}});
   const orth=[[1,0],[-1,0],[0,1],[0,-1]],diag=[[1,1],[1,-1],[-1,1],[-1,-1]];
   if(p.t==='C'||p.t==='Z')[...orth,...diag].forEach(([dx,dy])=>ok(x+dx,y+dy)&&out.push([x+dx,y+dy]));
   if(p.t==='R')slide(orth,4);
@@ -376,7 +377,7 @@ function legal(x,y){
   if(p.t==='P'){
     const d=p.s===0?-1:1,home=p.s===0?16:1;
     if(inb(x,y+d)&&!G[y+d][x]){out.push([x,y+d]);if(!p.m&&inb(x,y+2*d)&&!G[y+2*d][x])out.push([x,y+2*d])}
-    [-1,1].forEach(dx=>{const a=x+dx,b=y+d;if(inb(a,b)&&G[b][a]&&G[b][a].s!==p.s&&!G[b][a].sh)out.push([a,b])});
+    [-1,1].forEach(dx=>{const a=x+dx,b=y+d;if(inb(a,b)&&G[b][a]&&G[b][a].s!==p.s&&!(G[b][a].sh||mageSafe(G[b][a])))out.push([a,b])});
   }
   return p.bl?out.filter(([a,b])=>!G[b][a]):out;
 }
@@ -386,20 +387,20 @@ const sq=(x,y)=>$('board').children[y*W+x];
 function fx(x,y,k){const f=document.createElement('span');f.className='fx '+k;sq(x,y).appendChild(f);setTimeout(()=>f.remove(),900)}
 function land(x,y,k){const e=sq(x,y).querySelector('.pcs');if(e)e.classList.add('land');fx(x,y,k)}
 function dec(){G.forEach(r=>r.forEach(q=>{if(!q)return;if(q.s===turn){if(q.b)q.b--;if(q.bl)q.bl--}else if(q.sh)q.sh--}))}
-function endTurn(){if(cd[turn]>0)cd[turn]--;en[turn]=Math.min(MAXEN,en[turn]+REGEN);dec();turn=1-turn;if(skip[turn]){skip[turn]=false;dec();turn=1-turn}}
+function endTurn(){if(cd[turn]>0)cd[turn]--;en[turn]=Math.min(MAXEN,en[turn]+REGEN);dec();turn=1-turn;ply++;if(skip[turn]){skip[turn]=false;dec();turn=1-turn;ply++}}
 function okT(x,y){const q=G[y][x];
-  if(target==='destroy')return q&&q.s!==turn&&q.t!=='C'&&!q.sh;
+  if(target==='destroy')return q&&q.s!==turn&&q.t!=='C'&&!q.sh&&!mageSafe(q);
   if(target==='bind')return q&&q.s!==turn&&!q.sh;
   if(target==='protect')return q&&q.s===turn;
   if(target==='revive'||target==='summon')return !q&&(turn===0?y>=16:y<=1);
   if(target==='push'||target==='blind')return q&&q.s!==turn&&!q.sh;
   if(target==='convert')return q&&q.s!==turn&&q.t==='P'&&!q.sh;
-  if(target==='curse')return q&&q.s!==turn&&!'CP'.includes(q.t)&&!q.sh}
+  if(target==='curse')return q&&q.s!==turn&&!'CP'.includes(q.t)&&!q.sh&&!mageSafe(q)}
 function tap(x,y){
   if(over||busy)return;
   if(VSBOT&&turn===1&&!botActing)return;
   if(target){
-    if(!okT(x,y)){if(G[y][x]&&G[y][x].sh&&G[y][x].s!==turn)toast('That piece is shielded.');return}
+    if(!okT(x,y)){if(G[y][x]&&G[y][x].sh&&G[y][x].s!==turn)toast('That piece is shielded.');else if(mageSafe(G[y][x])&&G[y][x].s!==turn)toast('Mages are protected during the first round.');return}
     const mode=target,hit=G[y][x];let ny=y;busy=true;fx(x,y,mode);
     const el=sq(x,y).querySelector('.pcs');if(el&&mode==='destroy')el.classList.add('poof');
     setTimeout(()=>{
@@ -550,4 +551,3 @@ $('restart').onclick=newGame;$('again').onclick=newGame;
 </script>
 </body>
 </html>
-
