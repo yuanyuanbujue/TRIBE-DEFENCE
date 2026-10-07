@@ -7941,6 +7941,76 @@ function skShoot(a, tgt) {
   a.recoil = 1;
 }
 
+
+// ================= Breeze model (breeze.png + breeze_eyes.png + breeze_wind.png) =================
+const BREEZE_TEX = { skin: "data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAACAAAAAgCAYAAABzenr0AAADpUlEQVR4AcTWS4hcVRAG4OoLPtLRCRgzGAWJTsjK5yJCUMeFunOnkI0E3KnoWuNKdCG6EHThA3QT0I1RcSEqQdSgBDMLNQYfIROjqBMnJpCZZOIDbPs7TDW3ezJz4+Kahr+rzl//qap7zj2nu4qGzxuvTPU+evvzgndf29urQ+yxJz7tbX3o1d7ktqcGlp9oSB+NDVy69p9YWOjE78eqWDjdGUJ3Va/kn7zqprhl463Bbr3+ruIbl2DDV2MDiissj4IaAn7yYu988Gw89/K9Be9//GJcsXpNrB8bF1oRzQ30nzozKFhWor8iOE2wv5w6EccPTXELTv68P3Bl0PDV2ID5Cnlq4OM00+32Yu7kTHlaXB1WoD5ezm9sQEGFbEV5+v6KlOKL+z920frYcNnpuOTqzTE/f7zgvHUTy9Vbwjc2YEYW5muorET/6TVlBTT4+H3b4/UXdsbzT74Vzzz4aIyv+SPWdcdMWRGNDXhaGUYLKy52dGEu3tzzU+z8cl+89OH++OTA4Xjvqx/ji1//DKtj7kqonGVnu37WcYl6YYkULra/Few9N1wXt23aEOy2LdfG3VuuLLh54vy48fILIvOkHa1VzZ64MA4fWRXfHOoOzrqioMBQLN/+/vKXbVh8D2jBitguucyTmw7EjfHidPRlC+wXEBVxv4CgCZoQS97YZEkko6H1HhRNvyl6oKWjp8EB3jyovv3tu7Jv9uyz6b9i19d/l9UQzLMslryixhljaRWikcN7AHIDPdCBBsDcsgJepOnZ7wO81SaB8e4f9hY+fTwNZAwHODr5QBEWJ0YD5gG+IiCEPDa4fUcOxszc7ADikLGMJ4fnZw5+cvLQ5zg1+MoX5IQUucd3PTIdcGx6atBIanFiOx7YM4gpAqmRM335jOWva8oWCBCO4s6nJwLWTmwmGQJODIYCi4PMtTgcNIlPjq1279jeOZcYrICLyGXhj4Q/GLr7PzBowFl1ju3V6DK12UjlyUFxhe6//Zp4ePKOwAGuTQytgEJWgoW6b9wGKkXcYm4oPgv8NgqO5iw/Rq5EAYVZ4AO/TVRZnK1DUWO2TVTuY/c08IHvzmbbLC53eQldj4AAfsK4TQx+C5z9M6HN4nI3XsVEbaJsQb3AgYOzvflTvYI6fzZ+zpPjbPQ0SxrYtHG8c/HqTmdm5mhIKBkLJtSBg9SYY64cdd1K/pIGUixJJpMYrxgL6YvVtWL/Bcs2UE+SBTSUPB/EkjuTbeL+BQAA//8zYT9WAAAABklEQVQDAKjUfW6EpoyMAAAAAElFTkSuQmCC", eyes: "data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAACAAAAAgCAYAAABzenr0AAAAy0lEQVR4AeyVMQrCQBBFszYWYusJxCZH8BaewWN5Bm/hEdKIfUBLsbBaecJAmJiYSZMUP/DZ3f9n/g6/yC6KiT8NoASUgBJQAkpg3gm8q2MG5f6Q/aMJhwa8Fjn3JrAsTwlUl3PypnBowGuRc+8AEaOxtRpACSgBJaAE5pfA9XbPz1f+Ivp/tz48hva2EthtN2m9SqmuHwWGmLECbwoHrIYeevHwtV3n1gBWiImZYQzPZazA9mjNWrQIOgdomtgFDGQ8e4Bm3K/1H/cBAAD//whipMoAAAAGSURBVAMAi1VkQeYHaaoAAAAASUVORK5CYII=", wind: "data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAIAAAACACAYAAADDPmHLAAAI70lEQVR4AexcPY5dRRO98yQSLEuIECMnjvlbBCJ2zAK8iQlnE14AMTFiCQ4AkyIkzI8RSAjJMomDYc5I56leuap/7r2vb0/f+qRSdVd31zlVdea9QR59hyn+t+sOhAB2Pf5pCgGEAHbegZ2XH58AIYCdd2Dn5ccnQAhg5x3YafksOz4B2Imd+hDATgfPskMA7MROfQhgp4Nn2SEAdmKnPgSw08Gz7BAAO7FTHwLY2eB1uSEA3ZGd7UMAOxu4Lvfw6vX1k63sn3+vn9TY989/e6JNF7TWvrQnJfw1Z71fi7OXJ1XL4f69i6db2fvvXTytsU8//vCpNq/opfHSnpTw15z1XnJNDatEbDIX16laFn8FpAjrs5ICcEf/hGDPYjyvsWr2wPQM2JZZPCxMK6/1lrHUsErExjyl/uQrwCLL4r2EKcL6rKQA3NE/Idh7+IxrrJo9MD0DtmXEld7CtPLKN7VrS2SMWfNDjDO0/MlXgEWWxdcS1fdJMuVBttSsYhDTuHKfwtZnHg9gWCZxzrm2RMaYNT/EOEPLZ78CShpjNYQxNoMkUx5kS80qBjHiWT6Frc88HsCwjHi6X3rvCUvH2T/tiVPrvftZAZQ0xmoIYx5wbbykkbpZcl+LV3Jfc8Jev3vzZpqk4fzFi98nbVpw7J/2eL+m3f4OoNWHvWwe1xYwivYMeUqNGPAWjiXEd96ZJmmPHj2YtD18+GCCWTyAVWIWH8Q0J2uvB4u9Hir2yOeZ7m9tLV5exG9/BwApbSClDQ+0WUUzpnOm9hJLY3h74qR8KabE12sPv1Vc12fVpDnLfYrnIXUYZ+N3IAQw/oyTFYYAku0Z/zAEMP6MkxWGAJLtufuHuQpCALkODX4eAhh8wLnyQgC5Dg1+HgIYfMC58kIAuQ4Nfh4CGHzAufJCALkODX4eAhh0wKVl3TkB3PzT6JW0m38avaJ99+MfV7TSBni5mNPyxKDPYUmM1NrKk7qPM+tNTewtASCptlwTagCX3r35p9FLaTf/NHpJ++yjDy5pxNG1YC/r+ennlxPtl19fTjDm8zwx6InlecmXa+suuGmz7iGWyoPznBHnLQEwsfRWI1g8PMGY1POy8Vzzpwieeehr8jAfPHLROFx61CXrAX9txNfe4zMnrnPLPTjmTN6fs2Z+/EXQ7UcqGieNDYRPAcjieY/JtZeN51o2n+/p9Xvu+dbzMqdeM/ccT/xze4+b7HXJWs6Ta8xTGv4i6PYjVTdTNs4jhLjVDMRpJUR5hyRTXpJPrYlf4olf4lPccLYWJ4u31WvEeFf+7SHWiOMrTZqcK9bHT4CS4nEHRdYYiPDj1/MoAqZFaO1BusRQvGeog4ZawBFGfuDimcVJxlLcPD6Ik4/04CaN4sJ9aeQqeXCt+ch3WB8/AZgk55m4xmsSeg8iLU3WKOsgr5ZciCU5cS25YX0Ofm/9EkhC4e9mB2pZhwBqOzbY/RDAYAOtLScEUNuxwe6HAAYbaG05IYDajg12PwQw2EBrywkB1HZssPshgEEGOreMEMDczg3yLgQwyCDnlhECmNu5Qd6FAAYZ5NwyQgBzOzfIuxDAIIOcW8ZB/sGBteYfIdT4b7794cqyuSRT7yzOVszjb/FkLIXLMwtLxmpwmVN6mSu19nBy8QP+0CBl/COEGv/F559cWiYLW2ud4i7PPP4WT8ZKOEoMa12DCzw9ZMRg8s+65Jpr3IF5eF588VeAJpzaW2rkT1vOo7i5luKEM4sXYx4viwty0fieXuax3jJmiQgxb4A6zjyl/kCC9JKoXHsJQa7UNFns+dOW8x5+STzHDzw883hZuBJH55N5rLelMQqsxHOmKX9IEV2LtCxuDeJSmHotsXJrycVqksydy9XqXIost9aztfbZrwDZJKx1o2qblCONc4uojElh6nXNIIBFk/m5lrlL86JHJab7KPeyp3pdyqP0XlYAbBA9m0M/p0ml5Hq/Zw0anPmLmfbPnj2faH/9+fckjf2Elz3Va+Rf047/GSgVuCbAyLn4Q6E9hmiZHqbcb9Wn438GSsJbkQnc9h3IfgW0pxSIJR1Y604IYK1O3tE8IYA7Ori1aIcA1urkHc0TArijg1uL9lEAr/67/sqztcAiT7sOeLPU8aMA7r978aVnKdo6obe3cnh3l8QtnNLYEtyat6V8ltzzZqnjRwHMBdMJvb2V37u7JG7heDE9NO/eEj7WWw9H8znnnhwOEoTBvXhrOFasph+yn6m1lbME23qXi6XyHuShlyhViDzz3i+NS4w566X4Ne9lP1Pr0pypHKVnKayTTwA2Vz9YA0jnrNmX4nv3UlisOeetHLk3c84tnNLYHLyTTwA2sBRwhHusOeetWnNv5pxbOKWxOXiLfwksJRf3+uxACKDPuTRjFQJo1uo+gUIAfc6lGasQQLNWLwM61+sTAbx6ff21tBJQeX/O2sPQubx7EV/WgRMB3L938Vim00PgXt7BmyUmc8k1cso9sS0v73Ft3VsaY+45fil26ftabvg/iz7+1OMxGp8z3IOVkMK9uZbjwXMrP8/W9BZOaWxNHqlcHh9vVgeZzHvsxeVbb+29bR33GmDFa7hZ788Rq+Fk3fXmc/IVYD1cGjtHM2TOUn5eA6x4aU7cs96fIwYsz2Q/cmud4+QrIPc4da4Tcy+bwViJl+9Sa+ZKcas9Y07P5/J57+bEc1g4r8mL+9JW+wSQSb31EqJeTsZrcufuMqfnl7738lrxHNbS85PfAVI/aXF28XiLHpwbc7VPgKVKjPfbdCAEsE3fu0ENAXQzim2IhAC26Xs3qCGAbkaxDZEQwDZ97wY1BNDNKLYhEgLYpu9Z1FYXQgCtOt0pTgig08G0ohUCaNXpTnFCAJ0OphWtEECrTneKEwLodDCtaIUAWnW6U5wQQGeDaU0nBNC6453hhQA6G0hrOiGA1h3vDC8E0NlAWtMJAbTueGd4IYDOBtKaTgigdcc7wwsBdDKQrWiEALbqfCe4IYBOBrEVjRDAVp3vBDcE0MkgtqIRAtiq853ghgA6GcRWNEIAW3W+E9wQwMaD2Br+fwAAAP//M7QGZwAAAAZJREFUAwCFctc82oa+BgAAAABJRU5ErkJggg==" };
+const _brImg = {};
+function brTex(name, rx, ry, ox, oy, repeat) {
+  let im = _brImg[name];
+  if (!im) { im = _brImg[name] = new Image(); im.src = BREEZE_TEX[name]; }
+  const t = new THREE.Texture();
+  const done = () => { t.image = im; t.needsUpdate = true; };
+  if (im.complete && im.naturalWidth) done(); else im.addEventListener('load', done);
+  t.magFilter = THREE.NearestFilter; t.minFilter = THREE.NearestFilter;
+  if (repeat) { t.wrapS = t.wrapT = THREE.RepeatWrapping; t.repeat.set(rx, ry); t.offset.set(ox || 0, oy || 0); }
+  return t;
+}
+// Box in pixels (1px = 1/16 block) with Minecraft-style UV layout at (u,v) on a TW x TH texture. Front = +z.
+function brBox(w, h, d, u, v, TW, TH, grow) {
+  const g = (grow || 0) * 2, geo = new THREE.BoxGeometry((w + g) / 16, (h + g) / 16, (d + g) / 16);
+  const reg = {
+    px: [u + d + w, v + d, d, h], nx: [u, v + d, d, h], py: [u + d, v, w, d],
+    ny: [u + d + w, v, w, d], pz: [u + d, v + d, w, h], nz: [u + 2 * d + w, v + d, w, h],
+  };
+  const order = ['px', 'nx', 'py', 'ny', 'pz', 'nz'], uv = geo.attributes.uv;
+  order.forEach((k, i) => {
+    const [x, y, rw, rh] = reg[k], u0 = x / TW, u1 = (x + rw) / TW, vt = 1 - y / TH, vb = 1 - (y + rh) / TH;
+    uv.setXY(i * 4 + 0, u0, vt); uv.setXY(i * 4 + 1, u1, vt); uv.setXY(i * 4 + 2, u0, vb); uv.setXY(i * 4 + 3, u1, vb);
+  });
+  uv.needsUpdate = true;
+  return geo;
+}
+function buildBreeze() {
+  const root = new THREE.Group(), ud = root.userData;
+  const skinMat = new THREE.MeshLambertMaterial({ map: brTex('skin'), transparent: true, alphaTest: 0.05 });
+  const eyeMat = new THREE.MeshBasicMaterial({ map: brTex('eyes'), transparent: true, alphaTest: 0.05, depthWrite: false });
+  const addPart = (geoBase, geoEye, x, y, z) => {
+    const g = new THREE.Group(); g.position.set(x, y, z);
+    const m = new THREE.Mesh(geoBase, skinMat); g.add(m);
+    const e = new THREE.Mesh(geoEye, eyeMat); e.userData.noFlash = true; g.add(e);
+    root.add(g); return g;
+  };
+  // head 8x8x8 at UV (0,0); the glowing eyes layer sits just outside it
+  const head = addPart(brBox(8, 8, 8, 0, 0, 32, 32, 0), brBox(8, 8, 8, 0, 0, 32, 32, 0.04), 0, 1.45, 0);
+  // chest / white wisps 10x3x4 at UV (4,24)
+  addPart(brBox(10, 3, 4, 4, 24, 32, 32, 0), brBox(10, 3, 4, 4, 24, 32, 32, 0.04), 0, 1.1, 0);
+  // three orbiting rods 2x8x2 at UV (0,17)
+  const rods = new THREE.Group(); rods.position.y = 0.85; root.add(rods);
+  for (let i = 0; i < 3; i++) {
+    const r = new THREE.Mesh(brBox(2, 8, 2, 0, 17, 32, 32, 0), skinMat), a = i * Math.PI * 2 / 3;
+    r.position.set(Math.cos(a) * 0.5, 0, Math.sin(a) * 0.5); rods.add(r);
+  }
+  // wind tubes (breeze_wind.png), stacked like a little tornado
+  const winds = [];
+  const tube = (rBot, rTop, y0, y1, ry, oy, spd) => {
+    const mat = new THREE.MeshBasicMaterial({ map: brTex('wind', 2, ry, 0, oy, true), transparent: true, opacity: 0.9, alphaTest: 0.05, side: THREE.DoubleSide, depthWrite: false });
+    const m = new THREE.Mesh(new THREE.CylinderGeometry(rTop, rBot, y1 - y0, 14, 1, true), mat);
+    m.position.y = (y0 + y1) / 2; m.userData.noFlash = true; root.add(m); winds.push({ mat, spd });
+  };
+  tube(0.20, 0.30, 0.00, 0.32, 0.25, 0.70, 1.6);
+  tube(0.30, 0.40, 0.32, 0.68, 0.30, 0.40, -1.2);
+  tube(0.40, 0.48, 0.68, 1.00, 0.30, 0.10, 0.9);
+  ud.head = head; ud.breeze = { rods, winds, head };
+  return root;
+}
+function brPose(a, ud, dt) {
+  const b = ud.breeze; a.brT = (a.brT || 0) + dt;
+  b.rods.rotation.y += dt * (3 + Math.min(4, Math.hypot(a.vel ? a.vel.x : 0, a.vel ? a.vel.z : 0)));
+  b.rods.position.y = 0.85 + Math.sin(a.brT * 3) * 0.04;
+  for (const w of b.winds) { w.mat.map.offset.x = (w.mat.map.offset.x + dt * w.spd * 0.5) % 1; }
+  b.head.position.y = 1.45 + Math.sin(a.brT * 2.2) * 0.02;
+}
+
 // Breeze: jumps toward the player and hits with a windy knockback shove (no bow).
 function breezeAI(a, dt) {
   const tgt = nearestPlayerTarget(a.pos);
@@ -8242,16 +8312,8 @@ function createMob(kind, px, py, pz, id, remote, eq) {
   const isS = kind === 'skeleton';
   const isBr = kind === 'breeze';
   const isB = isSpk(kind);
-  const group = isB ? buildZombie(SPOKE_SKIN) : isZ ? buildZombie((eq >> 12) & 31) : ((isS || isBr) ? buildSkeleton((eq >> 12) & 31) : def.build());
+  const group = isB ? buildZombie(SPOKE_SKIN) : isZ ? buildZombie((eq >> 12) & 31) : isBr ? buildBreeze() : (isS ? buildSkeleton((eq >> 12) & 31) : def.build());
   if (kind === 'null') group.traverse(o => { if (o.isMesh && o.material && o.material.color) o.material.color.setHex(0xb48cff); });   // purple tint so Null reads differently
-  if (isBr) group.traverse(o => {
-    if (o.isMesh && o.material) {
-      const m = o.material.clone ? o.material.clone() : o.material;
-      if (m.color) m.color.setHex(0x7ec8ff);
-      if (m.emissive) { m.emissive.setHex(0x3a90c8); m.emissiveIntensity = 0.35; }
-      o.material = m;
-    }
-  });
   scene.add(group);
   const pos = new THREE.Vector3(px, py, pz);
   group.position.copy(pos);
@@ -8453,6 +8515,7 @@ function animateMob(a, dt, spd, grounded) {
   }
   if (ud.head) ud.head.rotation.x = Math.sin((a.walk || 0) * 2) * 0.03 * a.amp;
   if (ud.sk) skPose(a, ud, dt, swing);
+  if (ud.breeze) brPose(a, ud, dt);
   a.bob = Math.abs(Math.sin(a.walk || 0)) * (isZ ? 0.04 : 0.025) * a.amp;   // little step bounce
 }
 
