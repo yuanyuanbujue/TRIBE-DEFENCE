@@ -1166,6 +1166,8 @@ function makeTexture(drawFn) {
   const tex = new THREE.CanvasTexture(c);
   tex.magFilter = THREE.NearestFilter;
   tex.minFilter = THREE.NearestFilter;
+  tex.generateMipmaps = false;
+  tex.anisotropy = 1;
   return tex;
 }
 function makeSmoothTexture(size, drawFn) {
@@ -14284,7 +14286,7 @@ animate();
 
   function drawTinted(g, img, sz, tint) {
     const f = frameOf(img);
-    g.imageSmoothingEnabled = img.width > sz;
+    g.imageSmoothingEnabled = false;  // always nearest for crisp blocks
     g.drawImage(img, 0, 0, f.w, f.h, 0, 0, sz, sz);
     if (tint && isGray(img)) {
       g.globalCompositeOperation = 'multiply'; g.fillStyle = tint; g.fillRect(0, 0, sz, sz);
@@ -14311,8 +14313,7 @@ animate();
         g.globalCompositeOperation = 'destination-over'; g.fillStyle = avg; g.fillRect(0, 0, sz, sz); g.globalCompositeOperation = 'source-over';
       }
     }
-    t.magFilter = THREE.NearestFilter; t.minFilter = THREE.NearestMipmapNearestFilter; t.generateMipmaps = true;   // no blending between mip levels = no soft/blurry ground up close
-    t.anisotropy = Math.min(16, (renderer.capabilities && renderer.capabilities.getMaxAnisotropy) ? renderer.capabilities.getMaxAnisotropy() : 8); t.needsUpdate = true;
+    t.magFilter = THREE.NearestFilter; t.minFilter = THREE.NearestFilter; t.generateMipmaps = false; t.anisotropy = 1; t.needsUpdate = true;  // crisp pixels up close (no mip blur)
     return true;
   }
   function paintItem(key, img) {
