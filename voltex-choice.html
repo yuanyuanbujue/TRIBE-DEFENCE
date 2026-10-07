@@ -1,1 +1,622 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, user-scalable=no, viewport-fit=cover">
+<meta name="theme-color" content="#0d1224">
+<title>Voltex — Shared Voxel Sandbox</title>
+<style>
+  *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+  :root {
+    --bg-deep: #0d1224;
+    --bg-mid: #16213e;
+    --bg-card: rgba(20, 26, 46, 0.78);
+    --border: rgba(255, 255, 255, 0.14);
+    --text: #f0f4ff;
+    --muted: rgba(240, 244, 255, 0.62);
+    --accent-cyan: #7ee8fa;
+    --accent-purple: #a78bfa;
+    --accent-pink: #f6a5ff;
+    --green: #34c774;
+    --green-bright: #6ee7a4;
+    --danger: #d9534f;
+  }
+
+  html, body {
+    min-height: 100%;
+    font-family: 'Segoe UI', system-ui, -apple-system, Arial, sans-serif;
+    background:
+      radial-gradient(ellipse at 50% -10%, rgba(255, 255, 255, 0.14), transparent 55%),
+      linear-gradient(180deg, #1b2a4a 0%, #16213e 45%, #0d1224 100%);
+    color: var(--text);
+    overflow-x: hidden;
+  }
+
+  /* starfield */
+  body::before {
+    content: '';
+    position: fixed;
+    inset: 0;
+    pointer-events: none;
+    opacity: 0.5;
+    background-image:
+      radial-gradient(2px 2px at 10% 20%, rgba(255,255,255,0.5), transparent),
+      radial-gradient(2px 2px at 80% 60%, rgba(255,255,255,0.4), transparent),
+      radial-gradient(1.5px 1.5px at 60% 15%, rgba(255,255,255,0.5), transparent),
+      radial-gradient(1.5px 1.5px at 30% 80%, rgba(255,255,255,0.4), transparent),
+      radial-gradient(2px 2px at 90% 30%, rgba(255,255,255,0.35), transparent),
+      radial-gradient(1.5px 1.5px at 45% 55%, rgba(255,255,255,0.3), transparent),
+      radial-gradient(1px 1px at 15% 70%, rgba(255,255,255,0.45), transparent),
+      radial-gradient(1px 1px at 70% 40%, rgba(255,255,255,0.35), transparent);
+    z-index: 0;
+  }
+
+  .page {
+    position: relative;
+    z-index: 1;
+    min-height: 100vh;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    padding: 28px 16px 40px;
+  }
+
+  /* top bar */
+  .topbar {
+    position: fixed;
+    top: 0; left: 0; right: 0;
+    z-index: 50;
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    padding: 12px 18px;
+    background: rgba(13, 18, 36, 0.55);
+    backdrop-filter: blur(10px);
+    border-bottom: 1px solid rgba(255,255,255,0.08);
+  }
+  .topbar-brand {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    font-weight: 800;
+    font-size: 15px;
+    letter-spacing: 0.5px;
+  }
+  .topbar-brand span.bolt { font-size: 18px; }
+  .version-pill {
+    font-size: 11px;
+    font-weight: 700;
+    letter-spacing: 1px;
+    text-transform: uppercase;
+    padding: 3px 9px;
+    border-radius: 999px;
+    background: rgba(167, 139, 250, 0.25);
+    border: 1px solid rgba(167, 139, 250, 0.45);
+    color: #d4c0ff;
+  }
+  .settings-btn {
+    width: 36px; height: 36px;
+    border-radius: 8px;
+    border: 1px solid rgba(255,255,255,0.35);
+    background: rgba(0,0,0,0.35);
+    color: #fff;
+    font-size: 16px;
+    cursor: pointer;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    transition: background 0.15s;
+  }
+  .settings-btn:hover { background: rgba(0,0,0,0.55); }
+
+  /* hero card */
+  .hero {
+    width: 100%;
+    max-width: 560px;
+    background: var(--bg-card);
+    backdrop-filter: blur(8px);
+    border: 1px solid var(--border);
+    border-radius: 20px;
+    padding: 36px 40px 32px;
+    box-shadow: 0 24px 60px rgba(0,0,0,0.45);
+    text-align: center;
+    animation: menuIn 0.5s ease-out;
+  }
+  @keyframes menuIn {
+    from { opacity: 0; transform: translateY(16px) scale(0.98); }
+    to { opacity: 1; transform: none; }
+  }
+
+  .logo {
+    font-size: 52px;
+    font-weight: 800;
+    letter-spacing: 2px;
+    line-height: 1.1;
+    margin-bottom: 4px;
+    background: linear-gradient(90deg, var(--accent-cyan) 0%, var(--accent-purple) 50%, var(--accent-pink) 100%);
+    -webkit-background-clip: text;
+    background-clip: text;
+    color: transparent;
+    filter: drop-shadow(0 2px 12px rgba(120, 140, 255, 0.35));
+  }
+  .tagline {
+    font-size: 12px;
+    letter-spacing: 3px;
+    text-transform: uppercase;
+    opacity: 0.55;
+    margin-bottom: 18px;
+  }
+  .desc {
+    font-size: 14px;
+    line-height: 1.6;
+    opacity: 0.88;
+    margin-bottom: 8px;
+  }
+  .desc.small {
+    font-size: 12.5px;
+    opacity: 0.7;
+    margin-bottom: 22px;
+  }
+
+  /* choice cards */
+  .choices {
+    display: flex;
+    flex-direction: column;
+    gap: 12px;
+    margin-top: 8px;
+  }
+  .choice {
+    display: flex;
+    align-items: flex-start;
+    gap: 14px;
+    text-align: left;
+    width: 100%;
+    padding: 16px 18px;
+    border-radius: 14px;
+    border: 1px solid rgba(255,255,255,0.16);
+    background: rgba(255,255,255,0.05);
+    color: inherit;
+    cursor: pointer;
+    transition: transform 0.12s, box-shadow 0.15s, background 0.15s, border-color 0.15s;
+    font: inherit;
+  }
+  .choice:hover {
+    transform: translateY(-2px);
+    background: rgba(255,255,255,0.09);
+    border-color: rgba(126, 232, 250, 0.45);
+    box-shadow: 0 8px 24px rgba(0,0,0,0.3);
+  }
+  .choice:active { transform: translateY(0); }
+  .choice-icon {
+    flex-shrink: 0;
+    width: 48px; height: 48px;
+    border-radius: 12px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 24px;
+  }
+  .choice.online .choice-icon {
+    background: linear-gradient(145deg, rgba(110, 231, 164, 0.35), rgba(52, 199, 116, 0.2));
+    border: 1px solid rgba(110, 231, 164, 0.4);
+  }
+  .choice.offline .choice-icon {
+    background: linear-gradient(145deg, rgba(126, 232, 250, 0.3), rgba(167, 139, 250, 0.2));
+    border: 1px solid rgba(126, 232, 250, 0.35);
+  }
+  .choice-body { flex: 1; min-width: 0; }
+  .choice-title {
+    font-size: 16px;
+    font-weight: 700;
+    margin-bottom: 3px;
+  }
+  .choice-sub {
+    font-size: 12.5px;
+    line-height: 1.45;
+    opacity: 0.72;
+  }
+  .choice-badge {
+    flex-shrink: 0;
+    align-self: center;
+    font-size: 10.5px;
+    font-weight: 700;
+    letter-spacing: 0.6px;
+    text-transform: uppercase;
+    padding: 4px 8px;
+    border-radius: 6px;
+    background: rgba(52, 199, 116, 0.2);
+    color: var(--green-bright);
+    border: 1px solid rgba(52, 199, 116, 0.35);
+  }
+  .choice.offline .choice-badge {
+    background: rgba(126, 232, 250, 0.15);
+    color: var(--accent-cyan);
+    border-color: rgba(126, 232, 250, 0.35);
+  }
+
+  .hint {
+    margin-top: 18px;
+    font-size: 12px;
+    opacity: 0.55;
+    line-height: 1.5;
+  }
+
+  /* footer */
+  .footer {
+    margin-top: 22px;
+    font-size: 11.5px;
+    opacity: 0.4;
+    text-align: center;
+  }
+
+  /* ===== Settings overlay ===== */
+  #settingsOverlay {
+    position: fixed;
+    inset: 0;
+    z-index: 100;
+    display: none;
+    background: rgba(0,0,0,0.55);
+    align-items: center;
+    justify-content: center;
+    padding: 16px;
+  }
+  #settingsOverlay.open { display: flex; }
+  #settingsBox {
+    background: #1b2338;
+    border: 1px solid rgba(255,255,255,0.18);
+    border-radius: 14px;
+    padding: 24px 26px;
+    max-width: 380px;
+    width: 100%;
+    box-shadow: 0 20px 50px rgba(0,0,0,0.5);
+    animation: menuIn 0.2s ease-out;
+    text-align: left;
+  }
+  #settingsBox h3 {
+    margin: 0 0 16px;
+    font-size: 18px;
+    text-align: center;
+  }
+  .settingRow {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    background: rgba(255,255,255,0.06);
+    padding: 11px 14px;
+    border-radius: 8px;
+    font-size: 13.5px;
+    margin-bottom: 8px;
+  }
+  .settingRow .label { opacity: 0.85; }
+  .settingRow .value {
+    font-weight: 700;
+    color: var(--accent-cyan);
+  }
+  .settingRow .value.alpha {
+    color: #d4c0ff;
+    background: rgba(167, 139, 250, 0.2);
+    border: 1px solid rgba(167, 139, 250, 0.4);
+    padding: 3px 10px;
+    border-radius: 6px;
+    font-size: 12px;
+    letter-spacing: 0.8px;
+    text-transform: uppercase;
+  }
+  .settingNote {
+    font-size: 12px;
+    opacity: 0.55;
+    line-height: 1.45;
+    margin: 4px 2px 14px;
+  }
+  #settingsCloseBtn {
+    margin-top: 8px;
+    width: 100%;
+    padding: 10px;
+    border-radius: 8px;
+    border: none;
+    background: rgba(255,255,255,0.12);
+    color: #fff;
+    font-weight: 700;
+    font-size: 13px;
+    cursor: pointer;
+  }
+  #settingsCloseBtn:hover { background: rgba(255,255,255,0.2); }
+
+  /* ===== Download toast / modal ===== */
+  #downloadOverlay {
+    position: fixed;
+    inset: 0;
+    z-index: 110;
+    display: none;
+    background: rgba(0,0,0,0.55);
+    align-items: center;
+    justify-content: center;
+    padding: 16px;
+  }
+  #downloadOverlay.open { display: flex; }
+  #downloadBox {
+    background: #1b2338;
+    border: 1px solid rgba(126, 232, 250, 0.3);
+    border-radius: 14px;
+    padding: 26px 28px;
+    max-width: 400px;
+    width: 100%;
+    box-shadow: 0 20px 50px rgba(0,0,0,0.5);
+    animation: menuIn 0.25s ease-out;
+    text-align: center;
+  }
+  #downloadBox h3 {
+    margin: 0 0 8px;
+    font-size: 17px;
+    color: var(--accent-cyan);
+  }
+  #downloadBox p {
+    font-size: 13px;
+    line-height: 1.55;
+    opacity: 0.85;
+    margin: 0 0 18px;
+  }
+  #downloadActions {
+    display: flex;
+    gap: 10px;
+    justify-content: center;
+    flex-wrap: wrap;
+  }
+  .dlgBtn {
+    padding: 10px 18px;
+    border-radius: 8px;
+    font-size: 13px;
+    font-weight: 700;
+    cursor: pointer;
+    border: none;
+  }
+  .dlgBtn.primary {
+    background: linear-gradient(180deg, var(--green-bright), var(--green));
+    color: #0d1224;
+    box-shadow: 0 4px 14px rgba(52, 199, 116, 0.3);
+  }
+  .dlgBtn.primary:hover { filter: brightness(1.06); }
+  .dlgBtn.ghost {
+    background: rgba(255,255,255,0.1);
+    color: #fff;
+  }
+  .dlgBtn.ghost:hover { background: rgba(255,255,255,0.18); }
+
+  /* toast */
+  #toast {
+    position: fixed;
+    bottom: 24px;
+    left: 50%;
+    transform: translateX(-50%) translateY(20px);
+    background: rgba(20, 26, 46, 0.95);
+    border: 1px solid rgba(126, 232, 250, 0.4);
+    color: #fff;
+    padding: 10px 18px;
+    border-radius: 10px;
+    font-size: 13px;
+    z-index: 200;
+    opacity: 0;
+    pointer-events: none;
+    transition: opacity 0.25s, transform 0.25s;
+    max-width: 90vw;
+    text-align: center;
+  }
+  #toast.show {
+    opacity: 1;
+    transform: translateX(-50%) translateY(0);
+  }
+
+  @media (max-width: 520px) {
+    .hero { padding: 28px 18px 24px; }
+    .logo { font-size: 40px; }
+    .choice { padding: 14px 14px; }
+    .choice-icon { width: 42px; height: 42px; font-size: 20px; }
+    .choice-badge { display: none; }
+  }
+</style>
+</head>
+<body>
+
+<div class="topbar">
+  <div class="topbar-brand">
+    <span class="bolt">⚡</span> Voltex
+    <span class="version-pill" id="topVersion">Alpha</span>
+  </div>
+  <button class="settings-btn" id="settingsBtn" title="Settings" aria-label="Settings">⚙</button>
+</div>
+
+<div class="page">
+  <div class="hero">
+    <div class="logo">⚡ Voltex</div>
+    <div class="tagline">Shared Voxel Sandbox</div>
+    <p class="desc">
+      A Minecraft-style voxel world with textured blocks, water, trees, crafting, and a day/night cycle — shared in real time.
+    </p>
+    <p class="desc small">
+      Choose how you want to play. Offline runs entirely on your device for the smoothest experience; online joins the shared multiplayer world from this site.
+    </p>
+
+    <div class="choices">
+      <!-- Play on website -->
+      <button type="button" class="choice online" id="playOnlineBtn">
+        <div class="choice-icon">🌐</div>
+        <div class="choice-body">
+          <div class="choice-title">Play on Website</div>
+          <div class="choice-sub">Join the shared multiplayer world right in your browser. No download needed.</div>
+        </div>
+        <span class="choice-badge">Online</span>
+      </button>
+
+      <!-- Download offline -->
+      <button type="button" class="choice offline" id="downloadOfflineBtn">
+        <div class="choice-icon">💾</div>
+        <div class="choice-body">
+          <div class="choice-title">Download Offline File</div>
+          <div class="choice-sub">Save the full game HTML to your device for faster local play — works without the internet.</div>
+        </div>
+        <span class="choice-badge">Faster</span>
+      </button>
+    </div>
+
+    <p class="hint">
+      Offline = single-file game on your computer or phone. Online = same world as everyone else, live.
+    </p>
+  </div>
+
+  <div class="footer">
+    Voltex · Version <span id="footerVersion">Alpha</span> · Built for the browser
+  </div>
+</div>
+
+<!-- Settings -->
+<div id="settingsOverlay" role="dialog" aria-modal="true" aria-labelledby="settingsTitle">
+  <div id="settingsBox">
+    <h3 id="settingsTitle">Settings</h3>
+
+    <div class="settingRow">
+      <span class="label">Version</span>
+      <span class="value alpha" id="settingsVersion">Alpha</span>
+    </div>
+    <p class="settingNote">
+      You are on an early alpha build. Features, multiplayer, and performance may change.
+    </p>
+
+    <div class="settingRow">
+      <span class="label">Build</span>
+      <span class="value" id="settingsBuild">Voltex Alpha</span>
+    </div>
+
+    <div class="settingRow">
+      <span class="label">Platform</span>
+      <span class="value" id="settingsPlatform">Web</span>
+    </div>
+
+    <button type="button" id="settingsCloseBtn">Close</button>
+  </div>
+</div>
+
+<!-- Offline download info -->
+<div id="downloadOverlay" role="dialog" aria-modal="true">
+  <div id="downloadBox">
+    <h3>Download offline game</h3>
+    <p>
+      This saves the full Voltex game as a single HTML file on your device.
+      Open that file in any browser for faster local play — no server required for single-player style use.
+    </p>
+    <div id="downloadActions">
+      <button type="button" class="dlgBtn primary" id="confirmDownloadBtn">Download HTML</button>
+      <button type="button" class="dlgBtn ghost" id="cancelDownloadBtn">Cancel</button>
+    </div>
+  </div>
+</div>
+
+<div id="toast"></div>
+
+<script>
+(function () {
+  // ── Version (shown in settings + UI) ──────────────────────────────────────
+  const VERSION = 'Alpha';
+  const BUILD_NAME = 'Voltex Alpha';
+
+  document.getElementById('topVersion').textContent = VERSION;
+  document.getElementById('footerVersion').textContent = VERSION;
+  document.getElementById('settingsVersion').textContent = VERSION;
+  document.getElementById('settingsBuild').textContent = BUILD_NAME;
+  document.getElementById('settingsPlatform').textContent =
+    /Mobi|Android|iPhone|iPad/i.test(navigator.userAgent) ? 'Mobile Web' : 'Desktop Web';
+
+  // ── Settings ──────────────────────────────────────────────────────────────
+  const settingsOverlay = document.getElementById('settingsOverlay');
+  document.getElementById('settingsBtn').addEventListener('click', () => {
+    settingsOverlay.classList.add('open');
+  });
+  document.getElementById('settingsCloseBtn').addEventListener('click', () => {
+    settingsOverlay.classList.remove('open');
+  });
+  settingsOverlay.addEventListener('click', (e) => {
+    if (e.target === settingsOverlay) settingsOverlay.classList.remove('open');
+  });
+
+  // ── Toast ─────────────────────────────────────────────────────────────────
+  let toastTimer = null;
+  function showToast(msg, ms) {
+    const el = document.getElementById('toast');
+    el.textContent = msg;
+    el.classList.add('show');
+    clearTimeout(toastTimer);
+    toastTimer = setTimeout(() => el.classList.remove('show'), ms || 2800);
+  }
+
+  // ── Play on website ───────────────────────────────────────────────────────
+  // Points at the main game file. Change GAME_URL if you host the game elsewhere.
+  const GAME_URL = 'voltex_game.html';
+
+  document.getElementById('playOnlineBtn').addEventListener('click', () => {
+    showToast('Opening Voltex…');
+    // Prefer same-folder game file; fall back to a note if missing.
+    window.location.href = GAME_URL;
+  });
+
+  // ── Download offline ──────────────────────────────────────────────────────
+  const downloadOverlay = document.getElementById('downloadOverlay');
+  document.getElementById('downloadOfflineBtn').addEventListener('click', () => {
+    downloadOverlay.classList.add('open');
+  });
+  document.getElementById('cancelDownloadBtn').addEventListener('click', () => {
+    downloadOverlay.classList.remove('open');
+  });
+  downloadOverlay.addEventListener('click', (e) => {
+    if (e.target === downloadOverlay) downloadOverlay.classList.remove('open');
+  });
+
+  document.getElementById('confirmDownloadBtn').addEventListener('click', async () => {
+    const btn = document.getElementById('confirmDownloadBtn');
+    btn.disabled = true;
+    btn.textContent = 'Preparing…';
+
+    try {
+      // Fetch the game HTML from the same origin / folder.
+      // If the game is hosted as voltex_game.html next to this page, this works.
+      const res = await fetch(GAME_URL, { cache: 'no-store' });
+      if (!res.ok) throw new Error('Game file not found (HTTP ' + res.status + ')');
+
+      const blob = await res.blob();
+      const url = URL.createObjectURL(blob);
+      const a = document.createElement('a');
+      a.href = url;
+      a.download = 'Voltex_Offline_Alpha.html';
+      document.body.appendChild(a);
+      a.click();
+      a.remove();
+      URL.revokeObjectURL(url);
+
+      downloadOverlay.classList.remove('open');
+      showToast('Download started — open the HTML file in your browser to play offline.');
+    } catch (err) {
+      console.warn(err);
+      // Fallback: tell user to place the game file next to this page
+      downloadOverlay.classList.remove('open');
+      showToast(
+        'Could not fetch the game file. Place “voltex_game.html” next to this page, or host both files together.',
+        4500
+      );
+    } finally {
+      btn.disabled = false;
+      btn.textContent = 'Download HTML';
+    }
+  });
+
+  // Escape closes overlays
+  document.addEventListener('keydown', (e) => {
+    if (e.key === 'Escape') {
+      settingsOverlay.classList.remove('open');
+      downloadOverlay.classList.remove('open');
+    }
+  });
+})();
+</script>
+</body>
+</html>
 
