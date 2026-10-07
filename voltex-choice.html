@@ -551,7 +551,7 @@
 
   // ── Play on website ───────────────────────────────────────────────────────
   // Points at the main game file. Change GAME_URL if you host the game elsewhere.
-  const GAME_URL = 'voltex_game.html';
+  const GAME_URL = 'voltex.html';
 
   document.getElementById('playOnlineBtn').addEventListener('click', () => {
     showToast('Opening Voltex…');
@@ -578,7 +578,7 @@
 
     try {
       // Fetch the game HTML from the same origin / folder.
-      // If the game is hosted as voltex_game.html next to this page, this works.
+      // If the game is hosted as voltex.html next to this page, this works.
       const res = await fetch(GAME_URL, { cache: 'no-store' });
       if (!res.ok) throw new Error('Game file not found (HTTP ' + res.status + ')');
 
@@ -599,7 +599,7 @@
       // Fallback: tell user to place the game file next to this page
       downloadOverlay.classList.remove('open');
       showToast(
-        'Could not fetch the game file. Place “voltex_game.html” next to this page, or host both files together.',
+        'Could not fetch the game file. Place “voltex.html” next to this page, or host both files together.',
         4500
       );
     } finally {
@@ -619,4 +619,3 @@
 </script>
 </body>
 </html>
-
