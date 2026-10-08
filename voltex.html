@@ -4907,7 +4907,29 @@ function makeSlotEl(getItem, onLeftClick, onRightClick, extraClass, zone) {
     onLeftClick();
   });
   div.addEventListener('contextmenu', e => { e.preventDefault(); onRightClick(); });
+  if (zone) {
+    div.addEventListener('mouseenter', () => { hoverZone = zone; });
+    div.addEventListener('mouseleave', () => { if (hoverZone === zone) hoverZone = null; });
+  }
   return div;
+}
+// ---------- hotbar key while hovering an item: swap it with that hotbar slot ----------
+let hoverZone = null;   // {k, i} of the inventory/chest/furnace slot under the mouse
+function hotbarSwapHover(n) {
+  const z = hoverZone;
+  if (!z || !['inv', 'chest', 'craft', 'fin', 'ffuel'].includes(z.k)) return false;
+  if (z.k === 'chest' && !chestSlots) return false;
+  if (z.k === 'inv' && z.i === n) return true;                 // already that slot
+  const a = getZoneItem(z), b = inventory[n];
+  if (!a && !b) return true;
+  setZoneItem(z, b || null);
+  inventory[n] = a || null;
+  renderInventoryPanel();
+  if (furnaceOpen) renderFurnacePanel();
+  if (chestOpen) { renderChestPanel(); chestSyncTick(); saveChestData(); }
+  renderHotbar();
+  saveLocalPlayer();
+  return true;
 }
 
 
@@ -11115,13 +11137,17 @@ const BIND_DEFAULTS = {
   forward: 'KeyW', back: 'KeyS', left: 'KeyA', right: 'KeyD',
   jump: 'Space', sneak: 'ShiftLeft', sprint: '',
   inventory: 'KeyE', eat: 'KeyF', drop: 'KeyQ', thirdPerson: 'F5', chat: 'KeyT',
+  hotbar1: 'Digit1', hotbar2: 'Digit2', hotbar3: 'Digit3', hotbar4: 'Digit4', hotbar5: 'Digit5', hotbar6: 'Digit6', hotbar7: 'Digit7', hotbar8: 'Digit8', hotbar9: 'Digit9',
 };
 const BIND_LABELS = [
   ['forward', 'Move forward'], ['back', 'Move backward'], ['left', 'Move left'], ['right', 'Move right'],
   ['jump', 'Jump / swim up'], ['sneak', 'Sneak (no falling off edges)'], ['sprint', 'Sprint (hold)'],
   ['inventory', 'Inventory'], ['eat', 'Eat held food'], ['drop', 'Throw held item'],
   ['thirdPerson', 'Change view (1st / 3rd / front)'], ['chat', 'Chat'],
+  ['hotbar1', 'Hotbar slot 1'], ['hotbar2', 'Hotbar slot 2'], ['hotbar3', 'Hotbar slot 3'], ['hotbar4', 'Hotbar slot 4'], ['hotbar5', 'Hotbar slot 5'],
+  ['hotbar6', 'Hotbar slot 6'], ['hotbar7', 'Hotbar slot 7'], ['hotbar8', 'Hotbar slot 8'], ['hotbar9', 'Hotbar slot 9'],
 ];
+function hotbarSlotForCode(code) { for (let i = 1; i <= 9; i++) if (binds['hotbar' + i] && binds['hotbar' + i] === code) return i - 1; return -1; }
 const binds = Object.assign({}, BIND_DEFAULTS);
 try {
   const raw = localStorage.getItem(BIND_KEY);
@@ -11165,7 +11191,7 @@ document.addEventListener('keydown', e => {
   }
   if (signOpen) return;
   if (!e.ctrlKey && !e.metaKey && !e.altKey && isBoundCode(e.code)) e.preventDefault();   // e.g. Space / Tab / arrows must not scroll or move focus
-  if (e.code === binds.inventory) { if (signOpen) { closeSignEditor(true); return; } if (enchantOpen) closeEnchant(); else if (furnaceOpen) closeFurnace(); else if (chestOpen) closeChest(); else if (!settingsOpen) toggleInventory(); return; }
+  if (e.code === binds.inventory) { hoverZone = null; if (signOpen) { closeSignEditor(true); return; } if (enchantOpen) closeEnchant(); else if (furnaceOpen) closeFurnace(); else if (chestOpen) closeChest(); else if (!settingsOpen) toggleInventory(); return; }
   if (e.code === binds.thirdPerson) { cycleView(); e.preventDefault(); return; }
   if (e.code === binds.eat) { startEating(); return; }
   if (e.code === binds.drop) { throwCurrentItem(); return; }
@@ -11176,8 +11202,12 @@ document.addEventListener('keydown', e => {
     lastWTapTime = now;
   }
   keys[e.code] = true;
-  const num = parseInt(e.key);
-  if (num >= 1 && num <= HOTBAR_SIZE) selectSlot(num-1);
+  const hb = hotbarSlotForCode(e.code);
+  if (hb >= 0 && hb < HOTBAR_SIZE) {
+    // inventory / chest / furnace open and the mouse is on an item: the hotbar key moves (swaps) it into that hotbar slot
+    if ((inventoryOpen || chestOpen || furnaceOpen) && hoverZone && hotbarSwapHover(hb)) return;
+    selectSlot(hb);
+  }
 });
 window.addEventListener('blur', () => { for (const k in keys) keys[k] = false; isSprinting = false; });   // no stuck keys after alt-tab
 document.addEventListener('keyup', e => {
@@ -12438,7 +12468,8 @@ const KEYBINDS = [
   ['Mine / attack', 'Left click (hold)'],
   ['Place block / eat / block with sword', 'Right click (hold)'],
   ['Open door / trapdoor, light TNT', 'Right click it'],
-  ['Hotbar slot', '1 – 9 / scroll wheel'],
+  ['Hotbar slot', 'Scroll wheel (keys rebindable above)'],
+  ['Move hovered item to hotbar', 'Hover it + hotbar key'],
   ['Sprint', 'Double-tap Forward'],
   ['Pause / release mouse', 'Esc'],
 ];
@@ -12468,7 +12499,6 @@ window.addEventListener('keydown', e => {
   if (!bindListening) return;
   e.preventDefault(); e.stopImmediatePropagation();
   if (e.code === 'Escape') { bindListening = null; renderKeybinds(); return; }
-  if (/^Digit[1-9]$/.test(e.code)) return;   // 1-9 are the hotbar slots — keep them free
   const action = bindListening, old = binds[action];
   bindListening = null;
   for (const a in binds) if (a !== action && binds[a] === e.code) binds[a] = old;   // key was taken: swap
