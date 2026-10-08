@@ -56,7 +56,15 @@
   #absorbBar .fxTag { font: 700 11px 'Segoe UI', Arial, sans-serif; color: #ffe566; margin-left: 6px; text-shadow: 1px 1px 0 #000; }
   #heartsBar.regen .mcIcon img { animation: regenPulse 0.9s ease-in-out infinite; }
   @keyframes regenPulse { 50% { transform: translateY(-2px); } }
-  #hungerBar { margin-left: auto; flex-direction: row-reverse; position: relative; } /* fills right-to-left */
+  #rightStatus {
+    display: flex; flex-direction: column; align-items: flex-end; gap: 2px;
+    margin-left: auto;
+  }
+  #oxygenBar {
+    display: none; flex-direction: row; gap: 1px; height: 20px; align-items: center;
+    /* same icon size/gap as hunger so the 10 bubbles sit exactly above the 10 food icons */
+  }
+  #hungerBar { flex-direction: row-reverse; position: relative; } /* fills right-to-left */
   #hungerBar .satLine { position: absolute; left: 0; right: 0; bottom: -5px; height: 3px; border-radius: 2px; background: rgba(0,0,0,0.45); overflow: hidden; pointer-events: none; }
   #hungerBar .satLine > div { height: 100%; margin-left: auto; background: linear-gradient(#ffe27a, #e0a020); }
   .mcIcon {
@@ -663,6 +671,7 @@
   #statusBars { bottom: 84px; }
   #chatLog { bottom: 112px; }
 
+
   /* ===== Enchanted item glint (MC-style purple/white sweep) ===== */
   .slot.enchanted, .invSlot.enchanted { position: relative; }
   .enchanted::after {
@@ -862,7 +871,7 @@
     <div id="enchantTop">
       <div id="enchantSlotWrap"></div>
       <div id="enchantChoices">
-        <div id="enchTypeRow"><button class="enchBtn enchType" id="enchType0"><span class="eb-t">Efficiency</span><span class="eb-s">faster mining</span></button><button class="enchBtn enchType" id="enchType1"><span class="eb-t">Fortune</span><span class="eb-s">more ore / wood</span></button><button class="enchBtn enchType" id="enchType2"><span class="eb-t">Sharpness</span><span class="eb-s">more damage</span></button><button class="enchBtn enchType" id="enchType3"><span class="eb-t">Protection</span><span class="eb-s">less damage</span></button><button class="enchBtn enchType" id="enchType4"><span class="eb-t">Unbreaking</span><span class="eb-s">lasts longer</span></button><button class="enchBtn enchType" id="enchType5"><span class="eb-t">Mending</span><span class="eb-s">repairs with XP</span></button><button class="enchBtn enchType" id="enchType6"><span class="eb-t">Looting</span><span class="eb-s">more XP &amp; drops</span></button><button class="enchBtn enchType" id="enchType7"><span class="eb-t">Power</span><span class="eb-s">arrow damage</span></button><button class="enchBtn enchType" id="enchType8"><span class="eb-t">Charge</span><span class="eb-s">arrow knockback</span></button><button class="enchBtn enchType" id="enchType9"><span class="eb-t">Infinity</span><span class="eb-s">infinite arrows</span></button><button class="enchBtn enchType" id="enchType10"><span class="eb-t">Lunge</span><span class="eb-s">dash when attacking</span></button><button class="enchBtn enchType" id="enchType11"><span class="eb-t">Loyalty</span><span class="eb-s">trident returns</span></button><button class="enchBtn enchType" id="enchType12"><span class="eb-t">Riptide</span><span class="eb-s">dash in water / rain</span></button><button class="enchBtn enchType" id="enchType13"><span class="eb-t">Silk Touch</span><span class="eb-s">mine blocks intact</span></button><button class="enchBtn enchType" id="enchType14"><span class="eb-t">Density</span><span class="eb-s">more smash damage</span></button><button class="enchBtn enchType" id="enchType15"><span class="eb-t">Breach</span><span class="eb-s">armor pierce</span></button><button class="enchBtn enchType" id="enchType16"><span class="eb-t">Wind Burst</span><span class="eb-s">launch on smash</span></button></div>
+        <div id="enchTypeRow"><button class="enchBtn enchType" id="enchType0"><span class="eb-t">Efficiency</span><span class="eb-s">faster mining</span></button><button class="enchBtn enchType" id="enchType1"><span class="eb-t">Fortune</span><span class="eb-s">more ore / wood</span></button><button class="enchBtn enchType" id="enchType2"><span class="eb-t">Sharpness</span><span class="eb-s">more damage</span></button><button class="enchBtn enchType" id="enchType3"><span class="eb-t">Protection</span><span class="eb-s">less damage</span></button><button class="enchBtn enchType" id="enchType4"><span class="eb-t">Unbreaking</span><span class="eb-s">lasts longer</span></button><button class="enchBtn enchType" id="enchType5"><span class="eb-t">Mending</span><span class="eb-s">repairs with XP</span></button><button class="enchBtn enchType" id="enchType6"><span class="eb-t">Looting</span><span class="eb-s">more XP &amp; drops</span></button><button class="enchBtn enchType" id="enchType7"><span class="eb-t">Power</span><span class="eb-s">arrow damage</span></button><button class="enchBtn enchType" id="enchType8"><span class="eb-t">Charge</span><span class="eb-s">arrow knockback</span></button><button class="enchBtn enchType" id="enchType9"><span class="eb-t">Infinity</span><span class="eb-s">infinite arrows</span></button><button class="enchBtn enchType" id="enchType10"><span class="eb-t">Lunge</span><span class="eb-s">dash when attacking</span></button><button class="enchBtn enchType" id="enchType11"><span class="eb-t">Loyalty</span><span class="eb-s">trident returns</span></button><button class="enchBtn enchType" id="enchType12"><span class="eb-t">Riptide</span><span class="eb-s">dash in water / rain</span></button><button class="enchBtn enchType" id="enchType13"><span class="eb-t">Silk Touch</span><span class="eb-s">mine blocks intact</span></button><button class="enchBtn enchType" id="enchType14"><span class="eb-t">Density</span><span class="eb-s">more smash damage</span></button><button class="enchBtn enchType" id="enchType15"><span class="eb-t">Breach</span><span class="eb-s">armor pierce</span></button><button class="enchBtn enchType" id="enchType16"><span class="eb-t">Wind Burst</span><span class="eb-s">launch on smash</span></button><button class="enchBtn enchType" id="enchType17"><span class="eb-t">Sweeping Edge</span><span class="eb-s">bigger sweep AOE</span></button></div>
         <button class="enchBtn" id="enchBtn0"><span class="eb-t"></span><span class="eb-s"></span></button>
         <button class="enchBtn" id="enchBtn1"><span class="eb-t"></span><span class="eb-s"></span></button>
         <button class="enchBtn" id="enchBtn2"><span class="eb-t"></span><span class="eb-s"></span></button>
@@ -874,7 +883,7 @@
     <div id="enchantMsg"></div>
     <div id="enchantMainGrid"></div>
     <div id="enchantHotbarGrid"></div>
-    <p id="enchantHint">Tap an item in your bag to put it in the slot (tap the slot to take it back). Swords get <b>Sharpness</b> (more damage), armor gets <b>Protection</b> (less damage taken), tools get <b>Efficiency</b> (mine faster), pickaxes/axes also <b>Fortune</b> (more ore / wood drops), and axes can also take <b>Sharpness</b>. Shields can take <b>Unbreaking</b> and <b>Mending</b>. Craft a <b>shield</b> (planks + iron) to block frontal attacks — axes can temporarily disable a raised shield. Spears (2 sticks + a material, hits 2–4.5 blocks away, never closer; <b>hold right-click</b> / long-press to hold the spear out and run into enemies: damage = your speed + their speed) can take <b>Sharpness</b>, <b>Looting</b> and <b>Lunge</b> (I–III: every attack dashes you forward, farther per level, and costs hunger). <b>Tridents</b> can take <b>Loyalty</b> (I–III, flies back to your hand), <b>Sharpness</b>, <b>Looting</b> and <b>Riptide</b> (I–III: hold right-click and release in water or rain to dash where you look, farther per level; a Riptide trident is not thrown). Pickaxes, axes and shovels can also take <b>Silk Touch</b> (15 XP levels: mined blocks drop as themselves, e.g. stone, grass, ores, leaves). Swords can also take <b>Looting</b> (I–V, more XP and more drops from kills). Sharpness goes up to V (25 levels). Bows can take <b>Power</b> (I–V, arrow damage), <b>Charge</b> (I–II, arrow knockback) and <b>Infinity</b> (25 levels, shooting doesn't use up arrows; you still need one in your bag). A <b>bow</b> (3 sticks + 3 string at a crafting table; 1 wool = 4 string) shoots <b>arrows</b> (iron + stick + string = 4): hold right-click to draw, release to fire. Every tool, sword, bow, shield and armor piece can also take <b>Unbreaking</b> (I–III, lasts longer) and <b>Mending</b> (I, XP you earn repairs your held item, off-hand and worn armor). Enchant costs: level I = 5, II = 10, III = 15, IV = 20 XP levels (Mending = 25). Kill mobs to earn XP · Press E to close</p>
+    <p id="enchantHint">Tap an item in your bag to put it in the slot (tap the slot to take it back). Swords get <b>Sharpness</b> (more damage), armor gets <b>Protection</b> (less damage taken), tools get <b>Efficiency</b> (mine faster), pickaxes/axes also <b>Fortune</b> (more ore / wood drops), and axes can also take <b>Sharpness</b>. Shields can take <b>Unbreaking</b> and <b>Mending</b>. Craft a <b>shield</b> (planks + iron) to block frontal attacks — axes can temporarily disable a raised shield. Spears (2 sticks + a material, hits 2–4.5 blocks away, never closer; <b>hold right-click</b> / long-press to hold the spear out and run into enemies: damage = your speed + their speed) can take <b>Sharpness</b>, <b>Looting</b> and <b>Lunge</b> (I–III: every attack dashes you forward, farther per level, and costs hunger). <b>Tridents</b> can take <b>Loyalty</b> (I–III, flies back to your hand), <b>Sharpness</b>, <b>Looting</b> and <b>Riptide</b> (I–III: hold right-click and release in water or rain to dash where you look — about 9 / 16 / 25 blocks; look up to launch upward; a Riptide trident is not thrown). Pickaxes, axes and shovels can also take <b>Silk Touch</b> (15 XP levels: mined blocks drop as themselves, e.g. stone, grass, ores, leaves). Swords can also take <b>Looting</b> (I–V, more XP and more drops from kills). Sharpness goes up to V (25 levels). Bows can take <b>Power</b> (I–V, arrow damage), <b>Charge</b> (I–II, arrow knockback) and <b>Infinity</b> (25 levels, shooting doesn't use up arrows; you still need one in your bag). A <b>bow</b> (3 sticks + 3 string at a crafting table; 1 wool = 4 string) shoots <b>arrows</b> (iron + stick + string = 4): hold right-click to draw, release to fire. Every tool, sword, bow, shield and armor piece can also take <b>Unbreaking</b> (I–III, lasts longer) and <b>Mending</b> (I, XP you earn repairs your held item, off-hand and worn armor). Enchant costs: level I = 5, II = 10, III = 15, IV = 20 XP levels (Mending = 25). Kill mobs to earn XP · Press E to close</p>
   </div>
 </div>
 
@@ -936,7 +945,10 @@
 <div id="mineProgressWrap"><div id="mineProgressBar"></div></div>
 <div id="statusBars">
   <div id="heartsCol"><div id="absorbBar" aria-label="Absorption"></div><div id="heartsBar" aria-label="Health"></div></div>
-  <div id="hungerBar" aria-label="Hunger"></div>
+  <div id="rightStatus">
+    <div id="oxygenBar" aria-label="Oxygen"></div>
+    <div id="hungerBar" aria-label="Hunger"></div>
+  </div>
 </div>
 <div id="xpWrap"><span id="xpLvl">0</span><div id="xpTrack"><div id="xpFill"></div></div></div>
 <div id="chatLog"></div>
@@ -1541,7 +1553,7 @@ applyTexturePack();
 
 // ---- farming textures: tall grass comes straight from the Golden Age pack; farmland + wheat stages are drawn in the same classic style ----
 (function loadFarmTextures() {
-  const X = { tall_grass: "data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAABAAAAAQCAYAAAAf8/9hAAAABGdBTUEAALGPC/xhBQAAACBjSFJNAAB6JgAAgIQAAPoAAACA6AAAdTAAAOpgAAA6mAAAF3CculE8AAAACXBIWXMAAA7CAAAOwgEVKEqAAAAAGHRFWHRTb2Z0d2FyZQBwYWludC5uZXQgNC4wLjVlhTJlAAABTUlEQVQ4T52SXSuEURSFz+9xp+RKBiEan0OZkisNEZNvIf4DKeXChZDkm2gUv8L/OXr2WOfd8+HGqdPaZ5291177PW9otrbfx+Jv+L91/F1uENh4GY5rT/m/hbfeRtOldyCxZsWFo5aMo4MIBFYfB1MM6q540mpIQ+PUGQE2MUVeDOTsXaw8DFSb+GQJLN70JK500WnxTqUQyVXD9eehqhgzKlnk3GUucSDddG4QQFUusAjSdem219DzvlBnWxJgJgks3/VZAuNsvo7E3cqENUKAcWpeRYXEoMTqR2HLTfm+PxPwM3r0HxPElXIZEd4WBBYVC+uFF667TURcWhBsZgPnr7oM9XPtf07V8OkFtEg8+CrGvY9JS5B1noxvIQEcgHyH2fOOTGT6tC3OnLXbJS4UUzx+mL0OsZAcK8YWDhDhEiSB7TltzhRzH0IIP6CJdAdglJu7AAAAAElFTkSuQmCC", farmland: "data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAABAAAAAQCAYAAAAf8/9hAAAChUlEQVR4nFWTPW8dRRiFn/nYmd27e9dx7CSERCEkIBFkCaQ0adIgJBp6Ghp+ITT8AmgooXEQCZKTIiixHcv33t2db4qNVzDSNDN6j87Rc17x/ZO7JaWE1hqtNcMwIISg6zpCCDjnlr9xHOn7Hu89IQRSSujDvqaqKgBCCOy3e+ScsdaSc4X3mvV6TYyRadJIKbB9D0ApBf36bEPTNACklPDeo5QipQ11PYvfWWl+/+stUkpijBjjcM5R1zXi6cNrRWtNVVV8/eUdAH769U/qugZACIFzbhm21qKUYhiGWeC7x7dK0zR479Fao5Qi50zOGWPMMiyl5PP7hwD88fwfSilzhE/ufcAwDDSHPUIIxnEk50xd14QQ0H1NKQVrLW/Otxhj+PCwJ6XErYM1eq+tePFqg7WenDMxRlarFaeXF6SU6LoO5xylbPDes1qtGMeRtm05vXyL+OqzG0UphZSSUgrTNAFgjFli5ZyRUqKUIoSA956u69hut+jbewalFEcPbnJ8csY4ztnatgVanHMYY3j00QHHJ2co1eG9J6XE3es30F98epvNmHi3cRysLaGW7zuQSSlhr+0zTROnFwN9LVFK0uzPbzln9LOX50zThFIKgLqu2QWP9/MVYktVVZRyhXJi5Qrb7Za2bdEvXl9grSWE8T3nuaalFKqq4pvH9/j5t79JKS3ohNjMHTkbED88/bg452a71mKMIca48AeIMSKlRGuNlJKr3QHQB2tLWmmapkFKSQgBIWqEWC9N3O12WGux1v7HhZiF3u0CMUby5Yzv6oQQMGYmFGPEn2+Xll65OXpwE3188uZ/6yqEoJRC0zQ4d7HUWWvNt08e8uMvz5Z1PwL+BdM/Y9StytNjAAAAAElFTkSuQmCC", wheat_0: "data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAABAAAAAQCAYAAAAf8/9hAAAARElEQVR4nGNgGAWjYHiCsiNu/5FpQuJYJW2aNP6TIs7AwMDAELHC5D85bCaYwJNbX+A2PLn1hQFmIyE23AAZNR4GctgAwwM+WGVMFfkAAAAASUVORK5CYII=", wheat_1: "data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAABAAAAAQCAYAAAAf8/9hAAAAk0lEQVR4nO2OoQ3DMBBFn42Niq1CKwMEGmeGTJIBAj2JZzAO7ASGlXFRuIsuiqxEalSaj56eTv8+3LnTZFqG6ueu/uoBVCvG2NenfRB8Ukce4F0+xPGlDtuFz7zwtAwVQAeflHUGEdYZAPbez10VLzeyUAOUvBJ8UmPsa8nrNlm8dYbWC+v915LXy7wtkKKr/PeCLwTQeEx2z1l/AAAAAElFTkSuQmCC", wheat_2: "data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAABAAAAAQCAYAAAAf8/9hAAAAy0lEQVR4nN2RKw6DQBRFz0yaKhR6giQsADmaNbASZAUS2VWQii4AgZqgWEBTSVAVVfVTBZ3yScA1fermZHJfzhv4ubnUid3D5RS0x+Vil7tl0gWZSWxTd7OHU342nywBro8nAIWuhAo90jK2azwziVWh9ynIzNytTFuxxgtdCWBcIgtdiUD5IwiUD0DXP1niaRnbQPmUaSsADgBN3WFON6HzaHTt7y/6+2uVA+g8sgeAwcl125q/vnFo3pOl66dCb3cebzD125r/4AZvnLygkSmpgF8AAAAASUVORK5CYII=", wheat_3: "data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAABAAAAAQCAYAAAAf8/9hAAAA3klEQVR4nJ2SIbLCMBBAXzI9ADJqB4FGIFAZxD9DD9BjcAwOgOAACAS6qhrx1RedP52oSDQmqJRQmNIQkzdvZ5PsbmCwbv/bMHRjXn+TlHqdBlxdBt+1NAcbpngA5eoyADjnAVhvLL5rH8kj3laNKpzzrDe2D/iufUr65AsRk52U+pcX7HdnlqsZIgYzX4x6V5dBuboM8TQRQy5r+TkqEdPfFPl8+mOKV8DLeGzVqHcje+c1wO/liq0aFTmuKV4DLFezPpDLOq0vdjmHNTx+2zdcpPUN65zCRdqDuOfwHVUhyEortILOAAAAAElFTkSuQmCC" };
+  const X = { cobweb: "data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAABAAAAAQCAYAAAAf8/9hAAABXElEQVR4AXzSQU4DMQwF0KSHqBf1gguABFs4PmxBgguwoIv2EiXPUUZFCEbKOP7f/9vJzO759f3S/nku4/mLpt09Pdz1UfPLBPl1OhUuyq+NaGh3wD6eVYRQjMyIjs+ILsfJxSEprgyAGdFvDtEQimEKX94+bGvhNBILGK/NYOzb5/HUiOxFYmZEMDEjfhx5M1hjc1coPt7f0rWM6LCMeSScHLkZGB/AKGN2OZ7PoJoqY5oUMF6mHaHVZ1xuxmYkIg/7fcPpKM+YxvaOpll9Rm4Zoa4T1Wa8TCBnyMhyLyKMUR1huQGGrnNWRCwnyoieEd29ZMxmpi0DQoRoITKivrNcg9VRbmmQEX0z0AmI1Fl0BNFEIhN19o4tbgYSIBNFSySaAGbhF0azGXBXmDFveh0DppCI2HQ4mFUGxNwBlv2ahoiYUUag6jJp1NZ/AJVcL5eaMW+e+Jqzp2H8DQAA//9vjdkQAAAABklEQVQDAJmeLfLyPpllAAAAAElFTkSuQmCC", tall_grass: "data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAABAAAAAQCAYAAAAf8/9hAAAABGdBTUEAALGPC/xhBQAAACBjSFJNAAB6JgAAgIQAAPoAAACA6AAAdTAAAOpgAAA6mAAAF3CculE8AAAACXBIWXMAAA7CAAAOwgEVKEqAAAAAGHRFWHRTb2Z0d2FyZQBwYWludC5uZXQgNC4wLjVlhTJlAAABTUlEQVQ4T52SXSuEURSFz+9xp+RKBiEan0OZkisNEZNvIf4DKeXChZDkm2gUv8L/OXr2WOfd8+HGqdPaZ5291177PW9otrbfx+Jv+L91/F1uENh4GY5rT/m/hbfeRtOldyCxZsWFo5aMo4MIBFYfB1MM6q540mpIQ+PUGQE2MUVeDOTsXaw8DFSb+GQJLN70JK500WnxTqUQyVXD9eehqhgzKlnk3GUucSDddG4QQFUusAjSdem219DzvlBnWxJgJgks3/VZAuNsvo7E3cqENUKAcWpeRYXEoMTqR2HLTfm+PxPwM3r0HxPElXIZEd4WBBYVC+uFF667TURcWhBsZgPnr7oM9XPtf07V8OkFtEg8+CrGvY9JS5B1noxvIQEcgHyH2fOOTGT6tC3OnLXbJS4UUzx+mL0OsZAcK8YWDhDhEiSB7TltzhRzH0IIP6CJdAdglJu7AAAAAElFTkSuQmCC", farmland: "data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAABAAAAAQCAYAAAAf8/9hAAAChUlEQVR4nFWTPW8dRRiFn/nYmd27e9dx7CSERCEkIBFkCaQ0adIgJBp6Ghp+ITT8AmgooXEQCZKTIiixHcv33t2db4qNVzDSNDN6j87Rc17x/ZO7JaWE1hqtNcMwIISg6zpCCDjnlr9xHOn7Hu89IQRSSujDvqaqKgBCCOy3e+ScsdaSc4X3mvV6TYyRadJIKbB9D0ApBf36bEPTNACklPDeo5QipQ11PYvfWWl+/+stUkpijBjjcM5R1zXi6cNrRWtNVVV8/eUdAH769U/qugZACIFzbhm21qKUYhiGWeC7x7dK0zR479Fao5Qi50zOGWPMMiyl5PP7hwD88fwfSilzhE/ufcAwDDSHPUIIxnEk50xd14QQ0H1NKQVrLW/Otxhj+PCwJ6XErYM1eq+tePFqg7WenDMxRlarFaeXF6SU6LoO5xylbPDes1qtGMeRtm05vXyL+OqzG0UphZSSUgrTNAFgjFli5ZyRUqKUIoSA956u69hut+jbewalFEcPbnJ8csY4ztnatgVanHMYY3j00QHHJ2co1eG9J6XE3es30F98epvNmHi3cRysLaGW7zuQSSlhr+0zTROnFwN9LVFK0uzPbzln9LOX50zThFIKgLqu2QWP9/MVYktVVZRyhXJi5Qrb7Za2bdEvXl9grSWE8T3nuaalFKqq4pvH9/j5t79JKS3ohNjMHTkbED88/bg452a71mKMIca48AeIMSKlRGuNlJKr3QHQB2tLWmmapkFKSQgBIWqEWC9N3O12WGux1v7HhZiF3u0CMUby5Yzv6oQQMGYmFGPEn2+Xll65OXpwE3188uZ/6yqEoJRC0zQ4d7HUWWvNt08e8uMvz5Z1PwL+BdM/Y9StytNjAAAAAElFTkSuQmCC", wheat_0: "data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAABAAAAAQCAYAAAAf8/9hAAAARElEQVR4nGNgGAWjYHiCsiNu/5FpQuJYJW2aNP6TIs7AwMDAELHC5D85bCaYwJNbX+A2PLn1hQFmIyE23AAZNR4GctgAwwM+WGVMFfkAAAAASUVORK5CYII=", wheat_1: "data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAABAAAAAQCAYAAAAf8/9hAAAAk0lEQVR4nO2OoQ3DMBBFn42Niq1CKwMEGmeGTJIBAj2JZzAO7ASGlXFRuIsuiqxEalSaj56eTv8+3LnTZFqG6ueu/uoBVCvG2NenfRB8Ukce4F0+xPGlDtuFz7zwtAwVQAeflHUGEdYZAPbez10VLzeyUAOUvBJ8UmPsa8nrNlm8dYbWC+v915LXy7wtkKKr/PeCLwTQeEx2z1l/AAAAAElFTkSuQmCC", wheat_2: "data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAABAAAAAQCAYAAAAf8/9hAAAAy0lEQVR4nN2RKw6DQBRFz0yaKhR6giQsADmaNbASZAUS2VWQii4AgZqgWEBTSVAVVfVTBZ3yScA1fermZHJfzhv4ubnUid3D5RS0x+Vil7tl0gWZSWxTd7OHU342nywBro8nAIWuhAo90jK2azwziVWh9ynIzNytTFuxxgtdCWBcIgtdiUD5IwiUD0DXP1niaRnbQPmUaSsADgBN3WFON6HzaHTt7y/6+2uVA+g8sgeAwcl125q/vnFo3pOl66dCb3cebzD125r/4AZvnLygkSmpgF8AAAAASUVORK5CYII=", wheat_3: "data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAABAAAAAQCAYAAAAf8/9hAAAA3klEQVR4nJ2SIbLCMBBAXzI9ADJqB4FGIFAZxD9DD9BjcAwOgOAACAS6qhrx1RedP52oSDQmqJRQmNIQkzdvZ5PsbmCwbv/bMHRjXn+TlHqdBlxdBt+1NAcbpngA5eoyADjnAVhvLL5rH8kj3laNKpzzrDe2D/iufUr65AsRk52U+pcX7HdnlqsZIgYzX4x6V5dBuboM8TQRQy5r+TkqEdPfFPl8+mOKV8DLeGzVqHcje+c1wO/liq0aFTmuKV4DLFezPpDLOq0vdjmHNTx+2zdcpPUN65zCRdqDuOfwHVUhyEortILOAAAAAElFTkSuQmCC" };
   window.__FARM_X = X;
   for (const k in X) {
     TEX[k] = makeTexture(ctx => { if (k === 'farmland') { ctx.fillStyle = '#5e3a1e'; ctx.fillRect(0, 0, 16, 16); } });
@@ -1623,6 +1635,7 @@ const BLOCK_TYPES = {
   spawner:  { transparent: false, hardness: 5.0, tool: 'pickaxe' },   // dungeon mob spawner (Silk Touch to pick up; fixed mob type)
   fire:     { transparent: true, hardness: 0.05, tool: null, cross: true },   // placed by flint and steel; never an item
   // ---- farming ----
+  cobweb:     { transparent: true, hardness: 0.4, tool: 'sword', cross: true },   // slows a lot; swords mine it fast; craft with 4 string
   tall_grass: { transparent: true, hardness: 0, tool: null, cross: true },        // wild grass tuft: break it for wheat seeds
   farmland:   { transparent: false, hardness: 0.6, tool: 'shovel' },              // made with a hoe, must be within 4 blocks of water
   wheat_0:    { transparent: true, hardness: 0, tool: null, cross: true },        // wheat crop, growth stage 0..3 (3 = ripe)
@@ -1700,6 +1713,8 @@ const ITEM_INFO = {
   trident:        { maxStack: 1, attack: 9, durability: 250 },
   totem_of_undying: { maxStack: 1 },
   null_totem: { maxStack: 1 },
+  bucket: { maxStack: 16 },
+  water_bucket: { maxStack: 1 },
   flint_and_steel: { maxStack: 1, durability: 65 },
   // ---- farming ----
   wood_hoe:       { maxStack: 1, durability: 59 },
@@ -2153,7 +2168,7 @@ function blockFaceCanvases(type) {            // -> { top, side } source canvase
 }
 const _iconCanvasCache = {};
 // Item sprites from the pack (only the apple exists in the pack's items folder that the game uses)
-const PACK_ITEMS = { breeze_rod: "data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAABAAAAAQCAYAAAAf8/9hAAAA4UlEQVR4AaSSLQ7CQBCFBxycgANU8qNJAMMNMLhqBBdAERSnwOAwKFB1FDwNBFUIkjOAKHmTPFL6w25Dk0nF7vftm90py59fYcFwvIh67jziuYUEgN12QzpOV1qDqUqsBYBH/bocrk/Zh74E61kJKawEhC+3qsK75URhKwFgxPZOL1kFG4nDRgFhxk7CPwWA4z1nwbkCwoi9PXqp2ABZqUsEzJ4B87YJJP9fAsCMbQND9hEQZmzTyYBRKsBoMnZ8SLDBVCpo1hy5PyqpITHBWFeBH54zhwQbTKUC9Jv3zibBGwAA///n71XsAAAABklEQVQDANSsfiEy46WCAAAAAElFTkSuQmCC", wind_charge: "data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAABAAAAAQCAYAAAAf8/9hAAABc0lEQVR4AcyQQUsCURSFz0QEZomGRUybAgNTWwRGhhSFYtDK2lbrIPoJLfsJEbSO1tnSqFUIhe5KIzISLA0MHEpzE03vvHBSRiFw08AZ5r17z3fPnS50+PxjwP5hXG9Uu01NK1zf63qprOuLAR+oKfcIxoatIKwVxAS4uDzFyyvgdKqwWFXY7Q4hOwZtXSCYAxpBBuD8Std39451NnajgGw2jeJzGppWFgAHFubDqNaAk3is0Q8DMDTwc9/XazFMnO5yeWWSVCqBZPJMNnGY/BAvA9BvBTbXouIK0DRNqCzFJLfpBCofNZTevrC+GkV9GJsNwKiqKNzd7w9iwhuUsdmgCRjNPo8Hy6EI3qvA5LiisEYZAB5YODiKyai53KNIoAmQHTR/QsVDvtlMTxOAF7PTURmVU3l+KhRxk8nInxea+Z3MGmUCsGkuEIHbE0aPLShhd/kKdrZXjNg01mUCsMBVKMK2NpaUdmb2tgSw8Fd1DPgGAAD//2hbKBUAAAAGSURBVAMAnhyQIcPpPakAAAAASUVORK5CYII=", trident: "data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAABAAAAAQCAYAAAAf8/9hAAABM0lEQVR4nJSSsUrDUBSG/2inCjGDUh3clOQFsgbJ7FTI4uLUoXkDIYNDniEZ6uIiQqCT4BZHB/sACeokogUDUYijac+Be0mhSZofLuGem++//zlJDw0KgqC0bXulZhiGUt1voUW6rvPqaxriOGbTJEl40XmvCc6yDL7v42I0ws1kAs/z5Fmapmg1cByHbxZ6n89xNBgwTGkaW6CoBBNwP51yCgELURuNCYTOhkMJR1HENTL8y3NsZFCNTaCsLQ2266DPw/7VXfyA/49vqKrKX8I0TfwWBQ/Usiwecm0CdX8PB8cnuH565BZogFWFYcjPtQanl+OS4K/XF97TEIVc1135kZQ6+G02w3N4q6BFMoE5Pi93tF10gaVBFabYm8LSgCTgIv9BF0kDik3qcjup08vrtAAAAP//8RfNCQAAAAZJREFUAwBhNYVcM3GtogAAAABJRU5ErkJggg==", raw_beef: "data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAABAAAAAQCAYAAAAf8/9hAAAB0UlEQVQ4jaWSv0tCURTHv0+LXps1uDTUUBokRC01NFTQIIHg5FC2aC3VUEM/IKKhcjSICAsRkv6BQByCJMiCBmmw6IcVBUFcIl81JFS+OPd5Xz0tGvrCe+++c+/ne8659+K/kv7i1wec6g9haXAjrg3olcvlsG2rK1l139mi9s0HS+KbM2O6ya8GAn5YXID0qMB0foa8zQ612oKKfg+21la4iemnsgX8HFnisGVpGflwmMP0/z4yDtfQMC1Vy4pB+hJ80OOErdkBTE4gND+HpycFXR1taEjsA1arzpQVZyUR3FhZDihZYHoankAAF4d7sIciBlg3iA65OZz1+wHG0Fhbo80yBrO7G/D5YLda8dHepu+HkImOicMuFwcoQ95SxccEfCTTWlbGNFjJ4vT1rbQFCvKyGYOJMb7j5qtrzRTg/6IqR3gZl7txpDI3msHLbearqUKPtON5GliqUN5UAyTTOL250+FoLIHW+lrtGClAE7w0yk4tUH9Klj9vx3cl8NVRRhIVSNFYQvUCfAEp7Rs17LRjdgqOQiIBU3x1/0RrgUoRJhwoGAkRyE/rGyykX2XSWHcrv0je3i6DAYGk4E7KAMuybDQQEkZCxaBuIMv4BGj85crKXrMAAAAAAElFTkSuQmCC", raw_porkchop: "data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAABAAAAAQCAYAAAAf8/9hAAAACXBIWXMAAAsTAAALEwEAmpwYAAAE7mlUWHRYTUw6Y29tLmFkb2JlLnhtcAAAAAAAPD94cGFja2V0IGJlZ2luPSLvu78iIGlkPSJXNU0wTXBDZWhpSHpyZVN6TlRjemtjOWQiPz4gPHg6eG1wbWV0YSB4bWxuczp4PSJhZG9iZTpuczptZXRhLyIgeDp4bXB0az0iQWRvYmUgWE1QIENvcmUgNy4xLWMwMDAgNzkuZWRhMmIzZiwgMjAyMS8xMS8xNC0xMjozMDo0MiAgICAgICAgIj4gPHJkZjpSREYgeG1sbnM6cmRmPSJodHRwOi8vd3d3LnczLm9yZy8xOTk5LzAyLzIyLXJkZi1zeW50YXgtbnMjIj4gPHJkZjpEZXNjcmlwdGlvbiByZGY6YWJvdXQ9IiIgeG1sbnM6eG1wPSJodHRwOi8vbnMuYWRvYmUuY29tL3hhcC8xLjAvIiB4bWxuczpkYz0iaHR0cDovL3B1cmwub3JnL2RjL2VsZW1lbnRzLzEuMS8iIHhtbG5zOnBob3Rvc2hvcD0iaHR0cDovL25zLmFkb2JlLmNvbS9waG90b3Nob3AvMS4wLyIgeG1sbnM6eG1wTU09Imh0dHA6Ly9ucy5hZG9iZS5jb20veGFwLzEuMC9tbS8iIHhtbG5zOnN0RXZ0PSJodHRwOi8vbnMuYWRvYmUuY29tL3hhcC8xLjAvc1R5cGUvUmVzb3VyY2VFdmVudCMiIHhtcDpDcmVhdG9yVG9vbD0iQWRvYmUgUGhvdG9zaG9wIDIzLjEgKFdpbmRvd3MpIiB4bXA6Q3JlYXRlRGF0ZT0iMjAyMi0wMS0xOFQwMjozMjoyOCswMTowMCIgeG1wOk1vZGlmeURhdGU9IjIwMjItMDEtMThUMTI6MjQ6MTYrMDE6MDAiIHhtcDpNZXRhZGF0YURhdGU9IjIwMjItMDEtMThUMTI6MjQ6MTYrMDE6MDAiIGRjOmZvcm1hdD0iaW1hZ2UvcG5nIiBwaG90b3Nob3A6Q29sb3JNb2RlPSIzIiB4bXBNTTpJbnN0YW5jZUlEPSJ4bXAuaWlkOjBkOThlZDI1LWIxMmYtNjQ0NS1hZTlmLWRhOTM4YmEyMWM1MyIgeG1wTU06RG9jdW1lbnRJRD0ieG1wLmRpZDowZDk4ZWQyNS1iMTJmLTY0NDUtYWU5Zi1kYTkzOGJhMjFjNTMiIHhtcE1NOk9yaWdpbmFsRG9jdW1lbnRJRD0ieG1wLmRpZDowZDk4ZWQyNS1iMTJmLTY0NDUtYWU5Zi1kYTkzOGJhMjFjNTMiPiA8eG1wTU06SGlzdG9yeT4gPHJkZjpTZXE+IDxyZGY6bGkgc3RFdnQ6YWN0aW9uPSJjcmVhdGVkIiBzdEV2dDppbnN0YW5jZUlEPSJ4bXAuaWlkOjBkOThlZDI1LWIxMmYtNjQ0NS1hZTlmLWRhOTM4YmEyMWM1MyIgc3RFdnQ6d2hlbj0iMjAyMi0wMS0xOFQwMjozMjoyOCswMTowMCIgc3RFdnQ6c29mdHdhcmVBZ2VudD0iQWRvYmUgUGhvdG9zaG9wIDIzLjEgKFdpbmRvd3MpIi8+IDwvcmRmOlNlcT4gPC94bXBNTTpIaXN0b3J5PiA8L3JkZjpEZXNjcmlwdGlvbj4gPC9yZGY6UkRGPiA8L3g6eG1wbWV0YT4gPD94cGFja2V0IGVuZD0iciI/PnOGCY8AAAFYSURBVDiNpZM9S8NQFIafK4ULOpgiGYoZTHFTlw6BDuYnVKdW8B+41LmuxrmDTm6CoFO7uDm1c6fSpSh1KBQJmnQR0uU6pPmgX4I9U3Jy3o/z5l6hlGKd2lgLDWSiByHE0iHHtmdtiqtWC6VUQrAKfFEoxO+alDgvt+r6cEvAHyukwZqUaIYBus7Z3iaAWkng2LaqVashCPCDAFwXTJOd/fN4bm6FaN9asYjfbqMZBpqU4UddB+Dr7XExgWPbqlYqhYrDYdh03Tl33bFHZ5Jn8QpTm5GqHwRh37LANAHoeTIejwmiwPwggMEgBBCGh2VBLgdAs16JICv+wtS2Vi4n4NGIZr1Cz5N0JrvzDtR3J1GEWHEJOD516RDF3eu9OsgGnF4+x833mxOePn7i0NLgWYIkoHqFo+0s3bG3UDVdIrqN0V1oHGd4+MzPnf1ZYKPfRymVEPy3fgHIln2VsnexWwAAAABJRU5ErkJggg==", raw_mutton: "data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAABAAAAAQCAYAAAAf8/9hAAABdklEQVQ4jWMY+oAR5oP///8zMDIywtnrTPT/I/su+OwlRpgcMmDBpdk6PITh140bYDFBG1uGtVOnw3QyIhvABBZhRBEDg5dLljCwaWiA8fsjhxlM9XUY3LIzMVzGhMxBth0EQC5ANwjdECZkzTAA0vj69x+G0xevMIjHxDAcXbkGbhDMNTBDmEAaYZpBgiDJ92fOMNz68ROs8Mr8BQzILgLJgQDMJUww/29Y3fXfehPElqOfvzKICwmDxT9y8WC4CGQIyCUv371lYFq/qvP/y2eX/weEljC0dHUxrJs+E6wZZOuW/QcZYC4CGQRig7yiVFCICMTAsHLG40e3M+QWxDNMnrCQIejIdgam8miG4wrsYDbMRcjg65vXYEM3vnyNGqcg1+w9epmhpqyMQVxKG2yo1qb9cBeBbL/DygF2OgiADUBPWbDwABkEctHLZ1cZQC58Xj4JbBBIM0gjCOz4+pMRqwHoBoHA7dmr4OIgjTg1kQQYGBgA+w/lCSXOCcAAAAAASUVORK5CYII=", cooked_beef: "data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAABAAAAAQCAYAAAAf8/9hAAACLElEQVQ4jaWSX0hTYRjGn7NWnDX3p22tJayGuMRECqwLiahdJHQhlNKFGoJi8yJvLCFKqKWtPyQzKIq8aQT9uZGC7iSSClxQXo0NViBq5lbM5TaOnFO6E+83zmlnGV30XJzv+w7v73mf75wX/yvuX3yguUFe5zUXeDFd3NBDFEU821v3R1XCa5VP33qA5e9LsG6xs5X06PKAavJXA4I7Lo0g1NGOlPQTTuNmbPV4oON5tHS14fn9O8xEt15spfPT2yHYq70IT03j/MMnDC6IIh4HR3Cst49KZX05SCt1Pnu8BTvclegZuoZ7wSFks8vwNR3B8MUr2O2wqIy+vCvdc7j7FAxrP1CQRIyd64f/xig+fpjCy3CYwd+EFa3B9RMH2H1He3uwKggMpqJ4NMGAu31+6I1GRGYWcGjfHlgyS78N6DdR55sn25DPZNQP5t2+Dc5cHvF0Fg5hhZ0JjsXiMJmt2gQUOyVIcNlsKOTyxe7pLA7W16DRbGKFn5JfUWezM6P2wQHMvZ/ETDpXNBBSs6yIEtjdbiCZgtMIvI0m4DBsZIlqq6sw/3kRZ64OMnh8IoIqh5nbcLimMmCQBRzt7MSb1+/wJZmEZ5cXJpcLbksFdJLEEkmrsgZeiC1yaxWbwAWaGyiK3NrUiJ37fSxJ6EJQMxcEkkphOr/KCcUrUJTxiYjcWgYoIpBUCitSR5nk99WzQaI0pSKQNDYZ1cA8z2sNFClGispB1YDn8QsrEf1EiKNcyAAAAABJRU5ErkJggg==", cooked_porkchop: "data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAABAAAAAQCAYAAAAf8/9hAAAACXBIWXMAAAsTAAALEwEAmpwYAAAE7mlUWHRYTUw6Y29tLmFkb2JlLnhtcAAAAAAAPD94cGFja2V0IGJlZ2luPSLvu78iIGlkPSJXNU0wTXBDZWhpSHpyZVN6TlRjemtjOWQiPz4gPHg6eG1wbWV0YSB4bWxuczp4PSJhZG9iZTpuczptZXRhLyIgeDp4bXB0az0iQWRvYmUgWE1QIENvcmUgNy4xLWMwMDAgNzkuZWRhMmIzZiwgMjAyMS8xMS8xNC0xMjozMDo0MiAgICAgICAgIj4gPHJkZjpSREYgeG1sbnM6cmRmPSJodHRwOi8vd3d3LnczLm9yZy8xOTk5LzAyLzIyLXJkZi1zeW50YXgtbnMjIj4gPHJkZjpEZXNjcmlwdGlvbiByZGY6YWJvdXQ9IiIgeG1sbnM6eG1wPSJodHRwOi8vbnMuYWRvYmUuY29tL3hhcC8xLjAvIiB4bWxuczpkYz0iaHR0cDovL3B1cmwub3JnL2RjL2VsZW1lbnRzLzEuMS8iIHhtbG5zOnBob3Rvc2hvcD0iaHR0cDovL25zLmFkb2JlLmNvbS9waG90b3Nob3AvMS4wLyIgeG1sbnM6eG1wTU09Imh0dHA6Ly9ucy5hZG9iZS5jb20veGFwLzEuMC9tbS8iIHhtbG5zOnN0RXZ0PSJodHRwOi8vbnMuYWRvYmUuY29tL3hhcC8xLjAvc1R5cGUvUmVzb3VyY2VFdmVudCMiIHhtcDpDcmVhdG9yVG9vbD0iQWRvYmUgUGhvdG9zaG9wIDIzLjEgKFdpbmRvd3MpIiB4bXA6Q3JlYXRlRGF0ZT0iMjAyMi0wMS0xOFQwMjozMjoyOCswMTowMCIgeG1wOk1vZGlmeURhdGU9IjIwMjItMDEtMThUMTI6MjM6NTIrMDE6MDAiIHhtcDpNZXRhZGF0YURhdGU9IjIwMjItMDEtMThUMTI6MjM6NTIrMDE6MDAiIGRjOmZvcm1hdD0iaW1hZ2UvcG5nIiBwaG90b3Nob3A6Q29sb3JNb2RlPSIzIiB4bXBNTTpJbnN0YW5jZUlEPSJ4bXAuaWlkOjhhYWU1Njg0LTdiMDgtZGU0ZC1hZmZjLWM0ODBmNzk0YzYyZiIgeG1wTU06RG9jdW1lbnRJRD0ieG1wLmRpZDo4YWFlNTY4NC03YjA4LWRlNGQtYWZmYy1jNDgwZjc5NGM2MmYiIHhtcE1NOk9yaWdpbmFsRG9jdW1lbnRJRD0ieG1wLmRpZDo4YWFlNTY4NC03YjA4LWRlNGQtYWZmYy1jNDgwZjc5NGM2MmYiPiA8eG1wTU06SGlzdG9yeT4gPHJkZjpTZXE+IDxyZGY6bGkgc3RFdnQ6YWN0aW9uPSJjcmVhdGVkIiBzdEV2dDppbnN0YW5jZUlEPSJ4bXAuaWlkOjhhYWU1Njg0LTdiMDgtZGU0ZC1hZmZjLWM0ODBmNzk0YzYyZiIgc3RFdnQ6d2hlbj0iMjAyMi0wMS0xOFQwMjozMjoyOCswMTowMCIgc3RFdnQ6c29mdHdhcmVBZ2VudD0iQWRvYmUgUGhvdG9zaG9wIDIzLjEgKFdpbmRvd3MpIi8+IDwvcmRmOlNlcT4gPC94bXBNTTpIaXN0b3J5PiA8L3JkZjpEZXNjcmlwdGlvbj4gPC9yZGY6UkRGPiA8L3g6eG1wbWV0YT4gPD94cGFja2V0IGVuZD0iciI/Pv5d+BEAAAHASURBVDiNpZO/axNRAMc/T9OGpkiGU2qgLQ7xVNKiS0EEVzsIqW06OfgfOKZ/gdChu/Rf6JIunW6R0EWIixyFclYM8aA5jmvonXd5l6Q8h3oxp9cp3+kN7/uD73tfoZRiGtyaig3kkoMQIvOCUoqd7Y1xzODiFEDsf7JQSv0VuAk72xtqfVNnYfEuAN8avzBMW31YmRepBFmo16rqzdsn3FteBSDsfefh1ivAwDBRgLixg4Tc71/hdkzi0EYrVfC9HuXHr//vYJIIkDjHoQ3AaBAjpWRJX+NL82O2QL1WVe/ev6ColbG+fsbtmCzpa0gpAZs4tAl7MVbX4YdfyE7gez18r4X+9DmX3hne+Qm52TxFrYyUEt8zabtDYAaY+Af1WlWtb+r0+1cU7hSQUlLUyuRm8wB45ycAHB8cAVAIIpESAJibu83yo2cAxKHNpXdGfn6R0SAmCiIae7u03eE4fkoguDjFabZwOyZaqcJoEAPXTxcFEccHR2Ny4v5vB8IwbfWg67BVX0UrVfhptXCaLQzT/uM6kyJnlth2hzT2dtHvL2B1nUzXSYhkjckWDl/m2I9WUhPNIh9a11sQ0875N6u92VaMfnFaAAAAAElFTkSuQmCC", cooked_mutton: "data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAABAAAAAQCAYAAAAf8/9hAAABfklEQVQ4jWMY+oAR5oP///8zMDIywtlVLpr/kX3XvvcGI0wOGbDg0qyla8Tw6+NbsJicihpYCqqPEdkAJrAII4oYGNy/do6BjV8YjB/ducWgIifP4OTkiuEyJmQOsu0gAHIBukHohjAha4YBkMaXX5gYbj18x6CoZcRw5dJtuEEw18AMYQJphGkGCYIknz59yPD861cGNXkhsGYdPVW4i0ByIABzCRPM/xtWd/3PX7QKbMuFl98ZVIXFwOJffnzFcBHIEJBLbr75zsC0flXn/5fPLv8PCC1haOnqYli//yhYM8jWreduMBipy4I18HBwg10E8oqlvSsiEAPDyhmPH93OkFsQzzB5wkKGads2M1hkhDDwWOmD2TAXIYMXryFeufH8HWqcglyz9+hlhpqyMgZxKW2woc8OHIa7CGT71z+8DLffvgKrBxuAnrJg4QEyCOSil8+uMoBcuLh1GtggkGaQRhC4+vITI1YD0A0CgX3LN8LFQRpxaiIJMDAwAABL6eKwVSnldAAAAABJRU5ErkJggg==", wood_spear: "data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAABgAAAAYCAYAAADgdz34AAAAAXNSR0IArs4c6QAAAARnQU1BAACxjwv8YQUAAAAJcEhZcwAADr8AAA6/ATgFUyQAAAAZdEVYdFNvZnR3YXJlAFBhaW50Lk5FVCA1LjEuMTITAUd0AAAAuGVYSWZJSSoACAAAAAUAGgEFAAEAAABKAAAAGwEFAAEAAABSAAAAKAEDAAEAAAACAAAAMQECABEAAABaAAAAaYcEAAEAAABsAAAAAAAAAKZ2AQDoAwAApnYBAOgDAABQYWludC5ORVQgNS4xLjEyAAADAACQBwAEAAAAMDIzMAGgAwABAAAAAQAAAAWgBAABAAAAlgAAAAAAAAACAAEAAgAEAAAAUjk4AAIABwAEAAAAMDEwMAAAAAC8FLx49dea3QAAAPhJREFUSEtjZKABMNcU+A9lMjBBaaoAkMEww31NxRhevv/FQBUfILsYZDAIzNn1BExTbIG4v9p/hVuv4AY/+fCD4er9rwyPX39nePDiGyNFQQRyeS4/A8MDNYThz9/8ZvhabQfmgwDFPgBZArIg8P8PhvWMHGAxzpNPwK4HsakSydKR2mDDLV5/Bhv+3VwGKkOhD0DhD2WCDZYV5YSHPVSYfGC0IhCcJEE0VIhBQYILzqYIgFwOMhxkILIvqAJghlPdYBDI8JODuxwqRD0wajhWMGo4VjBqODoAF9cgw0HFLagOpUpJiAxAhoNKRJoECwjQLMzBgIEBAIFqjTnYCGXyAAAAAElFTkSuQmCC", stone_spear: "data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAABgAAAAYCAYAAADgdz34AAAAAXNSR0IArs4c6QAAAARnQU1BAACxjwv8YQUAAAAJcEhZcwAADsIAAA7CARUoSoAAAAAZdEVYdFNvZnR3YXJlAFBhaW50Lk5FVCA1LjEuMTITAUd0AAAAuGVYSWZJSSoACAAAAAUAGgEFAAEAAABKAAAAGwEFAAEAAABSAAAAKAEDAAEAAAACAAAAMQECABEAAABaAAAAaYcEAAEAAABsAAAAAAAAAPJ2AQDoAwAA8nYBAOgDAABQYWludC5ORVQgNS4xLjEyAAADAACQBwAEAAAAMDIzMAGgAwABAAAAAQAAAAWgBAABAAAAlgAAAAAAAAACAAEAAgAEAAAAUjk4AAIABwAEAAAAMDEwMAAAAACDfy8cctDT3wAAAQNJREFUSEtjZKAB8PT0/A9lMjBDaYrBsdXd/599YWlQVVVtaG5uZnj27BnD9evXGajiA5Dh+27+BLM9PDwYlixZwvDw4UOGR48eMTCBRSkA4ODglgAbDMKXLl2CG3727FlGiiwAGW5tbQ1mgwyGYWRAsQ/evHnDwPD1BZgNcz0yoDgOQL6oTXKCcIBBBQK5tRPAwQNiU2QBKHLBhgJ9sOroU7DrS6OsGKxCSylPPBl+cv/NNQX+gy0BAmNj4/8gDJakFIAMP7ZtMdxwqgKYyxUkuEYNR4BRw7GCUcOxglHDsQEmUAnIoRTE8PL9L4YHL75RpY5GBuAa7fDhwzQxnIGBgQEAFcylMdaudkgAAAAASUVORK5CYII=", iron_spear: "data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAABgAAAAYCAYAAADgdz34AAAAAXNSR0IArs4c6QAAAARnQU1BAACxjwv8YQUAAAAJcEhZcwAADsIAAA7CARUoSoAAAAAZdEVYdFNvZnR3YXJlAFBhaW50Lk5FVCA1LjEuMTITAUd0AAAAuGVYSWZJSSoACAAAAAUAGgEFAAEAAABKAAAAGwEFAAEAAABSAAAAKAEDAAEAAAACAAAAMQECABEAAABaAAAAaYcEAAEAAABsAAAAAAAAAPJ2AQDoAwAA8nYBAOgDAABQYWludC5ORVQgNS4xLjEyAAADAACQBwAEAAAAMDIzMAGgAwABAAAAAQAAAAWgBAABAAAAlgAAAAAAAAACAAEAAgAEAAAAUjk4AAIABwAEAAAAMDEwMAAAAACDfy8cctDT3wAAATZJREFUSEtjZKABcHFx+Q+inz9/DuZTDYAMBmEQWLFixX8JCYn/TFA5igDMYBB79+7dDNevX2c4cOAAWI5iADIY5Np9+/aBXX7k0///GRkZYNeD5KniAzExMYbvco4M+/fvZ3iybSXDhg0boDIUWgALlhkzZjB4KTMwvHr1Ch40L168oCwBwcIdFjSgIAEFjba2Njx4QIBoW3YwKf/3+HcXrL4HyJYA0kd8fjOcv/2JwdA+AiVYkF1PkjdAllwB0iVAizL85P6rbGFlAFlUIvYVLE9xsMAAyHBzTYH/ChJc/8G+QQoSdEByJIMMBwXLy/e/GB68+AZ2MU1cDhUCA5AvoEzyAcjwM2fOYBhOFYDL5VQBQ9vw0TDHAKOGYwNMoPKbQcoLpWyhJgAXdocPH6aJ4QwMDAwAbt/G7VtCe2AAAAAASUVORK5CYII=", gold_spear: "data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAABgAAAAYCAYAAADgdz34AAAAAXNSR0IArs4c6QAAAARnQU1BAACxjwv8YQUAAAAJcEhZcwAADsIAAA7CARUoSoAAAAAZdEVYdFNvZnR3YXJlAFBhaW50Lk5FVCA1LjEuMTITAUd0AAAAuGVYSWZJSSoACAAAAAUAGgEFAAEAAABKAAAAGwEFAAEAAABSAAAAKAEDAAEAAAACAAAAMQECABEAAABaAAAAaYcEAAEAAABsAAAAAAAAAPJ2AQDoAwAA8nYBAOgDAABQYWludC5ORVQgNS4xLjEyAAADAACQBwAEAAAAMDIzMAGgAwABAAAAAQAAAAWgBAABAAAAlgAAAAAAAAACAAEAAgAEAAAAUjk4AAIABwAEAAAAMDEwMAAAAACDfy8cctDT3wAAAOdJREFUSEtjZKABaI4V/Q9lUheADAbh/697/v9/HPnfXo+PehaBDQYaCjYcCFbl6VFuAczFcMOh4MFEG+oYDjYU6uqTvgr/1zpL/X+6wRbF9WRFMshwKBMMavrKGRhEihl2c8gxfEgXZJh64AHDwUufyE9AyBbsYpeFhAvQJyDXUzViQcHydLkJOGhABmMLeyYoTTLI8JP7/+TbL4arCS8Zgvc+AwfHqbufwHIUA5Dh5poC/xUkuOCuBbmcKsEDMhwU3jQzHN3lVAPYXE41MOpyrGBoGw4qHUddjgKGrstBgGYuBwMGBgAjoc/Ai5ZE4AAAAABJRU5ErkJggg==", diamond_spear: "data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAABgAAAAYCAYAAADgdz34AAAAAXNSR0IArs4c6QAAAARnQU1BAACxjwv8YQUAAAAJcEhZcwAADsIAAA7CARUoSoAAAAAZdEVYdFNvZnR3YXJlAFBhaW50Lk5FVCA1LjEuMTITAUd0AAAAuGVYSWZJSSoACAAAAAUAGgEFAAEAAABKAAAAGwEFAAEAAABSAAAAKAEDAAEAAAACAAAAMQECABEAAABaAAAAaYcEAAEAAABsAAAAAAAAAPJ2AQDoAwAA8nYBAOgDAABQYWludC5ORVQgNS4xLjEyAAADAACQBwAEAAAAMDIzMAGgAwABAAAAAQAAAAWgBAABAAAAlgAAAAAAAAACAAEAAgAEAAAAUjk4AAIABwAEAAAAMDEwMAAAAACDfy8cctDT3wAAATlJREFUSEtjZKAy4HOx+Q9lUheADAbhRZ9//T/z7ReY5jLUpo5lIIPddh6CG668/dB/wehEsAVkBxFyUFiUtjHEWFkwaDEzMIQfPMHw/fNThu8bdzH8vHYKqoJEgOximKtBYiAXS61a/l+suAoePExgHWSCnEAnMAYB0eI2MP3n5GWG3y+eg9kgQFEQfdpzhBFEwwwHBQ3Igi/7NjJ8O3+VOikUFjSw4IEFDQyQHUQwg0G+gLkW5Hp0QJYFyMECAiCL2LXMUMKebAAyHFsmAvHRxUCApIgAGc4srgpO31SLRBjI8JP7b64pgNWVFAOY4QoSXKOGI8Co4TAALMERAJQE/716w/Dy/S+GBy++USWdwy0AZSJWRT2GV0wsDC8v3aVuJsKV/akCQIaD6lCaGA4CIINpZjgDAwMAAtzJDUVX1ygAAAAASUVORK5CYII=", gold_nugget: "data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAABAAAAAQCAYAAAAf8/9hAAAArElEQVR4nOWSrQ7CMBRGDwuZmMKNh6lALVOzS6Z4jGnUHmOKgEUtKEQFj7K9AGLmYujSkdssYBCcpEl/7vna5BZ+zSp0UGWJuPnx+gjWqWKVJSLjfRqnw0b8QJ+1dmthYgAGuwegrDtocgB5f02kyWXdTbIfpBH5C01eIlougdS03wekpuXc5FzsqHZjtlFliRQmZme2ANxsHxQdsy68CgV6gEU5iPsLH4t/yhPDNEr1XX6z+wAAAABJRU5ErkJggg==", golden_apple: "data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAABAAAAAQCAYAAAAf8/9hAAAAy0lEQVR42mNgoAeQlJT8j0uOiRLNFNvOwMDAwEhIo/if1wwvWUQZnj9/zkiUFyQlJf9LSkr+v3jVjsGa+wODCj8rw6HOX3BxvC6AaUQGH7fsYeD3cWH4uGUPAwMDA4NdORuKa7AGoqjgCgZRwRUMDAwMDPw+Lig0Ti/AbIdpfP0+AqsGmHeIjkZCgAVdAJfNZCck5MDEa8Dz588Z9bUPYVWILIYeCyyk2EZ00r29SPj/7UXC/03FWf+birPC+UTnC/RUhysVMjAwMAAAprVV3jDXbi4AAAAASUVORK5CYII=", iron_helmet: "data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAABAAAAAQCAYAAAAf8/9hAAAAmUlEQVR42tVSsQ3EIBAzUXoWQZRsxErU7IIooAOxCBPcVx8BfyTfxg06bHMnc8DrIdYLYwzdGXLOYksaY4iIqJSyPdcGYjSnlFBrvcje+08TKSWstdckx0g+mQEgxjjV51horVFrRe8drbVJqJRiHzzXCb5m7/0kTCkhhIDHAJ1zxP3Ejt9mwIHjjzWDO3C84BZotyz/aF6ID1hucr6ph8znAAAAAElFTkSuQmCC", iron_chestplate: "data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAABAAAAAQCAYAAAAf8/9hAAAApElEQVR42uWRsQ0DIQxFTXTzUPomYiUoaNgFUeAOxCJM4FScyMlESJcuv8ESz98fDPBQahSIyKMmIiXBSwYRmZm5lMIzJBncuWNc1lohpQTeezDGiCY5Z3DOrZ3nCdJprWVE/Eig5rcRkUJEzjlDrRV679eQ1hqEEC5m8C8p6r35m0QDrfX2GpcJdnVIe9daQ4xx2TTzv0kg/YG4712D8zzhj/QG31uCnOHNTkwAAAAASUVORK5CYII=", iron_leggings: "data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAABAAAAAQCAYAAAAf8/9hAAAAmklEQVR42t1SsQ0DIQw8UHo2oTQTsRe7IBp3oF/EE5AKCR5ISBXp3RiD73w+Afw7VDsQUf0FyMxquCCiWmutOeevuR/26klKKVMWEcQYAQAxRlzXNQzWfWGtHR5TShPgHnqloIFDCAghwBhzRtAUNDAzK2ZW3vstyaRARJaN9/WOPNitd+TBSsHKUH3S9Il8+AfOua0C7z0eGm9y6Ww84LNpjAAAAABJRU5ErkJggg==", iron_boots: "data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAABAAAAAQCAYAAAAf8/9hAAAAdUlEQVR42u2RwRXAEBBEl5d6HCl1D+pxGEedqCA5bUKyRAHmhP+MsUO0ZWThvT9bkHM27X7EbXsIgGKMw9c03hmUUiilNDTQeGfgnJv+V+OfBDNp3MqAAFCtdSkBgHuoh1xm5t/KJAEzEwAKIZzmXc9qjVuPLl6YPuT3JjzIAAAAAElFTkSuQmCC", gold_helmet: "data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAABAAAAAQCAYAAAAf8/9hAAAAqUlEQVR42mNgGPKAEV3AXpf/Pz4NBy9/ZMQpaa/L///f/73//9+wxUmjW8CIrHn/pXUMjDcb4JIPb33GsERejZfBIfQS3CVMKKYR0MzAwMCwbtEbFD4LMue/egMD480Ghoe3PjOcPfETRaGxBTtWA1nQXQDTPGnzMxSF+1vXMTzaXMxAMADXVmn+xxYTuORxhgHWOMciz4QeBvgANnlGbAkIV2IhRs0QBADA52nbNkQ7ygAAAABJRU5ErkJggg==", gold_chestplate: "data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAABAAAAAQCAYAAAAf8/9hAAAAt0lEQVR42mNgoBAwwhj2uvz/YeyDlz8yYlOMU429Lv//f//3/v9/w/Y/siJsBqCrY4E75WYDw7pFbxgOrNZjcAi9hNWQ/ZfWMayvzsFtMrIN2Oi1VZr/7XX5UVzAiOy3g5c/Mtrr8v/ff2kdA+PNBoaHtz7DLTl74ifDpM3P4Gpg6pmwhiyaZnwAqwH/1RuIjkacLiAWsGCL9//qDQwMt4pxakJWTx0XYAuDs4tyyDfAUS+IYQQBAI/zecgZL271AAAAAElFTkSuQmCC", gold_leggings: "data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAABAAAAAQCAYAAAAf8/9hAAAAsElEQVR42mNgGGjACGPY6/L/J0XjwcsfGVEE7HX5///7v/f//xu2BGlky1BccGC1HoZND299RuGfPfGTYdLmZ3AXMCFL/ldvQFG8btEbhrMnfuL1CgtKgNxsQNE8afMzBgYGBoYDcXoYLoEBrC6AaT54+SPjwcsfGR1CLzHIq/ESNoDxZgNOm9C9h9cFWOP7ZgNxLsAF/qs3YA1QJmIU4TMcJRYc9YJwusAh9BLDMAUAhnRo9pIqym4AAAAASUVORK5CYII=", gold_boots: "data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAABAAAAAQCAYAAAAf8/9hAAAAgklEQVR42mNgGAWMMIa9Lv9/ZImDlz8yIvNxyTMhC+6/tI7hwGo9nLZhk0cxgPFmA8O6RW9wOxeLPIoB/9Ub8PoXmzyGC/AG2E0cBtjr8v/ff2kdw8Nbn4lywf5L6+CBygLTvL46h3CUQV2wvjqHYf+ldQyOekH/GdGjh9hoHAUIAACC9DprCyCQKwAAAABJRU5ErkJggg==", diamond_helmet: "data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAABAAAAAQCAYAAAAf8/9hAAAAqUlEQVR42mNgGPKAEV2A18r0Pz4Nn4+dZsQpyWtl+v/p/1//vd7exEmjW8CIrPnG0aMMqe/uwyWfPX6KYYmUrDTDYd8YuEuYkCUJaWZgYGC4tXkHCp8FmTNbSJEh9d19hmePnzJ8uXAZRSGPgS5WA1nQXQDT/HLWEhSFB48eZfC+eISBYACqLJj4H1tM4JLHGQbYADZ5JvQwwAewyTNiS0C4EgsxaoYgAAAmLW2iExkjdwAAAABJRU5ErkJggg==", diamond_chestplate: "data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAABAAAAAQCAYAAAAf8/9hAAAAtklEQVR42mNgoBAwwhi8Vqb/YezPx04zYlOMUw2vlen/p/9//fd6e/M/siJsBqCrY4FJpr67z3Br8w4G281LGA77xmA15MbRowz2C6fjNhnZBmy0yoKJ/3mtTFFcwIjst8/HTjPyWpn+v3H0KEPqu/sMzx4/hVvy5cJlhpezlsDVwNQzYXMqumZ8AKsBs4UUiY5GnC4gFrBgi/fZQooM3ni8gKyeOi7AFgb2m3eQb4CGtTXDCAIAmiB9DkupwCoAAAAASUVORK5CYII=", diamond_leggings: "data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAABAAAAAQCAYAAAAf8/9hAAAArElEQVR42mNgGGjACGPwWpn+J0Xj52OnGVEEeK1M/z/9/+u/19ubBGlky1BcYLt5CYZNzx4/ReF/uXCZ4eWsJXAXMCFLzhZSRFF8a/MOhi8XLuP1CgsyJ/XdfRTNL2dBXKS2eQmGS2AAqwtgmj8fO834+dhpxsO+MQxSstKEDUh9dx+nTejew+sCbADZe3hdgAvMFlLEGqBMxCjCZzhKLGhYW+N0wWHfGIZhCgAp5mkEv+S6UAAAAABJRU5ErkJggg==", diamond_boots: "data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAABAAAAAQCAYAAAAf8/9hAAAAf0lEQVR42mNgGAWMMAavlel/ZInPx04zIvNxyTMhC944epTBdvMSnLZhk0cxIPXdfYZbm3fgNACbPIoBs4UU8foXmzyGC/ABbPJMsAC6cfQow7PHT4lywY2jR+GBygLTbL9wOsEog7nAfuF0hhtHjzJoWFv/Z0SPHmKjcRQgAAAVgTyY+we4SgAAAABJRU5ErkJggg==", apple: "data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAABAAAAAQCAYAAAAf8/9hAAABCklEQVR4nL2STUoDQRCFvw6DkpCIjSYwEELAA8SF4AVcu/IAuYUriZKL5ACuXHuBKK4UBDfKoAT8YfLnhEwSKgtx7GFmtFHwLetVf6+6uuE/dLhTkiwvZ3P46jnM9H8EAJx7U2XTF5PWWs42arJddmSvtpp5hQT5ptEQ6Y1RbpHj9zsAmn6ZbhgA0B69qkzAdWVLlFtMTXp49AHohkEMYrUDgHpVU6/qRD0CfJduanelwFFpM9qJ9QSmbudfz/orgKkIcL+Y/Q2w/+ZZfZZO0Od0Mox6HdO88F6o5D5K5sYHT0N8WaQCE6kH+TVpFtYBOHF6ALTmbmp6YgLgs0EALiczBdDJ98XwYloCVg1WWG8S5iYAAAAASUVORK5CYII=" , charcoal: "data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAABAAAAAQCAYAAAAf8/9hAAABgklEQVR42q2TS28TMRSFv3k4dqI82swkGmkELEACgbqgEqzaJf9/QyWCAAVSQUmBQjPMy55xF1GjTjNBlcrd2NLx+XyvdQz3LOdfopLCXu/zQjt3Bnieh/BdG03HeK6DEIL54qwV4u4yT8M9wv0hD+MpWmviKGh01ArwPI8wDAHoKsmg3yXLCo5fvwBohWx1IKUEwBjD0avnhOMhJ+8XTMYjhBBbkC3A8vs3G0cBcRSw+HqO7AjGe32q2pJmOT8vVkyC0Qbi3p79zfFLtKnIcs27D6d8+nLGyewzxhiKQgOQ/M13jzA/XQIwCUb0eorLJAXYrIN+t/0Rhe/aOAoA6HUVs48L0nR9U5LmFIXm8OAJAFle7O7g4NkjtNY8ffyA819/KLVZB8Z1eDubb85pUzuNICkp7CQYoXWFUh08dy2V2rBKMuq6xvd9Sm0wxqBN7VRV1UziNQRglWSNmcvSYK3lMkk35tYoKymskh0AhoMeyx+/G/pN886/cDMotw3/va4AGJytBqZp1KgAAAAASUVORK5CYII=", sign: "data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAABAAAAAQCAYAAAAf8/9hAAAAl0lEQVR42mNgGGjACGPMb/H9T4rGUxeeMUxfc5aRCVlwwcqDWBU3Td0Hl0NXg2LAozd/GZqm7sPQBJNbsPIgw6M3f2noBWQnLlh5EMUFuLzAgu5XZCfDNCA7m+peYEEWIAfADbjx4B1lCQkbSPLV+c/AwMBw//lXhv1n7mNVy4TPAClRIYIuYKI0L1BsAAs+yaOXHhM0AAA31VKGTW05XgAAAABJRU5ErkJggg==", shield: "data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAABAAAAAQCAYAAAAf8/9hAAABIklEQVR42q2SvU4CQRSFv/1niWxiVqJUSkJpTQilL+PzGEsrX8NEaysT7SwMb8Am6/7NzA5YsO6C4A/CqeaenLlz5txrXF3fzPknirzABpg83pJmBQCe6yCkou17ZLlYcJ6DEArf98gr7vziEgCTHWEDlFqjtQZASJBS4ThWwwkQUmGaBkKqlQYmgGPbdPsjuv0RcZwAoJRG6xlaz2pxeDZESoVcamJ/Hl6f7gDwW+63dicvDyhV1nUUTfeUAUAQHNQOikICYNnWivjk+IhpFK9noMrGVttvbeVgqy9kebFbgx8d9AZjeoMxcfy+WWgYhKdDkjQjSbPKUVaFOG/GGB526ku6XCyS5S7eeXu+/30KQdBZS3pZs3ET97IHf4Xxpf4Ax3ZzR3wG7Z0AAAAASUVORK5CYII=", totem_of_undying: "data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAABAAAAAQCAYAAAAf8/9hAAAB4ElEQVR42o2STUhUYRSGn+/OzZJiylDpz6k0Z6agRS7btYiIFIO2tQsqahG0i1oFuXEVEjERZAkRLUQSJ5CCLGyTZSrZ1MiU5JTdGbWm+fHeO99pEY0Yd4Y5y5dznu+c93sVZSq/2CdILTlrjkwySc/NfrofxdT/fYbXcNa6L7V1J5VWv1n4/J0PQ+MUXPF8yPQS17/tQzK9ol700m4pTteY5Rb1BiTMIJOjLxnbGsb9lecbybIAzxOWtcNaFP6UhnwOEUGkyhMKCw8kk54BDFIzCTY21dGws54aR3A6RCKP46riBpl0oiTXt+zGyfkYG5wgdKSZ9r27ONsZkrIA69N1GY085cqlu4gUGbkR5Xn0HYPvY/gDAVoPt3A0uIPzHSuQEiAV75JXt58xHJvjWvcplPKx71iYtoONnGg7wOWL99gc2F7ZxH9mNQavKtA07GnGv2kbqqgxDMPT85IhFzr3i4vNrYG/abPTD2XqdRR3Nst8fIkn018wjHU4slzqWfULPQOTq9zVStMUCpIu/GA+vkTBdbkzNFFdlJ38lJjmFsSxsbEB2LDGrD5ITu4Npv+Qcl0XrTWVyhM7Oz7C9PAZ+fnVQhazuD6F9ilPgKd67nhYjOJKXhxTiPR/9Oz9AycHz8M3VCgwAAAAAElFTkSuQmCC"};
+const PACK_ITEMS = { bucket: "data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAABAAAAAQCAYAAAAf8/9hAAAA5UlEQVR4nK2TMY6FIBRFj5Pp7PwLsCGxtbFkiazBgqXQSUNlYvK2AJ31TAUjSjKZ/LkV3nDPezwQ3lTXMpdl+Wr53vvH/srIQa01SqniD8MAgDHmAequYa01ADHGEn69XmWtlEJEcM4VyOe1gxgj53mW777vq3ZFpII/APu+AzCOYwXNXTjnuKsCWGsJIZSz3pVns65rGwAwzzPWWgBCCACklBCRJvSjZU7T1NwMPzfSBOSKf1EF2Lbt10BKqQ3w3nd5ysdxNMN5gNeH9JjB/Rj3indVAO99Z4x5QESkWR3+4Wd6W99wfWnIDev0hwAAAABJRU5ErkJggg==", water_bucket: "data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAABAAAAAQCAYAAAAf8/9hAAABMUlEQVR4nK2TP0vDQBjGfxGxqGDOCBGEwhUKxdKhS8ZO+Qp18hP0w2R2zJCxfoVM3XrLTYZKxC1uZyuI1KVOLflzKlKf6Tie9/fyPNzBnnJsl0EQbGz3SqmG/9A2GIYhAFLKun9TB+0OQRBswjBkmo05PW7hX/oslysAPtdrAN4/1txc35Om6Q5yUMZPszEd2WbQl/gXJwjhAjDoS45aLTqyzTQbfx/BKyasCni+uuNcnCGEixAuj08vvC7fcB5u8X7qIEkStNZE0QQKWJVyesBoNKLb7RLHsR0AMBwOSZIEAK01AMYY8jyvW2l0sFWv17OaATyvGqIC2G78iyqA+Xz+64Axxg5QSjmz2QyAxWJhHd4WWH5IjQ7qMeob66oAlFJOFEUNSJ7n1u3wD59pb30BmENvP7N5unwAAAAASUVORK5CYII=", breeze_rod: "data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAABAAAAAQCAYAAAAf8/9hAAAA4UlEQVR4AaSSLQ7CQBCFBxycgANU8qNJAMMNMLhqBBdAERSnwOAwKFB1FDwNBFUIkjOAKHmTPFL6w25Dk0nF7vftm90py59fYcFwvIh67jziuYUEgN12QzpOV1qDqUqsBYBH/bocrk/Zh74E61kJKawEhC+3qsK75URhKwFgxPZOL1kFG4nDRgFhxk7CPwWA4z1nwbkCwoi9PXqp2ABZqUsEzJ4B87YJJP9fAsCMbQND9hEQZmzTyYBRKsBoMnZ8SLDBVCpo1hy5PyqpITHBWFeBH54zhwQbTKUC9Jv3zibBGwAA///n71XsAAAABklEQVQDANSsfiEy46WCAAAAAElFTkSuQmCC", wind_charge: "data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAABAAAAAQCAYAAAAf8/9hAAABc0lEQVR4AcyQQUsCURSFz0QEZomGRUybAgNTWwRGhhSFYtDK2lbrIPoJLfsJEbSO1tnSqFUIhe5KIzISLA0MHEpzE03vvHBSRiFw08AZ5r17z3fPnS50+PxjwP5hXG9Uu01NK1zf63qprOuLAR+oKfcIxoatIKwVxAS4uDzFyyvgdKqwWFXY7Q4hOwZtXSCYAxpBBuD8Std39451NnajgGw2jeJzGppWFgAHFubDqNaAk3is0Q8DMDTwc9/XazFMnO5yeWWSVCqBZPJMNnGY/BAvA9BvBTbXouIK0DRNqCzFJLfpBCofNZTevrC+GkV9GJsNwKiqKNzd7w9iwhuUsdmgCRjNPo8Hy6EI3qvA5LiisEYZAB5YODiKyai53KNIoAmQHTR/QsVDvtlMTxOAF7PTURmVU3l+KhRxk8nInxea+Z3MGmUCsGkuEIHbE0aPLShhd/kKdrZXjNg01mUCsMBVKMK2NpaUdmb2tgSw8Fd1DPgGAAD//2hbKBUAAAAGSURBVAMAnhyQIcPpPakAAAAASUVORK5CYII=", trident: "data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAABAAAAAQCAYAAAAf8/9hAAABM0lEQVR4nJSSsUrDUBSG/2inCjGDUh3clOQFsgbJ7FTI4uLUoXkDIYNDniEZ6uIiQqCT4BZHB/sACeokogUDUYijac+Be0mhSZofLuGem++//zlJDw0KgqC0bXulZhiGUt1voUW6rvPqaxriOGbTJEl40XmvCc6yDL7v42I0ws1kAs/z5Fmapmg1cByHbxZ6n89xNBgwTGkaW6CoBBNwP51yCgELURuNCYTOhkMJR1HENTL8y3NsZFCNTaCsLQ2266DPw/7VXfyA/49vqKrKX8I0TfwWBQ/Usiwecm0CdX8PB8cnuH565BZogFWFYcjPtQanl+OS4K/XF97TEIVc1135kZQ6+G02w3N4q6BFMoE5Pi93tF10gaVBFabYm8LSgCTgIv9BF0kDik3qcjup08vrtAAAAP//8RfNCQAAAAZJREFUAwBhNYVcM3GtogAAAABJRU5ErkJggg==", raw_beef: "data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAABAAAAAQCAYAAAAf8/9hAAAB0UlEQVQ4jaWSv0tCURTHv0+LXps1uDTUUBokRC01NFTQIIHg5FC2aC3VUEM/IKKhcjSICAsRkv6BQByCJMiCBmmw6IcVBUFcIl81JFS+OPd5Xz0tGvrCe+++c+/ne8659+K/kv7i1wec6g9haXAjrg3olcvlsG2rK1l139mi9s0HS+KbM2O6ya8GAn5YXID0qMB0foa8zQ612oKKfg+21la4iemnsgX8HFnisGVpGflwmMP0/z4yDtfQMC1Vy4pB+hJ80OOErdkBTE4gND+HpycFXR1taEjsA1arzpQVZyUR3FhZDihZYHoankAAF4d7sIciBlg3iA65OZz1+wHG0Fhbo80yBrO7G/D5YLda8dHepu+HkImOicMuFwcoQ95SxccEfCTTWlbGNFjJ4vT1rbQFCvKyGYOJMb7j5qtrzRTg/6IqR3gZl7txpDI3msHLbearqUKPtON5GliqUN5UAyTTOL250+FoLIHW+lrtGClAE7w0yk4tUH9Klj9vx3cl8NVRRhIVSNFYQvUCfAEp7Rs17LRjdgqOQiIBU3x1/0RrgUoRJhwoGAkRyE/rGyykX2XSWHcrv0je3i6DAYGk4E7KAMuybDQQEkZCxaBuIMv4BGj85crKXrMAAAAAAElFTkSuQmCC", raw_porkchop: "data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAABAAAAAQCAYAAAAf8/9hAAAACXBIWXMAAAsTAAALEwEAmpwYAAAE7mlUWHRYTUw6Y29tLmFkb2JlLnhtcAAAAAAAPD94cGFja2V0IGJlZ2luPSLvu78iIGlkPSJXNU0wTXBDZWhpSHpyZVN6TlRjemtjOWQiPz4gPHg6eG1wbWV0YSB4bWxuczp4PSJhZG9iZTpuczptZXRhLyIgeDp4bXB0az0iQWRvYmUgWE1QIENvcmUgNy4xLWMwMDAgNzkuZWRhMmIzZiwgMjAyMS8xMS8xNC0xMjozMDo0MiAgICAgICAgIj4gPHJkZjpSREYgeG1sbnM6cmRmPSJodHRwOi8vd3d3LnczLm9yZy8xOTk5LzAyLzIyLXJkZi1zeW50YXgtbnMjIj4gPHJkZjpEZXNjcmlwdGlvbiByZGY6YWJvdXQ9IiIgeG1sbnM6eG1wPSJodHRwOi8vbnMuYWRvYmUuY29tL3hhcC8xLjAvIiB4bWxuczpkYz0iaHR0cDovL3B1cmwub3JnL2RjL2VsZW1lbnRzLzEuMS8iIHhtbG5zOnBob3Rvc2hvcD0iaHR0cDovL25zLmFkb2JlLmNvbS9waG90b3Nob3AvMS4wLyIgeG1sbnM6eG1wTU09Imh0dHA6Ly9ucy5hZG9iZS5jb20veGFwLzEuMC9tbS8iIHhtbG5zOnN0RXZ0PSJodHRwOi8vbnMuYWRvYmUuY29tL3hhcC8xLjAvc1R5cGUvUmVzb3VyY2VFdmVudCMiIHhtcDpDcmVhdG9yVG9vbD0iQWRvYmUgUGhvdG9zaG9wIDIzLjEgKFdpbmRvd3MpIiB4bXA6Q3JlYXRlRGF0ZT0iMjAyMi0wMS0xOFQwMjozMjoyOCswMTowMCIgeG1wOk1vZGlmeURhdGU9IjIwMjItMDEtMThUMTI6MjQ6MTYrMDE6MDAiIHhtcDpNZXRhZGF0YURhdGU9IjIwMjItMDEtMThUMTI6MjQ6MTYrMDE6MDAiIGRjOmZvcm1hdD0iaW1hZ2UvcG5nIiBwaG90b3Nob3A6Q29sb3JNb2RlPSIzIiB4bXBNTTpJbnN0YW5jZUlEPSJ4bXAuaWlkOjBkOThlZDI1LWIxMmYtNjQ0NS1hZTlmLWRhOTM4YmEyMWM1MyIgeG1wTU06RG9jdW1lbnRJRD0ieG1wLmRpZDowZDk4ZWQyNS1iMTJmLTY0NDUtYWU5Zi1kYTkzOGJhMjFjNTMiIHhtcE1NOk9yaWdpbmFsRG9jdW1lbnRJRD0ieG1wLmRpZDowZDk4ZWQyNS1iMTJmLTY0NDUtYWU5Zi1kYTkzOGJhMjFjNTMiPiA8eG1wTU06SGlzdG9yeT4gPHJkZjpTZXE+IDxyZGY6bGkgc3RFdnQ6YWN0aW9uPSJjcmVhdGVkIiBzdEV2dDppbnN0YW5jZUlEPSJ4bXAuaWlkOjBkOThlZDI1LWIxMmYtNjQ0NS1hZTlmLWRhOTM4YmEyMWM1MyIgc3RFdnQ6d2hlbj0iMjAyMi0wMS0xOFQwMjozMjoyOCswMTowMCIgc3RFdnQ6c29mdHdhcmVBZ2VudD0iQWRvYmUgUGhvdG9zaG9wIDIzLjEgKFdpbmRvd3MpIi8+IDwvcmRmOlNlcT4gPC94bXBNTTpIaXN0b3J5PiA8L3JkZjpEZXNjcmlwdGlvbj4gPC9yZGY6UkRGPiA8L3g6eG1wbWV0YT4gPD94cGFja2V0IGVuZD0iciI/PnOGCY8AAAFYSURBVDiNpZM9S8NQFIafK4ULOpgiGYoZTHFTlw6BDuYnVKdW8B+41LmuxrmDTm6CoFO7uDm1c6fSpSh1KBQJmnQR0uU6pPmgX4I9U3Jy3o/z5l6hlGKd2lgLDWSiByHE0iHHtmdtiqtWC6VUQrAKfFEoxO+alDgvt+r6cEvAHyukwZqUaIYBus7Z3iaAWkng2LaqVashCPCDAFwXTJOd/fN4bm6FaN9asYjfbqMZBpqU4UddB+Dr7XExgWPbqlYqhYrDYdh03Tl33bFHZ5Jn8QpTm5GqHwRh37LANAHoeTIejwmiwPwggMEgBBCGh2VBLgdAs16JICv+wtS2Vi4n4NGIZr1Cz5N0JrvzDtR3J1GEWHEJOD516RDF3eu9OsgGnF4+x833mxOePn7i0NLgWYIkoHqFo+0s3bG3UDVdIrqN0V1oHGd4+MzPnf1ZYKPfRymVEPy3fgHIln2VsnexWwAAAABJRU5ErkJggg==", raw_mutton: "data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAABAAAAAQCAYAAAAf8/9hAAABdklEQVQ4jWMY+oAR5oP///8zMDIywtnrTPT/I/su+OwlRpgcMmDBpdk6PITh140bYDFBG1uGtVOnw3QyIhvABBZhRBEDg5dLljCwaWiA8fsjhxlM9XUY3LIzMVzGhMxBth0EQC5ANwjdECZkzTAA0vj69x+G0xevMIjHxDAcXbkGbhDMNTBDmEAaYZpBgiDJ92fOMNz68ROs8Mr8BQzILgLJgQDMJUww/29Y3fXfehPElqOfvzKICwmDxT9y8WC4CGQIyCUv371lYFq/qvP/y2eX/weEljC0dHUxrJs+E6wZZOuW/QcZYC4CGQRig7yiVFCICMTAsHLG40e3M+QWxDNMnrCQIejIdgam8miG4wrsYDbMRcjg65vXYEM3vnyNGqcg1+w9epmhpqyMQVxKG2yo1qb9cBeBbL/DygF2OgiADUBPWbDwABkEctHLZ1cZQC58Xj4JbBBIM0gjCOz4+pMRqwHoBoHA7dmr4OIgjTg1kQQYGBgA+w/lCSXOCcAAAAAASUVORK5CYII=", cooked_beef: "data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAABAAAAAQCAYAAAAf8/9hAAACLElEQVQ4jaWSX0hTYRjGn7NWnDX3p22tJayGuMRECqwLiahdJHQhlNKFGoJi8yJvLCFKqKWtPyQzKIq8aQT9uZGC7iSSClxQXo0NViBq5lbM5TaOnFO6E+83zmlnGV30XJzv+w7v73mf75wX/yvuX3yguUFe5zUXeDFd3NBDFEU821v3R1XCa5VP33qA5e9LsG6xs5X06PKAavJXA4I7Lo0g1NGOlPQTTuNmbPV4oON5tHS14fn9O8xEt15spfPT2yHYq70IT03j/MMnDC6IIh4HR3Cst49KZX05SCt1Pnu8BTvclegZuoZ7wSFks8vwNR3B8MUr2O2wqIy+vCvdc7j7FAxrP1CQRIyd64f/xig+fpjCy3CYwd+EFa3B9RMH2H1He3uwKggMpqJ4NMGAu31+6I1GRGYWcGjfHlgyS78N6DdR55sn25DPZNQP5t2+Dc5cHvF0Fg5hhZ0JjsXiMJmt2gQUOyVIcNlsKOTyxe7pLA7W16DRbGKFn5JfUWezM6P2wQHMvZ/ETDpXNBBSs6yIEtjdbiCZgtMIvI0m4DBsZIlqq6sw/3kRZ64OMnh8IoIqh5nbcLimMmCQBRzt7MSb1+/wJZmEZ5cXJpcLbksFdJLEEkmrsgZeiC1yaxWbwAWaGyiK3NrUiJ37fSxJ6EJQMxcEkkphOr/KCcUrUJTxiYjcWgYoIpBUCitSR5nk99WzQaI0pSKQNDYZ1cA8z2sNFClGispB1YDn8QsrEf1EiKNcyAAAAABJRU5ErkJggg==", cooked_porkchop: "data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAABAAAAAQCAYAAAAf8/9hAAAACXBIWXMAAAsTAAALEwEAmpwYAAAE7mlUWHRYTUw6Y29tLmFkb2JlLnhtcAAAAAAAPD94cGFja2V0IGJlZ2luPSLvu78iIGlkPSJXNU0wTXBDZWhpSHpyZVN6TlRjemtjOWQiPz4gPHg6eG1wbWV0YSB4bWxuczp4PSJhZG9iZTpuczptZXRhLyIgeDp4bXB0az0iQWRvYmUgWE1QIENvcmUgNy4xLWMwMDAgNzkuZWRhMmIzZiwgMjAyMS8xMS8xNC0xMjozMDo0MiAgICAgICAgIj4gPHJkZjpSREYgeG1sbnM6cmRmPSJodHRwOi8vd3d3LnczLm9yZy8xOTk5LzAyLzIyLXJkZi1zeW50YXgtbnMjIj4gPHJkZjpEZXNjcmlwdGlvbiByZGY6YWJvdXQ9IiIgeG1sbnM6eG1wPSJodHRwOi8vbnMuYWRvYmUuY29tL3hhcC8xLjAvIiB4bWxuczpkYz0iaHR0cDovL3B1cmwub3JnL2RjL2VsZW1lbnRzLzEuMS8iIHhtbG5zOnBob3Rvc2hvcD0iaHR0cDovL25zLmFkb2JlLmNvbS9waG90b3Nob3AvMS4wLyIgeG1sbnM6eG1wTU09Imh0dHA6Ly9ucy5hZG9iZS5jb20veGFwLzEuMC9tbS8iIHhtbG5zOnN0RXZ0PSJodHRwOi8vbnMuYWRvYmUuY29tL3hhcC8xLjAvc1R5cGUvUmVzb3VyY2VFdmVudCMiIHhtcDpDcmVhdG9yVG9vbD0iQWRvYmUgUGhvdG9zaG9wIDIzLjEgKFdpbmRvd3MpIiB4bXA6Q3JlYXRlRGF0ZT0iMjAyMi0wMS0xOFQwMjozMjoyOCswMTowMCIgeG1wOk1vZGlmeURhdGU9IjIwMjItMDEtMThUMTI6MjM6NTIrMDE6MDAiIHhtcDpNZXRhZGF0YURhdGU9IjIwMjItMDEtMThUMTI6MjM6NTIrMDE6MDAiIGRjOmZvcm1hdD0iaW1hZ2UvcG5nIiBwaG90b3Nob3A6Q29sb3JNb2RlPSIzIiB4bXBNTTpJbnN0YW5jZUlEPSJ4bXAuaWlkOjhhYWU1Njg0LTdiMDgtZGU0ZC1hZmZjLWM0ODBmNzk0YzYyZiIgeG1wTU06RG9jdW1lbnRJRD0ieG1wLmRpZDo4YWFlNTY4NC03YjA4LWRlNGQtYWZmYy1jNDgwZjc5NGM2MmYiIHhtcE1NOk9yaWdpbmFsRG9jdW1lbnRJRD0ieG1wLmRpZDo4YWFlNTY4NC03YjA4LWRlNGQtYWZmYy1jNDgwZjc5NGM2MmYiPiA8eG1wTU06SGlzdG9yeT4gPHJkZjpTZXE+IDxyZGY6bGkgc3RFdnQ6YWN0aW9uPSJjcmVhdGVkIiBzdEV2dDppbnN0YW5jZUlEPSJ4bXAuaWlkOjhhYWU1Njg0LTdiMDgtZGU0ZC1hZmZjLWM0ODBmNzk0YzYyZiIgc3RFdnQ6d2hlbj0iMjAyMi0wMS0xOFQwMjozMjoyOCswMTowMCIgc3RFdnQ6c29mdHdhcmVBZ2VudD0iQWRvYmUgUGhvdG9zaG9wIDIzLjEgKFdpbmRvd3MpIi8+IDwvcmRmOlNlcT4gPC94bXBNTTpIaXN0b3J5PiA8L3JkZjpEZXNjcmlwdGlvbj4gPC9yZGY6UkRGPiA8L3g6eG1wbWV0YT4gPD94cGFja2V0IGVuZD0iciI/Pv5d+BEAAAHASURBVDiNpZO/axNRAMc/T9OGpkiGU2qgLQ7xVNKiS0EEVzsIqW06OfgfOKZ/gdChu/Rf6JIunW6R0EWIixyFclYM8aA5jmvonXd5l6Q8h3oxp9cp3+kN7/uD73tfoZRiGtyaig3kkoMQIvOCUoqd7Y1xzODiFEDsf7JQSv0VuAk72xtqfVNnYfEuAN8avzBMW31YmRepBFmo16rqzdsn3FteBSDsfefh1ivAwDBRgLixg4Tc71/hdkzi0EYrVfC9HuXHr//vYJIIkDjHoQ3AaBAjpWRJX+NL82O2QL1WVe/ev6ColbG+fsbtmCzpa0gpAZs4tAl7MVbX4YdfyE7gez18r4X+9DmX3hne+Qm52TxFrYyUEt8zabtDYAaY+Af1WlWtb+r0+1cU7hSQUlLUyuRm8wB45ycAHB8cAVAIIpESAJibu83yo2cAxKHNpXdGfn6R0SAmCiIae7u03eE4fkoguDjFabZwOyZaqcJoEAPXTxcFEccHR2Ny4v5vB8IwbfWg67BVX0UrVfhptXCaLQzT/uM6kyJnlth2hzT2dtHvL2B1nUzXSYhkjckWDl/m2I9WUhPNIh9a11sQ0875N6u92VaMfnFaAAAAAElFTkSuQmCC", cooked_mutton: "data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAABAAAAAQCAYAAAAf8/9hAAABfklEQVQ4jWMY+oAR5oP///8zMDIywtlVLpr/kX3XvvcGI0wOGbDg0qyla8Tw6+NbsJicihpYCqqPEdkAJrAII4oYGNy/do6BjV8YjB/ducWgIifP4OTkiuEyJmQOsu0gAHIBukHohjAha4YBkMaXX5gYbj18x6CoZcRw5dJtuEEw18AMYQJphGkGCYIknz59yPD861cGNXkhsGYdPVW4i0ByIABzCRPM/xtWd/3PX7QKbMuFl98ZVIXFwOJffnzFcBHIEJBLbr75zsC0flXn/5fPLv8PCC1haOnqYli//yhYM8jWreduMBipy4I18HBwg10E8oqlvSsiEAPDyhmPH93OkFsQzzB5wkKGads2M1hkhDDwWOmD2TAXIYMXryFeufH8HWqcglyz9+hlhpqyMgZxKW2woc8OHIa7CGT71z+8DLffvgKrBxuAnrJg4QEyCOSil8+uMoBcuLh1GtggkGaQRhC4+vITI1YD0A0CgX3LN8LFQRpxaiIJMDAwAABL6eKwVSnldAAAAABJRU5ErkJggg==", wood_spear: "data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAABgAAAAYCAYAAADgdz34AAAAAXNSR0IArs4c6QAAAARnQU1BAACxjwv8YQUAAAAJcEhZcwAADr8AAA6/ATgFUyQAAAAZdEVYdFNvZnR3YXJlAFBhaW50Lk5FVCA1LjEuMTITAUd0AAAAuGVYSWZJSSoACAAAAAUAGgEFAAEAAABKAAAAGwEFAAEAAABSAAAAKAEDAAEAAAACAAAAMQECABEAAABaAAAAaYcEAAEAAABsAAAAAAAAAKZ2AQDoAwAApnYBAOgDAABQYWludC5ORVQgNS4xLjEyAAADAACQBwAEAAAAMDIzMAGgAwABAAAAAQAAAAWgBAABAAAAlgAAAAAAAAACAAEAAgAEAAAAUjk4AAIABwAEAAAAMDEwMAAAAAC8FLx49dea3QAAAPhJREFUSEtjZKABMNcU+A9lMjBBaaoAkMEww31NxRhevv/FQBUfILsYZDAIzNn1BExTbIG4v9p/hVuv4AY/+fCD4er9rwyPX39nePDiGyNFQQRyeS4/A8MDNYThz9/8ZvhabQfmgwDFPgBZArIg8P8PhvWMHGAxzpNPwK4HsakSydKR2mDDLV5/Bhv+3VwGKkOhD0DhD2WCDZYV5YSHPVSYfGC0IhCcJEE0VIhBQYILzqYIgFwOMhxkILIvqAJghlPdYBDI8JODuxwqRD0wajhWMGo4VjBqODoAF9cgw0HFLagOpUpJiAxAhoNKRJoECwjQLMzBgIEBAIFqjTnYCGXyAAAAAElFTkSuQmCC", stone_spear: "data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAABgAAAAYCAYAAADgdz34AAAAAXNSR0IArs4c6QAAAARnQU1BAACxjwv8YQUAAAAJcEhZcwAADsIAAA7CARUoSoAAAAAZdEVYdFNvZnR3YXJlAFBhaW50Lk5FVCA1LjEuMTITAUd0AAAAuGVYSWZJSSoACAAAAAUAGgEFAAEAAABKAAAAGwEFAAEAAABSAAAAKAEDAAEAAAACAAAAMQECABEAAABaAAAAaYcEAAEAAABsAAAAAAAAAPJ2AQDoAwAA8nYBAOgDAABQYWludC5ORVQgNS4xLjEyAAADAACQBwAEAAAAMDIzMAGgAwABAAAAAQAAAAWgBAABAAAAlgAAAAAAAAACAAEAAgAEAAAAUjk4AAIABwAEAAAAMDEwMAAAAACDfy8cctDT3wAAAQNJREFUSEtjZKAB8PT0/A9lMjBDaYrBsdXd/599YWlQVVVtaG5uZnj27BnD9evXGajiA5Dh+27+BLM9PDwYlixZwvDw4UOGR48eMTCBRSkA4ODglgAbDMKXLl2CG3727FlGiiwAGW5tbQ1mgwyGYWRAsQ/evHnDwPD1BZgNcz0yoDgOQL6oTXKCcIBBBQK5tRPAwQNiU2QBKHLBhgJ9sOroU7DrS6OsGKxCSylPPBl+cv/NNQX+gy0BAmNj4/8gDJakFIAMP7ZtMdxwqgKYyxUkuEYNR4BRw7GCUcOxglHDsQEmUAnIoRTE8PL9L4YHL75RpY5GBuAa7fDhwzQxnIGBgQEAFcylMdaudkgAAAAASUVORK5CYII=", iron_spear: "data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAABgAAAAYCAYAAADgdz34AAAAAXNSR0IArs4c6QAAAARnQU1BAACxjwv8YQUAAAAJcEhZcwAADsIAAA7CARUoSoAAAAAZdEVYdFNvZnR3YXJlAFBhaW50Lk5FVCA1LjEuMTITAUd0AAAAuGVYSWZJSSoACAAAAAUAGgEFAAEAAABKAAAAGwEFAAEAAABSAAAAKAEDAAEAAAACAAAAMQECABEAAABaAAAAaYcEAAEAAABsAAAAAAAAAPJ2AQDoAwAA8nYBAOgDAABQYWludC5ORVQgNS4xLjEyAAADAACQBwAEAAAAMDIzMAGgAwABAAAAAQAAAAWgBAABAAAAlgAAAAAAAAACAAEAAgAEAAAAUjk4AAIABwAEAAAAMDEwMAAAAACDfy8cctDT3wAAATZJREFUSEtjZKABcHFx+Q+inz9/DuZTDYAMBmEQWLFixX8JCYn/TFA5igDMYBB79+7dDNevX2c4cOAAWI5iADIY5Np9+/aBXX7k0///GRkZYNeD5KniAzExMYbvco4M+/fvZ3iybSXDhg0boDIUWgALlhkzZjB4KTMwvHr1Ch40L168oCwBwcIdFjSgIAEFjba2Njx4QIBoW3YwKf/3+HcXrL4HyJYA0kd8fjOcv/2JwdA+AiVYkF1PkjdAllwB0iVAizL85P6rbGFlAFlUIvYVLE9xsMAAyHBzTYH/ChJc/8G+QQoSdEByJIMMBwXLy/e/GB68+AZ2MU1cDhUCA5AvoEzyAcjwM2fOYBhOFYDL5VQBQ9vw0TDHAKOGYwNMoPKbQcoLpWyhJgAXdocPH6aJ4QwMDAwAbt/G7VtCe2AAAAAASUVORK5CYII=", gold_spear: "data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAABgAAAAYCAYAAADgdz34AAAAAXNSR0IArs4c6QAAAARnQU1BAACxjwv8YQUAAAAJcEhZcwAADsIAAA7CARUoSoAAAAAZdEVYdFNvZnR3YXJlAFBhaW50Lk5FVCA1LjEuMTITAUd0AAAAuGVYSWZJSSoACAAAAAUAGgEFAAEAAABKAAAAGwEFAAEAAABSAAAAKAEDAAEAAAACAAAAMQECABEAAABaAAAAaYcEAAEAAABsAAAAAAAAAPJ2AQDoAwAA8nYBAOgDAABQYWludC5ORVQgNS4xLjEyAAADAACQBwAEAAAAMDIzMAGgAwABAAAAAQAAAAWgBAABAAAAlgAAAAAAAAACAAEAAgAEAAAAUjk4AAIABwAEAAAAMDEwMAAAAACDfy8cctDT3wAAAOdJREFUSEtjZKABaI4V/Q9lUheADAbh/697/v9/HPnfXo+PehaBDQYaCjYcCFbl6VFuAczFcMOh4MFEG+oYDjYU6uqTvgr/1zpL/X+6wRbF9WRFMshwKBMMavrKGRhEihl2c8gxfEgXZJh64AHDwUufyE9AyBbsYpeFhAvQJyDXUzViQcHydLkJOGhABmMLeyYoTTLI8JP7/+TbL4arCS8Zgvc+AwfHqbufwHIUA5Dh5poC/xUkuOCuBbmcKsEDMhwU3jQzHN3lVAPYXE41MOpyrGBoGw4qHUddjgKGrstBgGYuBwMGBgAjoc/Ai5ZE4AAAAABJRU5ErkJggg==", diamond_spear: "data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAABgAAAAYCAYAAADgdz34AAAAAXNSR0IArs4c6QAAAARnQU1BAACxjwv8YQUAAAAJcEhZcwAADsIAAA7CARUoSoAAAAAZdEVYdFNvZnR3YXJlAFBhaW50Lk5FVCA1LjEuMTITAUd0AAAAuGVYSWZJSSoACAAAAAUAGgEFAAEAAABKAAAAGwEFAAEAAABSAAAAKAEDAAEAAAACAAAAMQECABEAAABaAAAAaYcEAAEAAABsAAAAAAAAAPJ2AQDoAwAA8nYBAOgDAABQYWludC5ORVQgNS4xLjEyAAADAACQBwAEAAAAMDIzMAGgAwABAAAAAQAAAAWgBAABAAAAlgAAAAAAAAACAAEAAgAEAAAAUjk4AAIABwAEAAAAMDEwMAAAAACDfy8cctDT3wAAATlJREFUSEtjZKAy4HOx+Q9lUheADAbhRZ9//T/z7ReY5jLUpo5lIIPddh6CG668/dB/wehEsAVkBxFyUFiUtjHEWFkwaDEzMIQfPMHw/fNThu8bdzH8vHYKqoJEgOximKtBYiAXS61a/l+suAoePExgHWSCnEAnMAYB0eI2MP3n5GWG3y+eg9kgQFEQfdpzhBFEwwwHBQ3Igi/7NjJ8O3+VOikUFjSw4IEFDQyQHUQwg0G+gLkW5Hp0QJYFyMECAiCL2LXMUMKebAAyHFsmAvHRxUCApIgAGc4srgpO31SLRBjI8JP7b64pgNWVFAOY4QoSXKOGI8Co4TAALMERAJQE/716w/Dy/S+GBy++USWdwy0AZSJWRT2GV0wsDC8v3aVuJsKV/akCQIaD6lCaGA4CIINpZjgDAwMAAtzJDUVX1ygAAAAASUVORK5CYII=", gold_nugget: "data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAABAAAAAQCAYAAAAf8/9hAAAArElEQVR4nOWSrQ7CMBRGDwuZmMKNh6lALVOzS6Z4jGnUHmOKgEUtKEQFj7K9AGLmYujSkdssYBCcpEl/7vna5BZ+zSp0UGWJuPnx+gjWqWKVJSLjfRqnw0b8QJ+1dmthYgAGuwegrDtocgB5f02kyWXdTbIfpBH5C01eIlougdS03wekpuXc5FzsqHZjtlFliRQmZme2ANxsHxQdsy68CgV6gEU5iPsLH4t/yhPDNEr1XX6z+wAAAABJRU5ErkJggg==", golden_apple: "data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAABAAAAAQCAYAAAAf8/9hAAAAy0lEQVR42mNgoAeQlJT8j0uOiRLNFNvOwMDAwEhIo/if1wwvWUQZnj9/zkiUFyQlJf9LSkr+v3jVjsGa+wODCj8rw6HOX3BxvC6AaUQGH7fsYeD3cWH4uGUPAwMDA4NdORuKa7AGoqjgCgZRwRUMDAwMDPw+Lig0Ti/AbIdpfP0+AqsGmHeIjkZCgAVdAJfNZCck5MDEa8Dz588Z9bUPYVWILIYeCyyk2EZ00r29SPj/7UXC/03FWf+birPC+UTnC/RUhysVMjAwMAAAprVV3jDXbi4AAAAASUVORK5CYII=", iron_helmet: "data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAABAAAAAQCAYAAAAf8/9hAAAAmUlEQVR42tVSsQ3EIBAzUXoWQZRsxErU7IIooAOxCBPcVx8BfyTfxg06bHMnc8DrIdYLYwzdGXLOYksaY4iIqJSyPdcGYjSnlFBrvcje+08TKSWstdckx0g+mQEgxjjV51horVFrRe8drbVJqJRiHzzXCb5m7/0kTCkhhIDHAJ1zxP3Ejt9mwIHjjzWDO3C84BZotyz/aF6ID1hucr6ph8znAAAAAElFTkSuQmCC", iron_chestplate: "data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAABAAAAAQCAYAAAAf8/9hAAAApElEQVR42uWRsQ0DIQxFTXTzUPomYiUoaNgFUeAOxCJM4FScyMlESJcuv8ESz98fDPBQahSIyKMmIiXBSwYRmZm5lMIzJBncuWNc1lohpQTeezDGiCY5Z3DOrZ3nCdJprWVE/Eig5rcRkUJEzjlDrRV679eQ1hqEEC5m8C8p6r35m0QDrfX2GpcJdnVIe9daQ4xx2TTzv0kg/YG4712D8zzhj/QG31uCnOHNTkwAAAAASUVORK5CYII=", iron_leggings: "data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAABAAAAAQCAYAAAAf8/9hAAAAmklEQVR42t1SsQ0DIQw8UHo2oTQTsRe7IBp3oF/EE5AKCR5ISBXp3RiD73w+Afw7VDsQUf0FyMxquCCiWmutOeevuR/26klKKVMWEcQYAQAxRlzXNQzWfWGtHR5TShPgHnqloIFDCAghwBhzRtAUNDAzK2ZW3vstyaRARJaN9/WOPNitd+TBSsHKUH3S9Il8+AfOua0C7z0eGm9y6Ww84LNpjAAAAABJRU5ErkJggg==", iron_boots: "data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAABAAAAAQCAYAAAAf8/9hAAAAdUlEQVR42u2RwRXAEBBEl5d6HCl1D+pxGEedqCA5bUKyRAHmhP+MsUO0ZWThvT9bkHM27X7EbXsIgGKMw9c03hmUUiilNDTQeGfgnJv+V+OfBDNp3MqAAFCtdSkBgHuoh1xm5t/KJAEzEwAKIZzmXc9qjVuPLl6YPuT3JjzIAAAAAElFTkSuQmCC", gold_helmet: "data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAABAAAAAQCAYAAAAf8/9hAAAAqUlEQVR42mNgGPKAEV3AXpf/Pz4NBy9/ZMQpaa/L///f/73//9+wxUmjW8CIrHn/pXUMjDcb4JIPb33GsERejZfBIfQS3CVMKKYR0MzAwMCwbtEbFD4LMue/egMD480Ghoe3PjOcPfETRaGxBTtWA1nQXQDTPGnzMxSF+1vXMTzaXMxAMADXVmn+xxYTuORxhgHWOMciz4QeBvgANnlGbAkIV2IhRs0QBADA52nbNkQ7ygAAAABJRU5ErkJggg==", gold_chestplate: "data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAABAAAAAQCAYAAAAf8/9hAAAAt0lEQVR42mNgoBAwwhj2uvz/YeyDlz8yYlOMU429Lv//f//3/v9/w/Y/siJsBqCrY4E75WYDw7pFbxgOrNZjcAi9hNWQ/ZfWMayvzsFtMrIN2Oi1VZr/7XX5UVzAiOy3g5c/Mtrr8v/ff2kdA+PNBoaHtz7DLTl74ifDpM3P4Gpg6pmwhiyaZnwAqwH/1RuIjkacLiAWsGCL9//qDQwMt4pxakJWTx0XYAuDs4tyyDfAUS+IYQQBAI/zecgZL271AAAAAElFTkSuQmCC", gold_leggings: "data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAABAAAAAQCAYAAAAf8/9hAAAAsElEQVR42mNgGGjACGPY6/L/J0XjwcsfGVEE7HX5///7v/f//xu2BGlky1BccGC1HoZND299RuGfPfGTYdLmZ3AXMCFL/ldvQFG8btEbhrMnfuL1CgtKgNxsQNE8afMzBgYGBoYDcXoYLoEBrC6AaT54+SPjwcsfGR1CLzHIq/ESNoDxZgNOm9C9h9cFWOP7ZgNxLsAF/qs3YA1QJmIU4TMcJRYc9YJwusAh9BLDMAUAhnRo9pIqym4AAAAASUVORK5CYII=", gold_boots: "data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAABAAAAAQCAYAAAAf8/9hAAAAgklEQVR42mNgGAWMMIa9Lv9/ZImDlz8yIvNxyTMhC+6/tI7hwGo9nLZhk0cxgPFmA8O6RW9wOxeLPIoB/9Ub8PoXmzyGC/AG2E0cBtjr8v/ff2kdw8Nbn4lywf5L6+CBygLTvL46h3CUQV2wvjqHYf+ldQyOekH/GdGjh9hoHAUIAACC9DprCyCQKwAAAABJRU5ErkJggg==", diamond_helmet: "data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAABAAAAAQCAYAAAAf8/9hAAAAqUlEQVR42mNgGPKAEV2A18r0Pz4Nn4+dZsQpyWtl+v/p/1//vd7exEmjW8CIrPnG0aMMqe/uwyWfPX6KYYmUrDTDYd8YuEuYkCUJaWZgYGC4tXkHCp8FmTNbSJEh9d19hmePnzJ8uXAZRSGPgS5WA1nQXQDT/HLWEhSFB48eZfC+eISBYACqLJj4H1tM4JLHGQbYADZ5JvQwwAewyTNiS0C4EgsxaoYgAAAmLW2iExkjdwAAAABJRU5ErkJggg==", diamond_chestplate: "data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAABAAAAAQCAYAAAAf8/9hAAAAtklEQVR42mNgoBAwwhi8Vqb/YezPx04zYlOMUw2vlen/p/9//fd6e/M/siJsBqCrY4FJpr67z3Br8w4G281LGA77xmA15MbRowz2C6fjNhnZBmy0yoKJ/3mtTFFcwIjst8/HTjPyWpn+v3H0KEPqu/sMzx4/hVvy5cJlhpezlsDVwNQzYXMqumZ8AKsBs4UUiY5GnC4gFrBgi/fZQooM3ni8gKyeOi7AFgb2m3eQb4CGtTXDCAIAmiB9DkupwCoAAAAASUVORK5CYII=", diamond_leggings: "data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAABAAAAAQCAYAAAAf8/9hAAAArElEQVR42mNgGGjACGPwWpn+J0Xj52OnGVEEeK1M/z/9/+u/19ubBGlky1BcYLt5CYZNzx4/ReF/uXCZ4eWsJXAXMCFLzhZSRFF8a/MOhi8XLuP1CgsyJ/XdfRTNL2dBXKS2eQmGS2AAqwtgmj8fO834+dhpxsO+MQxSstKEDUh9dx+nTejew+sCbADZe3hdgAvMFlLEGqBMxCjCZzhKLGhYW+N0wWHfGIZhCgAp5mkEv+S6UAAAAABJRU5ErkJggg==", diamond_boots: "data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAABAAAAAQCAYAAAAf8/9hAAAAf0lEQVR42mNgGAWMMAavlel/ZInPx04zIvNxyTMhC944epTBdvMSnLZhk0cxIPXdfYZbm3fgNACbPIoBs4UU8foXmzyGC/ABbPJMsAC6cfQow7PHT4lywY2jR+GBygLTbL9wOsEog7nAfuF0hhtHjzJoWFv/Z0SPHmKjcRQgAAAVgTyY+we4SgAAAABJRU5ErkJggg==", apple: "data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAABAAAAAQCAYAAAAf8/9hAAABCklEQVR4nL2STUoDQRCFvw6DkpCIjSYwEELAA8SF4AVcu/IAuYUriZKL5ACuXHuBKK4UBDfKoAT8YfLnhEwSKgtx7GFmtFHwLetVf6+6uuE/dLhTkiwvZ3P46jnM9H8EAJx7U2XTF5PWWs42arJddmSvtpp5hQT5ptEQ6Y1RbpHj9zsAmn6ZbhgA0B69qkzAdWVLlFtMTXp49AHohkEMYrUDgHpVU6/qRD0CfJduanelwFFpM9qJ9QSmbudfz/orgKkIcL+Y/Q2w/+ZZfZZO0Od0Mox6HdO88F6o5D5K5sYHT0N8WaQCE6kH+TVpFtYBOHF6ALTmbmp6YgLgs0EALiczBdDJ98XwYloCVg1WWG8S5iYAAAAASUVORK5CYII=" , charcoal: "data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAABAAAAAQCAYAAAAf8/9hAAABgklEQVR42q2TS28TMRSFv3k4dqI82swkGmkELEACgbqgEqzaJf9/QyWCAAVSQUmBQjPMy55xF1GjTjNBlcrd2NLx+XyvdQz3LOdfopLCXu/zQjt3Bnieh/BdG03HeK6DEIL54qwV4u4yT8M9wv0hD+MpWmviKGh01ArwPI8wDAHoKsmg3yXLCo5fvwBohWx1IKUEwBjD0avnhOMhJ+8XTMYjhBBbkC3A8vs3G0cBcRSw+HqO7AjGe32q2pJmOT8vVkyC0Qbi3p79zfFLtKnIcs27D6d8+nLGyewzxhiKQgOQ/M13jzA/XQIwCUb0eorLJAXYrIN+t/0Rhe/aOAoA6HUVs48L0nR9U5LmFIXm8OAJAFle7O7g4NkjtNY8ffyA819/KLVZB8Z1eDubb85pUzuNICkp7CQYoXWFUh08dy2V2rBKMuq6xvd9Sm0wxqBN7VRV1UziNQRglWSNmcvSYK3lMkk35tYoKymskh0AhoMeyx+/G/pN886/cDMotw3/va4AGJytBqZp1KgAAAAASUVORK5CYII=", sign: "data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAABAAAAAQCAYAAAAf8/9hAAAAl0lEQVR42mNgGGjACGPMb/H9T4rGUxeeMUxfc5aRCVlwwcqDWBU3Td0Hl0NXg2LAozd/GZqm7sPQBJNbsPIgw6M3f2noBWQnLlh5EMUFuLzAgu5XZCfDNCA7m+peYEEWIAfADbjx4B1lCQkbSPLV+c/AwMBw//lXhv1n7mNVy4TPAClRIYIuYKI0L1BsAAs+yaOXHhM0AAA31VKGTW05XgAAAABJRU5ErkJggg==", shield: "data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAABAAAAAQCAYAAAAf8/9hAAABIklEQVR42q2SvU4CQRSFv/1niWxiVqJUSkJpTQilL+PzGEsrX8NEaysT7SwMb8Am6/7NzA5YsO6C4A/CqeaenLlz5txrXF3fzPknirzABpg83pJmBQCe6yCkou17ZLlYcJ6DEArf98gr7vziEgCTHWEDlFqjtQZASJBS4ThWwwkQUmGaBkKqlQYmgGPbdPsjuv0RcZwAoJRG6xlaz2pxeDZESoVcamJ/Hl6f7gDwW+63dicvDyhV1nUUTfeUAUAQHNQOikICYNnWivjk+IhpFK9noMrGVttvbeVgqy9kebFbgx8d9AZjeoMxcfy+WWgYhKdDkjQjSbPKUVaFOG/GGB526ku6XCyS5S7eeXu+/30KQdBZS3pZs3ET97IHf4Xxpf4Ax3ZzR3wG7Z0AAAAASUVORK5CYII=", totem_of_undying: "data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAABAAAAAQCAYAAAAf8/9hAAAB4ElEQVR42o2STUhUYRSGn+/OzZJiylDpz6k0Z6agRS7btYiIFIO2tQsqahG0i1oFuXEVEjERZAkRLUQSJ5CCLGyTZSrZ1MiU5JTdGbWm+fHeO99pEY0Yd4Y5y5dznu+c93sVZSq/2CdILTlrjkwySc/NfrofxdT/fYbXcNa6L7V1J5VWv1n4/J0PQ+MUXPF8yPQS17/tQzK9ol700m4pTteY5Rb1BiTMIJOjLxnbGsb9lecbybIAzxOWtcNaFP6UhnwOEUGkyhMKCw8kk54BDFIzCTY21dGws54aR3A6RCKP46riBpl0oiTXt+zGyfkYG5wgdKSZ9r27ONsZkrIA69N1GY085cqlu4gUGbkR5Xn0HYPvY/gDAVoPt3A0uIPzHSuQEiAV75JXt58xHJvjWvcplPKx71iYtoONnGg7wOWL99gc2F7ZxH9mNQavKtA07GnGv2kbqqgxDMPT85IhFzr3i4vNrYG/abPTD2XqdRR3Nst8fIkn018wjHU4slzqWfULPQOTq9zVStMUCpIu/GA+vkTBdbkzNFFdlJ38lJjmFsSxsbEB2LDGrD5ITu4Npv+Qcl0XrTWVyhM7Oz7C9PAZ+fnVQhazuD6F9ilPgKd67nhYjOJKXhxTiPR/9Oz9AycHz8M3VCgwAAAAAElFTkSuQmCC"};
 Object.assign(PACK_ITEMS, {mace: "data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAABAAAAAQCAYAAAAf8/9hAAABZUlEQVR4AYySzStEURTAz8xfgKashpKPoeyUvBLNxk4olN5CaRZS9hZWFrY2spBQQ02JnWj0srPAhsXDDAtv4zE+/oOn3637esx981G3d8995/c75543SWnglx2bClim1LoCwNk5W1bXN4U9kml7MRTWFAAAXxSL8nR/pSRtHb3Bo3sn5ZKLS2IFURjA8zwl2T9y5Of7S15f3AQGoyAKf374Mj45I+l0Wrr7h2RtZUkGrVGhk1gBL26vb6QnkxFreIQwhAmQaomxA+f8OFEuPcj7m0++qk5lAu5eqfiChNgo4AWSs9MTJSkc5jlSg2tqbpFUqlXtmUOsYGJhI7DntwUJFTH8hzkzCoD72gekcHmgps3UkaQilYFZVQLgXNZS8LOzpT4VrSLh/uwB9foj0PDyzq5oWCcCsnSsn6GgFqyTTc8kfxoWdzZVNkHRM9VBZ1dG8nu5qrajiXH7JIPhU8Ul1Dv/BQAA///WZjKXAAAABklEQVQDABOFwln4SxboAAAAAElFTkSuQmCC", heavy_core: "data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAABAAAAAQCAYAAAAf8/9hAAADV0lEQVR4nEWUT2hbdQDHP7/3fnlJmjRp06Zt0rnSogVRazsdW0fZDiIO3RDcydOwB8GLTIQdDQEvnmS0eKwMBKGHgSAoiHjQyw6uisPun5npbOfaJM17L8l7L3m/38+DRb/HD5/r5ysAKpWKBVjVajUGuHnzr7H6453VnUe1DwSCqVL509iKNy6/9WrzyJeArlarWlQqFatarWqA9fUvZpzs8GrbdS8/rN2dOWwdIISFlAlm556pz88/d31kbGTjwisv1QGgYgmAa9euL8mh7HuNxsHbB/t72V7QITdc0JOlaSEQ1P+8bzzv0CpPz5DN5DpgvkxL+dnVq+/+It7/8KNv+oP4tXgwEA/u3caWMn56/nl7auop0e34GAyjhXGCoGt+/+1n5botuXTiDBOTZdXtuN+KysdrptVqkkgk42bziV17cFsE3Q7poSyF8UkQgsPmE6IwpHxsluH8qMGgLGHJXs9DRlGo4ji2+v1IptMZVs6+TqPxhDvbt6jX7uAkU2SGc0wfnyM/Mg5ai51HNZlKpU2362kJwo7CiF9v/UR2OM/8swtYdoLFEyvs7++hVUxmOE8/DKnd3yYMOvi+S6FYEnEU2NIYTRj1EEJQf3gX12sxkh/jhcXT5HIFeh0Pr9Wk9sc2h60GKh4wMVlm0I/AaKTnubhuC200/X7Ewd+7pFJp9g8eM+hHJGSCMAzpdXx8r41t2xSKJbpdH60FltYay7IAEEIgEw5TpRl8v43bbmCMQWkFloUQ4DhJstkcAFEYYPl+WymtTDKVJh4MSDoOE5PT2LaN1gpjNL7vopUCBMZohACtlVEqVpbbbtheuyVGx4rxVPm4UUohpcQSFghBEAQYY5BSYoxmvFgyjpOKex1fDPqRLaUtbsRRcCHoJpylk2dJOk6cTCZtrbWIwpCkk0FgyOZGTOnYrCoUinJvty51POhnMumvra9ubF46+fLikhRqfffR/bbfaUvPc0W34+pBFJl+FJgo7Glh2QKt5O7OvXYc+esrK8tLW1tblwRgAwrgk7W18o/f//BOq9FcVbGeC4IuieQQYdAhIe3aRLG4sbx86vNqtbr3b0zY/JfzuXPyCPLd5mb+4sU3rywsvLhz6vSZnfPn37iyubmZ5//JowvgH3XCsbaXiXBDAAAAAElFTkSuQmCC"});
 Object.assign(PACK_ITEMS, {wheat_seeds: "data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAABAAAAAQCAYAAAAf8/9hAAAAmElEQVR4nOWRvRGAIAyFn56lA1BZWzABAzCO4zABQ1lzlpb2sfEHQ8jRm7sUOcjP9x7wm6Ari+gbGsg7gyVYQBgiDSga0nZgjXv7ufM0knfmc0UNoVMQpH/E6qoGHQAwFFGLQduetgOI7wOvxdO9M7QEezPnCaEuEbji/GzN0hzhSeaI5FAzCl8AQBbxQckEy+2uWV9FUeMEOeJZP0Fh6xEAAAAASUVORK5CYII=", wheat: "data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAABAAAAAQCAYAAAAf8/9hAAAAt0lEQVR4nGNgQAX/kdm/7lX8RxdDU8/AhKYBqyJ88kzY1TL8f7QvhOHFgzsMRxbY4DMUbgC6BgYGBgYGCQUVOBuXgSguQNbAwMDA8OLBHQZ88hgGENKALk/QBUd27CHNBcga5JzWMDAwMDDYJBzBaSA6+M/AwPB/3zST/4TYuFzAiNd4HOpYsKmYdgISlTeQ2AznfmA1DasBl869wRDTYOAhynnEhAEKwJWUiQYUG4AN4Mq+WDMUAJQ9Yn1kZdv0AAAAAElFTkSuQmCC", bread: "data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAABAAAAAQCAYAAAAf8/9hAAAAjklEQVR4nGNgGPKAEYf4f2LVowv8Z2BgYLg3zw2rbqWkXRj6kA34j0sjDoMYGRgYGJhgmvfUmTDce/AOjvmkpDDYMHpPnQnctSzYbLh17x0DA8MVDPaqJYcY1JSEUNQyMWABakpCUI242TCAEgbTYpSICQKGrCX34HqRXcAIlSBaM7oL4C4hYAautDNiAQANzzycs8U3lwAAAABJRU5ErkJggg=="});
 Object.keys(PACK_ITEMS).forEach(k => {
@@ -2244,6 +2259,7 @@ function miningTimeFor(blockType) {
   if (heldType && heldType.endsWith('_pickaxe')) toolKind = 'pickaxe';
   else if (heldType && heldType.endsWith('_axe')) toolKind = 'axe';
   else if (heldType && heldType.endsWith('_shovel')) toolKind = 'shovel';
+  else if (heldType && (heldType.endsWith('_sword') || heldType === 'shears')) toolKind = 'sword';
 
   let speedMult = 1; // bare hands
   if (toolKind && toolMatches(toolKind, def.tool)) {
@@ -2279,6 +2295,7 @@ const RECIPES = [
   { shape: [['planks'],['planks']], out: 'stick', outCount: 4, needsTable: false },
   // 1 wool -> 4 string; bow = 3 sticks + 3 string; arrow = 1 iron + 1 stick + 1 string -> 4 arrows
   { shape: [['wool']], out: 'string', outCount: 4, needsTable: false },
+  { shape: [['string','string'],['string','string']], out: 'cobweb', outCount: 1, needsTable: true },   // 4 string -> cobweb
   { shape: [[null,'stick','string'],['stick',null,'string'],[null,'stick','string']], out: 'bow', outCount: 1, needsTable: true },
   { shape: [['iron_ingot'],['stick'],['string']], out: 'arrow', outCount: 4, needsTable: true },
   { shape: [['planks','planks'],['planks','planks']], out: 'crafting_table', outCount: 1, needsTable: false },
@@ -2320,6 +2337,8 @@ const RECIPES = [
   { shape: [['cobblestone'],['cobblestone'],['stick']], out: 'stone_sword', outCount: 1, needsTable: true },
   // Shield: iron boss + wood face (Minecraft-style simplified)
   { shape: [[null,'planks',null],['planks','iron_ingot','planks'],[null,'planks',null]], out: 'shield', outCount: 1, needsTable: true },
+  // Bucket: 3 iron ingots in a V
+  { shape: [['iron_ingot',null,'iron_ingot'],[null,'iron_ingot',null]], out: 'bucket', outCount: 1, needsTable: true },
   // Totem of Undying: middle row of gold + one gold below the center
   { shape: [[null,null,null],['gold_ingot','gold_ingot','gold_ingot'],[null,'gold_ingot',null]], out: 'totem_of_undying', outCount: 1, needsTable: true },
   // Flint and steel: iron ingot + cobblestone (stands in for flint), works in the 2x2 grid
@@ -2497,9 +2516,10 @@ MI.birchDoorUpper = regMat(TEX.birchDoorUpper);
 MI.birchTrapdoor  = regMat(TEX.birchTrapdoor);
 // ---- farming materials: tall grass + wheat stages are crossed sprites (alpha cutout), farmland is a cube ----
 MI.tall_grass = regMat(TEX.tall_grass, true);
+MI.cobweb     = regMat(TEX.cobweb, true);
 MI.farmland   = regMat(TEX.farmland);
 for (let i = 0; i < 4; i++) MI['wheat_' + i] = regMat(TEX['wheat_' + i], true);
-['tall_grass', 'wheat_0', 'wheat_1', 'wheat_2', 'wheat_3'].forEach(n => {
+['tall_grass', 'cobweb', 'wheat_0', 'wheat_1', 'wheat_2', 'wheat_3'].forEach(n => {
   const m = MAT_LIST[MI[n]];
   m.side = THREE.DoubleSide; m.transparent = false; m.opacity = 1; m.alphaTest = 0.5;
 });
@@ -2741,6 +2761,183 @@ function faceMatIndex(type, faceIdx) {
     default: return MI[type];
   }
 }
+
+// ================= Animated water + height that drops with distance =================
+// water_still.png = 32 frames of 16x16, water_flow.png = 32 frames of 32x32 (both stacked vertically).
+// The strips are grey, so the material colour tints them blue; the frame is stepped by moving the texture offset.
+const WATER_STILL_B64 = "data:image/png;base64,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";
+const WATER_FLOW_B64 = "data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAACAAAAQACAYAAACAmVvRAAAQAElEQVR4Aezdz44tyVEG8J4zGDCjAdkwAiRspAHLFhjxBLwsYoNYIfkJ2LFgi4SEvPESIxaWAWN7TP2i73ccJ7vqnOrKe+eOx2XN15EZGV9E/qvM6Drnti//8A//8L2///u//97f/d3ffe9v//ZvCyn/0z/90/f+9V//9Xv/+I//eNVrA7b/8i//8r1Z/uWzzz57+ulPf/pEPq3873/+53+efv7zn6+0PD399m//dvFm+Beet4JrAwHI0e4HP/gBdXWiChs/7vEvy/9e0BLov//7v59+/OMf1wwxYps2de10yh2x0f6Q/xd/8Redey2b9k8++eSJE8oE+upXv6r6pG5ks/xaAh45JDussQ4Y0Ve+8pVqUgYVHSDhKP/yn//5n/ibEIRzMzIa6cgs/2KEAsR5D5RN1tvZpU7O8msJfuu3fovfG3z44YdV7x0y4l4vg+XHDP/yk5/85OnTTz99yhov/mqDkUZHQjpEGjkdzPIv//d//1cHSneasvUXpCNtZoN+ln8R5IMPPuCrYIRVePNDIE/Dm+qNMGuz/NoDvApEjvjFL37x9Du/8zurx3Hv2Bafv3v86oDznmHQnfUgv/Ebv3Fz7H7rW98qyj1+36Br/OqAIGu72xSnM5EV8c2PDz54XroZft2Gnve1AN/+9revT4d20FHyTR9qRmb4F1P0ox/9qBzFaaRT7jvf+c6TRy26Hvw//uM/nmb5NQN2cgKM0voa9ahX/4M/+IPq+Ay/9sDPfvYz/jax1QFPCNIMfzlXqg/8XGGaBXUS9vucgTYS/u3f/u16aqoHbHbzt+5zzpIPcLj0lOppbz7AeA//OvwEQAw8XmZBBzyS9Mqg3Nf+KP/MB2oJPMumtCOXks0Uvanv9eg7nw39Xv5bzwfsBdAJ+4eEdIhMO/2ZD9QeMBVZO+UR9+7z2B7lVwec93FEdmd9g63d5+xn+NUBB87a7nb4pDORAgYffPCW8oF///d/r1stjiOTD7iOdQDSUdJlRHePbxD3+DUDCfg+ZCUk//u//7saOwlJbzRi8Dxbe3tkhn9NSDjtgVIWxHSn3qW9g+dSIntbyo/4tQRb5DgRQHm0kwuu6ek67vGXU7H60O2vG9JR2hOSxfjahqCdTrkjHdX+kL+VkJj2JBScJ9DehGQv/zr8BBAssMZGYUQeJ3plUM7UKh/lnwlJLYFn2TR2eM7VrSUJpr7X6WCG/9YTEh3KfrB/1CEDItNOfyYktQdMhfUl13AmJGZlbYY++OAtJSQulbUASUjSATYeQ5IOlGf4lQ+cLyhmXjBYhhn+cihdn0S+CtbVWjvJ+n2uURsJ5wuKMx9YNlB9pkTaE2DvkOB8IHt7r9PXDpy5zzmc4Z/5wBf/AwtrfOYDZqEfwerwwQcfPJF+gemPHx34ZSa8SPoAvx5Dv4ZH+UgmEOnjPvYz/Pr13KWz1kNrbxSCaIeUpdff//7365fVGf5yGF2eJCQcr+FP//RP735isjiY4wvaLxX1wLudtfXNTPjEhO0Mv/bAvYTC+m4F8JJKB2b4FyPkpMMIbbKvfe1rddkop11byhKSWf4l0xjHPZg2y5A2gXPxWHszw4Y+Nq/l1xJwwCFpd5OQF0ycJ3APoAPs4Cj/2gFO1pCAkWs293ThRY62L75B0Q2sr9F7R9z1KRu1M4CMrss9/JqBHDadbCk8AV2nM+pjwBl+JSR62p0kwH/913+tfmwfWx2ySWf49YLCBkvQPsK1V7BmxnoKztY3KGb4dRd885vf5OsFdEqgjDgGOqGc9hn+xWg8bgJxCr2s/pu/+ZvEi49pdWyWX5vQGlaElR+m14moUwkYs1zHM/zqgN1uJHEcaaoF9qjRxYaE7373u9RPM/zqgAAClbf2Y8wHWtOTzskH6Gb41YG9+YBOBgL7BgU5w68O9DOdwyDPuOmOjtQJ8qOPPiKu3zesSvuxh18deHSfjx1IjGy+Gf5mPiCI3W99+wxl9Np9WpZOqAex2cPfzAeM2l1vGuNQAI8l6RByUrJRjw2eOqntEb+WAIFD0u4mwQHFEecJrK4N+swc5V87wOEaEjByzeaeLrzI0fbMB8584IufD/jt573mA046J5qz4J3lA+Oz+XnW6yCaSSh0doZfm9CFY4o56xgTktiQjmwJifIMfznCzxcUT0+PEop+6/Ul8oiqz/A3ExK3l8fP+ioLBNachPMFRV+aZTeblErXq7D82JPQ1Dmw2G7+l+mP3DTcaAgvcjQ7E5IzIam7YOYFg3Nhhn++oKhzYOY+91zP8KsDzntryVnHmA/0tuQDdDP86sDMCwYdmOFXB/qZzmHgN1tJ6XiMZrbOFxTnC4q+d858IE9Ol54gT8y9DzzqMfQ7XycqO2iccMoBZ8qZbmWY4Z/5wPvPBxyz0uesrzXtZfV3+oLCZhNkhI2WwNp0ik6Hyehm+fUUeFw45Jzs8Ib0z//8z0uV3a4zFNHP8KsDedzG0aRD2gUNBNfWPzGhO8KvnFBCwSEngWDRaadXN/2kYF5QKGsn2QR7+TUD9xKKP/zDP7x+g4LTQKA9n5g84tdj6FLhmNMRW6Nj53U83gx/mdHLixcUnAoQCJByl15QLA7m+NnZ3XHK/vWFtGytAwJLSGb5l/6sC5zNRPqiEUk/Qgd8YjLLr03Ieabd7lYHJySpzXmg3NFnho221/KvHTAiDkZkBiLH9tSP8qsDW+SccGsJhRFn/Wf4mx0wlTkBM0pBlRMws5K6tmAvv05Cxmtr/MMf/jD+6jtjqWTk6joxw68OdIecZkScA12QtsyG9hl+LYF/4p8AXXrEBNoKENsZfh3FHjeB4pDMSJV1hBw3o6nHm+HXDGS3m06BOuyN3PuZCUHZRD/Drw7Y7RwaERmkQ9oFDbRre2v5wNb3hQQCNyIZCK6zyQdm+DUDvgsU510K5D6PTl3ZTJDJB2b41QE3Xpxy3GH00HUpyweUZ/jVgTG4OnAOuXSii5QPaE9dGdRBGe7xL9nZDEec+YADxqyYTueBckemlo4N6ekgYQ+/9gDjfvKpB9n5kdGP8ii/OrBFzgk3HsGCG3H2zwx/swOmMieggCAomYCZldS1BXv5dR0zXlvjd5kP5BGuDmQq0/uMyAghejJtmQ3td/nDH9YL/9oBTmfu81l+7QFO3hfOhKSWwONmCTwNZGCDKWu36QI6bW8tIXHdcshxIFh02unV7WJSZ5OQaKdjE+zl1wycLyjGb0CYvkwl2W899cBhYkmm+OMpFufkmZDsSSjMFGTZPB3qsIdfTwFja0mOyOMVObanfpRfHdginwnJu0xIrktnbcdHMUuiDWJMpi2bTvsMv/bAe01IjMTjQhphkJGqny8o3nk+MPOCwSac4dcmnHnBYI/M8KsDMy8YdGCGXx0YnwB14BySD0QXKR/QnroyqIMy3OOfLyhqCUxTpuy19zkuHOVfO9BPPg4Dj5lypPIajvKrA1vkMx/YlQ8sv//bN0dfcLy3FxTZtBe9t8EoshdSzjXcN5221HFhhl+b8C//8i/LZ3dO4avddGPGM9Zn+LUEEhIBO8yG33rpzISO5HWdEdOD8gy/3pDkceMQBCfBlxrzyUgfucB/9Vd/VZ+mzfBrCSQcHArY4ZZb05sNdn/2Z39GbP6b0z38WgIJRXlqPwQRnMwftVFmQm/z5QXFDL9m4F5C0ZdDYB1IR/Z8YvKIX3vAVHG8hWzGsd0nJjozw68Z4AQSoJfpxoSCDnpC0jm9zO4e/0VC0qfZCwrO4oCzwCO59g2K1/KXJapJqMeJc5uL3IIOaWPnGxSLA9Xj/GLf+ZFnf+2yWZuZ0dUj/vPw37AyGlVTuXU+aIduP9b38qsDoyPOTDEJ2jlUDtQzOu3RR+7l123IAYQc6YDJmtOl3KVAuMCmYw+/ZgApo1EO+gGVoNrsh16nO8qvDqyRjcgtaKoFCOiVewdm+NWBmftcZ2b4dRnN3OdmaIZfd8HMfW4pZvi1BFvPu0vGCE1zh6Dq7zQfECDQwZQjPX738oHYkff4NQP9cUMIos91nJFnVh7lA3v4tQdMdYJGJph62hM4bffygdg84tcMMAbG0Mvqbj1y1O/NB+7xN/MBAWfygb385WCrSXhxn4+j5RCitwmNbHFAfZxf7Ds/csw6/0ezMx/I7GQZ+gxZotS15wmKTh3/cT7w2WfhXNc5+4AUSAC4Gr4pJB9gR7Umn3fg0qo3i7j5LwcJZcjK9kOv093j61y37/xrBzh5H6gOrPVer1+bkORgMpC9/OrATEIhWPi9A/R7XnCcCUktgfvac2naOtyCa/rs6HeakAgiOHm+oEhG1JdH+V5Coj24x689YJohhF6my6036vPY0QNb6GX1e/zNhISTmYRkL385sGoSrheNy0Wvt8CxNnb3EhI2a3jBXzPquhzTLpCuV87UKm/hEf95+G/Yy3S8KT3VX2bcOh9i1O3pet0jvIdfHehEjsAUk6CdQ+VAPaPTHn3kXv7nkpCkU1n/LmsGGGQ0ysHbSkj4S1Bl+yn16sBacNP62nyA82AvvzqQ+zy9ipM99znbGf6ZD9QSbD2v7zUfsLaBDqYc6Tk/X1Dcywf6E2UpzZzTk0wbfu0BCtAIvazu1iNH/d584B5/Mx8QcCYf2MtfDqyahBf5wDhaDiF6m9DIFgfUx/nFvvMjx7TzezT7kuQDy7AyjUvx+p8pTkV7dnB06pkd7dFH7uW//3zAh9N6PY5C3Si19dGoa4uc5T8/Aou3Mcii2vwrvKY+TwM7OMqvDnDIyYjf+73fq+TUTIwBe32GXx2QUKwFMb0CjQHy+YA2nZ7h198hGT/xsMY96Mcff1wHjY9rtQkaOOdn+JUR+T9NikMzkSB+qTQL3/jGN6o5nWIDvkFBzvCrAwJVhFf+yL/On+HX/5WMabSLjZy0tkZGT/aEhI0jmJ3+KrNT10a+hl+bUP4vEIcd9JxlhMraY9s/MYlOe7CHv/mJCScJaITqYxAJBZu0s+nQpp72NX7NQAwZgzqYUnUjIelAGXpCoh6wgT38xab6UI8ZB72XHj/1jEB74Hr2DYrFQakEVGBPwi6+TcM4SD0OU0+g2KlLSNIefep7+c/DX9ghLMXrf0aeZ9+INbADZU8ACdEpB3v4y0CufQivZKYycgygrnOLg7Iff4QXyb7bqBefkhNQDjKV6mlDUg+iJyF6ci//YqMgA2KgrveCcqacNjL1Wf51/gXhuKOvcdebOh3ruqP86gCH3VnKZz6QmbDOpvzMBzIjkW8lHzC1Tiy72KPHOR1J73Eb8wE69q5jtuzUj/ArI3LbcSpoB736mA8ISu86xmNH0nXQq9/j12NoBAw7OBQI0k7HJjLJaNq1BWxwIe102iPxKyFhpGFEpjQj0d5tpefqoG3EHv5iU5NwzQc44RA8fnqbEdBpB7fjWj6gjR3s4ts8SEHqHNClvvRU9Qr1X5F84CvVaTOmYGCg7K5ZBvK8BBQdpl49MiQ6UHeHUbQ9dgAAEABJREFULA5UXyC8SPbdSL34lJyAcpCpV08bknoQPQnRk3v568Pn4XPCmZDUEtgMazN+JiSZFSeaJ+BMSDIjkW8lIXEcumwcHA4T0nQ7wejJMSHBYacjyuzUj/DrKXDdCsRhB73OjAlFbGVE7NlFpx7QP+JXPmAEIXWJrJ72MYiMiE3a2XZoU0/7Gr9mIIaMQR1MqbqRkHSgDOcLijMhcYdkn9gTHdlwkX3vsFMvvgonoBx4rlNOG1J0ZPQk0AV7+Wc+UOeAtcjUdXnmA5mNMx/ITIzyreQDnm23lec2zzKdYPQOkjEfoGPvOmbLTv0I/3xBUQmJaTTlIzKlyQe0d9vzBcVzPvChibnCZlTJTKWe2dQG6vh1FFOEoBzY3Tmmt14wxPYof+nItQ/xVdKjphA5BlDXucUBsxcIL5J9N1IvvkJvSNnUmaLUBeq26hx0XWzJvfz6Gg9ngLgGbWuBjE4ntMMal07bFv/y7W9/+ylOGHcIgGg0Xa9MT87yawMIxNmIHrjb2JC93svdxx5+dcAMdKKyabuXkPQ/iDfDv7hoPv30UzGf8ptOVZYfvjtgqnPiLar6r/8R5c6vxvZjD79mQAC8dMDojSq/lHKkPS8ootc5+vBTfw2//s/1jIKjgIOUBR+/QZE2f5tCZ2b41QFO0vtsKDOQQJGxcUKy++pXv/qEC2mjZ7+Xf/0GBYIpRuYsLx44zAjNDDu3ox3uT8XEjv4I/9UJiQ7pJHg/oK5DJF0HvboZIg2s2+HXJjSlDEYgQNo7ma1PPMi0K3fgQtrX+JsJCWPgMCNR5pC0HHa/OtB14ALdPX7NAKPuRBmsqzWG0cbT4RMTemBPgjLs4ddlhARINlfKJCf0RkzSRbottdMB/Wv5tQlDJjs4FJjO+U/SZWrNTMr02jvoHvHrC42dtKfMscCWISPew4tN59cS6CXEYJTakEa9TlgC7TC2p65ti3/mA/UYmsZMV6Rpe20+kNuUj738m3wAscMms3Y5cNK2lQ/4bTk25B5+zYAACIKRem9WcoZzRO+y0RZ97Gf4dR3nthMEBCFB8F/PfMAz7hYj+wxZGrocQE5DdvSWyKxZGjb05D1+7QFnOkPkjuiy5troQDnX8Qy/MiKj4LAjoyCNRFsCK4PNhwvqHXjsyXv8mgFGnZxy9P0+T5uNmqmNXdoio7/Hrw4gxDhlvRfkpz/96fU75myAjadDTqgM0ae8l1+XERJwks2lTGdzKesMSRdp6rXTAf1r+Zv5AGcgMOevzQdw4RH/ugSCvA+cCcl0QuJpsBGz1n0ZPQn2QTZmb6NXrz3AUGVEJ3YbGzJ1F1XKR/jVASMYyUb02oSk+9jLf6sJSe+AsuUx1Y5skg56QlMzwEBDjPTerOQS4ki7205b9LGf4Z8JSV3HrktTbopNtal1ztPb4bn1TD87t5snxGUUO/oj/LoLOBRI8A569b7m3c4LBnV2JNsOevV7/NqERspwhJmAtI9BkhGl/Qj/fEExlZBIRm2+TL3lsjnVlUntyjYwSReJX5uwK5UDhojqzn+SLnvBE5AyvfYOukf8Mx+YzgfODyxsOjud7LD59uQTZz5w5gOb+YATzi1HJh+wyWw4uhy5TkN29D0fYENP3uPXdexMZihAR3S5z7XRgXKu4xl+zYBRcNjhHBeINBJt6mQgGcWF6CLx2JP3+Jenp6ebf10RByQymcxGOfCcZ2pjl7bI6O/xawkQYpyy3gtidBB97KTqckJ6iD7lvfypfEDHbD5BQSeyOZXptCsbDEkXiX+TDzBiEDDMSHobpwmknT3bbhOddnqgg86/LoGGDg6RBVJG0q5Mr2wE5Bpi94i/mpAIAGuO6QTWbh8IQNehDbqulzv/4sZygPQpYhzHHGkzInro5Vn+5ZNPPnlKMM7XsNauYzDLv/gAOkH7yKKLFCxlU28a1Wf5F8epKeYsyIhtPJ0SnEx7r8/y6ynwR2/inNQh8Fe51B25ZMC+d0g9bSQu7OFfOF87Uo2eMzDlAnIKdMEsv1Kyfttx3IMIDl2fDnvVojzDvzjPc1sJYn1JI1MG9UDnEvD3f//3n2b5dR1zznH/9csNls2oHdQtTTrgU7I8DUf5tQklFAKMyOgTULu9kCXxBNDN8GsGjIJjzgJ1HSCzROraU7dMuMBOW6DOnoy9uvbU8WsGGGkYEb3lSFucmHIbkD52yh3R3+NXB0KKc8SUjQ7Y0JPg/ZANqByEwy5lXGBDT0L4y0Ce+5BGG41B6ouB6pMLiw44N40cp52e4av5SGvgUCAOle1+dsr0yjpAriF2j/hnPnDmA2c+cOYD7z8fcKqBIzX5wNrJFp0T0TGcOi4c5dfr+vFI5RASpP/fkjtie0fVRz5d49f3TuNLW+ev5gMyHQROEPIlZmX6zIDrWHBIm/Yg/NjHJnX8ugrTECKJTMLWfZ5MaYZfHRAEEpTDwOhAe4f7PB2I/gj/pgNx9HnKZfM+98GIBXZ/kxn1YqD66oRkN7+8r/zQIVOqQ8oeP2bK9MoJojwido/4X8yERO/13KiM1jLQqUMvv5MXFAIKFKQzqZM6BucLCr+ebc2YjWu5zBRp5qDX6xmcecHA4Qz/mpD4Qmrvpd5zDn4Z1WakQBf4/c6Zrs6GhL386wuKXEDIPYjg0PUJeL6gMGs5Dc1a7nlL4QYdH191S5NLDL824cwLBkszw19NSDg1ijwuSSDUtaVuA5oBYK8tUGdPxl5de+r4NQOMNIyI3nSmLU5MeTZj7GITGf09fnUghDhHTNnogA09CRKS8wVFZsaMjDBbZtHOV7b72SjTK+N/MfMBvdNzUm9tOD1Xh15+J/mAIB3pTNfpGJz5wJcnH7C+fXPlsaF3HWuzGYEucJyunYh7+dd8IA7JHkRw6PoE/HLkAx4lMOrc50a7BVOb24zNz3/+8/rr7kf5qy8orLdOCQBJIJS19Y6qO1K1BXR7+Zv5AGeccJYRK9Onbi8IDmnTHuzh13W8RY6jrfs8MzPDrw4k0CgdwRlF2jx2/l9+rHk6kLZR7uGvdsCIwNRyqhMknbLAX//612vz0Y9gB3v4y0Ce+4DAeZwhq9ODT0y00dsDQL84oK4vwrCvyvKDnTob2OQvttf/TBkgRpkAHj9lztIuSOxIXEg7HQ65xb8mJDFkDAKRQepkAjshBWRzlH/54z/+43r/w8kIwSD6lHUgo5zlXz766KOH36AwfQmYzqjDLP9iGrvTlLsUqNdxMhvKaRvttvQ44V/8TaEYRq6t65VweX5qLAP7Wf7FLxgSS856EI+NqaePzEb7zne+U4+dtln+83B4WkE65KsYKeuENGzF/IUqnHv8izcjOVRCEMQyOHb7zZcI9MpsZvkX/4S/b56UE0SgDkHdgtHN8i+56Yx6HG064/IRkI2O+b8RVvet6ln+TUIiAMeWIsHVXT5k4M9/pMw2T8QR/jUh4ZAzMtAJOnuETpnOEghGCg5pJwO2OPf49RQwCikSWZnMNKdO6kBmZoZfHeCwg8OOjDA2AssHyOi67Fzle/xlIM99YGi0cYSUujYHE0lvSkF5cVAUbbGn0Ja6tk0+48AjBiHSJ4DTUJmztAvCJsCFtNPjkFv8Mx8484EzH3g+BDwnK/DIUd+7z7VvYQ9/Kh/wbH8e+cDNAB00LiFKI3wr+YCTy4mVfIBjAdYgH+h6F9UMv67jBNSJOOc05VH6Lml0juMZfiUkLpY47FInOCejV7YE6az2Gf7dpyBBj8p08h7/pgNGE2MjVSZNs3LHmvORr/6If9OBBECEBOZEG52yRERCokw/gh3s4S8Dee4DQneIrE4PEgqB6K050C8OqOs3JfZVWX6wU2cDm/zF9vqfZxwQo0wAh44yZ2kXJHYkLqSdDofc4v96JCSOa7Ng9kgzl1n6XBISl1kC6gCow1t9QWFknI8QqOve2QuKbDgbUcDUlTP90aWz5wuKqYTEVNvhOZT6NGtzdeeKtwwBvTKb8wVF5QPXHfnmFZyp7I+Oy8eUBecLCjPhec7MmDG6jswgKW9Mm7py+M93MU0Dhx1ZopgILB8go+uyc5Xv8ZeOPPeBYXrHGVLq2tznJL3HDpQXB8w38wGNeJt8BoHnEhKYPgG27nM2AS68hv/rkQ9khiyFsqXLLH0u+YDlS0AdAHV4q/kAh5yPGPUv8gFfKuskG0k9G1A50xedaaR/Kx9Y/O7v/i5f9SgpCOKxMXXqkfTqMx9YuD07//kQ4HUFGbWcLmWdmPnAwux2vnzgyaEiAOiHIAzd24/ucyOa4X8x8gG71Kgz2syE2RhhVrrORTPDf/8vKIzGCIwa1IGOpOtf2czHN9piQ7IDeqAj6e7xKyPKvyFBCBBTjqTLFWzJ6Olm+Iuf7SfRKALBwI7vr2gWB9SrCJeMwQt+GsgYGlXqKSdQbCQkaWMLaYtePeUtfi0B8gjkHLdxwoY+y6De29QDdnv4N/PvyHUAIY+OjQBMYcAuAckj/OufAeFccI5AB0C5g86zT2cZBFU+yr/7DQqOgXMyMLVGbybufYMi9vf4F289M3JOQ+oy7dGZhdjO8i/9t5wEWJOCRu87A6nP8i/f//734/eaD4wjzmgZyhNMfZZhll8f2WQjjYGsnZFqJ3UAvvWtb107KyPSTn+EX29IQkwQgTnMTERGl4QCz3KQ2o7wKyFBXoPvlpjytbboJCQpj3IPvxKSEI0go8m9b3qjY2d20sbeJyb0oB7b2DziX79BgdxHa9ptNo7lhCT4Jz0uI2XOcygd5d8kJIJyDBnJWBbcs08PngbBlY/w6zLKSDkZEefR5yKyFHTaZ/iLn5v7iM+CGQAVoyRBMLOwEFWfIqvSfuAC1V0+gyAEowL1QKDo2LuItCkHqbMD9WCLX0sQB10i6jlHkDb6LAM9pK1Ldnv4N/NvV9tIyKNjIwBLELDrQY/wz3zgzAd+PfIBT0d/qno+ceYD7z8f8Kuz9YGeD+SUo++nnXwgdSfjLP/mKI7jz1PWH0jMaN0DPbgzX73PgquYLsAF9SP8ug1nXjDo3Ax/WcbtVTCywAjBrJiFhai6mZBoDJdUhxd8yiCGRkWnnnIC0mmTkKRNHdIWvXrKW/xaAuQRyBIK+jhRpk9Cot7b1AN2e/g38+/ItJGQR8dGAKYwYJeA5BH+mZCcCcmZkFwTEr/n59HzuHmsPJJdpvxOXlCMH1wJtucFg46zXcMe/vtPSGZfMMzyzxcUy4a/uY+ue8lFAxS51ZRdRHvyAVzAuctnEITgcQT1YOlpvZxUZy8fSFkdUscF9WCL/zAf4AgEAA6TD9AD/Qh2Rq4d0k7f+Tfzf+Q+j2PyCP/MB8584K3kAzYgZLfnFqUDO58Ev386Szwh9OcHFucHFnUS2hA2iPOatJnobBZloIe+wWLPVlvq7On28C/9DQcnI+zUrvMVnNQFmuVXQhKHGYG68hicPgmpMhsjVQZ1EpT38GsJENaQ6Y4jI/ZhlHzA87zG6bo9/KBq6goAABAASURBVKWj630QLIG7U8HVOWezOFB9AW27+JiMyZFgetOWQLnLzQQOxCaSDvbwbxKS/ruBzgBHHToA0Y1Bo8eF1CNxIfWb+fc1Ow2Ia47NglF5vNgA++AI/5qQcMKBtVXWAVDuEDy/C/zJn/zJkywo7Uf4l+9+97tP+QpXHI0ynYreLCibyll+/T2iTKXRcfwIZiad8FTM8C9/8zd/U/GsbxXaD4Fa9Vr85je/ef0rLLP864fXvGckmXKdSiciHUCmPvXsh6P8yz//8z/jFtIBFYHIETpnBtKBWX69oEiQrGvqZkA5MuXcB/aMb1DQwxH+TUJiVH0W/JGTHlyQDrb9BcUR/s0Liu7cVKt7zjlWBvocwzrQv0GhPWCn/Ihf+QDjHsSoIeeDMmewlg/M8G8+sOiBBLPGZO9c1p+evVmA1MlgD78uox4g5DXJzvQ7fPKU0MGa/ahjN/KXQdzcRzccIwvS8IMf/KCKpl1hcUCsIlwyBi/4GvRslHSdOAYyEjYjL3Vte/i1BEgjkD3XHPU2pyBEN7ZHv5d/M/+uUw6Q1xybBZ2yudgA++AI/8wHfjXygaxxpNsw63/mA2c+MJ0PZGO9L7krIemjdAm5B3TYk/BWEhLHLnA6QpDegbWEBBdGrjo+GYz88wXFcsHdXIiZqZsPJ67KpSAbWkT9SUHTvjhQfQFt4/QzesGnZNylMrh605ZAyQWyEdnFJpIO9vDvJiRrI9ABEADGoHSAC8oduBDdzfwfSSjiiDzCPxOSMyE5X1CcLyh25QP9tHsn+QCnPYhzH84XFM73DrPkFnSlni8ozIQZMUNrkq5fx/YU2yD8u/lATyhCdJdD6gKl3KXge/hnPvDF+MDCelk/737IR7Du1pedR3KGf35gcX5gcXMOuBWzoWywgF45p9mPf/xj1Rcf97F7Lb8+MbGreUTmRJnOhw3K9GSQj2mciH51Z6uN3Wv5NwlJHHEW5NZT1y5APjMQsL+g0M6u4xG/PjFBQAZlMN2CKXeMLxh8g0I7LijDXn69oAgRCRky/codRu8mi86BNMOv27BPUxyTpphMAFJwHzokXaOb4V+2yAIH6Yi6o7cf2bP8egyNgnNIMLqAPrDzlftysaOD1/JrCToxZY5AvUMHuj7Bu0456FzlkX+dATv+448/rnc/DONYWRtp1DYd5+qRbNkc4d+8oOh/zIBTEKhDB6Ifv0FxhL8rITFy0BHBM3LTuecbFLiwxq8l0AB2OLkHOpJ3QrE/wr/413NGpIdGFGekIF2yAf+/BTjaZvk3Lyg4BBuKFCydUAcnpMOIXof7Nyi0w2v4N98p/dGPfoRf2DpgdAp0gGH/Ixh7+f4fIMKv65gjoMzUqgtEGrU2ZfCHL0hwHZPAZg+fHXuoDkSBnOmjE5gRPRnkn/dZAh1gq43dHn7PJw7lA/7tSAK+9XzAKDg3+vztiYyQXj5gEyrTj/nAa/mVD3AGWfOU40w9kA/0593JmLYj/DqIOjHOyKxnOmLERm/tkw+wm+Ev3OoDPy+QwL3B6Hs+sDjozTflXXwMIyM76Ewv2fVGr94Djzba6fbwz3zg88kHrMkb9GWRT5z5wJkPvJd8wBninLAvt49BrZ8DKh9IHL3qx6eeanMzalOG2YSk86sDcS54LiA6gQWkJ4OeULyXhMSVrDM69tYTEo7B9Gc21AMJScpmaUxI0raXXwkJR4hIJGT6lTuMXk4QXT9aj/DrNtxKwU2xQOkgKfj5gsKs9Ok2M3TQZ40e6IMxoakl0Bhiyuqg3sFB1ydA1ykHnas88usk5MSOP/KCgdMZ/pmQ1BKYRpByk3tg2s8XFHb0r+QLCmeIJbTUdR0rAKXnVxkYku4FbcrQ73PXMR2wCV95D786wJgDZOeBMp3AyvRksCcfYLuHf+gFhRtRAB176/kAp5zr/fmCIvshs2JfyAc8fucLijxi9ouZITvoerqWNrOnHP6XJB/47LP6oONIPnHmA2c+8MX6wMIb0Jx6eU7zzHquQT1g3z+wUH8t/+Y6XstuEozUqSCdkQ+kfIR/swmdXAKNyJ0QfRKSjDb6I/zLD3/4w/DrG/U9WEZ7NVgKRishERxm+S86sMS4/tc7Qym4TiUhUR87wC7Yw79+gyKkSIGUI5XB54Su5DjPCwptHeFFpm3kXy+jGEQmgLqpJsEvL94PKINZIEfs5VcH9HLL0ejYderzwSQkeDP8ego4GQP1UWd3s/Osk91+rGvby68OIASIkProvLf1cuzpIPVH/GX2ftmHpRJePZLdURroQJ3zzullNsCugw7oiq8Q5LddG0hj9OopW4KUpe4pk53vhKSDe/xKSBLMx/IIQfSpk3Sg7P9AQydSP8Lf/MQk0ySQIOQIT8TWNyj28msDxNgzniCmLSNLe9r6WtOl/Qh/8VV9qL85a0QcbmExLjtTnaB07MlDfOSgbzAOIbMQG8vhKKbv9tp7HRfYaQtG/pkPvLiObb5MlymE1ElT+uXKB/pFY4SBkQfZ8drc52RmapZ/84EFx0ECpB7pWc+3anVMByxL2iP38isf2PrAIs4SIFIa1vOBGX6dQnGcgKTRRa9MBw6bXqeLnXLAJnrl6Ed+dSCNJGNQhjhRBofNqKMPcCH10XbkL/vsl31YKuHd5gNX7dOTXz4SgPPO6WVtsWv0l/ze2O9zDtLWN5QRRJ/XeKm/lu9YnsoH/uiP/qj+JlU665JKZ8jolQM6UJdPnPnAsm+eN+FSePKImJotsAFTnQ2mzp48xEd+n3ge/pse9B1uRJAN88akNt2ZkJwvKM4XFOcLivFsGOvOjJyUytI2kp2zhlSHm4OIAhGUoRur97Ze1gZ0oAyP+Mth98s+LBWcAmJ3VMrlBx0sxUpaOqeXd/M5Co4kFOGSR/hTCYmEQlZjtDrgliSD6FMn6UAZ/0xIln3zvAmXwvtPSDyj1gZ0CLJedGDNz3zgzAfeaj7QLwqbLLABgxy92s4XFGbhS/iCwrDewHrDm2pduSmTDqvxcKIPcCH10XbkL/vs+ShGWCpEAbE7KuXy4wv1gsKxvPTp+t+ZD1ynYin05Rtnammu//w6Xxsgxl5CVsvyw3sh+2ApXv8+tTL0vaI+w68/isUJp3oksDrQkePLKDpB2afTbNVfy68Z4BA8IuQ9CDTmfrE/wr/+SSiOjQo4VAfLMOqSkLDz6p5kyw5Sp3vEv7jZMm0hc7AGDtn6I/txPMu/GE2C5WZMPVLQlLvUiVn+ZfxNdwxm1AkqoLJRk9pm+Rc799HUC9Zh1Dg6O8u/+QZFRiiY0XWpDIJ79ARX79+gWOOz6Rj59YEFInTDlAUy2tRJ/3CZBLxAfYRT8B6/OpDRjuS1OmdG7RMTZcFn+NeDiKOtgHk6tmzwttp08h6/OrBGpjP9nHNCGqkyqLPpUjnQtoe/+Kw+FG+plOw/OBrr0RlZ5/Ry5/QyLtAVXwGMyoZRhhgpdz0SHXT9Fp+fbjfy6wUFZ6bLCwPle+Aw7R6pOD/KvwiaqXOoxLkRgfradUwPs/zrBkgnOAUj6qOlS52tzgE90JHBXv61A4hH7nO84Aj/zAfOfOCLkQ94vILsaI+VR4nsj5vDh402p5qbMVxSG+CxIe/x6zpGWAMiJ2RvH9Ow3tbLeI/41QG97L3vTtbKr/9G5a2Xzr85iG7NnurfDBiFqdamk+qkujK5hYz+Hr86EIfd0ZrOTAkKj2z38hef1Yfyt1RK3vvBMbAhO6eXta8BB7SR1+hGlas1jZFdn+nU1vVH+Wc+cF0CU/o+cO3AuIE8QjZJ71TqbK05pJ0uZXIv/9oBpCMJBV5whH8mJGdC8l4SEp85eYI8Ke/8BcX4eEpovFMW3NNT+YDnGyhGMNTbrn/NC4pH/OrA2MsebCzrjDTsy/+CwkhNnxlQJs2UMqhn2SLpAro9/MXnL0/jpRL+k7eh10orcAxUcoPO6WXta8AFbcVXAKPqCUaMyK5HYg9df5R/JiTXDTCunw1k+k11kDpbUw5po0uZ3Mu/dgDpyH2OFxzhn/nAmQ+8l3zAlewJ8qRUPuDxCrKjPVZlcLncfHCJzEabU9HNGC6pDfby6zpGWEN6Sfb2ly8oeusvy3g6Sv5S+/TU+dUBve2978Zr5f6CAW+Gf3MQjcHSe1OtTTCjIdWVyS3s4VcH4rA7WtMZqaDwyHYvf/FZfSh/S6XkvR8cAxuyc3pZ+xpwQBt5jW5U/X7XGKOuz3Jo6/qj/PefDxhJ0NNtOlMKKZOBEftCS+rkEX7dBQnCyQhLce8TEwfTDP8ivxeUE6NSDgRPmUydrTrM8i/f+MY36stKnI4dGOsCsvvrv/7r4qjP8usp4NShwWEPuqZj68Nrtn1G1mzXdCO/vsRiHTmUUoWkDglC+ld12j/66KPrDOhM+B5R7XgBnjK5xr9ex33kCHpKriEBcXzUR4Igsd/Lvxh1SGtSr/06nTaBjFpdR2b513zA1PURCHAPOuIbNMkHjvIvHAkUqRzQcZw6qe7AITP99GzJDjp2Xafe+ZUPMNwavfM+0xybfgLSzfDrMeSk9zJlveUcoiPtdntj7Ji2jj38moFOWisLGH3vjPJW52NP3uMvT8ulnuk1R0tjtQnE0Qj62EzwaxVG31U3hVVoPwQCKkugA8pr2MXvRt1ZghiljdjbEoxull/D54hTf1WLDARPOTIdU9cxcoZ/5gPvNB/oj5+lAsvV84nrHshm6uvedfnDJhzkMsp+oOu2AkH2SPfJtvNv8gE9jiMOIEF0wOmn/Z3lAwkmsJ6Sa3AN0xtZLiTlI/wzH6h8wPSBae2gs+Y/+clPSm2K1VVI/9CBTUDfQc/OkU2/xq/bUAMwGmEnc9T1AqeOF0TX5SN+daATelnvx+DaPS2eCG2C061hD7/OgTVy1wmoLpigoL4X9/jL07Y/H1iMb2LqEB0JN41LJW3psPqivv6Hs+i2J8EUXq3fFJBA1cgWB4qr2MXvRt1Zgui9jdTbEo1ulr89/ER5x7I6YCTinAmJ9TYTQfbBWM+M0Z8vKMyCGcnT0GdxTcf2UEJiORy/nJ4JSaZQZpSr1lKswazde8FxvqCofMDOtcnWptA9kGmOzfmCIjN1b+ZiQ7q2ScAhQXk5F/YnJEgdbxzUS4wsT29fnFcbu65PmX6xqQsxuhvp0LlRLBWBYCk+2RuLA8VV7OJ3o+4sQfTSRuxtiUY3y6/hc8TpmQ+YbjMRZBnGemaM/swHzIIZyWbss7imY5vLzAzvfkHB2M3G6ZkPZArfYj7w/Of/TbM13QNr/dY+sOAMxsB01tyRq00H1ZVJ7wnYBPQd9Ozu8Ssf4Bg6OWXHMEepkwKTgBeoj3jErw6MpNT1fgyuzfXqidAmON0a9vDrLlgjd52A6oIJCup7cY+/nAv784HF+CamDtGRcNO4VNKWDqsv6ut/OItuexJM4dX6TQEJVI1scaC4il18z/IaWxD5vE201k4n+Cy/3hNyBhySHUapE2tjpCh4AAAG5UlEQVRtOpnpxVmzecS/mf9crZx1CLRWHwMe4VcH4mgM5AAxQjPQO5By1niGf4mTOO1S8F5PB50BKc/yqwNGwOkYUF0gsnfk61//elXpdWCGX0tgijnilVMSbCCyQzBLo2PRz/CrA8mGOU1HOFemUwbByXGzzfBvHkPO16Aja3q6PmPqa7jHrw6Y0jUinb3hQFLODMTeXtCB1NmMeMSv25ATMN0JMjrSFh1b+OSTT66/+6mzeS2//mg2cpx3yZkNFp0AKZtWx7CNOsOvTcgxxHmXNtg4xYKySW6IC3QjHvGrA3E4kuN0HCF7s+MjOxx1csQefnUghhz0srrR9wC9XRubrutlbWzu8a/fJxyJyNbY6LsDejAD3hVljxzlXzvA6YgcOIKNbeo6lg6oj9jDr3MgxLVACbLWZtRmaIZfeyAO0uPUIwVKmUx97NQRfnUgjuJYELCBjHBrmp0F7Gb4dR1zsgbBuz4ddLymnE50u5T38KsDRsDpSFAXiIxT0h1A0uvADL+WwBRzFKck2IBkh2CWRsein+FXBxyXnHGajqgr0ymD4OS42Wb4N48h52vQkTU9nWUg7+HDDz/cbK4OmNItC3vjy50PmMK+2bLm1htssHF2LAnk347O8K8ZUQKPwWywLFFsXEKxozMIMrouH/HrKVgj0wFnApCBEZudsWNpJ3FBeY3v3zPib3YAERgJqAycgnIcp043YouvA/jX63jNyaN8gIPskaP8moGx159n/ToDa0Fz4lnvtXZLkxlYa9/Dr4Mo5LVACbLWZtotwwz/ZgnS4ziMFChlMvWxU0f41YE4imNBwA42wq1pdhixm+FXPsDJGgTv+nTQ/ZByOtHtUt7Drw4YAacjQV0gMk7JtYSEj9FO/RG/lsAUZyRIgoANSHYIZGk4jh4f1F/Lrw44r5E5TUfUlemUQXBy3Gwz/JvHkPM16Mianq6PWH0N9/jVAVO6RqSzN77cCYmNtjWN1jyby2z0/WBaXVaz/NqEHIMgI2ywcYkEZXe+oMjM9NnrZbPEJjOm3tu1Xa/j3sAQrLH90R3Qg/0hN8weOcq/doDTETlwBBvb1HUsHVAfsYdf50CIa4ESZK3NqM3QDL+egjhIj1OPFChlMvWxU0f41YE4imNBwCYxwq1pdhawm+HXdczJGgTv+nTQ8ZxyOtHtUt7Drw4YAacjQV0gMk7JtXzgKL+WwBRnJD2YDShgh85aGh2LfoZfHXDccsZpOqKuTKcMgpPjZvv444+p6805TlWWH8qP+DeP4cJZ/Y+j1YZF2Wdsqa7+d49fHTClq8xFaW2/3PmAKeybLWtmvcEGWybi5j9TCucLiuydzFqfJjqgM8tkYMbNLn49hjGMQZeMEKJjC+pxnDrdiEf8pSPVh3qGkRcFUZAPfO1rX6ty/yEg2AexV2eTuvIa3z8ZYwvFHzeZBuTA50LjDGgTqCckdPCIrwPswr/kFKQcYfSmsOudC6nr2Cz/ef4Xj3q0iBf/GaW2HjhGfbRsou/yEf/aAaTuxAYz/T0Im46x7Qi//rUd4uhMINOvIzZLb2evnWRD9nZtoO0Rv2Zg3IjIgpIda0G0z/DrMvK4rK2x9RPUKIxSMMjlpKxthl8dcL9nxBwmmOCCdLBjkzblGX69rPaXNBJEgJQj16ZYm47qyAy/9gBnwBnZQadTpIC9bewYm96uTHePX0vgt1xTidBBZ3qz5mMH/B9ssZnh1wx43nvglMcR0gtoVKQ33nQz/NoDnldOOevwN2iMOu2xETx2dGmPLnIPf/F/efKXNEIa5aeffnqjEhCsq/9DlcXBHJ93lwqnyiM8433EvV2b+gy/9sBWcM5tMAGUYxeZP++VOpsRj/ir7we6QxssHTDdaVP258HWNmpsdOYR/8wHag+YKjCtJNh4pq9PJ33H2HaEf+YDdRd4nr/o+cB16Z2A9kfWX9mFRc9IPXshNvQBOzZpq7tg5j7naIZ/8xRwlp5G0uk1mZGlbTyE2KQtku4ev/aA49K0hBRJZ3q//PmAMz2jNs2mTT33uTIdKGfq/Z5HN8Nf4m3/+wLB5AMSDmUQ0OVkXS3d4qB+s6bXPuIhH4FDcg3OCHuht8XeUU2fuvKIR/ybp2Akfx716oDpg7WApnkcYWyzNOpwhP8iIRkdmebegbRbe7+6ZUMmeNpTf8Q/E5LaA5ku05qynW/6xilNOzm2HeGfCUldRg6LMyGxqcAZT3aMz3rabDob8UxIHNce28xMJN2jhKbOAc97SF2uTT2npp08X1CcLyjOFxQSlfMDi35uOJpTd044X5wZ0Y1S25kPJB94OvOBbJAzH8hMkB6lR/c5m1/9fGDmBYPDZIa/HF7v9wXF/wMAAP//m5568wAAAAZJREFUAwC9yefz8o+WawAAAABJRU5ErkJggg==";
+const WATER_OVERLAY_B64 = "data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAABAAAAAQCAYAAAAf8/9hAAAALUlEQVR4AeyTMQ0AAAzCCP5lVMIELtPAsQcSXo6GGhiCWmE6IJVBGZxG/z9YAAAA////vBfrAAAABklEQVQDAJxLKiEeOYslAAAAAElFTkSuQmCC";
+const WATER_TINT = 0x4f88ff;          // blue
+const WATER_FRAMES = 32, WATER_FPS = 10;
+const WATER_SRC_H = 0.89;             // top of a source block
+function waterHeightOf(b) {           // top of one water cell (0..1): sources are high, flowing water drops with every block it travels
+  if (!b.flow) return WATER_SRC_H;
+  const d = Math.max(1, b.meta | 0);
+  return Math.max(0.16, 0.80 - (d - 1) * 0.1066);   // distance 1 = 0.80 ... distance 7 = 0.16
+}
+function waterSurfaceY(b) {           // world-space y of the water surface in this cell
+  const a = world.get(key(b.x, b.y + 1, b.z));
+  return (a && a.type === 'water') ? b.y + 0.5 : b.y - 0.5 + waterHeightOf(b);
+}
+function _waterAnimTex(src) {
+  const img = new Image();
+  const tex = new THREE.Texture(img);
+  tex.wrapS = tex.wrapT = THREE.RepeatWrapping;
+  tex.magFilter = THREE.NearestFilter; tex.minFilter = THREE.NearestFilter;
+  tex.generateMipmaps = false; tex.anisotropy = 1;
+  tex.repeat.set(1, 1 / WATER_FRAMES);
+  tex.offset.set(0, 1 - 1 / WATER_FRAMES);
+  img.onload = () => { tex.needsUpdate = true; };
+  img.src = src;
+  return tex;
+}
+function _waterMat(tex) {
+  const m = new THREE.MeshLambertMaterial({ map: tex, color: WATER_TINT, transparent: true, opacity: 1, side: THREE.FrontSide, vertexColors: true });
+  MAT_LIST.push(m);
+  return MAT_LIST.length - 1;
+}
+const WATER_STILL_TEX = _waterAnimTex(WATER_STILL_B64), WATER_FLOW_TEX = _waterAnimTex(WATER_FLOW_B64);
+MI.waterStill = _waterMat(WATER_STILL_TEX);
+MI.waterFlow = _waterMat(WATER_FLOW_TEX);
+
+// full-screen blue overlay (water_overlay.png) while the camera is under the surface
+const _waterOverlayEl = document.createElement('div');
+_waterOverlayEl.id = 'waterOverlay';
+_waterOverlayEl.style.cssText = 'position:fixed;inset:0;pointer-events:none;display:none;z-index:0;opacity:0.5;' +
+  'background-color:#2f6fe8;background-image:url(' + WATER_OVERLAY_B64 + ');background-size:128px 128px;background-blend-mode:multiply;image-rendering:pixelated;';
+renderer.domElement.insertAdjacentElement('afterend', _waterOverlayEl);
+// ---- flowing water pushes you (and mobs) the way it runs ----
+function waterCurrentAt(x, y, z) {
+  const b = getBlock(x, y, z);
+  if (!b || b.type !== 'water' || !b.flow || y > waterSurfaceY(b)) return null;
+  const d = b.meta | 0;
+  let vx = 0, vz = 0;
+  for (const [dx, dz] of [[1,0],[-1,0],[0,1],[0,-1]]) {
+    const n = world.get(key(b.x + dx, b.y, b.z + dz));
+    if (n && n.type === 'water') { const w = (n.flow ? (n.meta | 0) : 0) - d; vx += dx * w; vz += dz * w; }
+    else if (!n && !world.has(key(b.x + dx, b.y - 1, b.z + dz))) { vx += dx * 2; vz += dz * 2; }   // open edge to a drop
+  }
+  const l = Math.hypot(vx, vz);
+  return l > 0.01 ? { x: vx / l, z: vz / l } : null;
+}
+function _pushByWater(pos, r, h, dt, speed) {
+  const c = waterCurrentAt(pos.x, pos.y + 0.2, pos.z);
+  if (!c) return;
+  const nx = pos.x + c.x * speed * dt, nz = pos.z + c.z * speed * dt;
+  if (!checkCollision(nx, pos.y, pos.z, r, h)) pos.x = nx;
+  if (!checkCollision(pos.x, pos.y, nz, r, h)) pos.z = nz;
+}
+function updateWaterPush(dt) {
+  if (typeof player !== 'undefined' && player.hp > 0) _pushByWater(player.pos, player.radius, player.height * 0.9, dt, 2.6);
+  animals.forEach(a => { if (a.alive && a.pos) _pushByWater(a.pos, a.radius || 0.4, (a.height || 1) * 0.9, dt, 2.0); });
+}
+let _waterFrame = -1, _waterUnder = false;
+function updateWaterAnim() {
+  const f = Math.floor(performance.now() * WATER_FPS / 1000) % WATER_FRAMES;
+  if (f !== _waterFrame) {
+    _waterFrame = f;
+    const oy = 1 - (f + 1) / WATER_FRAMES;
+    WATER_STILL_TEX.offset.y = oy; WATER_FLOW_TEX.offset.y = oy;
+  }
+  const cb = getBlock(camera.position.x, camera.position.y, camera.position.z);
+  const under = !!(cb && cb.type === 'water' && camera.position.y <= waterSurfaceY(cb));
+  if (under !== _waterUnder) { _waterUnder = under; _waterOverlayEl.style.display = under ? 'block' : 'none'; }
+}
+
+function _waterQuad(buffers, mi, px, norm, uvs, shade) {
+  let buf = buffers[mi];
+  if (!buf) buf = buffers[mi] = { pos: [], norm: [], uv: [], col: [], idx: [], count: 0 };
+  const s = buf.count;
+  for (let i = 0; i < 4; i++) {
+    buf.pos.push(px[i][0], px[i][1], px[i][2]);
+    buf.norm.push(norm[0], norm[1], norm[2]);
+    buf.uv.push(uvs[i][0], uvs[i][1]);
+    pushCol(buf.col, shade);
+  }
+  buf.idx.push(s, s + 1, s + 2, s, s + 2, s + 3);
+  buf.count += 4;
+}
+// One water cell. The 4 top corners get their own height (average of the 4 cells that share that corner), so the surface
+// slopes smoothly down the further the water has flowed; side faces between two water cells line up and are skipped.
+function addWaterBlock(buffers, b, x, y, z, grid, gi, GW, GY, cellShade) {
+  const at = (dx, dy, dz) => grid[gi + (dx * GW + dz) * GY + dy];
+  const up = at(0, 1, 0), dn = at(0, -1, 0);
+  const upWater = !!(up && up.type === 'water');
+  let any = !upWater || shouldRenderFace('water', dn ? dn.type : null);
+  if (!any) for (const f of [0, 1, 4, 5]) {
+    const d = FACES[f].dir, nb = at(d[0], 0, d[2]);
+    if (!nb || (nb.type !== 'water' && BLOCK_TYPES[nb.type].transparent)) { any = true; break; }
+  }
+  if (!any) return;
+
+  const cellH = (dx, dz) => {
+    const c = at(dx, 0, dz);
+    if (!c || c.type !== 'water') return -1;
+    const a = at(dx, 1, dz);
+    return (a && a.type === 'water') ? 1 : waterHeightOf(c);
+  };
+  const corner = (sx, sz) => {
+    let sum = 0, w = 0;
+    const cells = [[0, 0], [sx, 0], [0, sz], [sx, sz]];
+    for (let i = 0; i < 4; i++) {
+      const h = cellH(cells[i][0], cells[i][1]);
+      if (h >= 1) return 1;
+      if (h >= 0) { if (h >= 0.8) { sum += h * 10; w += 10; } else { sum += h; w += 1; } }
+      else if (b.flow) {                                  // open air pulls only FLOWING water down; seas / lakes stay flat (no seams between chunks)
+        const c = at(cells[i][0], 0, cells[i][1]);
+        if (c ? BLOCK_TYPES[c.type].transparent : generatedChunks.has(Math.floor((x + cells[i][0]) / CHUNK_SIZE) + ',' + Math.floor((z + cells[i][1]) / CHUNK_SIZE))) w += 1;   // an unloaded neighbour chunk counts for nothing
+      }
+    }
+    return w ? sum / w : WATER_SRC_H;
+  };
+  const hc = [[corner(-1, -1), corner(-1, 1)], [corner(1, -1), corner(1, 1)]];   // [x sign][z sign]
+  const X = x, Y = y - 0.5, Z = z;
+
+  // ---- top ----
+  if (!upWater) {
+    const h00 = hc[0][0], h01 = hc[0][1], h11 = hc[1][1], h10 = hc[1][0];
+    const px = [[X - 0.5, Y + h00, Z - 0.5], [X - 0.5, Y + h01, Z + 0.5], [X + 0.5, Y + h11, Z + 0.5], [X + 0.5, Y + h10, Z - 0.5]];
+    const fx = ((h10 + h11) - (h00 + h01)) / 2, fz = ((h01 + h11) - (h00 + h10)) / 2;   // slope
+    const len = Math.hypot(fx, fz);
+    let mi, uvs;
+    if (b.flow && len > 0.012) {
+      const Fx = -fx / len, Fz = -fz / len;                  // downhill = the way the water runs
+      const corners = [[-0.5, -0.5], [-0.5, 0.5], [0.5, 0.5], [0.5, -0.5]];
+      uvs = corners.map(c => {
+        const proj = c[0] * Fx + c[1] * Fz, perp = -c[0] * Fz + c[1] * Fx;
+        return [0.5 + 0.5 * perp, 0.5 - 0.5 * proj];         // texture scrolls toward lower v
+      });
+      mi = MI.waterFlow;
+    } else { uvs = [[0, 0], [0, 1], [1, 1], [1, 0]]; mi = MI.waterStill; }
+    _waterQuad(buffers, mi, px, [0, 1, 0], uvs, cellShade(x, y + 1, z));
+  }
+  // ---- bottom ----
+  if (shouldRenderFace('water', dn ? dn.type : null) && !(dn && dn.type === 'water')) {
+    const f = FACES[3];
+    const px = f.corners.map(c => [X + c[0], Y, Z + c[2]]);
+    _waterQuad(buffers, MI.waterStill, px, [0, -1, 0], f.uvs, cellShade(x, y - 1, z));
+  }
+  // ---- sides ----
+  for (const fi of [0, 1, 4, 5]) {
+    const f = FACES[fi], d = f.dir, nb = at(d[0], 0, d[2]);
+    if (nb && (nb.type === 'water' || !BLOCK_TYPES[nb.type].transparent)) continue;
+    const px = [], uvs = [];
+    for (let i = 0; i < 4; i++) {
+      const c = f.corners[i];
+      if (c[1] > 0) {
+        const h = hc[c[0] > 0 ? 1 : 0][c[2] > 0 ? 1 : 0];
+        px.push([X + c[0], Y + h, Z + c[2]]);
+        uvs.push([f.uvs[i][0] * 0.5, 0.5 + 0.5 * h]);
+      } else {
+        px.push([X + c[0], Y, Z + c[2]]);
+        uvs.push([f.uvs[i][0] * 0.5, 0.5]);
+      }
+    }
+    _waterQuad(buffers, MI.waterFlow, px, f.normal, uvs, cellShade(x + d[0], y, z + d[2]));
+  }
+}
+
 function shouldRenderFace(type, neighborType) {
   if (!neighborType) return true;
   const curTrans = BLOCK_TYPES[type].transparent;
@@ -3355,6 +3552,7 @@ function rebuildChunk(cx, cz) {
           }
           continue;
         }
+        if (b.type === 'water') { addWaterBlock(buffers, b, x, y, z, grid, gi, GW, GY, cellShade); continue; }
         // Figure out which faces are visible in a single pass over the 6
         // neighbors (each world.get is a Map lookup keyed off a freshly
         // built string, so doing this scan twice — once just to ask "is
@@ -3765,7 +3963,85 @@ function removeBlock(x,y,z,skipMark) {
     if (isCropType(upType)) dropFarmPlant(upType, new THREE.Vector3(x, y + 1, z));
     if (typeof pushBlockDiff === 'function') pushBlockDiff(x, y + 1, z, 'air');
   }
+  if (removedType !== 'water') waterOnRemoved(x, y, z);   // a hole next to water gets flooded
   return true;
+}
+// ---------- Water flow ----------
+// Open a hole next to water (or under it) and the water runs into it: down first, then sideways up to 7 blocks
+// from the source (source = meta 0, flowing water = its distance 1..7). Cheap on purpose: work goes through a queue,
+// only a few cells are handled per tick, the total number of flowing cells is capped, and chunks are re-meshed in batches.
+const WATER_FLOW_MAX = 7, WATER_FLOW_CAP = 600, WATER_TICK = 0.2, WATER_BUDGET = 20;
+const _wfQ = [], _wfIn = new Set(), _wfCells = new Set(); let _wfHead = 0, _wfT = 0, _wfPrune = 0;
+function waterEnq(x, y, z) {
+  const k = key(x, y, z);
+  if (_wfIn.has(k) || _wfQ.length - _wfHead > 900) return;
+  _wfIn.add(k); _wfQ.push(x, y, z);
+}
+function waterOnRemoved(x, y, z) {
+  for (const [dx, dy, dz] of [[1,0,0],[-1,0,0],[0,0,1],[0,0,-1],[0,1,0]]) {
+    const b = world.get(key(x + dx, y + dy, z + dz));
+    if (b && b.type === 'water') waterEnq(x + dx, y + dy, z + dz);
+  }
+}
+/** Remove a water cell so a solid block can be placed there (Minecraft-style). */
+function clearWaterForPlace(x, y, z) {
+  x = Math.round(x); y = Math.round(y); z = Math.round(z);
+  const k = key(x, y, z);
+  const b = world.get(k);
+  if (!b || b.type !== 'water') return false;
+  world.delete(k);
+  try { _wfCells.delete(k); } catch (e) {}
+  lightInvalidateNear(x, y, z);
+  syncBlockLight(x, y, z, null);
+  markChunkDirty(x, z);
+  markLightArea(x, y, z, false);
+  return true;
+}
+// number of the 4 side neighbours that are water SOURCES (not flowing water)
+function waterSrcCount(x, y, z) {
+  let n = 0;
+  for (const [dx, dz] of [[1,0],[-1,0],[0,1],[0,-1]]) { const b = world.get(key(x + dx, y, z + dz)); if (b && b.type === 'water' && !b.flow) n++; }
+  return n;
+}
+function waterPut(x, y, z, d) {
+  const k = key(x, y, z);
+  if (world.has(k)) return false;
+  if (waterSrcCount(x, y, z) >= 2 && world.has(key(x, y - 1, z)) && generatedChunks.has(Math.floor(x / CHUNK_SIZE) + ',' + Math.floor(z / CHUNK_SIZE))) {
+    // a gap between two water sources fills up as a SOURCE (not flowing water)
+    world.set(k, { type: 'water', x, y, z, meta: 0 });
+    lightInvalidateNear(x, y, z); syncBlockLight(x, y, z, 'water');
+    markChunkDirty(x, z); markLightArea(x, y, z, false);
+    waterEnq(x, y, z);
+    return true;
+  }
+  if (_wfCells.size >= WATER_FLOW_CAP) return false;
+  if (!generatedChunks.has(Math.floor(x / CHUNK_SIZE) + ',' + Math.floor(z / CHUNK_SIZE))) return false;
+  world.set(k, { type: 'water', x, y, z, meta: d, flow: true });   // set directly: flowing water is never saved, so a mined spot stays "mined" on disk
+  _wfCells.add(k);
+  lightInvalidateNear(x, y, z); syncBlockLight(x, y, z, 'water');
+  markChunkDirty(x, z); markLightArea(x, y, z, false);
+  waterEnq(x, y, z);
+  return true;
+}
+function waterStep(x, y, z) {
+  const b = world.get(key(x, y, z));
+  if (!b || b.type !== 'water') return;
+  if (b.flow && waterSrcCount(x, y, z) >= 2 && world.has(key(x, y - 1, z))) { b.flow = false; b.meta = 0; _wfCells.delete(key(x, y, z)); }   // flowing water between two sources becomes a source
+  const d = b.flow ? (b.meta | 0) : 0;
+  if (!world.has(key(x, y - 1, z))) { if (y > -60) waterPut(x, y - 1, z, 1); return; }   // falls first (and spreads again on landing)
+  if (d >= WATER_FLOW_MAX) return;
+  for (const [dx, dz] of [[1,0],[-1,0],[0,1],[0,-1]]) if (!world.has(key(x + dx, y, z + dz))) waterPut(x + dx, y, z + dz, d + 1);
+}
+function updateWaterFlow(dt) {
+  if (_wfHead >= _wfQ.length) { _wfHead = _wfQ.length = 0; return; }
+  _wfT += dt; if (_wfT < WATER_TICK) return; _wfT = 0;
+  for (let n = 0; n < WATER_BUDGET && _wfHead < _wfQ.length; n++) {
+    const x = _wfQ[_wfHead++], y = _wfQ[_wfHead++], z = _wfQ[_wfHead++];
+    _wfIn.delete(key(x, y, z));
+    waterStep(x, y, z);
+  }
+  if (_wfHead > 300) { _wfQ.splice(0, _wfHead); _wfHead = 0; }
+  if (++_wfPrune > 40) { _wfPrune = 0; for (const k of _wfCells) { const b = world.get(k); if (!b || b.type !== 'water') _wfCells.delete(k); } }
 }
 function torchSupported(x,y,z) {
   const below = world.get(key(x,y-1,z));
@@ -5676,10 +5952,26 @@ function closeChest() {
 }
 
 // ================= Physics / collision =================
+/** True if any cell of the entity's body overlaps a cobweb. */
+function inCobweb(pos, h) {
+  const hs = [0.15, Math.min(0.9, h * 0.5), Math.min(h - 0.1, 1.6)];
+  for (const dy of hs) {
+    const b = getBlock(pos.x, pos.y + dy, pos.z);
+    if (b && b.type === 'cobweb') return true;
+  }
+  return false;
+}
+/** Strong slowdown while inside cobweb (Minecraft-like). */
+function applyCobwebSlow(vel) {
+  vel.x *= 0.25;
+  vel.z *= 0.25;
+  if (vel.y > 0) vel.y *= 0.25;
+  else vel.y *= 0.05;
+}
 function solidAt(x,y,z) {
   const b = getBlock(x,y,z);
   if (!b || b.type === 'water') return false;
-  // Cross-model blocks (torch, sapling) are thin decorative sprites with no
+  // Cross-model blocks (torch, sapling, cobweb) are thin decorative sprites with no
   // volume to collide with — like Minecraft, you can walk straight through
   // a torch or a sapling instead of it acting like a solid cube.
   if (BLOCK_TYPES[b.type].cross) return false;
@@ -5751,6 +6043,7 @@ function collideAndMove(pos, vel, dt) {
     }
   }
   player.onGround = grounded;
+  if (inCobweb(pos, h)) applyCobwebSlow(vel);
 }
 
 // Called once after real terrain (base + saved diffs) has fully loaded.
@@ -5789,7 +6082,7 @@ function isInWater(pos) {
   // head rose out, sinking straight back in and never reaching the bank).
   for (const dy of [0.3, 0.9]) {
     const b = getBlock(pos.x, pos.y + dy, pos.z);
-    if (b && b.type === 'water') return true;
+    if (b && b.type === 'water' && (!b.flow || pos.y + dy <= waterSurfaceY(b))) return true;   // thin flowing water doesn't make you swim
   }
   return false;
 }
@@ -5919,6 +6212,8 @@ const player = {
   saturation: 5,   // hidden buffer; delays hunger drain (Minecraft-like)
   absorb: 0, absorbT: 0,       // golden-heart shield (max 4 pts = 2 gold hearts) and its remaining seconds
   regenT: 0, regenTick: 0,     // Regeneration effect: seconds left / tick timer
+  air: 10, maxAir: 10,         // oxygen: 10 bubbles (Minecraft-style)
+  airDrainT: 0, airRegenT: 0, drownTimer: 0,
   crouched: false, // Shift = sneak: slower, shorter, and can't walk off block edges
 };
 const STAND_HEIGHT = 1.7, CROUCH_HEIGHT = 1.5;
@@ -5942,6 +6237,18 @@ const ICON_HUNGER_EMPTY = 'data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAABIAAAA
 
 const ICON_HEART_GOLD_FULL = 'data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAABIAAAASCAYAAABWzo5XAAAAyklEQVR42t3SLwvCQBjH8e/+qFUxLPoKNJi02mwm017JzApGX4MmWdi7mAwURMRoUxYEo4LbGfTAHYOVTcRfunvujufDw8GvRVMLd78tPveV7kYDCL2SAPD3r+PB6JF4q+cukpJyZw1AFC4BuKxsAKpWE4BruCNNlpvIlAvZqf6WGNYQgFpjDoC4nRKywN1SyIxMtRAdpwDE56REnY0avbB/5I1NAdDvtRISmZkbAzBZRNp3RKpMJjiIVEnuosw4tiEc2xBZ93T+Nk8eKUfpqS7CzQAAAABJRU5ErkJggg==';
 const ICON_HEART_GOLD_HALF = 'data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAABIAAAASCAYAAABWzo5XAAAA0klEQVR42t2SvQ4BQRRGz/4ElQQR5b6BQkWjEI1OFKrtvYNoFeIxFBKVZ5AIDc3qRSUjEcqVWKNYm5jNimaJOM3MfHPv5ORm4NfQwsFlUZLP52RlrQFULUvJZ7ud0qvHbhSYJMorADwxAeC4tAGod7KRDzhCaLEamcHmLBwAcg8To9AGIGON/DXl359cF4B0/uA3iphnZIYDbzsA4Lb3TerNFyYh9I/9o2nflACNWlGZXat3VermG6l9xyhsFjAce5EmsRu9pWsbsmsb8l2dzt9yBxjoPmEt1e9nAAAAAElFTkSuQmCC';
+
+// Oxygen bubble textures (from resource pack)
+const ICON_BUBBLE = 'data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAAgAAAAICAYAAADED76LAAAAX0lEQVR4AYSNQQ2AMBRDKQLwwAkxCEIDghDDCQ8YKHlL+pNx2ZJm++1b/zwNTgeslx3lXwEEzy5FzEANYCB4bSMC5uO2G4ARLZLy5u6Af1gAdazBiKg/N6kagDAjQuAPAAD//8Cq0iEAAAAGSURBVAMAIIQ1+3gyni4AAAAASUVORK5CYII=';
+const ICON_BUBBLE_POP = [
+  'data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAABAAAAAQCAYAAAAf8/9hAAAAiUlEQVR4AeyRMQqAMAxFEy9hQa/g5gnsIHgAVwcXT+HgKVxdPYCbN3DT3kEUvEIlBZdC6iBuLaRpSf5LSAL4eDwA4N8ZlMOsaUnNtBpPb9ucHeQyg27ZdV8kyEFYAAnrGDESoYFc52EXN38W0KYCH8imFIyVRKOwLhZAeQQhz4kp5gRQwpt5AMANAAD//yg29+UAAAAGSURBVAMAYIkiIYh76hwAAAAASUVORK5CYII=',
+  'data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAABAAAAAQCAYAAAAf8/9hAAAAj0lEQVR4AcySsQ2AMAwECSMgwRZMQccAtLSMREvLAHRMwUBBV0SKbCeAKCDSy0rsv9hRyuLl+jlg2g6PhmX3qUmTI2Ca+9ahdezcY4BlAipBqgOrKJiAyrwCVHUT6m9FBbhyyQsUgEeTbcZQ8vFeAUgyKzFWCmoCghET/wBZUOqyAEy0jCi2lAVYBnn2PeAEAAD//49ssnkAAAAGSURBVAMAspcwIWpqZacAAAAASUVORK5CYII=',
+  'data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAABAAAAAQCAYAAAAf8/9hAAAAdklEQVR4AbyQuw2AMAwFgdXYgZbZaNmB2UBXxIWfpUQ2SqSnKB+fL9mWYBzX85LgSLYEQOF97iuR28GGAEYLG0sA7aA3Y8qdNABTIGkA3UkJgEUJUDYwAJ/BIpN/nsBnZC3MAMiUJ3hTM+h1p5B402EAhcQ3+gAAAP//7Ms3PAAAAAZJREFUAwBfYSghfS1reQAAAABJRU5ErkJggg==',
+  'data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAABAAAAAQCAYAAAAf8/9hAAAAVklEQVR4AdyQsQ0AIAgE1dXcwdbZbN3B2TTfn4VQGCWh+cAFLgWo0saEGCME9JojTkOIAJjbRncBcuW6QK5cAIn5ASCT+sXaSSaty9p7TCL5OnqBfC0AAAD//zt297sAAAAGSURBVAMAcNsQIVoqEywAAAAASUVORK5CYII=',
+  'data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAABAAAAAQCAYAAAAf8/9hAAAAVUlEQVR4AdyQsQ0AIAgEldXcwdbZbN3B2TTXUyDEmGhCJf85TlLw3SmofS4rmEowWsmhAmuYPZWAD+u8LUB2iADZoQI8/VCASW7xjmDSGyZ3JFGj3QAAAP//DgHsBwAAAAZJREFUAwCHxQ7UTrWKBAAAAABJRU5ErkJggg=='
+];
+const oxygenBarEl = document.getElementById('oxygenBar');
+let _lastAirUI = -1, _popBubbleSlot = -1, _popBubbleUntil = 0;
 const absorbBarEl = document.getElementById('absorbBar');
 const GOLD_APPLE_ABSORB_MAX = 4;   // 2 gold hearts from golden apple
 const TOTEM_ABSORB = 12;           // 6 gold hearts from totem of undying
@@ -6010,7 +6317,8 @@ function isShieldBlockingFront(knockDir) {
 function damagePlayer(amount, knockDir, knockStrength, opts) {
   if (amount <= 0 || player.hp <= 0) return;
   opts = opts || {};
-  const frontBlock = isShieldBlockingFront(knockDir);
+  if (!opts.bypassArmor) lastDamageCause = null;
+  const frontBlock = !opts.bypassShield && isShieldBlockingFront(knockDir);
   // Shield blocks nearly all frontal damage; axes that land while blocking disable the shield.
   if (frontBlock && opts.axeHit) {
     shieldDisableUntil = performance.now() + 5000;
@@ -6018,14 +6326,16 @@ function damagePlayer(amount, knockDir, knockStrength, opts) {
     myShieldPulse = 0.4;
   }
   let applied = frontBlock ? amount * 0.05 : amount; // shield blocks ~95% from the front
-  let armorRed = totalArmorReduction();
-  const breachLv = Math.max(0, Math.min(5, Math.trunc(Number(opts.breach) || 0)));
-  if (breachLv > 0) armorRed *= Math.max(0, 1 - 0.15 * breachLv);
-  applied *= (1 - armorRed);
+  if (!opts.bypassArmor) {
+    let armorRed = totalArmorReduction();
+    const breachLv = Math.max(0, Math.min(5, Math.trunc(Number(opts.breach) || 0)));
+    if (breachLv > 0) armorRed *= Math.max(0, 1 - 0.15 * breachLv);
+    applied *= (1 - armorRed);
+  }
   if (player.absorb > 0) { const soak = Math.min(player.absorb, applied); player.absorb -= soak; applied -= soak; }
-  // Durability: shield when blocking, otherwise worn armor
+  // Durability: shield when blocking, otherwise worn armor (skipped for drowning / true damage)
   if (frontBlock) damageShield(Math.max(1, Math.ceil(amount / 2)));
-  else if (applied > 0) damageWornArmor(applied);
+  else if (applied > 0 && !opts.bypassArmor) damageWornArmor(applied);
   player.hp = Math.max(0, player.hp - applied);
   if (knockDir && knockStrength > 0) {
     const str = frontBlock ? knockStrength * 0.2 : knockStrength;
@@ -6062,12 +6372,18 @@ function announceMyDeath() {
     for (const a of animals) {
       if (!a.alive || !(a.kind === 'zombie' || a.kind === 'skeleton' || a.kind === 'breeze' || isSpk(a.kind))) continue;
       const d = Math.hypot(a.pos.x - player.pos.x, a.pos.z - player.pos.z), lim = a.kind === 'breeze' ? 20 : 6;
-      if (d < lim && Math.abs(a.pos.y - player.pos.y) < 6 && d < bd) { bd = d; by = isSpk(a.kind) ? 'Spoke' : ('a ' + a.kind.charAt(0).toUpperCase() + a.kind.slice(1)); }
+      if (d < lim && Math.abs(a.pos.y - player.pos.y) < 6 && d < bd) { bd = d; by = isSpk(a.kind) ? spokeName(a) : ('a ' + a.kind.charAt(0).toUpperCase() + a.kind.slice(1)); }
     }
   }
   lastPvpAttacker.name = null;
-  announce(by ? MY_NAME + ' was slain by ' + by : MY_NAME + ' died');
+  if (typeof lastDamageCause !== 'undefined' && lastDamageCause === 'drown') {
+    lastDamageCause = null;
+    announce(MY_NAME + ' drowned');
+  } else {
+    announce(by ? MY_NAME + ' was slain by ' + by : MY_NAME + ' died');
+  }
 }
+let lastDamageCause = null;
 
 // Totem of Undying: if you hold one in either hand (or have one in inventory),
 // lethal damage is cancelled — the totem is consumed and you get regen + 6 gold hearts.
@@ -6233,7 +6549,10 @@ function respawnPlayer() {
   player.hunger = player.maxHunger;
   player.saturation = 5;
   player.absorb = 0; player.absorbT = 0; player.regenT = 0; player.regenTick = 0; player.burnT = 0;
+  player.air = player.maxAir; player.airDrainT = 0; player.airRegenT = 0; player.drownTimer = 0;
+  lastDamageCause = null;
   updateHpUI();
+  try { renderOxygenBar(true); } catch (e) {}
 }
 // Right-click a bed: always sets your spawn point; at night it also sleeps through to morning.
 let sleeping = false;
@@ -6358,6 +6677,102 @@ function updateHunger(dt, isMoving, sprinting) {
   } else {
     starveTimer = 0;
   }
+}
+
+// ================= Oxygen / drowning (Minecraft-style 10 bubbles) =================
+function isHeadInWater() {
+  const eyeY = player.pos.y + (typeof camEyeH === 'number' ? camEyeH : player.height) * 0.92;
+  const b = getBlock(player.pos.x, eyeY, player.pos.z);
+  return !!(b && b.type === 'water' && (!b.flow || eyeY <= waterSurfaceY(b)));
+}
+function renderOxygenBar(force) {
+  if (!oxygenBarEl) return;
+  const slots = player.maxAir | 0; // 10 bubbles
+  let air = Math.max(0, Math.min(slots, Math.round(player.air)));
+  const now = performance.now();
+  const popping = _popBubbleSlot >= 0 && now < _popBubbleUntil;
+  // While a bubble is popping, keep that slot "occupied" by the animation
+  // (do not treat it as already gone).
+  if (!force && air === _lastAirUI && !popping && air >= slots && !isHeadInWater()) {
+    oxygenBarEl.style.display = 'none';
+    return;
+  }
+  _lastAirUI = air;
+  if (air >= slots && !popping && !isHeadInWater()) {
+    oxygenBarEl.style.display = 'none';
+    oxygenBarEl.innerHTML = '';
+    return;
+  }
+  let html = '';
+  // Leftmost bubble empties first. Remaining bubbles sit on the RIGHT,
+  // matching the hunger bar's right edge (same 10×20px icons, gap 1px).
+  for (let i = 0; i < slots; i++) {
+    // i = 0 is leftmost. A solid bubble shows when i is among the rightmost `air` slots.
+    // i.e. show if i >= slots - air
+    let src = null;
+    if (popping && i === _popBubbleSlot) {
+      // Pop animation plays ON the bubble that is leaving
+      const elapsed = now - (_popBubbleUntil - 400);
+      const frame = Math.max(0, Math.min(4, Math.floor(elapsed / 80)));
+      src = ICON_BUBBLE_POP[frame] || ICON_BUBBLE_POP[0];
+    } else if (i >= slots - air) {
+      src = ICON_BUBBLE;
+    }
+    if (src) html += '<span class="mcIcon"><img src="' + src + '" alt="" draggable="false"></span>';
+    else html += '<span class="mcIcon"></span>'; // keep spacing so remaining bubbles stay right-aligned
+  }
+  oxygenBarEl.innerHTML = html;
+  oxygenBarEl.style.display = 'flex';
+  if (popping && now >= _popBubbleUntil) {
+    _popBubbleSlot = -1;
+  }
+}
+function updateOxygen(dt) {
+  if (player.hp <= 0) return;
+  const under = isHeadInWater();
+  const slots = player.maxAir | 0;
+  if (under) {
+    player.airRegenT = 0;
+    player.airDrainT += dt;
+    // One full bubble every ~1.5 s (~15 s for the whole bar)
+    // Pop starts first; air is reduced when the bubble begins to leave so the
+    // slot switches from solid → pop frames (not empty → pop).
+    while (player.airDrainT >= 1.5 && player.air > 0 && _popBubbleSlot < 0) {
+      player.airDrainT -= 1.5;
+      // Slot that is about to leave: leftmost of the currently filled set
+      _popBubbleSlot = slots - player.air; // 0 when full, 1 when 9 left, …
+      _popBubbleUntil = performance.now() + 400;
+      player.air = Math.max(0, player.air - 1);
+      renderOxygenBar(true);
+    }
+    if (player.air <= 0 && _popBubbleSlot < 0) {
+      player.drownTimer += dt;
+      if (player.drownTimer >= 1) {
+        player.drownTimer = 0;
+        lastDamageCause = 'drown';
+        damagePlayer(2, null, 0, { bypassArmor: true, bypassShield: true });
+      }
+    } else if (player.air > 0) {
+      player.drownTimer = 0;
+    }
+  } else {
+    player.airDrainT = 0;
+    player.drownTimer = 0;
+    if (player.air < slots) {
+      player.airRegenT += dt;
+      // Recover one bubble every ~0.5 s out of water (no pop on refill)
+      while (player.airRegenT >= 0.5 && player.air < slots) {
+        player.airRegenT -= 0.5;
+        player.air = Math.min(slots, player.air + 1);
+        _popBubbleSlot = -1;
+        renderOxygenBar(true);
+      }
+    } else {
+      player.airRegenT = 0;
+    }
+  }
+  // Keep re-drawing while a pop is playing so frames advance
+  if (under || player.air < slots || _popBubbleSlot >= 0) renderOxygenBar(false);
 }
 
 // ================= Eating (hold right-click on food) =================
@@ -7684,6 +8099,7 @@ const ZOMBIE_SKIN_OV = [0, 0, 0, 0, 0, 0, 0, 4, 0, 1, 1, 1, 1, 0, 1, 1, 5, 0, 1,
 // Zombie skin: every normal zombie uses this one skin (classic 64x64 layout, no outer layers). Spoke keeps his own.
 ZOMBIE_SKINS[0] = "data:image/png;base64,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"; ZOMBIE_SKIN_OV[0] = 0;
 const SPOKE_SKIN = ZOMBIE_SKINS.push("data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAEAAAABACAMAAACdt4HsAAABEVBMVEUAAAAAZf8AZv8Amf8Av/8A6v8A/xUA/yIA/zMA/0AA/1UA/3IA/3MA/5kA/8QA//8HvVkRERESEhIUFBQVAP8VFRUWFhYXFxcYGBgZGRkaGhobGxscHBwdHR0eHh4fHx8gICAhISEiIiIjIyMkJCQlJSUmJiYnJycoKCgpKSkqKipIAP9R/wBeAP93/wB4/wB6AP97AP+i/wCuAP+7AP+//wDV/wDZAP/q/wDuAP/3AP//AAD/ABH/ACb/ADP/ADz/AFn/AGX/AGb/AHj/AJn/AKL/AMz/AN3/APL/FQD/KwD/QTb/VQD/XgD/ZQD/ZgD/ewD/iAD/kQD/pgD/rgD/uwD/zAD/2QD/3AD//wD///8rp9iXAAAAAXRSTlMAQObYZgAAA/9JREFUWMPdV2mb0zYQ1pYu9KBb2KbIkSLZuhKn9N5uoaXtci/lKBQoZPP/f0jfkZOsojh+/DT0C+OMJduaV3NJmjC2IOtccMZYC3b4sQ3yLLAOglRlrfcWMMG2AATPHEC2knMOwj4E770zbnMyGwDgOjSAECBw1SBv2nR0znQAQHvrnbV1pJaRwdkOBfCZNPeuXlCLE73rcAHD1+BNY0A7ALNQswMAJkCDLoBtMzuy3HlDJsCJ8ATCaGwwUSkWYoaQjXhEcII1a7bAM+Q/UxmkkDHIJQ9LAOpgkY+5BecjuC5EipHCTIn3Sc7G7PERJDaYH/MAjTIEQJjEja0dB4pllboCshCFIKnsaGoSDYbmx+Wu/3D06+ntkz+fv54df/3RZ5//9uzvf85+/vHSx5cP9j+88MGAwXBS2zbus8EiFw2YdA1QdZAh3M4QaA2Q0d7O53U9n4eYb4YcZsg4hxT1MZHHjBYTuZFhPCl/+SA6kcKA6X0D4GpKB1gasDDJDB+a9AvLJRnviA67xNhBzHDEMNQJecpoSkoKj++VC2PQFLR85guqFrR8D8u5VjsA0Dut+wHU9RYN1GgHANJAyRbhlIZiWBRC1rUoCuoLIZUUBT+TZ3gtwQKcAFwrrn2ZshxBRCpNUuVI4kFTX7xRb5RAT5Xg1A9yJIcp6zKOorvQZRwd+6+qV7qsygUnABoTpEw2Q2ZfaynRLZWuKtLhhX4BLNlPA6X0lVnUgCR0qZSUT+XTaH9JPhCdPiC7lX6CgVLGviJ/PMa1JM4TgMMvDq8eSn41tuDhEFHAvAqeRxQwXZTnWFrViiepCaUs5HRaxBaMUA95VLbJRoqpQDuux37FKQC8KlNe5IESQBBNH4YUxfSrab3iDQ1SRh4s7V76g/qTyXhyrkUCUEDrYj7nsQXHqGu6C4qCbvpSrPkgXeTTjJrYU7oomfabBMJ2MSFuWVBzENuF3gOA94/2dwW4Mus7Mh6cf72ezWaDweD690fL90+ycel+UBTv3OLzI+H/o/t3T249e/n25rcXP9n/5qf0wx3cXr7FjT78croN4PT+3T/OEdYAgMzYze8udgOw7ch3GuQFwjtZTPlh+/jW76OR3gGAdueR2lGDstxRg3LU0xd5vRDrAdA9fo+LPimcn5U4sgVOZ/WAP+CV7gGQn9YlDnfa0h/yh7yqegDk9QKdUcSP+COu1H/QAD4QxDf4DS5ki8De3vExFdGonj9F8byX+4DKAeIjXLQPrLaEI1xtTm3qhWpVLzRnYVVunInb9oO8XmhOY/zbQBv6/JPK64WmJpiMYxta9oV8P8jrhbXKJMR94WRtX8j3g7xe2FoXbNsP8nphMqGKoCw3CswF/Qsd0hGasQc0TQAAAABJRU5ErkJggg==") - 1; ZOMBIE_SKIN_OV.push(23);
+const FLAME_SKIN = ZOMBIE_SKINS.push("data:image/png;base64,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") - 1; ZOMBIE_SKIN_OV.push(23);
 const _zbTexCache = {};
 function zbTexture(i) {
   if (!_zbTexCache[i]) {
@@ -7703,7 +8119,7 @@ const ZB_B = {
   leg:  { x0: -2, x1: 2, y0: -12, y1: 0, z0: -2, z1: 2 },
 };
 function buildZombie(variant) {
-  const vi = ((variant | 0) === SPOKE_SKIN) ? SPOKE_SKIN : 0;   // normal zombies always wear the one zombie skin
+  const vi = ((variant | 0) === SPOKE_SKIN) ? SPOKE_SKIN : ((variant | 0) === FLAME_SKIN ? FLAME_SKIN : 0);   // normal zombies always wear the one zombie skin
   const ov = ZOMBIE_SKIN_OV[vi] | 0;
   const mat = new THREE.MeshLambertMaterial({ map: zbTexture(vi), alphaTest: 0.1 });
   const group = new THREE.Group();
@@ -7964,6 +8380,27 @@ function hostileHitDamage(p, found, dir) {
   if (found.me) damagePlayer(dmg, new THREE.Vector3(dir.x, 0, dir.z), kb);
   else playersChannel.send({ type: 'broadcast', event: 'mob_dmg', payload: { to: found.id, dmg, kx: dir.x, kz: dir.z, kb } });
 }
+// ---- walls block sight and hits ----
+function canReachTarget(o, px, py, pz, h) {            // true if any of feet / middle / head of the target can be seen from o
+  for (const f of [0.5, 0.9, 0.15]) {
+    const tx = px, ty = py + h * f, tz = pz;
+    const d = new THREE.Vector3(tx - o.x, ty - o.y, tz - o.z), len = d.length();
+    if (len < 0.6) return true;
+    d.normalize();
+    const hit = castVoxelRay(o, d, len);
+    if (!hit || Math.hypot(hit.hx - o.x, hit.hy - o.y, hit.hz - o.z) >= len - 0.35) return true;
+  }
+  return false;
+}
+function mobSense(a, tgt, dt, eyeY) {                  // a mob only notices you with a clear line of sight (and remembers you ~3s)
+  a.losT = (a.losT || 0) - dt;
+  if (a.losT <= 0) {
+    a.losT = 0.25;
+    a.canSee = skLos(new THREE.Vector3(a.pos.x, a.pos.y + eyeY, a.pos.z), new THREE.Vector3(tgt.x, tgt.y + 1.1, tgt.z));
+  }
+  if (a.canSee) a.seeMem = 3; else a.seeMem = (a.seeMem || 0) - dt;
+  return a.seeMem > 0;
+}
 function skLos(eye, tp) {
   const d = tp.clone().sub(eye), len = d.length(); if (len < 0.5) return true;
   d.normalize();
@@ -8061,7 +8498,8 @@ function breezeAI(a, dt) {
   const dist = toP.length();
   a.jumpCd = (a.jumpCd || 0) - dt;
   a.attackCd = (a.attackCd || 0) - dt;
-  if (dist < 22 && tgt.alive) {
+  const aware = mobSense(a, tgt, dt, 1.3);
+  if (dist < 22 && tgt.alive && aware) {
     toP.normalize();
     a.facing = Math.atan2(toP.x, toP.z);
     // hop around / toward player
@@ -8073,7 +8511,7 @@ function breezeAI(a, dt) {
       a.jumpCd = 1.1 + Math.random() * 1.2;
     }
     // ranged attack: shoots a visible wind charge at the player (everyone sees it)
-    if (dist >= 3 && dist < 18 && a.attackCd <= 0 && tgt.alive) {
+    if (dist >= 3 && dist < 18 && a.attackCd <= 0 && tgt.alive && a.canSee) {
       a.attackCd = 2.4;
       const od = new THREE.Vector3(tgt.x - a.pos.x, (tgt.y + 0.9) - (a.pos.y + 1.3), tgt.z - a.pos.z);
       if (od.lengthSq() > 1e-6) {
@@ -8085,7 +8523,7 @@ function breezeAI(a, dt) {
       }
     }
     // wind shove attack
-    if (dist < a.atkReach && a.attackCd <= 0) {
+    if (dist < a.atkReach && a.attackCd <= 0 && a.canSee) {
       a.attackCd = a.atkCd || 1.4;
       const kdir = new THREE.Vector3(tgt.x - a.pos.x, 0, tgt.z - a.pos.z);
       if (tgt.local) damagePlayer(a.atkDmg || 4, kdir, 14);
@@ -8105,7 +8543,7 @@ function skeletonAI(a, dt) {
   if (a.kbT > 0) { a.kbT -= dt; return; }
   const tgt = nearestPlayerTarget(a.pos);
   const dx = tgt.x - a.pos.x, dz = tgt.z - a.pos.z, dist = Math.hypot(dx, dz);
-  if (!(dist < 24 && tgt.alive)) {
+  if (!(dist < 24 && tgt.alive && mobSense(a, tgt, dt, 1.55))) {
     a.bowT = 0;
     a.wanderTimer -= dt;
     if (a.wanderTimer <= 0) {
@@ -8140,7 +8578,7 @@ function skeletonAI(a, dt) {
   a.shootCd = (a.shootCd == null ? 0.8 + Math.random() : a.shootCd) - dt;
   if (a.bowT > 0) {
     a.bowT -= dt;
-    if (a.bowT <= 0) { a.bowT = 0; skShoot(a, tgt); }
+    if (a.bowT <= 0) { a.bowT = 0; if (a.canSee) skShoot(a, tgt); }
   } else if (a.shootCd <= 0 && dist < 22 && dist > 2.5) {
     const eye = new THREE.Vector3(a.pos.x, a.pos.y + 1.55, a.pos.z), tp = new THREE.Vector3(tgt.x, tgt.y + 1.2, tgt.z);
     if (skLos(eye, tp)) { a.bowT = 0.75; a.shootCd = 1.6 + Math.random() * 1.0; }
@@ -8210,16 +8648,19 @@ function spawnTrident(pos, vel, o) {
   return t;
 }
 // ---- Riptide I-III: release a charged trident in water or rain to dash where you look (the trident stays in your hand) ----
-const RIPTIDE_DIST = [0, 7, 10, 13];
+// Target travel distance in blocks by level (looking straight along aim, including straight up).
+// Decay in updateRiptide is ~e^(-3.71 t); distance ≈ (v0 - 3.5) / 3.71, so v0 = dist * 3.85 ≈ that target.
+const RIPTIDE_DIST = [0, 9, 16, 25];   // I ≈ 9 blocks, II ≈ 16, III ≈ 25 (was 7 / 10 / 13)
+const RIPTIDE_V_SCALE = 3.85;
 const rip = { t: 0, v: 0, dx: 0, dy: 0, dz: 0, lv: 0, loot: 0, sharp: 0 };
 function riptideWet() { return isInWater(player.pos) || (typeof rainLevel === 'number' && rainLevel > 0.3 && !_rainCovered); }
 function tryRiptide(lv, h) {
   if (!riptideWet()) return;                                      // silently does nothing out of water / rain
   damageHeldTool(1);
-  const d = getAimRay().dir.clone().normalize();                  // exactly where you aim (no forced lift)
+  const d = getAimRay().dir.clone().normalize();                  // exactly where you aim (look up = go up)
   if (player.onGround) player.pos.y += 0.08;                      // un-stick from the floor without bending the direction
   rip.dx = d.x; rip.dy = d.y; rip.dz = d.z; rip.lv = lv;
-  rip.v = RIPTIDE_DIST[lv] * 3.6; rip.t = 1;                      // one burst of speed that fades out (glide)
+  rip.v = (RIPTIDE_DIST[lv] || 0) * RIPTIDE_V_SCALE; rip.t = 1;  // burst speed scaled to target block distance
   rip.loot = Math.max(0, Math.trunc(Number(h.ench && h.ench.looting) || 0)); rip.sharp = Math.max(0, Number(h.ench && h.ench.sharpness) || 0);
   player.onGround = false;
   startSwing(); renderHotbar();
@@ -8367,7 +8808,7 @@ function createMob(kind, px, py, pz, id, remote, eq) {
   const isS = kind === 'skeleton';
   const isBr = kind === 'breeze';
   const isB = isSpk(kind);
-  const group = isB ? buildZombie(SPOKE_SKIN) : isZ ? buildZombie((eq >> 12) & 31) : isBr ? buildBreeze() : (isS ? buildSkeleton((eq >> 12) & 31) : def.build());
+  const group = isB ? buildZombie(kind === 'flamefrags' ? FLAME_SKIN : SPOKE_SKIN) : isZ ? buildZombie((eq >> 12) & 31) : isBr ? buildBreeze() : (isS ? buildSkeleton((eq >> 12) & 31) : def.build());
   if (kind === 'null') group.traverse(o => { if (o.isMesh && o.material && o.material.color) o.material.color.setHex(0x000000); });   // Spoke's Null army: skins are fully black
   scene.add(group);
   const pos = new THREE.Vector3(px, py, pz);
@@ -8424,6 +8865,7 @@ function moveEntity(pos, vel, dt, r, h) {
   let onGround = false;
   if (!checkCollision(pos.x, newY, pos.z, r, h)) { pos.y = newY; }
   else { if (vel.y < 0) onGround = true; vel.y = 0; }
+  if (inCobweb(pos, h)) applyCobwebSlow(vel);
   return onGround;
 }
 
@@ -8501,6 +8943,18 @@ function giveMobLoot(kind, eq) {
   if (kind === 'zombie') for (let i = 0; i < 4; i++) { const t = ((eq | 0) >> (4 + 2 * i)) & 3; _armXp += t === 1 ? 2 : (t === 2 ? 3 : (t === 3 ? 5 : 0)); }
   jcAddXp(Math.max(1, Math.round(((JC_XP[kind] || 2) + _armXp) * (1 + 0.25 * L))));
   const extra = () => L > 0 ? Math.floor(Math.random() * (L + 1)) : 0;
+  if (kind === 'flamefrags') {   // FlameFrags: lots of bonus XP + totem of undying, diamonds, golden apples, wind charges
+    jcAddXp(1500);
+    const _fAt = () => new THREE.Vector3(player.pos.x, player.pos.y + 1, player.pos.z);
+    const _fGive = (t, n) => { const left = addItemToInventory(t, n); if (left > 0) { try { spawnDroppedItem(t, left, _fAt(), new THREE.Vector3(0, 2, 0)); } catch (e) {} } };
+    _fGive('totem_of_undying', 1);
+    _fGive('diamond', 3 + Math.floor(Math.random() * 4));
+    _fGive('golden_apple', 2 + Math.floor(Math.random() * 4));
+    try { _fGive('wind_charge', 8 + Math.floor(Math.random() * 9)); } catch (e) {}
+    renderHotbar(); if (inventoryOpen) renderInventoryPanel(); saveLocalPlayer();
+    addChatLine('System', 'FlameFrags was defeated!', true);
+    return;
+  }
   if (kind === 'spoke') {
     jcAddXp(1500);   // big bonus XP for killing Spoke
     const _spAt = () => new THREE.Vector3(player.pos.x, player.pos.y + 1, player.pos.z);
@@ -8589,12 +9043,12 @@ function animateMob(a, dt, spd, grounded) {
 const SPOKE_HP = 20, SPOKE_GAPPLES = 99, SPOKE_TOTEMS = 8, SPOKE_GAP_HEAL = 4, SPOKE_ARROW_DMG = 6, SPOKE_SWORD_DMG = 7, SPOKE_AXE_DMG = 9, SPOKE_HUD_RANGE = 30;
 const NULL_MAX_ALIVE = 14, NULL_PER_POP = 3;
 const SPOKE_NOOB_AIM = 0.025, SPOKE_NOOB_REACH = 3.0, SPOKE_HIT_CHANCE = 0.92;   // PvP: tight aim, player-like reach, rarely whiffs
-function isSpk(k) { return k === 'spoke' || k === 'null'; }
-function spokeName(a) { return a.kind === 'null' ? 'Null' : 'Spoke'; }
+function isSpk(k) { return k === 'spoke' || k === 'null' || k === 'flamefrags'; }
+function spokeName(a) { return a.kind === 'null' ? 'Null' : (a.kind === 'flamefrags' ? 'FlameFrags' : 'Spoke'); }
 function spokeGet(a) { const e = a.eq | 0; return { dur: (e >> 12) & 127, gap: (e >> 19) & 127, totem: e & 15, eat: (e >> 27) & 1, draw: (e >> 28) & 1, melee: (e >> 29) & 1, axe: (e >> 30) & 1 }; }
 function spokeSet(a, o) {
   const g = spokeGet(a); for (const k in o) g[k] = o[k];
-  a.eq = (Math.max(0, Math.min(100, Math.round(g.dur))) << 12) | (Math.max(0, Math.min(99, g.gap | 0)) << 19) | Math.max(0, Math.min(15, g.totem | 0)) | ((g.eat ? 1 : 0) << 27) | ((g.draw ? 1 : 0) << 28) | ((g.melee ? 1 : 0) << 29) | ((g.axe ? 1 : 0) << 30);
+  a.eq = (Math.max(0, Math.min(100, Math.round(g.dur))) << 12) | (Math.max(0, Math.min(99, g.gap | 0)) << 19) | Math.max(0, Math.min(15, g.totem | 0)) | ((g.eat ? 1 : 0) << 27) | ((g.draw ? 1 : 0) << 28) | ((g.melee ? 1 : 0) << 29) | ((g.axe ? 1 : 0) << 30) | (a.eq & 0x3F0);   // keep FlameFrags' weapon (bits 4-8) and shield (bit 9)
 }
 function spokeInitEq() { return (100 << 12) | (SPOKE_GAPPLES << 19) | SPOKE_TOTEMS; }
 function nullInitEq() { return (100 << 12) | (SPOKE_GAPPLES << 19) | 1; }   // same kit as Spoke, 1 normal totem, no Null Totem
@@ -8639,11 +9093,21 @@ function summonSpoke(x, y, z) {
 }
 function spokeSync(a, old) {
   const o = { dur: (old >> 12) & 127, totem: old & 15 }, n = spokeGet(a);
+  if (a.kind === 'flamefrags') {
+    if (o.totem > n.totem) {
+      a.totemFx = 1.6; try { spawnTotemPopFx(new THREE.Vector3(a.pos.x, a.pos.y, a.pos.z), 'totem_of_undying', { remote: true }); } catch (e) {}
+      const pops = 3 - n.totem, say = ['', 'FlameFrags popped a totem! He now fights with the Mace and Wind Charges!', 'FlameFrags popped a totem! He now wields the Spear too!', 'FlameFrags popped his last totem! Bow and Trident unlocked - all weapons!'];
+      addChatLine('System', say[Math.max(1, Math.min(3, pops))] + ' (' + n.totem + ' left)', true);
+    }
+    if (o.dur > 0 && n.dur <= 0) { addChatLine('System', "FlameFrags' armor broke!", true); applySpokeGear(a); }
+    return;
+  }
   if (o.totem > n.totem) { a.totemFx = 1.6; try { spawnTotemPopFx(new THREE.Vector3(a.pos.x, a.pos.y, a.pos.z), 'null_totem', { remote: true }); } catch (e) {} if (a.kind === 'null') addChatLine('System', 'A Null popped its Totem!', true); else addChatLine('System', n.totem > 0 ? 'Spoke popped a Null Totem! (' + n.totem + ' left)' : 'Spoke popped its last Null Totem!', true); }
   if (o.dur > 0 && n.dur <= 0) { if (a.kind === 'spoke') addChatLine('System', "Spoke's armor broke!", true); applySpokeGear(a); }
 }
 function spokeHurt(a, dmg, fromPos, kbMul, by) {
   if (!a.alive) return;
+  if (a.kind === 'flamefrags') { flameHurt(a, dmg, fromPos, kbMul, by); return; }
   const old = a.eq | 0, g = spokeGet(a);
   if (a.durF == null) a.durF = g.dur;
   const red = a.durF > 0 ? Math.min(0.8, 0.04 * 20) : 0;    // full diamond armor: 4% per point, 80% cap (same as the player) until it breaks
@@ -8694,6 +9158,98 @@ function spokePlace(x, y, z) {
   return true;
 }
 const _solidB = (x, y, z) => { const b = world.get(key(Math.round(x), Math.round(y), Math.round(z))); return !!b && b.type !== 'water' && solidAt(x, y, z); };
+/** Place cobweb on the boss + a short wall toward the player so they can eat safely. */
+function bossPlaceCover(a, tgt) {
+  const px = Math.round(a.pos.x), py = Math.round(a.pos.y), pz = Math.round(a.pos.z);
+  const dx = (tgt && tgt.x != null ? tgt.x : a.pos.x) - a.pos.x;
+  const dz = (tgt && tgt.z != null ? tgt.z : a.pos.z) - a.pos.z;
+  const dl = Math.hypot(dx, dz) || 1, ux = dx / dl, uz = dz / dl;
+  if (!a.coverBlocks) a.coverBlocks = [];
+  const put = (x, y, z, type) => {
+    x = Math.round(x); y = Math.round(y); z = Math.round(z);
+    const k = key(x, y, z);
+    if (world.has(k)) return false;
+    removedDiffs.delete(k);
+    if (!addBlock(x, y, z, type)) return false;
+    if (type !== 'cobweb') markPlaced(x, y, z);
+    pushBlockDiff(x, y, z, type);
+    a.coverBlocks.push([x, y, z]);
+    return true;
+  };
+  // Cobweb on body so the player cannot freely melee through
+  put(px, py, pz, 'cobweb');
+  put(px, py + 1, pz, 'cobweb');
+  // Solid wall between boss and player (2 high)
+  const wx = Math.round(a.pos.x + ux * 1.4), wz = Math.round(a.pos.z + uz * 1.4);
+  put(wx, py, wz, 'cobblestone');
+  put(wx, py + 1, wz, 'cobblestone');
+  a.healCover = true;
+  a.bldCd = Math.max(a.bldCd || 0, 0.35);
+}
+/** Remove cover blocks placed for healing. */
+function bossClearCover(a) {
+  if (!a.coverBlocks || !a.coverBlocks.length) { a.healCover = false; return; }
+  for (const [x, y, z] of a.coverBlocks) spokeBreak(x, y, z);
+  a.coverBlocks = [];
+  a.healCover = false;
+}
+/**
+ * Smarter heal: try to get further away before eating; if the player is still near,
+ * place cobweb on self + a wall; clear cover after the apple is finished.
+ * Returns true if the boss is busy with heal/retreat this tick (caller should skip combat).
+ */
+function bossSmartHeal(a, dt, tgt, dist, nx, nz, opts) {
+  opts = opts || {};
+  const d = spokeGet(a);
+  const need = d.gap > 0 && a.eatCd <= 0 && (a.hp < a.maxHp * 0.5 || (a.hp < a.maxHp * 0.75 && dist > 11));
+  const safeDist = opts.safeDist != null ? opts.safeDist : 11;
+  // Already eating
+  if (a.eatT > 0) {
+    a.eatT -= dt;
+    a.vel.x *= 0.35; a.vel.z *= 0.35;
+    if (tgt) a.facing = Math.atan2((tgt.x - a.pos.x), (tgt.z - a.pos.z));
+    // Player still close while eating → reinforce cover
+    if (tgt && tgt.alive && dist < 7 && !(a.healCover)) bossPlaceCover(a, tgt);
+    if (a.eatT <= 0) {
+      const g = spokeGet(a);
+      a.hp = Math.min(a.maxHp, a.hp + SPOKE_GAP_HEAL);
+      a.regenT = opts.regenT != null ? opts.regenT : 5;
+      spokeSet(a, { eat: 0, gap: Math.max(0, g.gap - 1), draw: 0 });
+      a.eatCd = opts.eatCd != null ? opts.eatCd : 3;
+      bossClearCover(a);   // break the wall/web after healing
+      a.wantEat = false;
+    }
+    return true;
+  }
+  // Want to heal: get further first if the player is close
+  if (need || a.wantEat) {
+    if (tgt && tgt.alive && dist < safeDist) {
+      a.wantEat = true;
+      // sprint away from the player
+      a.vel.x = -nx * 6.2;
+      a.vel.z = -nz * 6.2;
+      a.facing = Math.atan2(-nx, -nz);
+      // if they stay glued, throw cover up and eat anyway
+      a.coverWait = (a.coverWait || 0) + dt;
+      if (a.coverWait > 1.4) {
+        bossPlaceCover(a, tgt);
+        a.eatT = opts.eatT != null ? opts.eatT : 1.6;
+        spokeSet(a, { eat: 1, draw: 0 });
+        a.bowT = 0; a.wantEat = false; a.coverWait = 0;
+      }
+      return true;
+    }
+    // Far enough (or no target): start eating, optional light cover if still semi-close
+    a.wantEat = false; a.coverWait = 0;
+    if (tgt && tgt.alive && dist < safeDist + 4) bossPlaceCover(a, tgt);
+    a.eatT = opts.eatT != null ? opts.eatT : 1.6;
+    spokeSet(a, { eat: 1, draw: 0 });
+    a.bowT = 0;
+    return true;
+  }
+  a.wantEat = false; a.coverWait = 0;
+  return false;
+}
 function spokeBuilder(a, dt, mx, mz, tgt, dist) {
   a.bldCd = (a.bldCd || 0) - dt;
   if (a.bldCd > 0 || Math.abs(a.vel.y) > 9) return;
@@ -8701,6 +9257,29 @@ function spokeBuilder(a, dt, mx, mz, tgt, dist) {
   const bf = Math.round(a.pos.y + 0.5);                 // block level of the feet
   const ux = ml > 0.1 ? mx / ml : Math.sin(a.facing), uz = ml > 0.1 ? mz / ml : Math.cos(a.facing);
   const ax = a.pos.x + ux * 0.95, az = a.pos.z + uz * 0.95;
+  // 0) clear cobwebs (and soft blocks) around / in front — bosses get stuck in webs otherwise
+  //    Skip while using heal-cover (own cobweb/wall must stay until after the apple).
+  if (!(a.eatT > 0 || a.healCover || a.wantEat)) {
+    const px = Math.round(a.pos.x), py = Math.round(a.pos.y), pz = Math.round(a.pos.z);
+    const spots = [
+      [px, py, pz], [px, py + 1, pz],
+      [Math.round(ax), bf, Math.round(az)], [Math.round(ax), bf + 1, Math.round(az)],
+      [px + 1, py, pz], [px - 1, py, pz], [px, py, pz + 1], [px, py, pz - 1],
+      [px + 1, py + 1, pz], [px - 1, py + 1, pz], [px, py + 1, pz + 1], [px, py + 1, pz - 1]
+    ];
+    for (const [sx, sy, sz] of spots) {
+      const b = world.get(key(sx, sy, sz));
+      if (b && (b.type === 'cobweb' || b.type === 'tall_grass' || isPlantType(b.type))) {
+        if (spokeBreak(sx, sy, sz)) { a.bldCd = 0.12; return; }
+      }
+    }
+    // if progress is stalled, smash a solid block ahead or beside
+    if ((a.stuckT || 0) > 0.9) {
+      for (const [sx, sy, sz] of [[Math.round(ax), bf, Math.round(az)], [Math.round(ax), bf + 1, Math.round(az)], [px, bf + 1, pz], [px, bf + 2, pz]]) {
+        if (spokeBreak(sx, sy, sz)) { a.bldCd = 0.2; a.stuckT = 0; return; }
+      }
+    }
+  }
   // 1) break whatever walls it in on the way to the target
   if (ml > 0.1 && grounded && checkCollision(a.pos.x + ux * 0.6, a.pos.y, a.pos.z + uz * 0.6, a.radius, a.height)) {
     const f = _solidB(ax, bf, az), h = _solidB(ax, bf + 1, az), u = _solidB(ax, bf + 2, az);
@@ -8752,19 +9331,14 @@ function spokeAI(a, dt) {
   const pv = a.tgtVel || (a.tgtVel = { x: 0, z: 0 });
   if (a.prevTgt && dt > 0) { const k = Math.min(1, dt * 8); pv.x += ((tgt.x - a.prevTgt.x) / dt - pv.x) * k; pv.z += ((tgt.z - a.prevTgt.z) / dt - pv.z) * k; const l = Math.hypot(pv.x, pv.z); if (l > 9) { pv.x *= 9 / l; pv.z *= 9 / l; } }
   a.prevTgt = { x: tgt.x, z: tgt.z };
-  if (a.eatT > 0) {   // eating a golden apple: slows right down for a moment, then heals
-    a.eatT -= dt; a.vel.x *= 0.5; a.vel.z *= 0.5; a.facing = Math.atan2(dx, dz);
-    if (a.eatT <= 0) { const g = spokeGet(a); a.hp = Math.min(a.maxHp, a.hp + SPOKE_GAP_HEAL); a.regenT = 5; spokeSet(a, { eat: 0, gap: Math.max(0, g.gap - 1) }); a.eatCd = 3; }
-    return;
-  }
   if (!awake) {
     if (d.draw || d.eat) spokeSet(a, { draw: 0, eat: 0 });
-    a.bowT = 0; a.wanderTimer -= dt;
+    a.bowT = 0; a.wanderTimer -= dt; a.wantEat = false;
     if (a.wanderTimer <= 0) { a.wanderTimer = 2 + Math.random() * 3; if (Math.random() < 0.5) { a.vel.x = 0; a.vel.z = 0; } else { a.facing = Math.random() * 6.283; a.vel.x = Math.sin(a.facing) * 0.7; a.vel.z = Math.cos(a.facing) * 0.7; } }
     return;
   }
-  // heals when actually low (or safely far away), not in the middle of a sword fight at high HP
-  if (d.gap > 0 && a.eatCd <= 0 && (a.hp < a.maxHp * 0.5 || (a.hp < a.maxHp * 0.8 && dist > 9))) { a.eatT = 1.6; a.bowT = 0; spokeSet(a, { eat: 1, draw: 0 }); return; }
+  // Smarter heal: back off, cover with cobweb/wall if player stays near, clear cover after apple
+  if (bossSmartHeal(a, dt, tgt, dist, nx, nz, { safeDist: 12, eatT: 1.6, eatCd: 3, regenT: 5 })) return;
   a.facing = Math.atan2(dx, dz);
   let melee = !!d.melee;
   if (!melee && dist < 6.5 && a.forceRangedT <= 0) melee = true;
@@ -8821,8 +9395,211 @@ function spokeAI(a, dt) {
   }
   spokeBuilder(a, dt, mx, mz, tgt, dist);   // breaks walls, bridges gaps, pillars up
 }
+
+// ================= Boss: FlameFrags (/flame) =================
+// A combat master with 3 totems. Every totem pop unlocks more of his arsenal (pops = 3 - totems left):
+//   0 pops: diamond sword, axe + shield | 1: + mace and wind charges | 2: + spear (lunge) | 3: everything, incl. bow and trident
+// eq bits: 4-8 weapon in hand (0 sword,1 axe,2 mace,3 spear,4 bow,5 trident,6 wind charge), 9 shield raised (rest as Spoke)
+const FLAME_TOTEMS = 3, FLAME_GAPPLES = 30, FLAME_REDUCE = 0.5;
+function flameInitEq() { return (100 << 12) | (FLAME_GAPPLES << 19) | FLAME_TOTEMS; }   // full diamond armor durability like Spoke
+function flameSet(a, o) {
+  let e = a.eq | 0;
+  if (o.wpn != null) e = (e & ~(31 << 4)) | ((o.wpn & 31) << 4);
+  if (o.block != null) e = (e & ~(1 << 9)) | ((o.block ? 1 : 0) << 9);
+  a.eq = e;
+}
+function summonFlame(x, y, z) {
+  const e = createMob('flamefrags', x, y, z, null, false, flameInitEq());
+  e.durF = 100; e.eatCd = 4; e.shootCd = 1.2; e.wpnT = 0;
+  applySpokeGear(e);   // equip visible diamond armor
+  addChatLine('System', 'FlameFrags has awakened!', true);
+  return e;
+}
+function flameHurt(a, dmg, fromPos, kbMul, by) {
+  if (!a.alive) return;
+  const old = a.eq | 0, g = spokeGet(a);
+  let blocked = false;
+  if (((a.eq >> 9) & 1) && fromPos) {   // shield up: blocks hits coming from the front
+    const fx = fromPos.x - a.pos.x, fz = fromPos.z - a.pos.z, fl = Math.hypot(fx, fz) || 1;
+    if ((Math.sin(a.facing) * fx + Math.cos(a.facing) * fz) / fl > 0.3) {
+      const h = (by === MY_ID) ? mainItem() : null;
+      if (h && isAxe(h.type)) { a.shieldBroke = 5; a.blockOff = 5; flameSet(a, { block: 0 }); }   // an axe hit disables the shield
+      else { blocked = true; a.shieldHits = (a.shieldHits || 0) + 1; if (a.shieldHits >= 10) { a.shieldHits = 0; a.shieldBroke = 6; a.blockOff = 6; flameSet(a, { block: 0 }); } }
+    }
+  }
+  if (blocked) dmg = 0;
+  else {
+    if (a.durF == null) a.durF = g.dur;
+    const armorRed = a.durF > 0 ? Math.min(0.8, 0.04 * 20) : 0;   // full diamond: 80% like Spoke / player
+    a.hp -= dmg * (1 - armorRed) * (1 - FLAME_REDUCE * 0.35);     // armor + slight natural toughness
+    if (a.durF > 0) a.durF = Math.max(0, a.durF - (0.05 + dmg * 0.01) * 0.25);
+    spokeSet(a, { dur: a.durF > 0 ? Math.max(1, Math.round(a.durF)) : 0 });
+  }
+  flashRed(a.group);
+  knockbackEntity(a, fromPos, 7.5 * (kbMul == null ? 1 : kbMul) * (blocked ? 0.25 : 1));
+  if (a.hp <= 0) {
+    if (g.totem > 0) { spokeSet(a, { totem: g.totem - 1 }); a.hp = a.maxHp * 0.7; a.regenT = 6; a.eatCd = Math.max(a.eatCd || 0, 2); a.wpnT = 0; a.shieldBroke = 0; }
+    else { killAnimal(a, by); return; }
+  }
+  spokeSync(a, old);
+}
+function flameHit(tgt, dmg, kdir, kb, axe) {
+  dmg = Math.min(12, dmg);
+  if (tgt.local) damagePlayer(dmg, kdir, kb, axe ? { axeHit: true } : undefined);
+  else playersChannel.send({ type: 'broadcast', event: 'mob_dmg', payload: { to: tgt.id, dmg, kx: kdir.x, kz: kdir.z, kb, ax: axe ? 1 : 0 } });
+}
+function flameAI(a, dt) {
+  for (const k of ['shootCd', 'swCd', 'wcCd', 'lungeCd', 'lungeT', 'eatCd', 'shieldBroke', 'blockOff', 'wpnT', 'strafeT', 'jumpCd', 'hopCd', 'wcT']) a[k] = (a[k] || 0) - dt;
+  a.attackCd = (a.attackCd || 0) - dt;
+  if (a.regenT > 0) { a.regenT -= dt; a.hp = Math.min(a.maxHp, a.hp + 0.8 * dt); }
+  if (a.kbT > 0) { a.kbT -= dt; return; }
+  const d = spokeGet(a), pops = Math.max(0, Math.min(3, 3 - d.totem)), tgt = nearestPlayerTarget(a.pos);
+  const dx = tgt.x - a.pos.x, dz = tgt.z - a.pos.z, dist = Math.hypot(dx, dz) || 0.001, nx = dx / dist, nz = dz / dist;
+  const awake = tgt.alive && dist < 60;
+  const pv = a.tgtVel || (a.tgtVel = { x: 0, z: 0 });
+  if (a.prevTgt && dt > 0) { const k = Math.min(1, dt * 8); pv.x += ((tgt.x - a.prevTgt.x) / dt - pv.x) * k; pv.z += ((tgt.z - a.prevTgt.z) / dt - pv.z) * k; const l = Math.hypot(pv.x, pv.z); if (l > 9) { pv.x *= 9 / l; pv.z *= 9 / l; } }
+  a.prevTgt = { x: tgt.x, z: tgt.z };
+  if (!awake) {
+    if (d.draw || d.eat) spokeSet(a, { draw: 0, eat: 0 });
+    flameSet(a, { block: 0 }); a.bowT = 0; a.tWind = 0; a.wanderTimer -= dt; a.wantEat = false;
+    if (a.wanderTimer <= 0) { a.wanderTimer = 2 + Math.random() * 3; if (Math.random() < 0.5) { a.vel.x = 0; a.vel.z = 0; } else { a.facing = Math.random() * 6.283; a.vel.x = Math.sin(a.facing) * 0.7; a.vel.z = Math.cos(a.facing) * 0.7; } }
+    return;
+  }
+  // Smarter heal (same as Spoke): distance first, cobweb/wall cover if pressed, clear after
+  if (bossSmartHeal(a, dt, tgt, dist, nx, nz, { safeDist: 12, eatT: 1.4, eatCd: 4, regenT: 5 })) return;
+  a.facing = Math.atan2(dx, dz);
+  let wpn = (a.eq >> 4) & 31;
+  const grounded = Math.abs(a.vel.y) < 0.3;
+  // ---- pick a weapon from what this totem phase allows ----
+  if (a.wcT > 0) { /* winding up a wind charge: keep it in hand */ }
+  else {
+    const ranged0 = wpn === 4 || wpn === 5 || wpn === 6;
+    if (a.wpnT <= 0 || (ranged0 && dist < 5) || wpn > 5) {
+      const melee = [0, 1]; if (pops >= 1) melee.push(2); if (pops >= 2) melee.push(3);
+      let w;
+      if (pops >= 3 && dist > 11) w = Math.random() < 0.5 ? 4 : 5; else w = melee[Math.floor(Math.random() * melee.length)];
+      a.wpnT = 3 + Math.random() * 3;
+      if (w !== wpn) { wpn = w; flameSet(a, { wpn: w }); a.bowT = 0; a.tWind = 0; spokeSet(a, { draw: 0 }); }
+    }
+  }
+  const isRanged = wpn === 4 || wpn === 5;
+  // ---- shield (up while fighting in melee; drops briefly after each swing and in cycles) ----
+  a.blockCyc = (a.blockCyc || 0) + dt;
+  const wantBlock = !isRanged && wpn <= 3 && dist < 8 && a.shieldBroke <= 0 && a.blockOff <= 0 && (a.blockCyc % 2.6) < 1.9 && !a.smashArm && !(a.lungeT > 0);
+  if (!!((a.eq >> 9) & 1) !== wantBlock) flameSet(a, { block: wantBlock ? 1 : 0 });
+  a.strafeT = a.strafeT > 0 ? a.strafeT : 0;
+  if (a.strafeT <= 0) { a.strafeT = 0.8 + Math.random() * 1.2; a.strafeDir = Math.random() < 0.5 ? -1 : 1; }
+  let mx = 0, mz = 0, wp = null;
+  const eyeP = new THREE.Vector3(a.pos.x, a.pos.y + 1.55, a.pos.z), tgtP = new THREE.Vector3(tgt.x, tgt.y + 1.2, tgt.z);
+  const kdir = new THREE.Vector3(dx, 0, dz), dyP = tgt.y - a.pos.y;
+  const chase = (sp) => { wp = zombieWaypoint(a, tgt, dt); let wx = wp ? wp.x - a.pos.x : dx, wz = wp ? wp.z - a.pos.z : dz; const wl = Math.hypot(wx, wz) || 1; mx = wx / wl * sp; mz = wz / wl * sp; };
+  // ---- wind charge: a burst that flings the player (any weapon, from the 1st totem pop) ----
+  if (a.windPending && a.wcT <= 0) {   // wind-up finished: release it
+    a.windPending = false;
+    if (dist < 14 && tgt.alive) {
+      flameHit(tgt, 1, kdir, 17, false);
+      try { windBurstParticles({ x: tgt.x, y: tgt.y, z: tgt.z }); } catch (e) {}
+    }
+    flameSet(a, { wpn: a.prevWpn != null ? a.prevWpn : 0 }); wpn = (a.eq >> 4) & 31;
+  }
+  if (pops >= 1 && !a.windPending && a.wcCd <= 0 && !isRanged && wpn !== 2 && dist > 3 && dist < 12 && skLos(eyeP, tgtP)) {
+    a.prevWpn = wpn; flameSet(a, { wpn: 6, block: 0 }); a.windPending = true; a.wcT = 0.45; a.wcCd = 6 + Math.random() * 3;
+  }
+  if (wpn === 6) {
+    mx = 0; mz = 0;   // holding the wind charge: stands still for the wind-up
+  } else if (!isRanged && wpn <= 3) {
+    // ---------------- melee: sword / axe / mace / spear ----------------
+    const reach = wpn === 3 ? 4.3 : (wpn === 2 ? 3.3 : 3.0), ideal = wpn === 3 ? 3.4 : 2.4;
+    if (a.lungeT > 0) { mx = nx * 14; mz = nz * 14; }
+    else if (a.smashArm) { mx = nx * 7; mz = nz * 7; }
+    else if (dist > ideal + 0.4) chase(5.4);
+    else { const back = dist < ideal - 0.5 ? -1.8 : 0.6; mx = nx * back - nz * a.strafeDir * 3.2; mz = nz * back + nx * a.strafeDir * 3.2; }
+    // mace + wind charge combo (1st totem pop on): launch himself, then smash down on the player
+    if (wpn === 2 && pops >= 1) {
+      if (!a.smashArm && grounded && a.wcCd <= 0 && dist > 3.5 && dist < 11) {
+        a.smashArm = true; a.airT = 0; a.vel.y = 15; a.peakY = a.pos.y; a.wcCd = 5 + Math.random() * 2;
+        try { windBurstParticles({ x: a.pos.x, y: a.pos.y, z: a.pos.z }); } catch (e) {}
+      }
+      if (a.smashArm) {
+        a.airT += dt; a.peakY = Math.max(a.peakY, a.pos.y);
+        if (a.vel.y < 0 && dist < 2.8 && dyP < 1.2 && tgt.alive) {
+          const fall = Math.max(0, a.peakY - a.pos.y);
+          flameHit(tgt, 6 + Math.min(6, fall * 1.4), kdir, 13, false);
+          try { windBurstParticles({ x: tgt.x, y: tgt.y, z: tgt.z }); } catch (e) {}
+          a.smashArm = false; a.vel.y = 6; a.attackCd = 1.1;
+        } else if (a.airT > 0.5 && grounded) a.smashArm = false;
+      }
+    }
+    // spear lunge (2nd totem pop on)
+    if (wpn === 3 && pops >= 2 && a.lungeCd <= 0 && a.lungeT <= 0 && dist > 4.4 && dist < 10 && grounded) { a.lungeT = 0.35; a.lungeCd = 4; a.lungeHit = false; }
+    if (a.lungeT > 0 && !a.lungeHit && dist < 3.7 && tgt.alive) { a.lungeHit = true; a.attackCd = 1.1; flameHit(tgt, 8, kdir, 11, false); }
+    // normal melee swing
+    if (dist < reach && dyP > -1.6 && dyP < 1.6 && a.swCd <= 0 && tgt.alive && !a.smashArm && skLos(eyeP, tgtP)) {
+      const dmg = [7, 9, 6, 6][wpn], cd = [0.62, 1.0, 1.3, 0.8][wpn];
+      a.swCd = cd; a.attackCd = 1.1; a.blockOff = 0.5;
+      if (Math.random() < SPOKE_HIT_CHANCE) flameHit(tgt, dmg, kdir, 9, wpn === 1);   // axe hit breaks a raised shield
+    }
+    if (!a.smashArm && a.hopCd <= 0 && dist < 4 && grounded) { a.hopCd = 1.0 + Math.random() * 1.2; a.vel.y = 7.0; }
+  } else {
+    // ---------------- ranged: bow / trident (only after the 3rd pop) ----------------
+    if (dist > 22) chase(5.6);
+    else if (dist < 10) { mx = -nx * 4.4 - nz * a.strafeDir * 2.4; mz = -nz * 4.4 + nx * a.strafeDir * 2.4; }
+    else { mx = -nz * a.strafeDir * 3.2; mz = nx * a.strafeDir * 3.2; }
+    if (wpn === 4) {
+      if (a.bowT > 0) { mx *= 0.5; mz *= 0.5; a.bowT -= dt; if (a.bowT <= 0) { a.bowT = 0; spokeSet(a, { draw: 0 }); spokeShoot(a, tgt); } }
+      else if (a.shootCd <= 0 && dist < 45 && dist > 4) { if (skLos(eyeP, tgtP)) { a.bowT = 0.9; spokeSet(a, { draw: 1 }); a.shootCd = 1.0 + Math.random() * 0.9; } else a.shootCd = 0.5; }
+    } else {
+      zombieTridentAI(a, tgt, dist, dt);   // wind-up, lead the target, throw
+      if (a.tWind > 0) { mx *= 0.3; mz *= 0.3; }
+    }
+  }
+  if (a.wcT > 0) { mx *= 0.3; mz *= 0.3; }
+  if (((a.eq >> 9) & 1)) { mx *= 0.8; mz *= 0.8; }
+  a.vel.x = mx; a.vel.z = mz;
+  const ml = Math.hypot(mx, mz);
+  if (a.jumpCd <= 0 && ml > 0.1 && !a.smashArm) {
+    const ax = a.pos.x + mx / ml * 0.7, az = a.pos.z + mz / ml * 0.7;
+    const blocked = checkCollision(ax, a.pos.y, az, a.radius, a.height);
+    const spaceAbove = !checkCollision(ax, a.pos.y + 1.05, az, a.radius, a.height * 0.85);
+    if (Math.abs(a.vel.y) < 0.2 && ((blocked && spaceAbove) || (wp && wp.fy > a.pos.y + 0.45))) { a.vel.y = 7.5; a.jumpCd = 0.5; }
+  }
+  spokeBuilder(a, dt, mx, mz, tgt, dist);
+}
+// client side, every frame: weapon in hand, shield in the off hand, arm poses
+function flameVisualTick(a, dt) {
+  const ud = a.group.userData; if (!ud || !a.handAnchor || !ud.arms) return;
+  if (!a.offAnchor) { a.offAnchor = new THREE.Group(); ud.arms[0].add(a.offAnchor); a.offState = {}; a.offKey = ''; }
+  const d = spokeGet(a), wpn = (a.eq >> 4) & 31, blk = (a.eq >> 9) & 1;
+  const names = ['diamond_sword', 'diamond_axe', 'mace', 'diamond_spear', 'bow', 'trident', 'wind_charge'];
+  const want = d.eat ? 'golden_apple' : (names[wpn] || 'diamond_sword');
+  if (a.heldKey !== want) {
+    a.heldKey = want; const an = a.handAnchor;
+    if (want === 'bow') { an.position.set(0, -0.56, 0); an.scale.setScalar(1.5); setHeldVisual(a.heldState, an, 'bow', { power: 5, charge: 2 }); an.quaternion.copy(skBowQuat()); }
+    else if (want === 'golden_apple' || want === 'wind_charge') { an.position.set(0, -0.55, 0.2); an.scale.setScalar(1.0); setHeldVisual(a.heldState, an, want); an.quaternion.identity(); }
+    else { an.position.set(0, -0.5, 0.02); an.scale.setScalar(1.25); setHeldVisual(a.heldState, an, want); an.quaternion.copy(zombieHoldQuat(a.heldState.heldMesh)); }
+  }
+  if (a.offKey !== 'shield') {
+    a.offKey = 'shield'; const o = a.offAnchor;
+    o.position.set(0, -0.5, 0.02); o.scale.setScalar(1.25);
+    setHeldVisual(a.offState, o, 'shield'); o.rotation.set(-0.15, -Math.PI * 0.5, -0.05);
+  }
+  a.offAnchor.visible = want !== 'bow';
+  if (a.totemFx > 0) a.totemFx -= dt;
+  const t = performance.now() / 1000, sw = Math.sin(a.walk || 0) * (a.amp || 0), A = ud.arms;
+  A[0].rotation.set(-sw * 0.75, 0, 0.05); A[1].rotation.set(sw * 0.75, 0, -0.05);
+  if (blk) { A[0].rotation.x = -1.05; A[0].rotation.y = 0.45; }   // shield arm raised
+  if (d.eat) { A[1].rotation.x = -2.0 + Math.sin(t * 16) * 0.12; A[1].rotation.y = 0.35; }
+  else if (want === 'bow') {
+    A[1].rotation.x = -1.5; A[1].rotation.y = 0.12;
+    if (d.draw) { A[0].rotation.x = -1.35; A[0].rotation.y = -0.75; A[0].rotation.z = 0; }
+  } else {
+    const atk = Math.max(0, ((a.attackCd || 0) - 0.75) / 0.35);
+    A[1].rotation.x = -0.85 - atk * 1.3 + sw * 0.25; A[1].rotation.y = 0.1 - atk * 0.2;
+  }
+}
 // client side, every frame: held item, enchant glint, eating pose
 function spokeVisualTick(a, dt) {
+  if (a.kind === 'flamefrags') { flameVisualTick(a, dt); return; }
   const ud = a.group.userData; if (!ud || !a.handAnchor) return;
   const d = spokeGet(a), want = d.eat ? 'golden_apple' : (d.melee ? (d.axe ? 'diamond_axe' : 'diamond_sword') : 'bow');
   if (a.heldKey !== want) {
@@ -8864,7 +9641,7 @@ function updateSpokeHud(dt) {
   for (const a of animals) {
     if (!isSpk(a.kind) || !a.alive) continue;
     spokeVisualTick(a, dt);
-    if (a.kind !== 'spoke') continue;
+    if (a.kind === 'null') continue;
     const dd = Math.hypot(a.pos.x - player.pos.x, a.pos.z - player.pos.z);
     if (dd < bd) { bd = dd; best = a; }
   }
@@ -8881,12 +9658,13 @@ function updateSpokeHud(dt) {
     const gapTxt = document.createElement('span'); gapTxt.style.cssText = 'min-width:26px';
     row.append(_spokeIcon('diamond_chestplate'), dur.o, durTxt, _spokeIcon('golden_apple'), gapTxt);
     root.append(title, hp.o, row); document.body.appendChild(root);
-    _spokeHud = { root, hp, hpTxt, dur, durTxt, gapTxt };
+    _spokeHud = { root, hp, hpTxt, dur, durTxt, gapTxt, nm, row };
   }
   const h = _spokeHud;
   if (!best || bd > SPOKE_HUD_RANGE) { h.root.style.display = 'none'; return; }   // bars vanish when Spoke is far away
   const g = spokeGet(best);
   h.root.style.display = 'block';
+  h.nm.textContent = spokeName(best); h.row.style.display = best.kind === 'flamefrags' ? 'none' : 'flex';
   h.hp.f.style.width = Math.max(0, Math.min(100, best.hp / best.maxHp * 100)) + '%';
   h.hpTxt.textContent = Math.max(0, Math.ceil(best.hp)) + ' / ' + best.maxHp + (g.totem > 0 ? '  \u2726 x' + g.totem : '');
   h.dur.f.style.width = g.dur + '%';
@@ -8975,7 +9753,7 @@ function updateAnimals(dt) {
         }
       }
     } else if (isSpk(a.kind)) {
-      spokeAI(a, dt);
+      if (a.kind === 'flamefrags') flameAI(a, dt); else spokeAI(a, dt);
     } else if (a.kind === 'skeleton') {
       skeletonAI(a, dt);
     } else if (a.kind === 'breeze') {
@@ -9747,6 +10525,7 @@ function findTargetAnimal() {
     const toA = center.clone().sub(camera.position);
     const dist = toA.length();
     { const br = bodyReach(camera.position, a.pos.x, a.pos.y, a.pos.z, a.height || (a.kind === 'zombie' ? 1.8 : 1.0), a.radius || 0.45); if (br > R.max || br < R.min) return; }
+    if (!canReachTarget(camera.position, a.pos.x, a.pos.y, a.pos.z, a.height || (a.kind === 'zombie' ? 1.8 : 1.0))) return;   // no hitting through walls
     toA.normalize();
     const angle = dir.angleTo(toA);
     let aimed = angle < 0.5;
@@ -10043,7 +10822,8 @@ function jcRoll() {
   const sprint = charged && jcSprinting;
   const sweep = charged && st.kind === 'sword' && player.onGround && !jcSprinting && !crit && !smash;
   const kb = smash ? 1.6 : ((charged ? 1 : 0.6) * (sprint ? 1.9 : 1));
-  return { st, s, charged, dmg, crit, sprint, sweep, smash, kb, breach: _breach, windburst: _wburst, density: _dens };
+  const _sweepEdge = Math.max(0, Math.min(3, Math.trunc(Number(_h && _h.ench && _h.ench.sweepingedge) || 0)));
+  return { st, s, charged, dmg, crit, sprint, sweep, smash, kb, sweepEdge: _sweepEdge, breach: _breach, windburst: _wburst, density: _dens };
 }
 // Hurt-immunity: returns the damage that actually goes through.
 function jcIframe(ref, dmg) {
@@ -10192,17 +10972,18 @@ function jcSweep(r, primary) {
   if (!r.sweep) return;
   jcSweepFx();
   const px = primary.x, pz = primary.z, py = primary.y;
+  const _se = r.sweepEdge | 0, _sRad = JC_SWEEP_RADIUS + 0.6 * _se, _sDmg = JC_SWEEP_DMG + 1.5 * _se;   // Sweeping Edge I-III: +0.6 radius, +1.5 dmg per level
   animals.forEach(a => {
     if (!a.alive || a === primary.ref) return;
-    if (Math.hypot(a.pos.x - px, a.pos.z - pz) > JC_SWEEP_RADIUS || Math.abs(a.pos.y - py) > 1.5) return;
-    const d = jcIframe(a, JC_SWEEP_DMG);
+    if (Math.hypot(a.pos.x - px, a.pos.z - pz) > _sRad || Math.abs(a.pos.y - py) > 1.5) return;
+    const d = jcIframe(a, _sDmg);
     if (d > 0) damageAnimal(a, d, player.pos, 0.6);
   });
   otherPlayers.forEach((entry, id) => {
     if (id === primary.id) return;
     const g = entry.group.position;
-    if (Math.hypot(g.x - px, g.z - pz) > JC_SWEEP_RADIUS || Math.abs(g.y - py) > 1.5) return;
-    const d = jcIframe(entry, JC_SWEEP_DMG);
+    if (Math.hypot(g.x - px, g.z - pz) > _sRad || Math.abs(g.y - py) > 1.5) return;
+    const d = jcIframe(entry, _sDmg);
     if (d <= 0) return;
     playersChannel.send({ type: 'broadcast', event: 'hit',
       payload: { targetId: id, amount: d, attackerId: MY_ID, kx: g.x - player.pos.x, kz: g.z - player.pos.z, knock: 6 } });
@@ -10321,6 +11102,7 @@ function jcPickTarget(ray, reach, pad, minReach) {
     }
     if (minDist - radius > reach) return;
     if (minReach && minDist - radius < minReach) return;      // spear dead zone
+    if (!canReachTarget(o, px, py, pz, height)) return;       // no hitting through walls
     const mx = px - o.x, my = py + height * 0.5 - o.y, mz = pz - o.z;
     const md = Math.sqrt(mx * mx + my * my + mz * mz) || 1;
     const fwd = (mx * d.x + my * d.y + mz * d.z) / md;
@@ -10341,7 +11123,7 @@ function jcPickTarget(ray, reach, pad, minReach) {
 }
 
 // ================= XP & enchanting =================
-const JC_XP = { spoke: 150, null: 40, skeleton: 8, zombie: 8, breeze: 10, cow: 4, sheep: 3, pig: 3 };           // XP per kill
+const JC_XP = { flamefrags: 800, spoke: 150, null: 40, skeleton: 8, zombie: 8, breeze: 10, cow: 4, sheep: 3, pig: 3 };           // XP per kill
 function xpNeed(level) { return 7 + level * 2; }                  // XP points to climb from `level` to level+1
 const xpLvlEl = document.getElementById('xpLvl'), xpFillEl = document.getElementById('xpFill');
 function jcXpUI() {
@@ -10414,11 +11196,11 @@ const JC_ENCH_TIERS = [
   { name: 'Level V',   cost: 25, level: 5 },
 ];
 // Highest level the table offers per enchant (default 4)
-const JC_ENCH_MAX = { lunge: 3, unbreaking: 3, mending: 1, sharpness: 5, looting: 5, power: 5, charge: 2, infinity: 1, loyalty: 3, riptide: 3, silktouch: 1, density: 5, breach: 5, windburst: 3 };
+const JC_ENCH_MAX = { lunge: 3, unbreaking: 3, mending: 1, sharpness: 5, looting: 5, power: 5, charge: 2, infinity: 1, loyalty: 3, riptide: 3, silktouch: 1, density: 5, breach: 5, windburst: 3, sweepingedge: 3 };
 // Per-enchant cost override (XP levels) for a given tier; others use the tier's normal cost
 const JC_ENCH_COST = { mending: 25, infinity: 25, silktouch: 15 };
 function jcEnchCost(id, t) { return JC_ENCH_COST[id] != null ? JC_ENCH_COST[id] : t.cost; }
-const JC_ENCH_TYPE_IDS = ['efficiency', 'fortune', 'sharpness', 'protection', 'unbreaking', 'mending', 'looting', 'power', 'charge', 'infinity', 'lunge', 'loyalty', 'riptide', 'silktouch', 'density', 'breach', 'windburst'];
+const JC_ENCH_TYPE_IDS = ['efficiency', 'fortune', 'sharpness', 'protection', 'unbreaking', 'mending', 'looting', 'power', 'charge', 'infinity', 'lunge', 'loyalty', 'riptide', 'silktouch', 'density', 'breach', 'windburst', 'sweepingedge'];
 const _fr = (a, b) => Array.from({ length: b - a + 1 }, (_, i) => a + i);
 // Total items dropped per Fortune level [I, II, III] (each list is picked from uniformly, so repeats weight the odds)
 const JC_FORTUNE = {
@@ -10430,12 +11212,12 @@ const JC_FORTUNE = {
   wood:        [[1, 1, 2], [1, 2, 2], [1, 2, 3], _fr(1, 4)],
   birch_wood:  [[1, 1, 2], [1, 2, 2], [1, 2, 3], _fr(1, 4)],
 };
-const JC_ENCH_NAMES = { swap: 'Swap', lunge: 'Lunge', sharpness: 'Sharpness', protection: 'Protection', efficiency: 'Efficiency', fortune: 'Fortune', unbreaking: 'Unbreaking', mending: 'Mending', looting: 'Looting', power: 'Power', charge: 'Charge', infinity: 'Infinity', loyalty: 'Loyalty', riptide: 'Riptide', silktouch: 'Silk Touch', density: 'Density', breach: 'Breach', windburst: 'Wind Burst' };
+const JC_ENCH_NAMES = { swap: 'Swap', lunge: 'Lunge', sharpness: 'Sharpness', protection: 'Protection', efficiency: 'Efficiency', fortune: 'Fortune', unbreaking: 'Unbreaking', mending: 'Mending', looting: 'Looting', power: 'Power', charge: 'Charge', infinity: 'Infinity', loyalty: 'Loyalty', riptide: 'Riptide', silktouch: 'Silk Touch', density: 'Density', breach: 'Breach', windburst: 'Wind Burst', sweepingedge: 'Sweeping Edge' };
 let enchPick = 'efficiency';   // which tool enchant the table will apply (Efficiency / Fortune)
 function jcToolKind(type) { const m = /_(pickaxe|axe|shovel)$/.exec(type || ''); return m ? m[1] : null; }
 function jcEnchInfo(type) {
   let opts = null;
-  if (isSword(type)) opts = ['sharpness', 'looting'];   // Looting: swords (and spears)
+  if (isSword(type)) opts = ['sharpness', 'looting', 'sweepingedge'];   // Looting: swords (and spears); Sweeping Edge: swords only
   else if (isSpear(type)) opts = ['sharpness', 'looting', 'lunge'];   // Lunge: spear only
   else if (isMace(type)) opts = ['density', 'breach', 'windburst', 'looting'];
   else if (isArmor(type)) opts = ['protection'];
@@ -10458,8 +11240,8 @@ function jcCleanEnch(e) {
   if (!e || typeof e !== 'object') return null;
   const out = {}; let any = false;
   // Admin levels from cloud: -9999 … 9999 (0 ignored). Also accept alias keys.
-  const map = { sharpness:1, sharp:1, protection:1, prot:1, efficiency:1, eff:1, fortune:1, fort:1, unbreaking:1, unb:1, mending:1, mend:1, looting:1, loot:1, power:1, charge:1, infinity:1, lunge:1, loyalty:1, loy:1, riptide:1, rip:1, silktouch:1, silk:1, density:1, dens:1, breach:1, windburst:1, wind_burst:1, wb:1, null:1, swap:1 };
-  const canon = { silk: 'silktouch', rip: 'riptide', sharp: 'sharpness', prot: 'protection', eff: 'efficiency', fort: 'fortune', unb: 'unbreaking', mend: 'mending', loot: 'looting', loy: 'loyalty', dens: 'density', wind_burst: 'windburst', wb: 'windburst' };
+  const map = { sharpness:1, sharp:1, protection:1, prot:1, efficiency:1, eff:1, fortune:1, fort:1, unbreaking:1, unb:1, mending:1, mend:1, looting:1, loot:1, power:1, charge:1, infinity:1, lunge:1, loyalty:1, loy:1, riptide:1, rip:1, silktouch:1, silk:1, density:1, dens:1, breach:1, windburst:1, wind_burst:1, wb:1, sweepingedge:1, sweeping_edge:1, sweeping:1, se:1, null:1, swap:1 };
+  const canon = { silk: 'silktouch', rip: 'riptide', sharp: 'sharpness', prot: 'protection', eff: 'efficiency', fort: 'fortune', unb: 'unbreaking', mend: 'mending', loot: 'looting', loy: 'loyalty', dens: 'density', wind_burst: 'windburst', wb: 'windburst', sweeping_edge: 'sweepingedge', sweeping: 'sweepingedge', se: 'sweepingedge' };
   for (const k of Object.keys(e)) {
     const lk = String(k).toLowerCase();
     if (!map[lk]) continue;
@@ -10657,6 +11439,7 @@ function findTargetPlayer() {
     const toP = center.clone().sub(camera.position);
     const dist = toP.length();
     { const br = bodyReach(camera.position, entry.group.position.x, entry.group.position.y, entry.group.position.z, 1.8, 0.3); if (br > R.max || br < R.min) return; }
+    if (!canReachTarget(camera.position, entry.group.position.x, entry.group.position.y, entry.group.position.z, 1.8)) return;   // no hitting through walls
     toP.normalize();
     const angle = dir.angleTo(toP);
     if (angle < 0.4 && dist < bestDist) { best = entry; bestId = id; bestDist = dist; }
@@ -10809,6 +11592,11 @@ playersChannel
   .on('broadcast', { event: 'force_update' }, ({ payload }) => {
     if (!payload || payload.from === MY_ID || payload.name !== 'Yuan') return; // only the creator can force an update
     doForcedUpdate(filterText(String(payload.text || 'The game was updated! Refreshing the page...').slice(0, 120)));
+  })
+  .on('broadcast', { event: 'flame_summon' }, ({ payload }) => {
+    if (!payload || !isMobHost()) return;
+    const x = Number(payload.x), y = Number(payload.y), z = Number(payload.z);
+    if ([x, y, z].every(Number.isFinite)) summonFlame(x, y, z);
   })
   .on('broadcast', { event: 'spoke_summon' }, ({ payload }) => {
     if (!payload || !isMobHost()) return;
@@ -11224,6 +12012,20 @@ function runChatCommand(text) {
     sys('Killed ' + e.name + '.');
     return;
   }
+  if (cmd === 'flame') {
+    const dir = new THREE.Vector3(); camera.getWorldDirection(dir); dir.y = 0;
+    if (dir.lengthSq() < 1e-6) dir.set(0, 0, 1); dir.normalize();
+    let sx = player.pos.x + dir.x * 3, sz = player.pos.z + dir.z * 3;
+    for (const dd of [8, 7, 6, 5, 4, 3]) {
+      const tx = player.pos.x + dir.x * dd, tz = player.pos.z + dir.z * dd;
+      if (!checkCollision(tx, player.pos.y + 0.1, tz, 0.42, 1.8)) { sx = tx; sz = tz; break; }
+    }
+    const sy = player.pos.y + 0.1;
+    if (isMobHost()) summonFlame(sx, sy, sz);
+    else playersChannel.send({ type: 'broadcast', event: 'flame_summon', payload: { x: sx, y: sy, z: sz } });
+    sys('Summoned FlameFrags.');
+    return;
+  }
   if (cmd === 'spoke') {
     const dir = new THREE.Vector3(); camera.getWorldDirection(dir); dir.y = 0;
     if (dir.lengthSq() < 1e-6) dir.set(0, 0, 1); dir.normalize();
@@ -11306,7 +12108,7 @@ function runChatCommand(text) {
     else { weatherForce = null; sys('Weather: natural (usage: /rain on | off | auto)'); }
     return;
   }
-  if (cmd === 'help') { sys('/tpa <player> | /tpaccept | /xp <player|@s|@a> <amount>[L] | /swap | /tp @s <x> <y> <z> | /tp @s <player> | /tp <player> @s | /biome | /spawner [tp] | /give <@s|@a|player> <zombie|skeleton|breeze> [count] | /nulltotem | /spoke | /kill <player|@s|@e> | /rain on|off|auto | /update [message]'); return; }
+  if (cmd === 'help') { sys('/tpa <player> | /tpaccept | /xp <player|@s|@a> <amount>[L] | /swap | /tp @s <x> <y> <z> | /tp @s <player> | /tp <player> @s | /biome | /spawner [tp] | /give <@s|@a|player> <zombie|skeleton|breeze> [count] | /nulltotem | /spoke | /flame | /kill <player|@s|@e> | /rain on|off|auto | /fill <x1> <y1> <z1> <x2> <y2> <z2> <block> [replace|hollow|keep] [filter] | /update [message]'); return; }
   sys('Unknown command: /' + cmd + ' (try /help)');
 }
 
@@ -11527,6 +12329,7 @@ function bindHoldButton(id, onDown, onUp) {
 function placeDoorAt(type, hit, nx, ny, nz, facing, canPlace) {
         // Doors are two blocks tall and need something under them.
         const below = world.get(key(nx, ny - 1, nz));
+        clearWaterForPlace(nx, ny, nz); clearWaterForPlace(nx, ny + 1, nz);
         if (canPlace && below && below.type !== 'water' && !world.has(key(nx, ny, nz)) &&
             !world.has(key(nx, ny + 1, nz)) && !cellHitsPlayer(nx, ny + 1, nz)) {
           removedDiffs.delete(key(nx, ny + 1, nz));
@@ -11576,6 +12379,7 @@ function placeDoorAt(type, hit, nx, ny, nz, facing, canPlace) {
 
 // A bed is two blocks long: the foot goes where you click, the head one block further in the direction you face.
 function placeBedAt(nx, ny, nz, facing, canPlace) {
+  clearWaterForPlace(nx, ny, nz);
   const dv = BED_DV[facing & 3];
   const hx = nx + dv[0], hz = nz + dv[1];
   const solidBelow = (x, z) => { const u = world.get(key(x, ny - 1, z)); return !!(u && u.type !== 'water' && !BLOCK_TYPES[u.type].transparent); };
@@ -11648,6 +12452,7 @@ function tryMobilePlace() {
     meta = spawnerMetaForKind(sk);
     window.__placeSpawnKind = sk;
   }
+  clearWaterForPlace(nx, ny, nz);
   if (canPlace && rsCanPlace(ptype, nx, ny, nz) && (addBlock(nx, ny, nz, ptype, false, meta) && markPlaced(nx, ny, nz))) {
     if (ptype === 'spawner') {
       const b = getBlock(nx, ny, nz);
@@ -13168,6 +13973,7 @@ canvas.addEventListener('mousedown', e => {
     const sneakPlacing = !!(player.crouched && currentBlockType());   // crouching + placeable block in the active hand
     if (!sneakPlacing) {
     if (tryUseFlintAndSteel()) return; // flint and steel: light fire / ignite TNT
+    if (tryUseBucket()) return; // bucket: take / pour water
     if (tryIgniteLookedTnt()) return; // right-click TNT = light the fuse (works with any item in hand)
     // Functional blocks (chest / table / furnace / …) — already handled in the off-hand
     // listener above when that runs first; still check here for the no-offhand path.
@@ -13241,6 +14047,7 @@ canvas.addEventListener('mousedown', e => {
         }
         const below = world.get(key(nx, ny - 1, nz));
         const supportOk = wall ? true : (below && below.type !== 'water' && !BLOCK_TYPES[below.type].transparent);
+        clearWaterForPlace(nx, ny, nz);
         if (canPlace && supportOk && !world.has(key(nx, ny, nz)) && addBlock(nx, ny, nz, 'sign', false, face | wall)) {
           removeFromCurrentSlot(1);
           flushDirtyChunks(false);
@@ -13262,6 +14069,7 @@ canvas.addEventListener('mousedown', e => {
           meta = spawnerMetaForKind(sk);
           window.__placeSpawnKind = sk;
         }
+        clearWaterForPlace(nx, ny, nz);
         if (canPlace && rsCanPlace(ptype, nx, ny, nz) && (addBlock(nx, ny, nz, ptype, false, meta) && markPlaced(nx, ny, nz))) {
           if (ptype === 'spawner') {
             const b = getBlock(nx, ny, nz);
@@ -13606,6 +14414,61 @@ function spawnBurnPuff(p) {
     tntFx.push({ kind: 'debris', mesh, mat: m, shared: true, size: sz, t: 0, life: 0.5 + Math.random() * 0.4,
       v: new THREE.Vector3((Math.random() - 0.5) * 1.2, 1.5 + Math.random() * 1.5, (Math.random() - 0.5) * 1.2) });
   }
+}
+
+// ---------- Bucket: right-click a water source to take it, right-click again to pour it ----------
+function bucketRay() {
+  const dir = new THREE.Vector3(); camera.getWorldDirection(dir);
+  const o = camera.position; let prev = null;
+  for (let t = 0; t <= 5; t += 0.05) {
+    const x = Math.round(o.x + dir.x * t), y = Math.round(o.y + dir.y * t), z = Math.round(o.z + dir.z * t);
+    if (prev && prev.x === x && prev.y === y && prev.z === z) continue;
+    const b = world.get(key(x, y, z));
+    if (b) return { cell: { x, y, z }, b, prev, water: b.type === 'water' };
+    prev = { x, y, z };
+  }
+  return null;
+}
+function bucketSwap(toType) {
+  const held = currentItem();
+  if (held.count > 1) {
+    removeFromCurrentSlot(1);
+    const left = addItemToInventory(toType, 1);
+    if (left > 0) spawnDroppedItem(toType, left, new THREE.Vector3(player.pos.x, player.pos.y + 1, player.pos.z), new THREE.Vector3(0, 2, 0));
+  } else setCurrentItem({ type: toType, count: 1 });
+  renderHotbar(); if (inventoryOpen) try { renderInventoryPanel(); } catch (e) {}
+  saveLocalPlayer();
+}
+function tryUseBucket() {
+  const held = currentItem();
+  if (!held || (held.type !== 'bucket' && held.type !== 'water_bucket')) return false;
+  startSwing();
+  const r = bucketRay();
+  if (!r) return true;
+  if (held.type === 'bucket') {   // take a water SOURCE
+    if (!r.water || r.b.flow) return true;
+    const { x, y, z } = r.cell;
+    removeBlock(x, y, z);
+    if (waterSrcCount(x, y, z) < 2) pushBlockDiff(x, y, z, 'air');   // won't refill by itself: save the hole (a pool with 2+ source sides refills)
+    waterOnRemoved(x, y, z);
+    bucketSwap('water_bucket');
+    return true;
+  }
+  // pour: into the clicked flowing-water cell, or the open cell in front of the face you clicked
+  let c = null;
+  if (r.water && r.b.flow) c = r.cell; else if (r.prev) c = r.prev;
+  if (!c) return true;
+  const k = key(c.x, c.y, c.z), ex = world.get(k);
+  if (ex && !(ex.type === 'water' && ex.flow)) return true;
+  const px = Math.round(player.pos.x), pz = Math.round(player.pos.z), py = Math.round(player.pos.y);
+  if (c.x === px && c.z === pz && (c.y === py || c.y === py + 1)) return true;   // not inside yourself
+  if (ex) { world.delete(k); _wfCells.delete(k); }
+  pushBlockDiff(c.x, c.y, c.z, 'water');
+  if (!addBlock(c.x, c.y, c.z, 'water')) { world.set(k, { type: 'water', x: c.x, y: c.y, z: c.z, meta: 0 }); markChunkDirty(c.x, c.z); }
+  markPlaced(c.x, c.y, c.z);
+  waterEnq(c.x, c.y, c.z);
+  bucketSwap('bucket');
+  return true;
 }
 // Right-click with flint and steel: TNT -> primed; anything else -> fire in the cell in front of the face you clicked.
 function tryUseFlintAndSteel() {
@@ -14224,6 +15087,9 @@ function animate() {
   updateAnimals(dt);
   updateAnimalSpawning(dt);
   updateSpokeHud(dt);
+  updateWaterFlow(dt);
+  updateWaterAnim();
+  updateWaterPush(dt);
   updateDroppedItems(dt);
   updateBow(dt);
   updateSpearCharge(dt);
@@ -14303,7 +15169,8 @@ function animate() {
   // only happened while pointer-locked, which made the player float in
   // place (ignoring gravity) whenever chat or the inventory was open.
   if (inWater) {
-    player.vel.y -= 6*dt;
+    player.vel.y -= 2.5*dt;                       // sink slowly
+    if (player.vel.y < -1.2) player.vel.y += (-1.2 - player.vel.y) * Math.min(1, 8*dt);   // soak up a fast fall quickly
     if (isPlaying() && (keyDown('jump') || mobile.jump)) player.vel.y = 4.5;
     // Climb out: pushing against a bank with open space above it gives a
     // boost that carries you over the edge (like vanilla Minecraft).
@@ -14314,7 +15181,7 @@ function animate() {
         player.vel.y = Math.max(player.vel.y, 7.5);
       }
     }
-    player.vel.y = Math.max(player.vel.y, -3);
+    player.vel.y = Math.max(player.vel.y, -1.5);
   } else {
     player.vel.y -= 26*dt;
     if (player.onGround && isPlaying() && (keyDown('jump') || mobile.jump)) {
@@ -14378,6 +15245,7 @@ function animate() {
   }
   if (touchMode) setMobileVisible(gameStarted && !menusOpen());
   updateHunger(dt, isMoving, sprinting);
+  updateOxygen(dt);
   broadcastMyPosition(dt);
 
   updateOtherPlayerVisuals(dt);
@@ -14622,7 +15490,7 @@ animate();
   const DEFAULT_NAME = 'Realistic LOW (built-in)';
 
   // game key -> candidate file names. Java names first, Bedrock after. Subfolders allowed.
-  const BLOCKS = {"cobblestone": ["cobblestone"], "wool": ["white_wool", "wool_colored_white"], "grassTop": ["grass_block_top", "grass_carried", "grass_top"], "grassSide": ["grass_block_side", "grass_side_carried", "grass_side"], "dirt": ["dirt"], "stone": ["stone"], "iron_ore": ["iron_ore"], "gold_ore": ["gold_ore"], "diamond_ore": ["diamond_ore"], "coalOre": ["coal_ore"], "redstone_ore": ["redstone_ore"], "planks": ["oak_planks", "planks_oak"], "leaves": ["oak_leaves", "leaves_oak"], "brick": ["bricks", "brick"], "tnt": ["tnt_side"], "tntTop": ["tnt_top"], "craftTop": ["crafting_table/top", "crafting_table_top"], "craftSide": ["crafting_table/side", "crafting_table_side"], "sapling": ["oak_sapling", "sapling_oak"], "wood": ["oak_log", "log_oak"], "woodTop": ["oak_log_top", "log_oak_top"], "sand": ["sand"], "water": ["water_still"], "torch": ["torch", "torch_on"], "furnace": ["furnace_front", "furnace_front_off"], "doorLower": ["oak_door_bottom", "door_wood_lower"], "doorUpper": ["oak_door_top", "door_wood_upper"], "trapdoor": ["oak_trapdoor", "trapdoor"], "birchWood": ["birch_log", "log_birch"], "birchWoodTop": ["birch_log_top", "log_birch_top"], "birch_planks": ["birch_planks", "planks_birch"], "birch_leaves": ["birch_leaves", "leaves_birch"], "birchDoorLower": ["birch_door_bottom", "door_birch_lower"], "birchDoorUpper": ["birch_door_top", "door_birch_upper"], "birchTrapdoor": ["birch_trapdoor"], "enchSide": ["enchanting_table_side"], "enchTop": ["enchanting_table_top"], "spawner": ["spawner", "mob_spawner"], "tall_grass": ["tall_grass_bottom", "tallgrass", "short_grass"], "farmland": ["farmland", "farmland_dry"], "wheat_0": ["wheat_stage0", "wheat_stage_0"], "wheat_1": ["wheat_stage3", "wheat_stage_3"], "wheat_2": ["wheat_stage5", "wheat_stage_5"], "wheat_3": ["wheat_stage7", "wheat_stage_7"], "fire": ["fire_0"], "chest": ["chest_front"], "chestTop": ["chest_top"], "enderChest": ["ender_chest_front"], "enderChestTop": ["ender_chest_top"], "bedTopHead": ["bed_head_top"], "bedTopFoot": ["bed_feet_top"], "bedSideHead": ["bed_head_side"], "bedSideFoot": ["bed_feet_side"], "bedEndHead": ["bed_head_end"], "bedEndFoot": ["bed_feet_end"]};
+  const BLOCKS = {"cobblestone": ["cobblestone"], "wool": ["white_wool", "wool_colored_white"], "grassTop": ["grass_block_top", "grass_carried", "grass_top"], "grassSide": ["grass_block_side", "grass_side_carried", "grass_side"], "dirt": ["dirt"], "stone": ["stone"], "iron_ore": ["iron_ore"], "gold_ore": ["gold_ore"], "diamond_ore": ["diamond_ore"], "coalOre": ["coal_ore"], "redstone_ore": ["redstone_ore"], "planks": ["oak_planks", "planks_oak"], "leaves": ["oak_leaves", "leaves_oak"], "brick": ["bricks", "brick"], "tnt": ["tnt_side"], "tntTop": ["tnt_top"], "craftTop": ["crafting_table/top", "crafting_table_top"], "craftSide": ["crafting_table/side", "crafting_table_side"], "sapling": ["oak_sapling", "sapling_oak"], "wood": ["oak_log", "log_oak"], "woodTop": ["oak_log_top", "log_oak_top"], "sand": ["sand"], "water": ["water_still"], "torch": ["torch", "torch_on"], "furnace": ["furnace_front", "furnace_front_off"], "doorLower": ["oak_door_bottom", "door_wood_lower"], "doorUpper": ["oak_door_top", "door_wood_upper"], "trapdoor": ["oak_trapdoor", "trapdoor"], "birchWood": ["birch_log", "log_birch"], "birchWoodTop": ["birch_log_top", "log_birch_top"], "birch_planks": ["birch_planks", "planks_birch"], "birch_leaves": ["birch_leaves", "leaves_birch"], "birchDoorLower": ["birch_door_bottom", "door_birch_lower"], "birchDoorUpper": ["birch_door_top", "door_birch_upper"], "birchTrapdoor": ["birch_trapdoor"], "enchSide": ["enchanting_table_side"], "enchTop": ["enchanting_table_top"], "spawner": ["spawner", "mob_spawner"], "cobweb": ["cobweb", "web"], "tall_grass": ["tall_grass_bottom", "tallgrass", "short_grass"], "farmland": ["farmland", "farmland_dry"], "wheat_0": ["wheat_stage0", "wheat_stage_0"], "wheat_1": ["wheat_stage3", "wheat_stage_3"], "wheat_2": ["wheat_stage5", "wheat_stage_5"], "wheat_3": ["wheat_stage7", "wheat_stage_7"], "fire": ["fire_0"], "chest": ["chest_front"], "chestTop": ["chest_top"], "enderChest": ["ender_chest_front"], "enderChestTop": ["ender_chest_top"], "bedTopHead": ["bed_head_top"], "bedTopFoot": ["bed_feet_top"], "bedSideHead": ["bed_head_side"], "bedSideFoot": ["bed_feet_side"], "bedEndHead": ["bed_head_end"], "bedEndFoot": ["bed_feet_end"]};
   const ITEMS = (function () {
     const m = {"apple": ["apple"], "bread": ["bread"], "wheat": ["wheat"], "wheat_seeds": ["wheat_seeds", "seeds_wheat"], "raw_beef": ["beef", "beef_raw"], "cooked_beef": ["cooked_beef", "beef_cooked"], "raw_porkchop": ["porkchop", "porkchop_raw"], "cooked_porkchop": ["cooked_porkchop", "porkchop_cooked"], "raw_mutton": ["mutton", "mutton_raw"], "cooked_mutton": ["cooked_mutton", "mutton_cooked"], "golden_apple": ["golden_apple", "apple_golden"], "gold_nugget": ["gold_nugget"], "charcoal": ["charcoal"], "iron_ingot": ["iron_ingot"], "gold_ingot": ["gold_ingot"], "diamond": ["diamond"], "coal": ["coal"], "stick": ["stick"], "arrow": ["arrow"], "bow": ["bow", "bow_standby"], "sign": ["oak_sign", "sign"], "trident": ["trident"], "breeze_rod": ["breeze_rod"], "wind_charge": ["wind_charge"], "mace": ["mace"], "heavy_core": ["heavy_core"], "totem_of_undying": ["totem_of_undying", "totem"]};
     const mats = { wood: ['wooden', 'wood'], stone: ['stone', 'stone'], iron: ['iron', 'iron'], gold: ['golden', 'gold'], diamond: ['diamond', 'diamond'] };
@@ -14635,7 +15503,7 @@ animate();
     return m;
   })();
   // blocks that must stay see-through (everything else is made opaque, the game draws them with opaque materials)
-  const SEE_THROUGH = /^(sapling|tall_grass|wheat_\d|torch|fire|door|birchDoor|trapdoor|birchTrapdoor|water)/;
+  const SEE_THROUGH = /^(sapling|tall_grass|cobweb|wheat_\d|torch|fire|door|birchDoor|trapdoor|birchTrapdoor|water)/;
   const TINTS = { grassTop: '#8fc060', grassSide: '#8fc060', tall_grass: '#8fc060', leaves: '#72ad45', birch_leaves: '#80a755', water: '#3f76e4' };
   const NO_TINT_OVERLAY_KEYS = {};
 
