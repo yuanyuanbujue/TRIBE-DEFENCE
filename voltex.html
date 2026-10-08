@@ -10591,6 +10591,10 @@ playersChannel
     if (a.hp <= 0) killAnimal(a, payload.by);
   })
   .on('broadcast', { event: 'kill_player' }, ({ payload }) => { if (payload && payload.to === MY_ID) killPlayerNow(); })
+  .on('broadcast', { event: 'give_spawner' }, ({ payload }) => {
+    if (!payload || payload.from === MY_ID || (payload.to !== '*' && payload.to !== MY_ID)) return;
+    if (givePlayerSpawner(payload.kind, payload.count)) addChatLine('System', 'You were given ' + (payload.count || 1) + ' ' + payload.kind + ' spawner(s).', true);
+  })
   .on('broadcast', { event: 'force_tp' }, ({ payload }) => {
     if (!payload || payload.to !== MY_ID) return;
     const x = Number(payload.x), y = Number(payload.y), z = Number(payload.z);
@@ -10905,6 +10909,14 @@ function findPlayerByName(name) {
   });
   return exact || partial;
 }
+function givePlayerSpawner(kind, count) {
+  if (kind !== 'zombie' && kind !== 'skeleton' && kind !== 'breeze') return false;
+  const n = Math.max(1, Math.min(64, Math.trunc(Number(count)) || 1));
+  const left = addItemToInventory('spawner', n, null, null, kind, spawnerMetaForKind(kind));
+  if (left > 0) spawnDroppedItem('spawner', left, new THREE.Vector3(player.pos.x, player.pos.y + 1, player.pos.z), undefined, { spawnKind: kind, meta: spawnerMetaForKind(kind) });
+  try { renderHotbar(); if (inventoryOpen) renderInventoryPanel(); saveLocalPlayer(); } catch (e) {}
+  return true;
+}
 function runChatCommand(text) {
   const parts = text.slice(1).trim().split(/\s+/);
   const cmd = (parts.shift() || '').toLowerCase();
@@ -10996,6 +11008,24 @@ function runChatCommand(text) {
     return;
   }
   if (cmd === 'biome') { sys('Biome: ' + biomeAt(Math.floor(player.pos.x), Math.floor(player.pos.z))); return; }
+  // /give <@s|@a|player> <zombie|skeleton|breeze> [count] - gives mob spawners of that type
+  if (cmd === 'give' && parts.length >= 2 && ['zombie', 'skeleton', 'breeze'].includes((parts[1] || '').toLowerCase())) {
+    const who = parts[0], kind = parts[1].toLowerCase(), count = parts[2] || 1;
+    if (who === '@s' || who === '@p' || who.toLowerCase() === (MY_NAME || '').toLowerCase()) {
+      givePlayerSpawner(kind, count); sys('Gave yourself ' + (Math.max(1, Math.min(64, Math.trunc(Number(count)) || 1))) + ' ' + kind + ' spawner(s).'); return;
+    }
+    if (who === '@a') {
+      givePlayerSpawner(kind, count);
+      playersChannel.send({ type: 'broadcast', event: 'give_spawner', payload: { from: MY_ID, to: '*', kind, count: Number(count) || 1 } });
+      sys('Gave everyone ' + kind + ' spawner(s).'); return;
+    }
+    const e = findPlayerByName(who); let tid = null;
+    otherPlayers.forEach((q, id) => { if (q === e) tid = id; });
+    if (!e || tid == null) { sys('No player found: ' + who); return; }
+    playersChannel.send({ type: 'broadcast', event: 'give_spawner', payload: { from: MY_ID, to: tid, kind, count: Number(count) || 1 } });
+    sys('Gave ' + e.name + ' ' + kind + ' spawner(s).'); return;
+  }
+  if (cmd === 'give' && (parts[0] || '').toLowerCase() !== 'null_totem') { sys('Usage: /give <@s|@a|player> <zombie|skeleton|breeze> [count]'); return; }
   // /nulltotem — give a Null Totem (10 uses, Null enchant). Creator only.
   if (cmd === 'nulltotem' || cmd === 'null_totem' || (cmd === 'give' && (parts[0] || '').toLowerCase() === 'null_totem')) {
     let slot = -1;
@@ -11013,7 +11043,7 @@ function runChatCommand(text) {
     else { weatherForce = null; sys('Weather: natural (usage: /rain on | off | auto)'); }
     return;
   }
-  if (cmd === 'help') { sys('/tp @s <x> <y> <z> | /tp @s <player> | /tp <player> @s | /biome | /spawner [tp] | /nulltotem | /spoke | /kill <player|@s|@e> | /rain on|off|auto | /update [message]'); return; }
+  if (cmd === 'help') { sys('/tp @s <x> <y> <z> | /tp @s <player> | /tp <player> @s | /biome | /spawner [tp] | /give <@s|@a|player> <zombie|skeleton|breeze> [count] | /nulltotem | /spoke | /kill <player|@s|@e> | /rain on|off|auto | /update [message]'); return; }
   sys('Unknown command: /' + cmd + ' (try /help)');
 }
 
