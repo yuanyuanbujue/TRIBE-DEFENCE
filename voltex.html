@@ -6125,16 +6125,49 @@ let timeOffset = 0;   // seconds added to Date.now()/1000
 function sharedClock() { return Date.now() / 1000 + timeOffset; }
 function clockToWorldTime(c) { return (((c / DAY_LENGTH) + 0.25) % 1 + 1) % 1; }
 function adoptSharedClock(c) { if (typeof c === 'number' && isFinite(c)) timeOffset = c - Date.now() / 1000; }
-// ================= Weather: rain =================
-// Weather is derived from the shared clock, so every player sees rain start and stop together.
-let rainLevel = 0, weatherForce = null;   // weatherForce: null = natural, 0 = clear, 1 = rain (set by /rain)
+// ================= Weather: rain + fog =================
+// Natural weather uses the shared clock so every client sees the same cycle.
+// Forced weather (/rain, /fog, /weather) is broadcast so everyone stays in sync.
+let rainLevel = 0, fogLevel = 0, weatherForce = null;   // null = natural; 0 = clear; 1 = rain; 2 = fog
 const RAIN_SLOT = 420;                    // seconds per weather slot
 function _wHash(n) { const x = Math.sin(n * 127.1 + 311.7) * 43758.5453; return x - Math.floor(x); }
+function weatherKindAt(t) {
+  const sl = Math.floor(t / RAIN_SLOT), h = _wHash(sl);
+  if (h > 0.48) return 'clear';   // ~52% clear
+  if (h > 0.30) return 'fog';     // ~18% fog
+  return 'rain';                  // ~30% rain
+}
 function rainTargetAt(t) {
+  if (weatherKindAt(t) !== 'rain') return 0;
   const sl = Math.floor(t / RAIN_SLOT), f = t / RAIN_SLOT - sl;
-  if (_wHash(sl) > 0.28) return 0;                       // ~28% of slots are rainy
   const ramp = 0.12, edge = Math.max(0, Math.min(1, f / ramp, (1 - f) / ramp));
-  return edge * (0.65 + 0.35 * _wHash(sl + 99));         // some storms are lighter than others
+  return edge * (0.65 + 0.35 * _wHash(sl + 99));
+}
+function fogTargetAt(t) {
+  if (weatherKindAt(t) !== 'fog') return 0;
+  const sl = Math.floor(t / RAIN_SLOT), f = t / RAIN_SLOT - sl;
+  const ramp = 0.15, edge = Math.max(0, Math.min(1, f / ramp, (1 - f) / ramp));
+  return edge * (0.75 + 0.25 * _wHash(sl + 55));   // dense fog strength 0.75–1
+}
+function setWeatherForce(mode, announce) {
+  // mode: null | 0 | 1 | 2
+  weatherForce = mode;
+  // Snap immediately so every client sees the change without waiting for the lerp
+  if (mode === 0) { rainLevel = 0; fogLevel = 0; }
+  else if (mode === 1) { rainLevel = 1; fogLevel = 0; }
+  else if (mode === 2) { rainLevel = 0; fogLevel = 1; }
+  if (announce) {
+    const label = mode === 0 ? 'clear' : mode === 1 ? 'rain' : mode === 2 ? 'fog' : 'natural (auto)';
+    addChatLine('System', 'Weather: ' + label + ' (everyone)', true);
+  }
+}
+function broadcastWeather(mode) {
+  const payload = { from: MY_ID, name: typeof MY_NAME !== 'undefined' ? MY_NAME : '', mode: mode === null ? 'auto' : mode };
+  try {
+    if (typeof playersChannel !== 'undefined' && playersChannel) {
+      playersChannel.send({ type: 'broadcast', event: 'weather_sync', payload });
+    }
+  } catch (e) {}
 }
 function brightMul() { try { return settings.brightness / 100; } catch (e) { return 1; } }
 const RAIN_N = 900, RAIN_W = 26, RAIN_H = 22;
@@ -6150,10 +6183,32 @@ scene.add(rainMesh);
 let _rainInit = false, _rainShelter = 0, _rainShelterT = 0, _rainCovered = false;
 const _rainSky = new THREE.Color(0x4a5260);
 function updateWeather(dt) {
-  let target = 0;
-  try { target = (settings.rain === false) ? 0 : (weatherForce != null ? weatherForce : rainTargetAt(sharedClock())); } catch (e) {}
-  rainLevel += (target - rainLevel) * Math.min(1, dt * 0.6);
-  if (Math.abs(target - rainLevel) < 0.002) rainLevel = target;
+  let rainT = 0, fogT = 0;
+  try {
+    if (settings.rain === false && weatherForce == null) { rainT = 0; fogT = 0; }
+    else if (weatherForce === 0) { rainT = 0; fogT = 0; }
+    else if (weatherForce === 1) { rainT = 1; fogT = 0; }
+    else if (weatherForce === 2) { rainT = 0; fogT = 1; }
+    else {
+      const t = sharedClock();
+      rainT = rainTargetAt(t);
+      fogT = fogTargetAt(t);
+    }
+  } catch (e) {}
+  rainLevel += (rainT - rainLevel) * Math.min(1, dt * 0.6);
+  fogLevel  += (fogT  - fogLevel)  * Math.min(1, dt * 0.55);
+  if (Math.abs(rainT - rainLevel) < 0.002) rainLevel = rainT;
+  if (Math.abs(fogT  - fogLevel)  < 0.002) fogLevel  = fogT;
+  // Dense fog: pull scene fog very close so far terrain vanishes
+  try {
+    if (fogLevel > 0.02) {
+      const far = 6 + (1 - fogLevel) * 10;   // ~6–16 blocks visibility
+      scene.fog.near = 1.2;
+      scene.fog.far = far;
+    } else {
+      applyFogForRenderDistance(RENDER_CHUNKS);
+    }
+  } catch (e) {}
   if (document.hidden) return;                           // nothing to draw in a hidden tab
   if (rainLevel < 0.02) { rainMesh.visible = false; return; }
   const cx = camera.position.x, cy = camera.position.y, cz = camera.position.z;
@@ -6191,6 +6246,206 @@ function updateWeather(dt) {
   _rainGeo.attributes.position.needsUpdate = true;
 }
 
+// ================= Fog phantoms (Watcher + Corrupted) =================
+// Only appear during dense fog. Not real mobs: no hitbox, not in animals[], cannot be fought.
+const fogPhantoms = [];   // { kind:'watcher'|'corrupted', group, pos, life, cd, parts }
+let _fogWatchCd = 0, _fogCorrCd = 0;
+
+function _fogGroundY(x, z) {
+  try {
+    if (typeof findGrassSurface === 'function') {
+      const y = findGrassSurface(Math.floor(x), Math.floor(z));
+      if (y != null) return y + 1;
+    }
+  } catch (e) {}
+  try { return (typeof noise2D === 'function' ? noise2D(Math.floor(x), Math.floor(z)) : 64) + 1; } catch (e) { return player.pos.y; }
+}
+
+function _makeFogHumanoid(kind) {
+  const group = new THREE.Group();
+  const isCorr = kind === 'corrupted';
+  const base = isCorr ? 0x140018 : 0xffffff;
+  const accent = isCorr ? 0x7a00c8 : 0xf0f0f0;
+  const mkMat = (hex) => {
+    const m = new THREE.MeshLambertMaterial({
+      color: hex, transparent: true, opacity: isCorr ? 0.92 : 0.88,
+      depthWrite: !isCorr, fog: true
+    });
+    if (!isCorr) { m.emissive = new THREE.Color(0x666666); m.emissiveIntensity = 0.35; }
+    else { m.emissive = new THREE.Color(0x3a0060); m.emissiveIntensity = 0.45; }
+    return m;
+  };
+  // Classic Steve proportions (same as buildHumanoid)
+  const torso = new THREE.Mesh(new THREE.BoxGeometry(0.5, 0.75, 0.25), mkMat(isCorr ? 0x1a001f : base));
+  torso.position.y = 1.125;
+  const head = new THREE.Mesh(new THREE.BoxGeometry(0.5, 0.5, 0.5), mkMat(isCorr ? 0x2a0040 : 0xffffff));
+  head.position.y = 1.75;
+  const legGeo = new THREE.BoxGeometry(0.25, 0.75, 0.25); legGeo.translate(0, -0.375, 0);
+  const legL = new THREE.Mesh(legGeo, mkMat(isCorr ? 0x0c000e : 0xe8e8e8)); legL.position.set(-0.125, 0.75, 0);
+  const legR = new THREE.Mesh(legGeo, mkMat(isCorr ? 0x0c000e : 0xe8e8e8)); legR.position.set(0.125, 0.75, 0);
+  const armGeo = new THREE.BoxGeometry(0.25, 0.75, 0.25); armGeo.translate(0, -0.375, 0);
+  const armL = new THREE.Mesh(armGeo, mkMat(isCorr ? 0x3d0070 : 0xffffff)); armL.position.set(-0.375, 1.5, 0);
+  const armR = new THREE.Mesh(armGeo, mkMat(isCorr ? 0x3d0070 : 0xffffff)); armR.position.set(0.375, 1.5, 0);
+  // Corrupted: purple/black blotches on body
+  if (isCorr) {
+    for (let i = 0; i < 6; i++) {
+      const blot = new THREE.Mesh(
+        new THREE.BoxGeometry(0.12 + Math.random() * 0.1, 0.12 + Math.random() * 0.12, 0.08),
+        mkMat(Math.random() < 0.5 ? 0x000000 : 0x9b30ff)
+      );
+      blot.position.set((Math.random() - 0.5) * 0.4, 0.9 + Math.random() * 0.9, 0.14);
+      group.add(blot);
+    }
+  }
+  group.add(torso, head, legL, legR, armL, armR);
+  group.userData.fogPhantom = true;
+  group.userData.parts = { head, torso, legL, legR, armL, armR };
+  return group;
+}
+
+function _fogLookingAt(pos, maxDist) {
+  try {
+    const ray = getAimRay();
+    const dx = pos.x - ray.origin.x, dy = (pos.y + 1.2) - ray.origin.y, dz = pos.z - ray.origin.z;
+    const len = Math.sqrt(dx * dx + dy * dy + dz * dz) || 1;
+    if (len > (maxDist || 28)) return false;
+    const dot = (dx * ray.dir.x + dy * ray.dir.y + dz * ray.dir.z) / len;
+    return dot > 0.88;   // roughly centered in view
+  } catch (e) { return false; }
+}
+
+function _spawnFogPhantom(kind) {
+  const ang = Math.random() * Math.PI * 2;
+  // Watcher stands farther (edge of fog); Corrupted can be closer in the mist
+  const dist = kind === 'watcher' ? (16 + Math.random() * 10) : (10 + Math.random() * 14);
+  const x = player.pos.x + Math.cos(ang) * dist;
+  const z = player.pos.z + Math.sin(ang) * dist;
+  const y = _fogGroundY(x, z);
+  const group = _makeFogHumanoid(kind);
+  group.position.set(x, y, z);
+  // Face the player
+  group.rotation.y = Math.atan2(player.pos.x - x, player.pos.z - z);
+  scene.add(group);
+  const life = kind === 'watcher' ? 25 + Math.random() * 20 : 8 + Math.random() * 14;
+  fogPhantoms.push({
+    kind, group, pos: { x, y, z }, life, age: 0,
+    particles: []
+  });
+}
+
+function _despawnFogPhantom(p, i) {
+  if (p.particles) {
+    for (const q of p.particles) { if (q.mesh && q.mesh.parent) q.mesh.parent.remove(q.mesh); if (q.mesh && q.mesh.material) q.mesh.material.dispose(); }
+  }
+  if (p.group) {
+    scene.remove(p.group);
+    p.group.traverse(o => { if (o.geometry) o.geometry.dispose(); if (o.material) o.material.dispose(); });
+  }
+  fogPhantoms.splice(i, 1);
+}
+
+function _clearAllFogPhantoms() {
+  for (let i = fogPhantoms.length - 1; i >= 0; i--) _despawnFogPhantom(fogPhantoms[i], i);
+}
+
+function updateFogPhantoms(dt) {
+  // Only during dense fog
+  if (!(typeof fogLevel === 'number') || fogLevel < 0.4) {
+    if (fogPhantoms.length) _clearAllFogPhantoms();
+    _fogWatchCd = 2;
+    _fogCorrCd = 3;
+    return;
+  }
+  _fogWatchCd -= dt;
+  _fogCorrCd -= dt;
+
+  // Spawn: at most one Watcher; a few Corrupted
+  let watchers = 0, corrs = 0;
+  for (const p of fogPhantoms) { if (p.kind === 'watcher') watchers++; else corrs++; }
+  if (watchers < 1 && _fogWatchCd <= 0) {
+    _spawnFogPhantom('watcher');
+    _fogWatchCd = 14 + Math.random() * 18;
+  }
+  if (corrs < 3 && _fogCorrCd <= 0) {
+    _spawnFogPhantom('corrupted');
+    _fogCorrCd = 5 + Math.random() * 9;
+  }
+
+  for (let i = fogPhantoms.length - 1; i >= 0; i--) {
+    const p = fogPhantoms[i];
+    p.age += dt;
+    p.life -= dt;
+    const dx = p.pos.x - player.pos.x, dz = p.pos.z - player.pos.z;
+    const dist = Math.hypot(dx, dz);
+
+    // Always face the player (watching)
+    if (p.group) {
+      p.group.rotation.y = Math.atan2(player.pos.x - p.pos.x, player.pos.z - p.pos.z);
+      // Idle sway
+      const ud = p.group.userData.parts;
+      if (ud) {
+        const s = Math.sin(p.age * 1.4) * 0.04;
+        ud.armL.rotation.x = s; ud.armR.rotation.x = -s;
+        ud.legL.rotation.x = -s * 0.5; ud.legR.rotation.x = s * 0.5;
+      }
+    }
+
+    // Corrupted: purple/black particles
+    if (p.kind === 'corrupted' && p.group) {
+      p._pt = (p._pt || 0) - dt;
+      if (p._pt <= 0) {
+        p._pt = 0.08;
+        const geo = new THREE.BoxGeometry(0.07, 0.07, 0.07);
+        const mat = new THREE.MeshBasicMaterial({
+          color: Math.random() < 0.5 ? 0x000000 : 0xaa40ff,
+          transparent: true, opacity: 0.9, depthWrite: false
+        });
+        const mesh = new THREE.Mesh(geo, mat);
+        mesh.position.set(
+          p.pos.x + (Math.random() - 0.5) * 0.6,
+          p.pos.y + 0.4 + Math.random() * 1.4,
+          p.pos.z + (Math.random() - 0.5) * 0.6
+        );
+        scene.add(mesh);
+        p.particles.push({
+          mesh,
+          vx: (Math.random() - 0.5) * 0.6,
+          vy: 0.4 + Math.random() * 0.8,
+          vz: (Math.random() - 0.5) * 0.6,
+          life: 0.5 + Math.random() * 0.5
+        });
+      }
+      for (let j = p.particles.length - 1; j >= 0; j--) {
+        const q = p.particles[j];
+        q.life -= dt;
+        q.mesh.position.x += q.vx * dt;
+        q.mesh.position.y += q.vy * dt;
+        q.mesh.position.z += q.vz * dt;
+        q.mesh.material.opacity = Math.max(0, q.life * 1.5);
+        if (q.life <= 0) {
+          scene.remove(q.mesh);
+          q.mesh.geometry.dispose();
+          q.mesh.material.dispose();
+          p.particles.splice(j, 1);
+        }
+      }
+    }
+
+    // Despawn rules
+    let go = false;
+    if (p.life <= 0) go = true;
+    if (p.kind === 'watcher') {
+      // Spot (look at) or approach → vanish
+      if (dist < 10) go = true;
+      if (_fogLookingAt(p.pos, 30)) go = true;
+    } else {
+      // Corrupted: near player or timed out
+      if (dist < 6) go = true;
+    }
+    if (go) _despawnFogPhantom(p, i);
+  }
+}
+
 function updateDayNight(dt) {
   worldTime = clockToWorldTime(sharedClock());
   const angle = worldTime * Math.PI * 2;
@@ -6205,7 +6460,7 @@ function updateDayNight(dt) {
   // caves, overhangs, the underside of a roof) now drop close to black
   // instead of the old 0.15-0.2 floor, so a torch actually matters.
   updateWeather(dt);
-  const brightness = Math.max(0.12, sunHeight * 0.5 + 0.5) * (1 - 0.3 * rainLevel); // overcast while it rains
+  const brightness = Math.max(0.12, sunHeight * 0.5 + 0.5) * (1 - 0.3 * rainLevel) * (1 - 0.35 * fogLevel); // overcast rain / muted fog
   dayBrightness = brightness;
   const bm = brightMul(), lift = Math.max(0, bm - 1) * 0.15;   // Settings > Graphics > Brightness
   sun.intensity = (0.08 + brightness * 0.9) * (0.5 + 0.5 * bm);
@@ -6216,6 +6471,10 @@ function updateDayNight(dt) {
   const nightCol = new THREE.Color(0x02030a);
   const mixed = dayCol.clone().lerp(nightCol, 1 - Math.min(1, brightness));
   if (rainLevel > 0.001) mixed.lerp(_rainSky, 0.6 * rainLevel * Math.min(1, brightness * 1.5));   // grey sky
+  if (fogLevel > 0.001) {
+    const fogSky = new THREE.Color(0x9aa3ad);
+    mixed.lerp(fogSky, 0.85 * fogLevel);   // washed-out dense fog atmosphere
+  }
   scene.background = mixed;
   scene.fog.color = mixed;
 }
@@ -8724,12 +8983,20 @@ function throwHeldTrident(charged) {
   damageHeldTool(1);                                 // wear (Unbreaking applies); it can break
   const h = tridentHeld(); if (!h) return;
   const item = jcCopy(h, 1);
-  const ray = getAimRay();
-  const dir = ray.dir.clone().normalize();
-  const origin = ray.origin.clone().add(dir.clone().multiplyScalar(0.6));
-  const vel = dir.clone().multiplyScalar(TRIDENT_SPEED * 1.25);
+  // Full aim direction — any pitch/yaw (straight up, down, diagonal). Prefer live camera dir.
+  const dir = new THREE.Vector3();
+  try { camera.getWorldDirection(dir); } catch (e) { const ray = getAimRay(); dir.copy(ray.dir); }
+  if (dir.lengthSq() < 1e-8) dir.set(0, 0, -1);
+  dir.normalize();
+  const origin = new THREE.Vector3();
+  try { camera.getWorldPosition(origin); } catch (e) { origin.copy(getAimRay().origin); }
+  origin.addScaledVector(dir, 0.7);
+  // Strong forward speed so the trident really flies along the look vector (not flattened to horizontal)
+  const speed = TRIDENT_SPEED * 1.35;
+  const vel = dir.clone().multiplyScalar(speed);
   setCurrentItem(null);
-  spawnTrident(origin, vel, { owner: 'me', grav: 2.5, item, loyalty: Math.max(0, Math.min(3, Number(item.ench && item.ench.loyalty) || 0)), slot });
+  // Light gravity so steep upward/downward throws still travel far in that direction
+  spawnTrident(origin, vel, { owner: 'me', grav: 1.6, item, loyalty: Math.max(0, Math.min(3, Number(item.ench && item.ench.loyalty) || 0)), slot });
   playersChannel.send({ type: 'broadcast', event: 'trident', payload: { from: MY_ID, x: origin.x, y: origin.y, z: origin.z, vx: vel.x, vy: vel.y, vz: vel.z } });
   startSwing(); renderHotbar();
   if (inventoryOpen) try { renderInventoryPanel(); } catch (e) {}
@@ -11216,6 +11483,8 @@ function jcAttackPlayer(pt) {
 function jcPickTarget(ray, reach, pad, minReach) {
   const o = ray.origin, d = ray.dir;
   let best = null, bestScore = Infinity;
+  // Thick fog: hitboxes / targeting effectively fail — only point-blank (≤2 blocks) can connect
+  const fogBlind = (typeof fogLevel === 'number' && fogLevel > 0.35);
   const consider = (kind, ref, px, py, pz, radius, height) => {
     let minMiss = Infinity, minDist = Infinity;
     for (let k = 0; k <= 4; k++) {
@@ -11226,6 +11495,7 @@ function jcPickTarget(ray, reach, pad, minReach) {
       if (miss < minMiss) minMiss = miss;
       if (dist < minDist) minDist = dist;
     }
+    if (fogBlind && minDist > 2.0) return;                   // cannot aim through dense fog
     if (minDist - radius > reach) return;
     if (minReach && minDist - radius < minReach) return;      // spear dead zone
     if (!canReachTarget(o, px, py, pz, height)) return;       // no hitting through walls
@@ -11715,6 +11985,19 @@ playersChannel
     addChatLine('System', filterText(String(payload.name || 'Player').slice(0, 24)) + ' accepted your teleport request.', true);
   })
   .on('broadcast', { event: 'kill_all_mobs' }, () => { if (isMobHost()) killAllMobs(); })
+  .on('broadcast', { event: 'weather_sync' }, ({ payload }) => {
+    if (!payload || payload.from === MY_ID) return;
+    let mode = payload.mode;
+    if (mode === 'auto' || mode === 'natural' || mode === null || mode === undefined || mode === '') mode = null;
+    else if (mode === 'clear' || mode === 'off') mode = 0;
+    else if (mode === 'rain' || mode === 'on') mode = 1;
+    else if (mode === 'fog') mode = 2;
+    else {
+      const n = Number(mode);
+      mode = Number.isFinite(n) ? Math.max(0, Math.min(2, Math.trunc(n))) : null;
+    }
+    setWeatherForce(mode, true);
+  })
   .on('broadcast', { event: 'force_update' }, ({ payload }) => {
     if (!payload || payload.from === MY_ID || payload.name !== 'Yuan') return; // only the creator can force an update
     doForcedUpdate(filterText(String(payload.text || 'The game was updated! Refreshing the page...').slice(0, 120)));
@@ -12096,8 +12379,25 @@ function runChatCommand(text) {
     sys('Accepted ' + req.name + "'s teleport request.");
     return;
   }
-  if (cmd === 'help' && MY_NAME !== 'Yuan') { sys('/tpa <player> - ask to teleport to a player | /tpaccept - accept a teleport request'); return; }
-  // Creator-only: only the player named Yuan may run any commands
+  // ---- weather: anyone can set; broadcast so every client matches ----
+  if (cmd === 'rain' || cmd === 'weather' || cmd === 'fog') {
+    const a = (parts[0] || (cmd === 'fog' ? 'on' : '')).toLowerCase();
+    let mode = null;
+    if (cmd === 'fog' && (a === 'on' || a === '' || a === 'fog')) mode = 2;
+    else if (a === 'clear' || a === 'off') mode = 0;
+    else if (a === 'on' || a === 'rain') mode = 1;
+    else if (a === 'fog') mode = 2;
+    else if (a === 'auto' || a === 'natural' || a === '') mode = null;
+    else { sys('Usage: /rain on|off|auto | /fog [on|off] | /weather clear|rain|fog|auto'); return; }
+    setWeatherForce(mode, true);
+    broadcastWeather(mode);
+    return;
+  }
+  if (cmd === 'help' && MY_NAME !== 'Yuan') {
+    sys('/tpa <player> | /tpaccept | /rain on|off|auto | /fog [on|off] | /weather clear|rain|fog|auto');
+    return;
+  }
+  // Creator-only: only the player named Yuan may run any remaining commands
   if (MY_NAME !== 'Yuan') { sys('Commands are restricted to the creator (Yuan).'); return; }
   if (cmd === 'tp' || cmd === 'teleport') {
     let args = parts.slice();
@@ -12250,14 +12550,7 @@ function runChatCommand(text) {
     sys('Given Null Totem (10 uses, Null I).');
     return;
   }
-  if (cmd === 'rain' || cmd === 'weather') {
-    const a = (parts[0] || '').toLowerCase();
-    if (a === 'clear' || a === 'off') { weatherForce = 0; sys('Weather: clear (this client only)'); }
-    else if (a === 'on' || a === 'rain') { weatherForce = 1; sys('Weather: rain (this client only)'); }
-    else { weatherForce = null; sys('Weather: natural (usage: /rain on | off | auto)'); }
-    return;
-  }
-  if (cmd === 'help') { sys('/tpa <player> | /tpaccept | /xp <player|@s|@a> <amount>[L] | /swap | /tp @s <x> <y> <z> | /tp @s <player> | /tp <player> @s | /biome | /spawner [tp] | /give <@s|@a|player> <zombie|skeleton|breeze> [count] | /nulltotem | /spoke | /flame | /kill <player|@s|@e> | /rain on|off|auto | /fill <x1> <y1> <z1> <x2> <y2> <z2> <block> [replace|hollow|keep] [filter] | /update [message]'); return; }
+  if (cmd === 'help') { sys('/tpa <player> | /tpaccept | /xp <player|@s|@a> <amount>[L] | /swap | /tp @s <x> <y> <z> | /tp @s <player> | /tp <player> @s | /biome | /spawner [tp] | /give <@s|@a|player> <zombie|skeleton|breeze> [count] | /nulltotem | /spoke | /flame | /kill <player|@s|@e> | /rain on|off|auto | /fog [on|off] | /weather clear|rain|fog|auto | /fill <x1> <y1> <z1> <x2> <y2> <z2> <block> [replace|hollow|keep] [filter] | /update [message]'); return; }
   sys('Unknown command: /' + cmd + ' (try /help)');
 }
 
@@ -13614,7 +13907,8 @@ function _hbLoaded(x, z) {   // only draw a box where its chunk is really loaded
 }
 function updateHitboxes() {
   _hbUsed = 0;
-  if (settings.hitboxes) {
+  // Dense fog disables hitbox display (and combat targeting is also blocked — see jcPickTarget)
+  if (settings.hitboxes && !(typeof fogLevel === 'number' && fogLevel > 0.35)) {
     animals.forEach(a => {
       if (!a.alive || !_hbLoaded(a.pos.x, a.pos.z)) return;
       _hbBox('mob', a.pos.x, a.pos.y, a.pos.z, a.radius || 0.45, a.height || (a.kind === 'zombie' ? 1.8 : 1.0));
@@ -15236,6 +15530,7 @@ function animate() {
   updateAnimals(dt);
   updateAnimalSpawning(dt);
   updateSpokeHud(dt);
+  updateFogPhantoms(dt);
   updateWaterFlow(dt);
   updateWaterAnim();
   updateWaterPush(dt);
