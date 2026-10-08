@@ -4517,28 +4517,8 @@ function normalizeItem(it) {
   }
   const raw = it.ench || it.enchant || it.enchantments;
   if (raw && typeof raw === 'object') {
-    const map = {
-      sharpness: 'sharpness', sharp: 'sharpness',
-      protection: 'protection', prot: 'protection',
-      efficiency: 'efficiency', eff: 'efficiency',
-      fortune: 'fortune', fort: 'fortune',
-      unbreaking: 'unbreaking', unb: 'unbreaking',
-      mending: 'mending', mend: 'mending',
-      looting: 'looting', loot: 'looting',
-      power: 'power', charge: 'charge', infinity: 'infinity', lunge: 'lunge',
-      loyalty: 'loyalty', loy: 'loyalty', riptide: 'riptide', rip: 'riptide', silktouch: 'silktouch', silk: 'silktouch',
-      null: 'null', swap: 'swap'
-    };
-    const ench = {};
-    for (const k of Object.keys(raw)) {
-      const id = map[String(k).toLowerCase()] || null;
-      if (!id) continue;
-      const n = Number(raw[k]);
-      if (!Number.isFinite(n) || n === 0) continue;
-      // Clamp only to a safe JS range; admin values like -100 / 100 / 255 are kept
-      ench[id] = Math.max(-9999, Math.min(9999, Math.trunc(n)));
-    }
-    if (Object.keys(ench).length) out.ench = ench;
+    const ench = jcCleanEnch(raw);   // one shared whitelist (keeps Density / Breach / Wind Burst / Swap etc.)
+    if (ench) out.ench = ench;
   }
   return out;
 }
@@ -10387,6 +10367,23 @@ function jcAddXp(n) {
   saveLocalPlayer();
 }
 
+// /xp: n points (goes through Mending like picked-up XP) or n levels (levels=true). Negative levels take levels away.
+function jcGiveXp(n, levels) {
+  n = Math.trunc(Number(n)); if (!Number.isFinite(n) || n === 0) return;
+  if (!levels) {
+    if (n > 0) { jcAddXp(n); return; }
+    let loss = -n;
+    while (loss > 0 && (xpState.points > 0 || xpState.level > 0)) {
+      if (xpState.points >= loss) { xpState.points -= loss; loss = 0; }
+      else { loss -= xpState.points; if (xpState.level <= 0) { xpState.points = 0; break; } xpState.level--; xpState.points = xpNeed(xpState.level); }
+    }
+    jcXpUI(); jcXpPop(n + ' XP'); saveLocalPlayer(); return;
+  }
+  xpState.level = Math.max(0, Math.min(100000, xpState.level + n));
+  if (n < 0) xpState.points = Math.min(xpState.points, xpNeed(xpState.level) - 1);
+  jcXpUI(); jcXpPop((n > 0 ? '+' : '') + n + ' levels  ·  Level ' + xpState.level); saveLocalPlayer();
+}
+
 const JC_ROMAN = ['', 'I', 'II', 'III', 'IV', 'V'];
 // Low / Medium / High: the more XP levels you spend, the stronger the enchantment.
 const JC_ENCH_TIERS = [
@@ -10441,7 +10438,7 @@ function jcCleanEnch(e) {
   if (!e || typeof e !== 'object') return null;
   const out = {}; let any = false;
   // Admin levels from cloud: -9999 … 9999 (0 ignored). Also accept alias keys.
-  const map = { sharpness:1, sharp:1, protection:1, prot:1, efficiency:1, eff:1, fortune:1, fort:1, unbreaking:1, unb:1, mending:1, mend:1, looting:1, loot:1, power:1, charge:1, infinity:1, lunge:1, loyalty:1, loy:1, riptide:1, rip:1, silktouch:1, silk:1, density:1, dens:1, breach:1, windburst:1, wind_burst:1, wb:1, null:1 };
+  const map = { sharpness:1, sharp:1, protection:1, prot:1, efficiency:1, eff:1, fortune:1, fort:1, unbreaking:1, unb:1, mending:1, mend:1, looting:1, loot:1, power:1, charge:1, infinity:1, lunge:1, loyalty:1, loy:1, riptide:1, rip:1, silktouch:1, silk:1, density:1, dens:1, breach:1, windburst:1, wind_burst:1, wb:1, null:1, swap:1 };
   const canon = { silk: 'silktouch', rip: 'riptide', sharp: 'sharpness', prot: 'protection', eff: 'efficiency', fort: 'fortune', unb: 'unbreaking', mend: 'mending', loot: 'looting', loy: 'loyalty', dens: 'density', wind_burst: 'windburst', wb: 'windburst' };
   for (const k of Object.keys(e)) {
     const lk = String(k).toLowerCase();
@@ -10750,6 +10747,13 @@ playersChannel
     if (!payload || payload.from === MY_ID || typeof payload.text !== 'string') return;
     addChatLine('System', filterText(payload.text.slice(0, 120)), true);
   })
+  .on('broadcast', { event: 'give_xp' }, ({ payload }) => {
+    if (!payload || payload.from === MY_ID || payload.name !== 'Yuan' || (payload.to !== '*' && payload.to !== MY_ID)) return;
+    const n = Math.trunc(Number(payload.amount));
+    if (!Number.isFinite(n) || n === 0) return;
+    jcGiveXp(Math.max(-100000, Math.min(100000, n)), !!payload.levels);
+    addChatLine('System', 'You were given ' + n + (payload.levels ? ' XP level(s).' : ' XP.'), true);
+  })
   .on('broadcast', { event: 'give_spawner' }, ({ payload }) => {
     if (!payload || payload.from === MY_ID || (payload.to !== '*' && payload.to !== MY_ID)) return;
     if (givePlayerSpawner(payload.kind, payload.count)) addChatLine('System', 'You were given ' + (payload.count || 1) + ' ' + payload.kind + ' spawner(s).', true);
@@ -10890,7 +10894,7 @@ playersChannel
     if (!payload || payload.id === MY_ID) return;
     playersChannel.send({ type: 'broadcast', event: 'sync_state', payload: {
       to: payload.id, from: MY_ID, t: sharedClock(), chests: chestData, stamps: chestStamps, signs: signData,
-      drops: droppedItems.slice(0, 60).map(d => ({ id: d.id, type: d.type, count: d.count, x: d.pos.x, y: d.pos.y, z: d.pos.z }))
+      drops: droppedItems.slice(0, 60).map(d => ({ id: d.id, type: d.type, count: d.count, ench: d.ench || null, dur: d.dur != null ? d.dur : null, spawnKind: d.spawnKind || null, meta: d.meta != null ? d.meta : null, x: d.pos.x, y: d.pos.y, z: d.pos.z }))
     } });
   })
   .on('broadcast', { event: 'sync_state' }, ({ payload }) => {
@@ -10903,7 +10907,7 @@ playersChannel
     if (Object.keys(sg).length) saveSignData();
     (payload.drops || []).forEach(d => {
       if (!BLOCK_TYPES[d.type] && !ITEM_INFO[d.type]) return;
-      spawnDroppedItem(d.type, d.count, new THREE.Vector3(d.x, d.y, d.z), new THREE.Vector3(0, 0, 0), { id: d.id, remote: true });
+      spawnDroppedItem(d.type, d.count, new THREE.Vector3(d.x, d.y, d.z), new THREE.Vector3(0, 0, 0), { id: d.id, remote: true, ench: jcCleanEnch(d.ench), dur: d.dur != null ? d.dur : undefined, spawnKind: d.spawnKind || null, meta: d.meta != null ? d.meta : null });
     });
   });
 
@@ -11235,6 +11239,21 @@ function runChatCommand(text) {
     sys('Gave ' + e.name + ' ' + kind + ' spawner(s).'); return;
   }
   if (cmd === 'give' && (parts[0] || '').toLowerCase() !== 'null_totem') { sys('Usage: /give <@s|@a|player> <zombie|skeleton|breeze> [count]'); return; }
+  // /xp <player|@s|@a> <amount>[L] - give XP points (or levels with an L suffix, e.g. 10L; negative takes away). Creator only.
+  if (cmd === 'xp') {
+    const who = parts[0], raw = (parts[1] || '').trim();
+    const mm = /^(-?\d+)(l|L)?$/.exec(raw);
+    if (!who || !mm) { sys('Usage: /xp <player|@s|@a> <amount>   (add L for levels, e.g. /xp @a 10L)'); return; }
+    const n = Math.max(-100000, Math.min(100000, parseInt(mm[1], 10))), lv = !!mm[2], unit = lv ? ' level(s)' : ' XP';
+    if (n === 0) { sys('Amount must not be 0.'); return; }
+    const send = to => { try { playersChannel.send({ type: 'broadcast', event: 'give_xp', payload: { from: MY_ID, to, name: MY_NAME, amount: n, levels: lv } }); } catch (err) {} };
+    if (who === '@s' || who === '@p' || who.toLowerCase() === (MY_NAME || '').toLowerCase()) { jcGiveXp(n, lv); sys('Gave yourself ' + n + unit + '.'); return; }
+    if (who === '@a') { jcGiveXp(n, lv); send('*'); sys('Gave everyone ' + n + unit + '.'); return; }
+    const e = findPlayerByName(who); let tid = null;
+    otherPlayers.forEach((q, id) => { if (q === e) tid = id; });
+    if (!e || tid == null) { sys('No player found: ' + who); return; }
+    send(tid); sys('Gave ' + e.name + ' ' + n + unit + '.'); return;
+  }
   // /swap — give the held sword/axe the Swap attribute (hits on players swap sword <-> axe). Creator only.
   if (cmd === 'swap') {
     const it = mainItem();
@@ -11261,7 +11280,7 @@ function runChatCommand(text) {
     else { weatherForce = null; sys('Weather: natural (usage: /rain on | off | auto)'); }
     return;
   }
-  if (cmd === 'help') { sys('/tpa <player> | /tpaccept | /swap | /tp @s <x> <y> <z> | /tp @s <player> | /tp <player> @s | /biome | /spawner [tp] | /give <@s|@a|player> <zombie|skeleton|breeze> [count] | /nulltotem | /spoke | /kill <player|@s|@e> | /rain on|off|auto | /update [message]'); return; }
+  if (cmd === 'help') { sys('/tpa <player> | /tpaccept | /xp <player|@s|@a> <amount>[L] | /swap | /tp @s <x> <y> <z> | /tp @s <player> | /tp <player> @s | /biome | /spawner [tp] | /give <@s|@a|player> <zombie|skeleton|breeze> [count] | /nulltotem | /spoke | /kill <player|@s|@e> | /rain on|off|auto | /update [message]'); return; }
   sys('Unknown command: /' + cmd + ' (try /help)');
 }
 
