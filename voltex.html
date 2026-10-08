@@ -6052,8 +6052,30 @@ function damagePlayer(amount, knockDir, knockStrength, opts) {
   flashRed(myModel.group);
   if (player.hp <= 0) {
     if (tryPopTotem()) return;
+    announceMyDeath();
     respawnPlayer();
   }
+}
+// ---- death messages: shown to everyone ("X was slain by Y" / "X died") ----
+let lastPvpAttacker = { name: null, t: 0 };
+function announce(text) {
+  addChatLine('System', text, true);
+  try { playersChannel.send({ type: 'broadcast', event: 'sys_msg', payload: { from: MY_ID, text } }); } catch (e) {}
+}
+function announceMyDeath() {
+  const now = performance.now();
+  let by = null;
+  if (lastPvpAttacker.name && now - lastPvpAttacker.t < 10000) by = lastPvpAttacker.name;
+  else {
+    let bd = 1e9;
+    for (const a of animals) {
+      if (!a.alive || !(a.kind === 'zombie' || a.kind === 'skeleton' || a.kind === 'breeze' || isSpk(a.kind))) continue;
+      const d = Math.hypot(a.pos.x - player.pos.x, a.pos.z - player.pos.z), lim = a.kind === 'breeze' ? 20 : 6;
+      if (d < lim && Math.abs(a.pos.y - player.pos.y) < 6 && d < bd) { bd = d; by = isSpk(a.kind) ? 'Spoke' : ('a ' + a.kind.charAt(0).toUpperCase() + a.kind.slice(1)); }
+    }
+  }
+  lastPvpAttacker.name = null;
+  announce(by ? MY_NAME + ' was slain by ' + by : MY_NAME + ' died');
 }
 
 // Totem of Undying: if you hold one in either hand (or have one in inventory),
@@ -8059,6 +8081,18 @@ function breezeAI(a, dt) {
       a.vel.y = 7.5 + Math.random() * 2.5;
       a.jumpCd = 1.1 + Math.random() * 1.2;
     }
+    // ranged attack: shoots a visible wind charge at the player (everyone sees it)
+    if (dist >= 3 && dist < 18 && a.attackCd <= 0 && tgt.alive) {
+      a.attackCd = 2.4;
+      const od = new THREE.Vector3(tgt.x - a.pos.x, (tgt.y + 0.9) - (a.pos.y + 1.3), tgt.z - a.pos.z);
+      if (od.lengthSq() > 1e-6) {
+        od.normalize();
+        const org = new THREE.Vector3(a.pos.x + od.x * 0.8, a.pos.y + 1.3 + od.y * 0.8, a.pos.z + od.z * 0.8);
+        const bv = od.clone().multiplyScalar(13);
+        spawnBreezeShot(org, bv);
+        try { playersChannel.send({ type: 'broadcast', event: 'breeze_shot', payload: { from: MY_ID, x: org.x, y: org.y, z: org.z, vx: bv.x, vy: bv.y, vz: bv.z } }); } catch (e) {}
+      }
+    }
     // wind shove attack
     if (dist < a.atkReach && a.attackCd <= 0) {
       a.attackCd = a.atkCd || 1.4;
@@ -8343,7 +8377,7 @@ function createMob(kind, px, py, pz, id, remote, eq) {
   const isBr = kind === 'breeze';
   const isB = isSpk(kind);
   const group = isB ? buildZombie(SPOKE_SKIN) : isZ ? buildZombie((eq >> 12) & 31) : isBr ? buildBreeze() : (isS ? buildSkeleton((eq >> 12) & 31) : def.build());
-  if (kind === 'null') group.traverse(o => { if (o.isMesh && o.material && o.material.color) o.material.color.setHex(0xb48cff); });   // purple tint so Null reads differently
+  if (kind === 'null') group.traverse(o => { if (o.isMesh && o.material && o.material.color) o.material.color.setHex(0x000000); });   // Spoke's Null army: skins are fully black
   scene.add(group);
   const pos = new THREE.Vector3(px, py, pz);
   group.position.copy(pos);
@@ -8597,7 +8631,7 @@ function applySpokeGear(a) {
   if (!a.handAnchor) { a.handAnchor = new THREE.Group(); ud.arms[1].add(a.handAnchor); a.heldState = {}; a.heldKey = ''; }
   a.atkDmg = SPOKE_SWORD_DMG;
 }
-function killPlayerNow() { player.hp = 0; updateHpUI(); respawnPlayer(); }   // straight to respawn: no totem check
+function killPlayerNow() { announce(MY_NAME + ' was killed'); player.hp = 0; updateHpUI(); respawnPlayer(); }   // straight to respawn: no totem check
 function killAllMobs() { for (const a of animals) if (a.alive) { a.alive = false; scene.remove(a.group); } }
 function summonSpoke(x, y, z) {
   const e = createMob('spoke', x, y, z, null, false, spokeInitEq());
@@ -8607,7 +8641,7 @@ function summonSpoke(x, y, z) {
 }
 function spokeSync(a, old) {
   const o = { dur: (old >> 12) & 127, totem: old & 15 }, n = spokeGet(a);
-  if (o.totem > n.totem) { a.totemFx = 1.6; if (a.kind === 'null') addChatLine('System', 'A Null popped its Totem!', true); else addChatLine('System', n.totem > 0 ? 'Spoke popped a Null Totem! (' + n.totem + ' left)' : 'Spoke popped its last Null Totem!', true); }
+  if (o.totem > n.totem) { a.totemFx = 1.6; try { spawnTotemPopFx(new THREE.Vector3(a.pos.x, a.pos.y, a.pos.z), 'null_totem', { remote: true }); } catch (e) {} if (a.kind === 'null') addChatLine('System', 'A Null popped its Totem!', true); else addChatLine('System', n.totem > 0 ? 'Spoke popped a Null Totem! (' + n.totem + ' left)' : 'Spoke popped its last Null Totem!', true); }
   if (o.dur > 0 && n.dur <= 0) { if (a.kind === 'spoke') addChatLine('System', "Spoke's armor broke!", true); applySpokeGear(a); }
 }
 function spokeHurt(a, dmg, fromPos, kbMul, by) {
@@ -9566,6 +9600,56 @@ function updateWindCharges(dt) {
     }
     if (gone) { scene.remove(w.mesh); w.mesh.geometry.dispose(); w.mesh.material.dispose(); windCharges.splice(i, 1); continue; }
     w.mesh.position.copy(w.pos);
+  }
+}
+// ---- Breeze projectile: a spinning white/blue wind ball. Every client simulates it, and only damages its own player. ----
+const breezeShots = [];
+function spawnBreezeShot(pos, vel) {
+  const g = new THREE.Group();
+  const core = new THREE.Mesh(new THREE.SphereGeometry(0.2, 10, 10), new THREE.MeshBasicMaterial({ color: 0xf2fdff, transparent: true, opacity: 0.95 }));
+  const shell = new THREE.Mesh(new THREE.SphereGeometry(0.38, 10, 10), new THREE.MeshBasicMaterial({ color: 0x8fdcff, transparent: true, opacity: 0.35, depthWrite: false }));
+  const ring = new THREE.Mesh(new THREE.TorusGeometry(0.34, 0.04, 6, 16), new THREE.MeshBasicMaterial({ color: 0xcff3ff, transparent: true, opacity: 0.8 }));
+  g.add(core); g.add(shell); g.add(ring);
+  g.position.copy(pos);
+  scene.add(g);
+  breezeShots.push({ g, ring, pos: pos.clone(), vel: vel.clone(), age: 0, trail: 0 });
+}
+function removeBreezeShot(i) {
+  const s = breezeShots[i];
+  scene.remove(s.g);
+  s.g.traverse(o => { if (o.geometry) o.geometry.dispose(); if (o.material) o.material.dispose(); });
+  breezeShots.splice(i, 1);
+}
+function updateBreezeShots(dt) {
+  for (let i = breezeShots.length - 1; i >= 0; i--) {
+    const s = breezeShots[i];
+    s.age += dt;
+    if (s.age > 5) { removeBreezeShot(i); continue; }
+    const len = s.vel.length() * dt;
+    if (len < 1e-6) { removeBreezeShot(i); continue; }
+    const dir = s.vel.clone().normalize();
+    const hit = castVoxelRay(s.pos, dir, len);
+    const dHit = hit ? Math.hypot(hit.hx - s.pos.x, hit.hy - s.pos.y, hit.hz - s.pos.z) : len;
+    let gone = false;
+    if (player.hp > 0 && gameStarted) {
+      const n = Math.max(1, Math.ceil(dHit / 0.25));
+      for (let k = 1; k <= n; k++) {
+        const pt = { x: s.pos.x + dir.x * dHit * k / n, y: s.pos.y + dir.y * dHit * k / n, z: s.pos.z + dir.z * dHit * k / n };
+        if (pt.y < player.pos.y - 0.15 || pt.y > player.pos.y + (player.height || 1.8) + 0.15) continue;
+        if (Math.hypot(pt.x - player.pos.x, pt.z - player.pos.z) > 0.6) continue;
+        windBurstParticles(pt);
+        damagePlayer(3, new THREE.Vector3(dir.x, 0, dir.z), 12);
+        if (player.hp > 0) { player.vel.y = Math.max(player.vel.y, 9); player.onGround = false; }   // the gust tosses you up
+        gone = true; break;
+      }
+    }
+    if (!gone && hit && dHit <= len + 0.01) { windBurstParticles({ x: hit.hx, y: hit.hy, z: hit.hz }); gone = true; }
+    if (gone) { removeBreezeShot(i); continue; }
+    s.pos.addScaledVector(dir, dHit);
+    s.g.position.copy(s.pos);
+    s.g.rotation.y += dt * 9; s.ring.rotation.x += dt * 12;
+    s.trail -= dt;
+    if (s.trail <= 0 && typeof jcSpawn === 'function') { s.trail = 0.05; jcSpawn('crit', s.pos.x, s.pos.y, s.pos.z, (Math.random() - 0.5) * 0.8, (Math.random() - 0.5) * 0.8, (Math.random() - 0.5) * 0.8, 0.18, 0.35); }
   }
 }
 function windBurstParticles(pt) {
@@ -10571,6 +10655,7 @@ function updateOtherSkin(entry, skinData) {
 function removeOtherPlayer(id) {
   const entry = otherPlayers.get(id);
   if (!entry) return;
+  try { addChatLine('System', filterText(String(entry.name || 'Player')) + ' left the game', true); } catch (e) {}
   scene.remove(entry.group);
   otherPlayers.delete(id);
   updatePlayerCountHUD();
@@ -10585,11 +10670,13 @@ playersChannel
   .on('presence', { event: 'sync' }, () => {
     const state = playersChannel.presenceState();
     const seen = new Set(Object.keys(state));
+    const firstSync = !_presenceSynced; _presenceSynced = true;   // players already online when you arrive don't spam "joined"
     seen.forEach(id => {
       if (id === MY_ID) return;
       if (!otherPlayers.has(id)) {
         const meta = state[id][0] || {};
         createOtherPlayer(id, meta.name || 'Player');
+        if (!firstSync) addChatLine('System', filterText(String(meta.name || 'Player')) + ' joined the game', true);
       }
       const m2 = (state[id][0] || {});
       updateOtherSkin(otherPlayers.get(id), m2.skin);
@@ -10628,6 +10715,16 @@ playersChannel
     if (a.hp <= 0) killAnimal(a, payload.by);
   })
   .on('broadcast', { event: 'kill_player' }, ({ payload }) => { if (payload && payload.to === MY_ID) killPlayerNow(); })
+  .on('broadcast', { event: 'breeze_shot' }, ({ payload }) => {
+    if (!payload || payload.from === MY_ID) return;
+    const v = [payload.x, payload.y, payload.z, payload.vx, payload.vy, payload.vz].map(Number);
+    if (!v.every(Number.isFinite)) return;
+    spawnBreezeShot(new THREE.Vector3(v[0], v[1], v[2]), new THREE.Vector3(v[3], v[4], v[5]));
+  })
+  .on('broadcast', { event: 'sys_msg' }, ({ payload }) => {
+    if (!payload || payload.from === MY_ID || typeof payload.text !== 'string') return;
+    addChatLine('System', filterText(payload.text.slice(0, 120)), true);
+  })
   .on('broadcast', { event: 'give_spawner' }, ({ payload }) => {
     if (!payload || payload.from === MY_ID || (payload.to !== '*' && payload.to !== MY_ID)) return;
     if (givePlayerSpawner(payload.kind, payload.count)) addChatLine('System', 'You were given ' + (payload.count || 1) + ' ' + payload.kind + ' spawner(s).', true);
@@ -10683,6 +10780,7 @@ playersChannel
         kdir = new THREE.Vector3(player.pos.x - at.group.position.x, 0, player.pos.z - at.group.position.z);
       }
       if (isShieldBlockingFront(kdir)) myShieldPulse = 0.25;
+      { const _at = payload.attackerId && otherPlayers.get(payload.attackerId); if (_at) lastPvpAttacker = { name: String(_at.name || 'Player'), t: performance.now() }; }
       damagePlayer(payload.amount, kdir, payload.knock != null ? payload.knock : 8.5, { axeHit: !!payload.axe, breach: payload.breach || 0 });
     } else {
       const entry = otherPlayers.get(payload.targetId);
@@ -10873,6 +10971,7 @@ function filterText(str) {
 }
 // ---------- /update : show a message, then refresh the page for everyone ----------
 let _forcedUpdating = false;
+let _presenceSynced = false;
 const IS_FILE_VERSION = (location.protocol === 'file:' || !location.protocol || location.protocol === 'about:' || location.origin === 'null');   // opened from a saved file, not the website
 function doForcedUpdate(text) {
   if (_forcedUpdating) return;
@@ -14012,6 +14111,7 @@ function animate() {
   updateMaceHud();
   updateArrows(dt);
   updateWindCharges(dt);
+  updateBreezeShots(dt);
   updateTridents(dt);
   updateFires(dt);
   rsUpdate(dt);
