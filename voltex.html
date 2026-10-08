@@ -8485,7 +8485,10 @@ function jcLootingLevel() {
 function giveMobLoot(kind, eq) {
   const L = jcLootingLevel();
   // Looting: +25% XP per level (IV = double), and up to +L extra of each drop
-  jcAddXp(Math.max(1, Math.round((JC_XP[kind] || 2) * (1 + 0.25 * L))));
+  // Armored zombies are worth more: bonus per armor piece worn (iron +2, gold +3, diamond +5; a full diamond set = +20)
+  let _armXp = 0;
+  if (kind === 'zombie') for (let i = 0; i < 4; i++) { const t = ((eq | 0) >> (4 + 2 * i)) & 3; _armXp += t === 1 ? 2 : (t === 2 ? 3 : (t === 3 ? 5 : 0)); }
+  jcAddXp(Math.max(1, Math.round(((JC_XP[kind] || 2) + _armXp) * (1 + 0.25 * L))));
   const extra = () => L > 0 ? Math.floor(Math.random() * (L + 1)) : 0;
   if (kind === 'spoke') {
     addItemToInventory('golden_apple', 2 + Math.floor(Math.random() * 4));
@@ -12628,16 +12631,21 @@ function _hbBox(kind, x, y, z, radius, height) {
   b.scale.set(radius * 2, height, radius * 2);
   b.position.set(x, y + height / 2, z);
 }
+function _hbLoaded(x, z) {   // only draw a box where its chunk is really loaded (meshed); never over unloaded void
+  const c = chunks.get(Math.floor(x / CHUNK_SIZE) + ',' + Math.floor(z / CHUNK_SIZE));
+  return !!(c && c.mesh);
+}
 function updateHitboxes() {
   _hbUsed = 0;
   if (settings.hitboxes) {
     animals.forEach(a => {
-      if (!a.alive) return;
+      if (!a.alive || !_hbLoaded(a.pos.x, a.pos.z)) return;
       _hbBox('mob', a.pos.x, a.pos.y, a.pos.z, a.radius || 0.45, a.height || (a.kind === 'zombie' ? 1.8 : 1.0));
     });
     otherPlayers.forEach(entry => {
       if (!entry || !entry.group) return;
       const g = entry.group.position;
+      if (!_hbLoaded(g.x, g.z)) return;
       _hbBox('player', g.x, g.y, g.z, 0.4, 1.8);
     });
     if (thirdPerson) _hbBox('self', player.pos.x, player.pos.y, player.pos.z, player.radius || 0.3, player.height || 1.8);
