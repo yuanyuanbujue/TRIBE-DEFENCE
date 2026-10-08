@@ -5961,12 +5961,36 @@ function inCobweb(pos, h) {
   }
   return false;
 }
-/** Strong slowdown while inside cobweb (Minecraft-like). */
+/** Strong slowdown while inside cobweb (Minecraft-like: crawl). */
 function applyCobwebSlow(vel) {
-  vel.x *= 0.25;
-  vel.z *= 0.25;
-  if (vel.y > 0) vel.y *= 0.25;
-  else vel.y *= 0.05;
+  vel.x *= 0.08;
+  vel.z *= 0.08;
+  if (vel.y > 0) vel.y *= 0.15;
+  else vel.y *= 0.03;
+}
+/** True if a solid block or cobweb sits between two points (blocks melee). */
+function lineBlockedByCover(ax, ay, az, bx, by, bz) {
+  const dx = bx - ax, dy = by - ay, dz = bz - az;
+  const len = Math.sqrt(dx*dx + dy*dy + dz*dz) || 1;
+  const steps = Math.max(2, Math.ceil(len * 2.5));
+  for (let i = 1; i < steps; i++) {
+    const t = i / steps;
+    const x = ax + dx * t, y = ay + dy * t, z = az + dz * t;
+    const b = getBlock(x, y, z);
+    if (!b) continue;
+    if (b.type === 'cobweb') return true;
+    if (BLOCK_TYPES[b.type] && !BLOCK_TYPES[b.type].transparent && !BLOCK_TYPES[b.type].cross && !BLOCK_TYPES[b.type].noCollide) return true;
+  }
+  return false;
+}
+function entityCoveredInWeb(pos, h) {
+  if (inCobweb(pos, h)) return true;
+  const px = Math.round(pos.x), py = Math.round(pos.y), pz = Math.round(pos.z);
+  for (const [x, y, z] of [[px, py, pz], [px, py + 1, pz]]) {
+    const b = world.get(key(x, y, z));
+    if (b && b.type === 'cobweb') return true;
+  }
+  return false;
 }
 function solidAt(x,y,z) {
   const b = getBlock(x,y,z);
@@ -7321,11 +7345,15 @@ function makeChatBubble(text) {
 // call repeatedly (e.g. rapid hits); it just resets the revert timer.
 function flashRed(group) {
   if (!group) return;
+  const nullBlack = !!(group.userData && group.userData.isNullBlack);
   if (!group.userData._flashMeshes) {
     const meshes = [];
     group.traverse(o => {
       if (o.isMesh && o.material && o.material.color && !o.userData.noFlash) {
-        meshes.push({ mesh: o, orig: o.material.color.clone() });
+        // Null: always restore to pure black (never the original Spoke skin tint)
+        const orig = nullBlack ? new THREE.Color(0x000000) : o.material.color.clone();
+        if (nullBlack) o.material.color.setHex(0x000000);
+        meshes.push({ mesh: o, orig });
       }
     });
     group.userData._flashMeshes = meshes;
@@ -7333,7 +7361,10 @@ function flashRed(group) {
   group.userData._flashMeshes.forEach(({ mesh }) => mesh.material.color.set(0xff3333));
   clearTimeout(group.userData._flashTimer);
   group.userData._flashTimer = setTimeout(() => {
-    group.userData._flashMeshes.forEach(({ mesh, orig }) => mesh.material.color.copy(orig));
+    group.userData._flashMeshes.forEach(({ mesh, orig }) => {
+      if (nullBlack) mesh.material.color.setHex(0x000000);
+      else mesh.material.color.copy(orig);
+    });
   }, 180);
 }
 
@@ -8647,31 +8678,32 @@ function spawnTrident(pos, vel, o) {
   tridents.push(t);
   return t;
 }
-// ---- Riptide I-III: release a charged trident in water or rain to dash where you look (the trident stays in your hand) ----
-// Target travel distance in blocks by level (looking straight along aim, including straight up).
-// Decay in updateRiptide is ~e^(-3.71 t); distance ≈ (v0 - 3.5) / 3.71, so v0 = dist * 3.85 ≈ that target.
-const RIPTIDE_DIST = [0, 9, 16, 25];   // I ≈ 9 blocks, II ≈ 16, III ≈ 25 (was 7 / 10 / 13)
-const RIPTIDE_V_SCALE = 3.85;
-const rip = { t: 0, v: 0, dx: 0, dy: 0, dz: 0, lv: 0, loot: 0, sharp: 0 };
+// ---- Riptide I-III: release a charged trident in water/rain → one-shot FORCE impulse where you look (not a glide lock)
+// Impulse speeds chosen so travel is roughly I≈9 / II≈16 / III≈25 blocks along aim (g≈26 for vertical).
+const RIPTIDE_FORCE = [0, 22, 30, 38];   // launch speed added to player.vel (blocks/s)
+const rip = { t: 0, dx: 0, dy: 0, dz: 0, lv: 0, loot: 0, sharp: 0 };   // t = brief contact-damage window only
 function riptideWet() { return isInWater(player.pos) || (typeof rainLevel === 'number' && rainLevel > 0.3 && !_rainCovered); }
 function tryRiptide(lv, h) {
   if (!riptideWet()) return;                                      // silently does nothing out of water / rain
   damageHeldTool(1);
   const d = getAimRay().dir.clone().normalize();                  // exactly where you aim (look up = go up)
-  if (player.onGround) player.pos.y += 0.08;                      // un-stick from the floor without bending the direction
-  rip.dx = d.x; rip.dy = d.y; rip.dz = d.z; rip.lv = lv;
-  rip.v = (RIPTIDE_DIST[lv] || 0) * RIPTIDE_V_SCALE; rip.t = 1;  // burst speed scaled to target block distance
-  rip.loot = Math.max(0, Math.trunc(Number(h.ench && h.ench.looting) || 0)); rip.sharp = Math.max(0, Number(h.ench && h.ench.sharpness) || 0);
+  if (player.onGround) player.pos.y += 0.08;                      // un-stick from the floor
+  const force = RIPTIDE_FORCE[lv] || 0;
+  // True force: add impulse once, then normal physics (gravity, drag, steering) take over — no velocity lock / glide
+  player.vel.x += d.x * force;
+  player.vel.y += d.y * force;
+  player.vel.z += d.z * force;
   player.onGround = false;
+  rip.dx = d.x; rip.dy = d.y; rip.dz = d.z; rip.lv = lv;
+  rip.t = 0.55;                                                   // short window to damage mobs you fly through
+  rip.loot = Math.max(0, Math.trunc(Number(h.ench && h.ench.looting) || 0)); rip.sharp = Math.max(0, Number(h.ench && h.ench.sharpness) || 0);
   startSwing(); renderHotbar();
 }
-// per frame while gliding: one-time burst that decays, hits mobs you pass through (called from the main loop)
+// Contact damage only while the impulse carries you; does NOT override player velocity
 function updateRiptide(dt) {
   if (rip.t <= 0) return;
-  rip.v *= Math.pow(0.94, dt * 60);
-  if (rip.v < 3.5) { rip.t = 0; rip.v = 0; return; }
-  player.vel.x = rip.dx * rip.v; player.vel.y = rip.dy * rip.v; player.vel.z = rip.dz * rip.v;
-  if (rip.v < 8) return;
+  rip.t -= dt;
+  if (rip.t <= 0) { rip.t = 0; return; }
   const dmg = 8 + (rip.sharp ? 0.5 * rip.sharp + 0.5 : 0);
   for (let i = 0; i < animals.length; i++) {
     const a = animals[i]; if (!a.alive) continue;
@@ -8809,7 +8841,7 @@ function createMob(kind, px, py, pz, id, remote, eq) {
   const isBr = kind === 'breeze';
   const isB = isSpk(kind);
   const group = isB ? buildZombie(kind === 'flamefrags' ? FLAME_SKIN : SPOKE_SKIN) : isZ ? buildZombie((eq >> 12) & 31) : isBr ? buildBreeze() : (isS ? buildSkeleton((eq >> 12) & 31) : def.build());
-  if (kind === 'null') group.traverse(o => { if (o.isMesh && o.material && o.material.color) o.material.color.setHex(0x000000); });   // Spoke's Null army: skins are fully black
+  if (kind === 'null') { group.userData.isNullBlack = true; group.traverse(o => { if (o.isMesh && o.material && o.material.color) { o.material.color.setHex(0x000000); o.userData.nullBlack = true; } }); }   // Spoke's Null army: skins are fully black
   scene.add(group);
   const pos = new THREE.Vector3(px, py, pz);
   group.position.copy(pos);
@@ -8817,7 +8849,7 @@ function createMob(kind, px, py, pz, id, remote, eq) {
     id: id || (MY_ID + '_m' + (mobSeq++)), remote: !!remote,
     kind,
     group, pos, vel: new THREE.Vector3(0,0,0),
-    hp: isB ? SPOKE_HP : (isZ || isS || isBr) ? 20 : def.hp, maxHp: isB ? SPOKE_HP : (isZ || isS || isBr) ? 20 : def.hp, alive: true,
+    hp: isB ? (kind === 'flamefrags' ? FLAME_HP : SPOKE_HP) : (isZ || isS || isBr) ? 20 : def.hp, maxHp: isB ? (kind === 'flamefrags' ? FLAME_HP : SPOKE_HP) : (isZ || isS || isBr) ? 20 : def.hp, alive: true,
     radius: (isZ || isS || isB || isBr) ? 0.42 : def.radius, height: isZ ? 1.7 : ((isS || isB || isBr) ? 1.8 : def.height),
     wanderTimer: Math.random()*2, facing: 0,
     attackCd: 0,
@@ -9073,15 +9105,32 @@ function spokePlayerArmor(a) {
     piece(leg, 5.1, 4, 5.1, 0, -10, [0, 16, 4, 12, 4, 8, 4]);  // boots: lower 4 px
   }
 }
+function blackenNull(a) {
+  if (!a || a.kind !== 'null' || !a.group) return;
+  a.group.traverse(o => {
+    if (o.isMesh && o.material) {
+      if (o.material.color) o.material.color.setHex(0x000000);
+      if (o.material.emissive) o.material.emissive.setHex(0x000000);
+      o.userData.nullBlack = true;
+    }
+  });
+  // Force flash restore colors to pure black so hit flashes don't reveal Spoke skin
+  if (a.group.userData) {
+    a.group.userData._flashMeshes = null;
+    a.group.userData.isNullBlack = true;
+  }
+}
 function applySpokeGear(a) {
   const ud = a.group && a.group.userData; if (!ud || !ud.arms) return;
   if (a.gear) for (const o of a.gear) { if (o.parent) o.parent.remove(o); if (o.geometry) o.geometry.dispose(); if (o.userData && o.userData.mat) o.userData.mat.dispose(); }
   a.gear = []; ud._flashMeshes = null;
-  a.armorOn = spokeGet(a).dur > 0;
+  // Null army stays pure black — no diamond armor meshes (those looked like Spoke when hit)
+  a.armorOn = a.kind !== 'null' && spokeGet(a).dur > 0;
   a.armorPts = 0;
   if (a.armorOn) { spokePlayerArmor(a); a.armorPts = 12; }   // full diamond set, built exactly like the player's armor
   if (!a.handAnchor) { a.handAnchor = new THREE.Group(); ud.arms[1].add(a.handAnchor); a.heldState = {}; a.heldKey = ''; }
   a.atkDmg = SPOKE_SWORD_DMG;
+  if (a.kind === 'null') blackenNull(a);
 }
 function killPlayerNow() { announce(MY_NAME + ' was killed'); player.hp = 0; updateHpUI(); respawnPlayer(); }   // straight to respawn: no totem check
 function killAllMobs() { for (const a of animals) if (a.alive) { a.alive = false; scene.remove(a.group); } }
@@ -9108,6 +9157,8 @@ function spokeSync(a, old) {
 function spokeHurt(a, dmg, fromPos, kbMul, by) {
   if (!a.alive) return;
   if (a.kind === 'flamefrags') { flameHurt(a, dmg, fromPos, kbMul, by); return; }
+  // Covered in cobweb / heal wall: melee mostly fails
+  if ((a.healCover || entityCoveredInWeb(a.pos, a.height || 1.8)) && a.eatT > 0) dmg *= 0.15;
   const old = a.eq | 0, g = spokeGet(a);
   if (a.durF == null) a.durF = g.dur;
   const red = a.durF > 0 ? Math.min(0.8, 0.04 * 20) : 0;    // full diamond armor: 4% per point, 80% cap (same as the player) until it breaks
@@ -9158,12 +9209,51 @@ function spokePlace(x, y, z) {
   return true;
 }
 const _solidB = (x, y, z) => { const b = world.get(key(Math.round(x), Math.round(y), Math.round(z))); return !!b && b.type !== 'water' && solidAt(x, y, z); };
-/** Place cobweb on the boss + a short wall toward the player so they can eat safely. */
+/** Place two cobwebs fully covering the boss (feet + head) + walls toward the player. */
 function bossPlaceCover(a, tgt) {
   const px = Math.round(a.pos.x), py = Math.round(a.pos.y), pz = Math.round(a.pos.z);
   const dx = (tgt && tgt.x != null ? tgt.x : a.pos.x) - a.pos.x;
   const dz = (tgt && tgt.z != null ? tgt.z : a.pos.z) - a.pos.z;
   const dl = Math.hypot(dx, dz) || 1, ux = dx / dl, uz = dz / dl;
+  if (!a.coverBlocks) a.coverBlocks = [];
+  const put = (x, y, z, type) => {
+    x = Math.round(x); y = Math.round(y); z = Math.round(z);
+    const k = key(x, y, z);
+    if (world.has(k)) {
+      const cur = world.get(k);
+      // Replace air-like plants only; leave solid player builds
+      if (cur && cur.type !== 'tall_grass' && !isPlantType(cur.type)) return false;
+      removeBlock(x, y, z);
+    }
+    removedDiffs.delete(k);
+    if (!addBlock(x, y, z, type)) return false;
+    if (type !== 'cobweb') markPlaced(x, y, z);
+    pushBlockDiff(x, y, z, type);
+    a.coverBlocks.push([x, y, z]);
+    return true;
+  };
+  // Two cobwebs stacked on the boss — fully covers feet + upper body
+  put(px, py, pz, 'cobweb');
+  put(px, py + 1, pz, 'cobweb');
+  // Wall between boss and player (spam while eating reinforces this)
+  const wx = Math.round(a.pos.x + ux * 1.2), wz = Math.round(a.pos.z + uz * 1.2);
+  put(wx, py, wz, 'cobblestone');
+  put(wx, py + 1, wz, 'cobblestone');
+  // Side pillars if player is close
+  put(Math.round(a.pos.x + ux * 1.2 - uz * 1), py, Math.round(a.pos.z + uz * 1.2 + ux * 1), 'cobblestone');
+  put(Math.round(a.pos.x + ux * 1.2 + uz * 1), py, Math.round(a.pos.z + uz * 1.2 - ux * 1), 'cobblestone');
+  a.healCover = true;
+  a.bldCd = Math.max(a.bldCd || 0, 0.2);
+}
+/** While eating: keep placing walls toward the player (spam defense). */
+function bossSpamCover(a, tgt, dt) {
+  if (!tgt || !tgt.alive) return;
+  a.spamCd = (a.spamCd || 0) - dt;
+  if (a.spamCd > 0) return;
+  a.spamCd = 0.28;
+  const dx = tgt.x - a.pos.x, dz = tgt.z - a.pos.z;
+  const dl = Math.hypot(dx, dz) || 1, ux = dx / dl, uz = dz / dl;
+  const py = Math.round(a.pos.y);
   if (!a.coverBlocks) a.coverBlocks = [];
   const put = (x, y, z, type) => {
     x = Math.round(x); y = Math.round(y); z = Math.round(z);
@@ -9176,15 +9266,16 @@ function bossPlaceCover(a, tgt) {
     a.coverBlocks.push([x, y, z]);
     return true;
   };
-  // Cobweb on body so the player cannot freely melee through
-  put(px, py, pz, 'cobweb');
-  put(px, py + 1, pz, 'cobweb');
-  // Solid wall between boss and player (2 high)
-  const wx = Math.round(a.pos.x + ux * 1.4), wz = Math.round(a.pos.z + uz * 1.4);
-  put(wx, py, wz, 'cobblestone');
-  put(wx, py + 1, wz, 'cobblestone');
+  // Keep self fully webbed
+  put(Math.round(a.pos.x), py, Math.round(a.pos.z), 'cobweb');
+  put(Math.round(a.pos.x), py + 1, Math.round(a.pos.z), 'cobweb');
+  // Stack wall toward player
+  for (let s = 1; s <= 2; s++) {
+    const wx = Math.round(a.pos.x + ux * s), wz = Math.round(a.pos.z + uz * s);
+    put(wx, py, wz, 'cobblestone');
+    put(wx, py + 1, wz, 'cobblestone');
+  }
   a.healCover = true;
-  a.bldCd = Math.max(a.bldCd || 0, 0.35);
 }
 /** Remove cover blocks placed for healing. */
 function bossClearCover(a) {
@@ -9208,8 +9299,8 @@ function bossSmartHeal(a, dt, tgt, dist, nx, nz, opts) {
     a.eatT -= dt;
     a.vel.x *= 0.35; a.vel.z *= 0.35;
     if (tgt) a.facing = Math.atan2((tgt.x - a.pos.x), (tgt.z - a.pos.z));
-    // Player still close while eating → reinforce cover
-    if (tgt && tgt.alive && dist < 7 && !(a.healCover)) bossPlaceCover(a, tgt);
+    // Spam cobweb + walls while eating so the player cannot free-hit through
+    if (tgt && tgt.alive && dist < 14) bossSpamCover(a, tgt, dt);
     if (a.eatT <= 0) {
       const g = spokeGet(a);
       a.hp = Math.min(a.maxHp, a.hp + SPOKE_GAP_HEAL);
@@ -9400,7 +9491,8 @@ function spokeAI(a, dt) {
 // A combat master with 3 totems. Every totem pop unlocks more of his arsenal (pops = 3 - totems left):
 //   0 pops: diamond sword, axe + shield | 1: + mace and wind charges | 2: + spear (lunge) | 3: everything, incl. bow and trident
 // eq bits: 4-8 weapon in hand (0 sword,1 axe,2 mace,3 spear,4 bow,5 trident,6 wind charge), 9 shield raised (rest as Spoke)
-const FLAME_TOTEMS = 3, FLAME_GAPPLES = 30, FLAME_REDUCE = 0.5;
+const FLAME_TOTEMS = 3, FLAME_GAPPLES = 40, FLAME_REDUCE = 0.35;   // tougher: more gapples, less free reduction stack with armor
+const FLAME_HP = 28;
 function flameInitEq() { return (100 << 12) | (FLAME_GAPPLES << 19) | FLAME_TOTEMS; }   // full diamond armor durability like Spoke
 function flameSet(a, o) {
   let e = a.eq | 0;
@@ -9417,6 +9509,7 @@ function summonFlame(x, y, z) {
 }
 function flameHurt(a, dmg, fromPos, kbMul, by) {
   if (!a.alive) return;
+  if ((a.healCover || entityCoveredInWeb(a.pos, a.height || 1.8)) && a.eatT > 0) dmg *= 0.15;
   const old = a.eq | 0, g = spokeGet(a);
   let blocked = false;
   if (((a.eq >> 9) & 1) && fromPos) {   // shield up: blocks hits coming from the front
@@ -9475,11 +9568,16 @@ function flameAI(a, dt) {
   else {
     const ranged0 = wpn === 4 || wpn === 5 || wpn === 6;
     if (a.wpnT <= 0 || (ranged0 && dist < 5) || wpn > 5) {
-      const melee = [0, 1]; if (pops >= 1) melee.push(2); if (pops >= 2) melee.push(3);
+      const melee = [0, 1]; if (pops >= 1) melee.push(2); if (pops >= 1) melee.push(3);   // spear from 1st pop
       let w;
-      if (pops >= 3 && dist > 11) w = Math.random() < 0.5 ? 4 : 5; else w = melee[Math.floor(Math.random() * melee.length)];
-      a.wpnT = 3 + Math.random() * 3;
-      if (w !== wpn) { wpn = w; flameSet(a, { wpn: w }); a.bowT = 0; a.tWind = 0; spokeSet(a, { draw: 0 }); }
+      if (a.wantEat || a.eatT > 0) w = 3;   // spear to lunge away for heal
+      else if (pops >= 2 && dist > 9 && Math.random() < 0.55) w = 4;   // bow more often mid-range
+      else if (pops >= 3 && dist > 11) w = Math.random() < 0.55 ? 4 : 5;
+      else if (pops >= 1 && dist > 3.5 && dist < 9 && Math.random() < 0.4) w = 2;   // mace smash range
+      else if (pops >= 1 && dist > 4 && Math.random() < 0.35) w = 3;   // spear poke / lunge
+      else w = melee[Math.floor(Math.random() * melee.length)];
+      a.wpnT = 2.2 + Math.random() * 2.5;
+      if (w !== wpn) { wpn = w; flameSet(a, { wpn: w }); a.bowT = 0; a.tWind = 0; spokeSet(a, { draw: 0 }); a.heldKey = ''; }
     }
   }
   const isRanged = wpn === 4 || wpn === 5;
@@ -9510,8 +9608,8 @@ function flameAI(a, dt) {
   } else if (!isRanged && wpn <= 3) {
     // ---------------- melee: sword / axe / mace / spear ----------------
     const reach = wpn === 3 ? 4.3 : (wpn === 2 ? 3.3 : 3.0), ideal = wpn === 3 ? 3.4 : 2.4;
-    if (a.lungeT > 0) { mx = nx * 14; mz = nz * 14; }
-    else if (a.smashArm) { mx = nx * 7; mz = nz * 7; }
+    if (a.lungeT > 0) { /* set below after spear logic (toward or away) */ }
+    else if (a.smashArm) { mx = nx * 8; mz = nz * 8; }
     else if (dist > ideal + 0.4) chase(5.4);
     else { const back = dist < ideal - 0.5 ? -1.8 : 0.6; mx = nx * back - nz * a.strafeDir * 3.2; mz = nz * back + nx * a.strafeDir * 3.2; }
     // mace + wind charge combo (1st totem pop on): launch himself, then smash down on the player
@@ -9524,20 +9622,32 @@ function flameAI(a, dt) {
         a.airT += dt; a.peakY = Math.max(a.peakY, a.pos.y);
         if (a.vel.y < 0 && dist < 2.8 && dyP < 1.2 && tgt.alive) {
           const fall = Math.max(0, a.peakY - a.pos.y);
-          flameHit(tgt, 6 + Math.min(6, fall * 1.4), kdir, 13, false);
+          flameHit(tgt, 9 + Math.min(10, fall * 1.8), kdir, 15, false);
           try { windBurstParticles({ x: tgt.x, y: tgt.y, z: tgt.z }); } catch (e) {}
           a.smashArm = false; a.vel.y = 6; a.attackCd = 1.1;
         } else if (a.airT > 0.5 && grounded) a.smashArm = false;
       }
     }
-    // spear lunge (2nd totem pop on)
-    if (wpn === 3 && pops >= 2 && a.lungeCd <= 0 && a.lungeT <= 0 && dist > 4.4 && dist < 10 && grounded) { a.lungeT = 0.35; a.lungeCd = 4; a.lungeHit = false; }
-    if (a.lungeT > 0 && !a.lungeHit && dist < 3.7 && tgt.alive) { a.lungeHit = true; a.attackCd = 1.1; flameHit(tgt, 8, kdir, 11, false); }
-    // normal melee swing
+    // spear lunge: combat OR escape farther to heal (available from 1st totem pop)
+    if (wpn === 3 && pops >= 1 && a.lungeCd <= 0 && a.lungeT <= 0 && grounded) {
+      if (a.wantEat || a.hp < a.maxHp * 0.55) {
+        // Lunge AWAY from the player to open distance for a golden apple
+        a.lungeT = 0.42; a.lungeCd = 3.2; a.lungeHit = true; a.lungeAway = true;
+        a.vel.y = 6.5;
+      } else if (dist > 4.0 && dist < 12) {
+        a.lungeT = 0.38; a.lungeCd = 3.5; a.lungeHit = false; a.lungeAway = false;
+      }
+    }
+    if (a.lungeT > 0) {
+      if (a.lungeAway) { mx = -nx * 16; mz = -nz * 16; }
+      else { mx = nx * 15; mz = nz * 15; }
+    }
+    if (a.lungeT > 0 && !a.lungeHit && !a.lungeAway && dist < 3.9 && tgt.alive) { a.lungeHit = true; a.attackCd = 1.1; flameHit(tgt, 9, kdir, 12, false); }
+    // normal melee swing (mace hits harder)
     if (dist < reach && dyP > -1.6 && dyP < 1.6 && a.swCd <= 0 && tgt.alive && !a.smashArm && skLos(eyeP, tgtP)) {
-      const dmg = [7, 9, 6, 6][wpn], cd = [0.62, 1.0, 1.3, 0.8][wpn];
+      const dmg = [8, 10, 11, 7][wpn], cd = [0.55, 0.9, 1.15, 0.7][wpn];   // buffed; mace = 11
       a.swCd = cd; a.attackCd = 1.1; a.blockOff = 0.5;
-      if (Math.random() < SPOKE_HIT_CHANCE) flameHit(tgt, dmg, kdir, 9, wpn === 1);   // axe hit breaks a raised shield
+      if (Math.random() < SPOKE_HIT_CHANCE) flameHit(tgt, dmg, kdir, 9 + (wpn === 2 ? 3 : 0), wpn === 1);
     }
     if (!a.smashArm && a.hopCd <= 0 && dist < 4 && grounded) { a.hopCd = 1.0 + Math.random() * 1.2; a.vel.y = 7.0; }
   } else {
@@ -9576,7 +9686,16 @@ function flameVisualTick(a, dt) {
     a.heldKey = want; const an = a.handAnchor;
     if (want === 'bow') { an.position.set(0, -0.56, 0); an.scale.setScalar(1.5); setHeldVisual(a.heldState, an, 'bow', { power: 5, charge: 2 }); an.quaternion.copy(skBowQuat()); }
     else if (want === 'golden_apple' || want === 'wind_charge') { an.position.set(0, -0.55, 0.2); an.scale.setScalar(1.0); setHeldVisual(a.heldState, an, want); an.quaternion.identity(); }
-    else { an.position.set(0, -0.5, 0.02); an.scale.setScalar(1.25); setHeldVisual(a.heldState, an, want); an.quaternion.copy(zombieHoldQuat(a.heldState.heldMesh)); }
+    else if (want === 'mace') {
+      an.position.set(0, -0.52, 0.02); an.scale.setScalar(1.35);
+      setHeldVisual(a.heldState, an, 'mace');
+      if (a.heldState.heldMesh) an.quaternion.copy(zombieHoldQuat(a.heldState.heldMesh));
+      else an.quaternion.identity();
+    } else {
+      an.position.set(0, -0.5, 0.02); an.scale.setScalar(1.25);
+      setHeldVisual(a.heldState, an, want);
+      if (a.heldState.heldMesh) an.quaternion.copy(zombieHoldQuat(a.heldState.heldMesh));
+    }
   }
   if (a.offKey !== 'shield') {
     a.offKey = 'shield'; const o = a.offAnchor;
@@ -10949,7 +11068,7 @@ function jcAfterHit(r, tx, ty, tz, h) {
     const rb = document.getElementById('mBtnRun'); if (rb) rb.classList.remove('on');
   }
 }
-const WIND_BURST_UP = [0, 17, 20, 23];   // launch speed (blocks/s) - about 5.5 / 7.5 / 10 blocks of height
+const WIND_BURST_UP = [0, 20.5, 25, 35.4];   // launch speed (blocks/s) at g=26 → ~8 / 12 / 24 blocks height (v=sqrt(2*g*h))
 function jcWindBurst(r) {
   if (!r || !r.smash || !(r.windburst > 0)) return;
   const lv = Math.max(0, Math.min(3, Math.trunc(r.windburst)));
@@ -10991,6 +11110,13 @@ function jcSweep(r, primary) {
   });
 }
 function jcAttackAnimal(a) {
+  // Cobweb / solid cover between you and the target blocks the swing
+  if (entityCoveredInWeb(a.pos, a.height || 1.8) ||
+      lineBlockedByCover(player.pos.x, player.pos.y + 1.2, player.pos.z, a.pos.x, a.pos.y + 1.0, a.pos.z) ||
+      (a.healCover && a.eatT > 0)) {
+    jcResetCd();
+    return true;   // swing wasted on the web/wall
+  }
   const r = jcRoll(); jcResetCd();
   const d = jcIframe(a, r.dmg);
   if (d > 0) {
@@ -11837,22 +11963,45 @@ function doForcedUpdate(text) {
   try { saveLocalPlayer(); } catch (e) {}
   try { document.exitPointerLock(); } catch (e) {}
   const ov = document.createElement('div');
-  ov.style.cssText = 'position:fixed;inset:0;z-index:99999;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:14px;background:rgba(10,12,24,0.93);color:#fff;font:bold 22px monospace;text-align:center;padding:24px;';
-  const t = document.createElement('div'); t.textContent = text;
-  const c = document.createElement('div'); c.style.cssText = 'font-size:16px;color:#7ec8ff;';
-  ov.appendChild(t); ov.appendChild(c); document.body.appendChild(ov);
+  ov.id = 'forceUpdateOverlay';
+  ov.style.cssText = 'position:fixed;inset:0;z-index:99999;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:16px;background:rgba(8,10,20,0.96);color:#fff;font:bold 22px monospace;text-align:center;padding:28px;';
+  document.body.appendChild(ov);
   if (IS_FILE_VERSION) {
-    // Playing from a saved .html file: reloading would just reopen the same old file, so instead
-    // ask the player to get the new version. This can't be dismissed; it only goes away when they refresh.
-    t.textContent = 'Please update!';
-    const m = document.createElement('div'); m.style.cssText = 'font-size:18px;font-weight:normal;max-width:620px;'; m.textContent = text;
-    const h = document.createElement('div'); h.style.cssText = 'font-size:16px;color:#7ec8ff;font-weight:normal;';
-    h.textContent = 'A new version of the game is out. Download the latest file, then refresh this page.';
-    ov.insertBefore(m, c); ov.insertBefore(h, c); c.remove();
-    ['keydown', 'keyup', 'wheel', 'contextmenu'].forEach(ev => ov.addEventListener(ev, e => e.stopPropagation()));
-    window.addEventListener('keydown', e => { if (e.key !== 'F5' && !(e.ctrlKey && (e.key === 'r' || e.key === 'R'))) { e.stopImmediatePropagation(); e.preventDefault(); } }, true);
+    // Playing from a saved .html file: reload keeps the old file, so ask them to download the new version.
+    // Overlay cannot be dismissed; only closing the tab / opening the new file ends it.
+    const title = document.createElement('div');
+    title.style.cssText = 'font-size:28px;color:#ffd54a;letter-spacing:0.5px;';
+    title.textContent = 'NEW VERSION AVAILABLE';
+    const msg = document.createElement('div');
+    msg.style.cssText = 'font-size:17px;font-weight:normal;max-width:640px;line-height:1.45;color:#e8eef8;';
+    msg.textContent = text || 'The game was updated!';
+    const box = document.createElement('div');
+    box.style.cssText = 'max-width:640px;padding:18px 22px;border:2px solid #7ec8ff;border-radius:10px;background:rgba(30,50,90,0.55);font-size:16px;font-weight:normal;line-height:1.55;color:#cfe8ff;';
+    box.innerHTML =
+      '<div style="font-weight:bold;color:#7ec8ff;margin-bottom:8px;font-size:18px;">Download the new version</div>' +
+      '<div style="text-align:left">' +
+      '1. Get the latest <b>Voltex</b> HTML file from the creator / shared link.<br>' +
+      '2. Save it on your device (replace the old file if you want).<br>' +
+      '3. Open the <b>new</b> file in your browser to keep playing.' +
+      '</div>';
+    const note = document.createElement('div');
+    note.style.cssText = 'font-size:14px;font-weight:normal;color:#9ab;max-width:560px;';
+    note.textContent = 'This page is an offline file — refreshing will not update it. You must open the newly downloaded file.';
+    ov.appendChild(title); ov.appendChild(msg); ov.appendChild(box); ov.appendChild(note);
+    ['keydown', 'keyup', 'wheel', 'contextmenu', 'mousedown', 'mouseup', 'click', 'pointerdown'].forEach(ev =>
+      ov.addEventListener(ev, e => { e.stopPropagation(); e.preventDefault(); }));
+    window.addEventListener('keydown', e => {
+      // Allow only F5 / Ctrl+R (still only reloads the old file — they still need the new download)
+      if (e.key !== 'F5' && !(e.ctrlKey && (e.key === 'r' || e.key === 'R'))) {
+        e.stopImmediatePropagation(); e.preventDefault();
+      }
+    }, true);
     return;
   }
+  // Website: show message then auto-refresh
+  const t = document.createElement('div'); t.textContent = text || 'The game was updated! Refreshing the page...';
+  const c = document.createElement('div'); c.style.cssText = 'font-size:16px;color:#7ec8ff;';
+  ov.appendChild(t); ov.appendChild(c);
   let n = 5;
   const tick = () => { c.textContent = 'Refreshing in ' + n + '...'; if (n-- <= 0) { location.reload(); return; } setTimeout(tick, 1000); };
   tick();
@@ -12042,10 +12191,10 @@ function runChatCommand(text) {
   }
   // /update [message] - shows a message to everyone, then refreshes the website for everyone. Creator only.
   if (cmd === 'update') {
-    const msg = filterText(parts.join(' ').trim().slice(0, 120)) || 'The game was updated! Refreshing the page...';
+    const msg = filterText(parts.join(' ').trim().slice(0, 120)) || 'The game was updated!';
     playersChannel.send({ type: 'broadcast', event: 'force_update', payload: { from: MY_ID, name: MY_NAME, text: msg } });
-    sys('Update sent to everyone.');
-    if (!IS_FILE_VERSION) doForcedUpdate(msg);   // website players refresh; file players get a "Please update" screen (not shown to you)
+    sys('Update sent to everyone. Website players will refresh; offline-file players are asked to download the new version.');
+    if (!IS_FILE_VERSION) doForcedUpdate(msg);   // website: auto-refresh; file players (receivers) get download prompt
     return;
   }
   if (cmd === 'biome') { sys('Biome: ' + biomeAt(Math.floor(player.pos.x), Math.floor(player.pos.z))); return; }
@@ -15128,6 +15277,7 @@ function animate() {
   let speed = inWater ? baseSpeed*0.5 : baseSpeed;
   if (player.crouched) speed *= 0.3;   // sneaking is slow
   if (isBlocking) speed *= 0.35; // raising a shield plants your feet
+  if (inCobweb(player.pos, player.height)) speed *= 0.08;   // cobweb: crawl (very slow)
 
   if (isPlaying()) {
     const forward = new THREE.Vector3(-Math.sin(player.yaw), 0, -Math.cos(player.yaw));
@@ -15193,7 +15343,7 @@ function animate() {
     }
   }
 
-  updateRiptide(dt);   // Riptide dash overrides velocity (and cancels gravity) while active
+  updateRiptide(dt);   // Riptide contact damage window (velocity is impulse-only, not locked)
   const wasOnGround = player.onGround;
   const preFallVel = player.vel.y;
   // Track continuous fall distance for mace smash attacks.
