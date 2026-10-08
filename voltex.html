@@ -4527,7 +4527,7 @@ function normalizeItem(it) {
       looting: 'looting', loot: 'looting',
       power: 'power', charge: 'charge', infinity: 'infinity', lunge: 'lunge',
       loyalty: 'loyalty', loy: 'loyalty', riptide: 'riptide', rip: 'riptide', silktouch: 'silktouch', silk: 'silktouch',
-      null: 'null'
+      null: 'null', swap: 'swap'
     };
     const ench = {};
     for (const k of Object.keys(raw)) {
@@ -10247,7 +10247,32 @@ function spearCanHitPlayer(id) {
   return !spearHitLock.has(id);
 }
 
+// Swap attribute: hitting a player with a sword/axe (or mace/spear) switches your hotbar to its partner (sword <-> axe, mace <-> spear)
+// BEFORE the damage is rolled, so the hit lands with the other tool: its damage, its Sharpness, and an axe
+// hit breaks a raised shield. Either tool of the pair may carry the attribute, so it keeps alternating.
+function jcTrySwapTool() {
+  if (useOffHand) return;
+  const cur = mainItem(); if (!cur) return;
+  const kindOf = t => t === 'mace' ? 'mace' : ((/^(?:wood|stone|iron|gold|diamond)_(sword|axe|spear)$/.exec(t) || [])[1] || null);
+  const matOf = t => (/^(wood|stone|iron|gold|diamond)_/.exec(t) || [])[1] || '';
+  const PAIR = { sword: 'axe', axe: 'sword', mace: 'spear', spear: 'mace' };
+  const ck = kindOf(cur.type); if (!ck) return;
+  const want = PAIR[ck];
+  let best = -1;
+  for (let i = 0; i < HOTBAR_SIZE; i++) {
+    const it = inventory[i];
+    if (i === currentSlot || !it || kindOf(it.type) !== want) continue;
+    if (!(cur.ench && cur.ench.swap) && !(it.ench && it.ench.swap)) continue;
+    if (best < 0 || (matOf(it.type) && matOf(it.type) === matOf(cur.type))) best = i;
+  }
+  if (best < 0) return;
+  const oldS = jcStrength(jcStats(cur).ticks);                    // carry the charge over so the swap never weakens the hit
+  selectSlot(best);
+  jcLastHeld = inventory[best].type;
+  atkTicks = Math.max(0, oldS * jcStats(inventory[best]).ticks - 0.5);
+}
 function jcAttackPlayer(pt) {
+  jcTrySwapTool();
   const held0 = currentItem();
   if (held0 && isSpear(held0.type) && !spearCanHitPlayer(pt.id)) { jcResetCd(); return false; }
   const r = jcRoll(); jcResetCd();
@@ -10388,7 +10413,7 @@ const JC_FORTUNE = {
   wood:        [[1, 1, 2], [1, 2, 2], [1, 2, 3], _fr(1, 4)],
   birch_wood:  [[1, 1, 2], [1, 2, 2], [1, 2, 3], _fr(1, 4)],
 };
-const JC_ENCH_NAMES = { lunge: 'Lunge', sharpness: 'Sharpness', protection: 'Protection', efficiency: 'Efficiency', fortune: 'Fortune', unbreaking: 'Unbreaking', mending: 'Mending', looting: 'Looting', power: 'Power', charge: 'Charge', infinity: 'Infinity', loyalty: 'Loyalty', riptide: 'Riptide', silktouch: 'Silk Touch', density: 'Density', breach: 'Breach', windburst: 'Wind Burst' };
+const JC_ENCH_NAMES = { swap: 'Swap', lunge: 'Lunge', sharpness: 'Sharpness', protection: 'Protection', efficiency: 'Efficiency', fortune: 'Fortune', unbreaking: 'Unbreaking', mending: 'Mending', looting: 'Looting', power: 'Power', charge: 'Charge', infinity: 'Infinity', loyalty: 'Loyalty', riptide: 'Riptide', silktouch: 'Silk Touch', density: 'Density', breach: 'Breach', windburst: 'Wind Burst' };
 let enchPick = 'efficiency';   // which tool enchant the table will apply (Efficiency / Fortune)
 function jcToolKind(type) { const m = /_(pickaxe|axe|shovel)$/.exec(type || ''); return m ? m[1] : null; }
 function jcEnchInfo(type) {
@@ -10736,6 +10761,21 @@ playersChannel
     teleportPlayerTo(x, y, z);
     try { addChatLine('System', 'You were teleported' + (payload.name ? ' by ' + payload.name : '') + '.', true); } catch (e) {}
   })
+  .on('broadcast', { event: 'tpa_request' }, ({ payload }) => {
+    if (!payload || payload.to !== MY_ID || payload.from === MY_ID) return;
+    const nm = filterText(String(payload.name || 'Someone').slice(0, 24));
+    pendingTpa = { from: payload.from, name: nm, t: performance.now() };
+    addChatLine('System', nm + ' wants to teleport to you. Type /tpaccept to accept (expires in 60s).', true);
+  })
+  .on('broadcast', { event: 'tpa_accept' }, ({ payload }) => {
+    if (!payload || payload.to !== MY_ID || payload.from === MY_ID) return;
+    if (!tpaSent || tpaSent.to !== payload.from || performance.now() - tpaSent.t > 60000) return;   // only if I actually asked them (and recently)
+    const x = Number(payload.x), y = Number(payload.y), z = Number(payload.z);
+    if (![x, y, z].every(Number.isFinite)) return;
+    tpaSent = null;
+    teleportPlayerTo(x, y, z);
+    addChatLine('System', filterText(String(payload.name || 'Player').slice(0, 24)) + ' accepted your teleport request.', true);
+  })
   .on('broadcast', { event: 'kill_all_mobs' }, () => { if (isMobHost()) killAllMobs(); })
   .on('broadcast', { event: 'force_update' }, ({ payload }) => {
     if (!payload || payload.from === MY_ID || payload.name !== 'Yuan') return; // only the creator can force an update
@@ -11066,10 +11106,30 @@ function givePlayerSpawner(kind, count) {
   try { renderHotbar(); if (inventoryOpen) renderInventoryPanel(); saveLocalPlayer(); } catch (e) {}
   return true;
 }
+let pendingTpa = null, tpaSent = null;   // /tpa: request I received / request I sent
 function runChatCommand(text) {
   const parts = text.slice(1).trim().split(/\s+/);
   const cmd = (parts.shift() || '').toLowerCase();
   const sys = msg => addChatLine('System', msg, true);
+  // ---- public commands (everyone) ----
+  if (cmd === 'tpa') {
+    if (!parts[0]) { sys('Usage: /tpa <player>'); return; }
+    const e = findPlayerByName(parts[0]);
+    let tid = null; otherPlayers.forEach((q, id) => { if (q === e) tid = id; });
+    if (!e || tid == null) { sys('No player found: ' + parts[0]); return; }
+    tpaSent = { to: tid, t: performance.now() };
+    try { playersChannel.send({ type: 'broadcast', event: 'tpa_request', payload: { from: MY_ID, to: tid, name: MY_NAME } }); } catch (err) {}
+    sys('Teleport request sent to ' + e.name + '.');
+    return;
+  }
+  if (cmd === 'tpaccept') {
+    if (!pendingTpa || performance.now() - pendingTpa.t > 60000) { pendingTpa = null; sys('You have no pending teleport request.'); return; }
+    const req = pendingTpa; pendingTpa = null;
+    try { playersChannel.send({ type: 'broadcast', event: 'tpa_accept', payload: { from: MY_ID, to: req.from, name: MY_NAME, x: player.pos.x, y: player.pos.y, z: player.pos.z } }); } catch (err) {}
+    sys('Accepted ' + req.name + "'s teleport request.");
+    return;
+  }
+  if (cmd === 'help' && MY_NAME !== 'Yuan') { sys('/tpa <player> - ask to teleport to a player | /tpaccept - accept a teleport request'); return; }
   // Creator-only: only the player named Yuan may run any commands
   if (MY_NAME !== 'Yuan') { sys('Commands are restricted to the creator (Yuan).'); return; }
   if (cmd === 'tp' || cmd === 'teleport') {
@@ -11175,6 +11235,15 @@ function runChatCommand(text) {
     sys('Gave ' + e.name + ' ' + kind + ' spawner(s).'); return;
   }
   if (cmd === 'give' && (parts[0] || '').toLowerCase() !== 'null_totem') { sys('Usage: /give <@s|@a|player> <zombie|skeleton|breeze> [count]'); return; }
+  // /swap — give the held sword/axe the Swap attribute (hits on players swap sword <-> axe). Creator only.
+  if (cmd === 'swap') {
+    const it = mainItem();
+    if (!it || !(it.type === 'mace' || /_(sword|axe|spear)$/.test(it.type))) { sys('Hold a sword, axe, mace or spear to give it Swap.'); return; }
+    it.ench = Object.assign({}, it.ench || {}, { swap: 1 });
+    try { renderHotbar(); if (inventoryOpen) renderInventoryPanel(); saveLocalPlayer(); } catch (e) {}
+    sys('Swap added to your ' + displayName(it.type) + '. Keep its partner (sword/axe or mace/spear) in your hotbar.');
+    return;
+  }
   // /nulltotem — give a Null Totem (10 uses, Null enchant). Creator only.
   if (cmd === 'nulltotem' || cmd === 'null_totem' || (cmd === 'give' && (parts[0] || '').toLowerCase() === 'null_totem')) {
     let slot = -1;
@@ -11192,7 +11261,7 @@ function runChatCommand(text) {
     else { weatherForce = null; sys('Weather: natural (usage: /rain on | off | auto)'); }
     return;
   }
-  if (cmd === 'help') { sys('/tp @s <x> <y> <z> | /tp @s <player> | /tp <player> @s | /biome | /spawner [tp] | /give <@s|@a|player> <zombie|skeleton|breeze> [count] | /nulltotem | /spoke | /kill <player|@s|@e> | /rain on|off|auto | /update [message]'); return; }
+  if (cmd === 'help') { sys('/tpa <player> | /tpaccept | /swap | /tp @s <x> <y> <z> | /tp @s <player> | /tp <player> @s | /biome | /spawner [tp] | /give <@s|@a|player> <zombie|skeleton|breeze> [count] | /nulltotem | /spoke | /kill <player|@s|@e> | /rain on|off|auto | /update [message]'); return; }
   sys('Unknown command: /' + cmd + ' (try /help)');
 }
 
