@@ -5292,8 +5292,19 @@ function closeInventory() {
   inventoryOpen = false;
   invPanel.style.display = 'none';
   // return any grid/cursor contents to the inventory rather than deleting items
-  craftSlots.forEach((s, i) => { if (s) { addItemToInventory(s.type, s.count, s.ench, s.dur); craftSlots[i] = null; } });
+  const _dropAt = () => new THREE.Vector3(player.pos.x, player.pos.y + 1, player.pos.z);
+  const _dropVel = () => new THREE.Vector3(-Math.sin(player.yaw || 0) * 2, 2, -Math.cos(player.yaw || 0) * 2);
+  craftSlots.forEach((s, i) => {
+    if (!s) return;
+    const left = addItemToInventory(s.type, s.count, s.ench, s.dur, s.spawnKind, s.meta);
+    if (left > 0) { try { spawnDroppedItem(s.type, left, _dropAt(), _dropVel(), { ench: s.ench, dur: s.dur, spawnKind: s.spawnKind, meta: s.meta }); } catch (e) {} }
+    craftSlots[i] = null;
+  });
   returnCursorItemToInventory();
+  if (cursorItem) {   // inventory full: throw what's left on the floor
+    try { spawnDroppedItem(cursorItem.type, cursorItem.count, _dropAt(), _dropVel(), { ench: cursorItem.ench, dur: cursorItem.dur, spawnKind: cursorItem.spawnKind, meta: cursorItem.meta }); } catch (e) {}
+    cursorItem = null;
+  }
   renderHotbar();
   saveLocalPlayer();
   resumeGameplay();
@@ -8491,11 +8502,15 @@ function giveMobLoot(kind, eq) {
   jcAddXp(Math.max(1, Math.round(((JC_XP[kind] || 2) + _armXp) * (1 + 0.25 * L))));
   const extra = () => L > 0 ? Math.floor(Math.random() * (L + 1)) : 0;
   if (kind === 'spoke') {
-    addItemToInventory('golden_apple', 2 + Math.floor(Math.random() * 4));
-    try { addItemToInventory('diamond', 2 + Math.floor(Math.random() * 4)); } catch (e) {}
-    addItemToInventory('arrow', 12 + Math.floor(Math.random() * 12));
+    jcAddXp(1500);   // big bonus XP for killing Spoke
+    const _spAt = () => new THREE.Vector3(player.pos.x, player.pos.y + 1, player.pos.z);
+    const _spGive = (t, n) => { const left = addItemToInventory(t, n); if (left > 0) { try { spawnDroppedItem(t, left, _spAt(), new THREE.Vector3(0, 2, 0)); } catch (e) {} } };
+    _spGive('golden_apple', 2 + Math.floor(Math.random() * 4));
+    try { _spGive('diamond', 2 + Math.floor(Math.random() * 4)); } catch (e) {}
+    _spGive('arrow', 12 + Math.floor(Math.random() * 12));
     let sl = -1; for (let i = 0; i < INV_SIZE; i++) if (!inventory[i]) { sl = i; break; }
     if (sl >= 0) inventory[sl] = { type: 'null_totem', count: 1, uses: 10, ench: { null: 1 } };
+    else { try { spawnDroppedItem('null_totem', 1, _spAt(), new THREE.Vector3(0, 2, 0), { ench: { null: 1 }, uses: 10 }); } catch (e) {} }
     renderHotbar(); if (inventoryOpen) renderInventoryPanel(); saveLocalPlayer();
     addChatLine('System', 'Spoke was defeated!', true);
     return;
@@ -9791,9 +9806,9 @@ function updateMaceHud() {
   let dmg = st.dmg * (0.2 + s * s * 0.8);
   const smash = !player.onGround && player.vel.y < 0 && fall > 1.5;
   const _dens = Number(held.ench && held.ench.density) || 0;
-  if (smash) dmg += maceSmashBonus(fall, _dens);
+  if (smash) dmg = st.dmg + maceSmashBonus(fall, _dens);
   const _sh = Number(held.ench && held.ench.sharpness) || 0;
-  if (_sh) dmg += (0.5 * _sh + 0.5) * Math.max(s, 0.2);
+  if (_sh) dmg += (0.5 * _sh + 0.5) * Math.max(smash ? 1 : s, 0.2);
   maceHudDmg.style.display = 'block';
   maceHudDmg.textContent = (smash ? 'Smash ' : '') + dmg.toFixed(1) + ' dmg';
   maceHudDmg.style.color = smash ? '#ff9d4a' : '#ffe27a';
@@ -10013,16 +10028,18 @@ function jcRoll() {
   const _dens = Math.max(0, Math.min(5, Math.trunc(Number(_h && _h.ench && _h.ench.density) || 0)));
   const _breach = Math.max(0, Math.min(5, Math.trunc(Number(_h && _h.ench && _h.ench.breach) || 0)));
   const _wburst = Math.max(0, Math.min(3, Math.trunc(Number(_h && _h.ench && _h.ench.windburst) || 0)));
+  // Mace smash needs no full attack charge: a falling hit always smashes (its bonus damage is not reduced by the cooldown)
   // Mace smash: must be falling (vel.y < 0) with >1.5 blocks of *this* descent — bhop cannot stack
-  if (st.kind === 'mace' && charged && !player.onGround && player.vel.y < 0 && fallBlocks > 1.5 && !wet) {
+  if (st.kind === 'mace' && !player.onGround && player.vel.y < 0 && fallBlocks > 1.5 && !wet) {
     const bonus = maceSmashBonus(fallBlocks, _dens);
-    dmg += bonus;
     smash = bonus > 0;
+    if (smash) dmg = st.dmg + bonus;   // slam ignores the attack cooldown: full base damage + smash bonus
+    else dmg += bonus;
   }
   const crit = !smash && charged && !player.onGround && player.vel.y < -1.5 && !wet && !jcSprinting;
   if (crit) dmg *= 1.5;
   const _sh = Number(_h && _h.ench && _h.ench.sharpness) || 0;
-  if (_sh) dmg += (0.5 * _sh + 0.5) * Math.max(s, 0.2);
+  if (_sh) dmg += (0.5 * _sh + 0.5) * Math.max(smash ? 1 : s, 0.2);
   const sprint = charged && jcSprinting;
   const sweep = charged && st.kind === 'sword' && player.onGround && !jcSprinting && !crit && !smash;
   const kb = smash ? 1.6 : ((charged ? 1 : 0.6) * (sprint ? 1.9 : 1));
@@ -10701,6 +10718,10 @@ playersChannel
       if (!otherPlayers.has(id)) {
         const meta = state[id][0] || {};
         createOtherPlayer(id, meta.name || 'Player');
+      }
+      if (!_joinAnnounced.has(id)) {
+        _joinAnnounced.add(id);
+        const meta = state[id][0] || {};
         if (!firstSync) addChatLine('System', filterText(String(meta.name || 'Player')) + ' joined the game', true);
       }
       const m2 = (state[id][0] || {});
@@ -10708,6 +10729,7 @@ playersChannel
       { const oe = otherPlayers.get(id); if (oe) oe.touch = !!m2.touch; }
     });
     Array.from(otherPlayers.keys()).forEach(id => { if (!seen.has(id)) removeOtherPlayer(id); });
+    _joinAnnounced.forEach(id => { if (!seen.has(id)) _joinAnnounced.delete(id); });
   })
   .on('broadcast', { event: 'pos' }, ({ payload }) => {
     if (!payload || payload.id === MY_ID) return;
@@ -11019,6 +11041,7 @@ function filterText(str) {
 // ---------- /update : show a message, then refresh the page for everyone ----------
 let _forcedUpdating = false;
 let _presenceSynced = false;
+var _joinAnnounced = new Set();
 const IS_FILE_VERSION = (location.protocol === 'file:' || !location.protocol || location.protocol === 'about:' || location.origin === 'null');   // opened from a saved file, not the website
 function doForcedUpdate(text) {
   if (_forcedUpdating) return;
