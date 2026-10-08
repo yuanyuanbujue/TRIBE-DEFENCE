@@ -4502,6 +4502,12 @@ function normalizeItem(it) {
   const out = { type: String(it.type), count: Number(it.count) };
   if (!Number.isFinite(out.count)) out.count = 1;
   if (it.uses != null && Number.isFinite(Number(it.uses))) out.uses = Number(it.uses);
+  if (out.type === 'spawner') {   // keep which mob the spawner spawns
+    if (it.spawnKind === 'zombie' || it.spawnKind === 'skeleton' || it.spawnKind === 'breeze') out.spawnKind = it.spawnKind;
+    if (it.meta != null && Number.isFinite(Number(it.meta))) out.meta = Number(it.meta);
+    if (out.spawnKind == null) out.spawnKind = spawnerKindFromBlock({ meta: out.meta }, 0, 0, 0);
+    if (out.meta == null) out.meta = spawnerMetaForKind(out.spawnKind);
+  }
   if (isDurableItem(out.type)) {
     const max = maxDurability(out.type);
     if (it.dur != null && Number.isFinite(Number(it.dur))) out.dur = Math.max(0, Math.min(max, Math.trunc(Number(it.dur))));
@@ -9212,7 +9218,7 @@ function spawnDroppedItem(type, count, pos, vel, opts) {
   if (!opts.remote) {
     playersChannel.send({
       type: 'broadcast', event: 'drop',
-      payload: { from: MY_ID, id, itemType: type, count, ench: opts.ench || null, dur: opts.dur != null ? opts.dur : null, x: pos.x, y: pos.y, z: pos.z, vx: v.x, vy: v.y, vz: v.z }
+      payload: { from: MY_ID, id, itemType: type, count, ench: opts.ench || null, dur: opts.dur != null ? opts.dur : null, spawnKind: opts.spawnKind || null, meta: opts.meta != null ? opts.meta : null, x: pos.x, y: pos.y, z: pos.z, vx: v.x, vy: v.y, vz: v.z }
     });
   }
 }
@@ -9578,7 +9584,7 @@ function throwCurrentItem() {
   const startPos = new THREE.Vector3(player.pos.x, player.pos.y + player.height*0.6, player.pos.z)
     .add(dir.clone().multiplyScalar(0.6));
   const vel = dir.clone().multiplyScalar(6.5).add(new THREE.Vector3(0, 2.8, 0));
-  spawnDroppedItem(held.type, 1, startPos, vel, { ench: held.ench, dur: held.dur });
+  spawnDroppedItem(held.type, 1, startPos, vel, { ench: held.ench, dur: held.dur, spawnKind: held.spawnKind, meta: held.meta });
   removeFromCurrentSlot(1);
   renderHotbar();
   if (inventoryOpen) renderInventoryPanel();
@@ -9594,7 +9600,7 @@ function throwCurrentStack() {
     .add(dir.clone().multiplyScalar(0.6));
   const vel = dir.clone().multiplyScalar(6.5).add(new THREE.Vector3(0, 2.8, 0));
   const n = held.count;
-  spawnDroppedItem(held.type, n, startPos, vel, { ench: held.ench, dur: held.dur });
+  spawnDroppedItem(held.type, n, startPos, vel, { ench: held.ench, dur: held.dur, spawnKind: held.spawnKind, meta: held.meta });
   removeFromCurrentSlot(n);
   renderHotbar();
   if (inventoryOpen) renderInventoryPanel();
@@ -10313,6 +10319,8 @@ function jcCopy(item, count) {
   const c = { type: item.type, count: count == null ? item.count : count };
   if (item.ench) c.ench = Object.assign({}, item.ench);
   if (item.uses != null) c.uses = item.uses;
+  if (item.spawnKind) c.spawnKind = item.spawnKind;
+  if (item.meta != null) c.meta = item.meta;
   if (item.dur != null) c.dur = item.dur;
   else if (isDurableItem(item.type)) c.dur = maxDurability(item.type);
   return c;
@@ -10343,7 +10351,7 @@ function jcEnchPut(idx) {                       // bag -> enchant slot (swaps wi
 }
 function jcGiveBack(item) {                     // put an item into the first free bag slot (or drop it at your feet)
   for (let i = 0; i < INV_SIZE; i++) if (!inventory[i]) { inventory[i] = item; return true; }
-  spawnDroppedItem(item.type, 1, new THREE.Vector3(player.pos.x, player.pos.y + 1, player.pos.z), undefined, { ench: item.ench, dur: item.dur });
+  spawnDroppedItem(item.type, 1, new THREE.Vector3(player.pos.x, player.pos.y + 1, player.pos.z), undefined, { ench: item.ench, dur: item.dur, spawnKind: item.spawnKind, meta: item.meta });
   return false;
 }
 function jcEnchTake() {                         // enchant slot -> bag
@@ -10664,7 +10672,7 @@ playersChannel
   .on('broadcast', { event: 'drop' }, ({ payload }) => {
     if (!payload || payload.from === MY_ID || !BLOCK_TYPES[payload.itemType] && !ITEM_INFO[payload.itemType]) return;
     spawnDroppedItem(payload.itemType, payload.count, new THREE.Vector3(payload.x, payload.y, payload.z),
-      new THREE.Vector3(payload.vx, payload.vy, payload.vz), { id: payload.id, remote: true, ench: jcCleanEnch(payload.ench), dur: payload.dur });
+      new THREE.Vector3(payload.vx, payload.vy, payload.vz), { id: payload.id, remote: true, ench: jcCleanEnch(payload.ench), dur: payload.dur, spawnKind: payload.spawnKind || null, meta: payload.meta != null ? payload.meta : null });
   })
   .on('broadcast', { event: 'arrow' }, ({ payload }) => {
     if (!payload || payload.from === MY_ID) return;
@@ -11337,11 +11345,12 @@ function tryMobilePlace() {
     const held = currentItem();
     const sk = (held && held.spawnKind) || (held && held.meta != null ? spawnerKindFromBlock({ meta: held.meta }, 0, 0, 0) : 'zombie');
     meta = spawnerMetaForKind(sk);
+    window.__placeSpawnKind = sk;
   }
   if (canPlace && rsCanPlace(ptype, nx, ny, nz) && (addBlock(nx, ny, nz, ptype, false, meta) && markPlaced(nx, ny, nz))) {
     if (ptype === 'spawner') {
       const b = getBlock(nx, ny, nz);
-      if (b) b.spawnKind = spawnerKindFromBlock(b, nx, ny, nz);
+      if (b) b.spawnKind = window.__placeSpawnKind || spawnerKindFromBlock(b, nx, ny, nz);
     }
     removeFromCurrentSlot(1);
     flushDirtyChunks(false);
@@ -12574,7 +12583,7 @@ function updateMining(dt) {
           slots.forEach(s => {
             if (!s) return;
             const leftover = addItemToInventory(s.type, s.count, s.ench, s.dur);
-            if (leftover > 0) spawnDroppedItem(s.type, leftover, new THREE.Vector3(hit.x, hit.y, hit.z), undefined, { ench: s.ench, dur: s.dur });
+            if (leftover > 0) spawnDroppedItem(s.type, leftover, new THREE.Vector3(hit.x, hit.y, hit.z), undefined, { ench: s.ench, dur: s.dur, spawnKind: s.spawnKind, meta: s.meta });
           });
           delete chestData[k];
           saveChestData();
@@ -12945,11 +12954,12 @@ canvas.addEventListener('mousedown', e => {
           const held = currentItem();
           const sk = (held && held.spawnKind) || (held && held.meta != null ? spawnerKindFromBlock({ meta: held.meta }, 0, 0, 0) : 'zombie');
           meta = spawnerMetaForKind(sk);
+          window.__placeSpawnKind = sk;
         }
         if (canPlace && rsCanPlace(ptype, nx, ny, nz) && (addBlock(nx, ny, nz, ptype, false, meta) && markPlaced(nx, ny, nz))) {
           if (ptype === 'spawner') {
             const b = getBlock(nx, ny, nz);
-            if (b) b.spawnKind = spawnerKindFromBlock(b, nx, ny, nz);
+            if (b) b.spawnKind = window.__placeSpawnKind || spawnerKindFromBlock(b, nx, ny, nz);
           }
           removeFromCurrentSlot(1);
           flushDirtyChunks(false);
@@ -13465,7 +13475,7 @@ function explodeTnt(t) {
       broadcastChestRemove(k);
       const slots = chestData[k];
       if (slots) {
-        slots.forEach(s => { if (s) spawnDroppedItem(s.type, s.count, new THREE.Vector3(x, y, z), undefined, { ench: s.ench, dur: s.dur }); });
+        slots.forEach(s => { if (s) spawnDroppedItem(s.type, s.count, new THREE.Vector3(x, y, z), undefined, { ench: s.ench, dur: s.dur, spawnKind: s.spawnKind, meta: s.meta }); });
         delete chestData[k]; saveChestData();
       }
     } else if (!isLeavesType(b.type) && b.type !== 'glass' && b.type !== 'torch' && b.type !== 'sapling' && !isPlantType(b.type) && drops < 10 && droppedItems.length < 120 && Math.random() < 0.15) {
@@ -13999,7 +14009,7 @@ function animate() {
     }
     player.vel.y = Math.max(player.vel.y, -3);
   } else {
-    player.vel.y -= 20*dt;
+    player.vel.y -= 26*dt;
     if (player.onGround && isPlaying() && (keyDown('jump') || mobile.jump)) {
       player.vel.y = 8;
       player.onGround = false;
