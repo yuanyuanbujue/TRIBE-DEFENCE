@@ -3702,12 +3702,14 @@ function updateTorchFx(dt, t) {
   if (tm) tm.emissiveIntensity = 0.9 * torchFlicker(t, 1.3);
 }
 
+const placedSpawnerKeys = new Set();   // every player-placed / given spawner, so they run just like dungeon ones
 function addBlock(x,y,z,type,skipMark,meta) {
   x=Math.round(x); y=Math.round(y); z=Math.round(z);
   const k = key(x,y,z);
   if (world.has(k)) return false;
   if (removedDiffs.has(k)) return false; // a player explicitly mined this spot — don't regrow it
   world.set(k, { type, x, y, z, meta: meta == null ? 0 : meta });
+  if (type === 'spawner') placedSpawnerKeys.add(k);
   lightInvalidateNear(x,y,z);
   syncBlockLight(x,y,z,type,skipMark);
   syncSaplingGrowth(x,y,z,type);
@@ -4656,7 +4658,7 @@ function applyBlockDiff(row, skipMark) {
   } else {
     removedDiffs.delete(k);
     const rowB = { type, x, y, z, meta, placed: isOreType(type) };
-    if (type === 'spawner') rowB.spawnKind = spawnerKindFromBlock(rowB, x, y, z);
+    if (type === 'spawner') { rowB.spawnKind = spawnerKindFromBlock(rowB, x, y, z); placedSpawnerKeys.add(k); }
     world.set(k, rowB);   // saved/synced non-air rows are player placements
   }
   syncBlockLight(x, y, z, type === 'air' ? null : type, skipMark);
@@ -9042,6 +9044,19 @@ function updateSpawnerBlocks(dt) {
     if (t <= 0) t = trySpawnerSpawn(sx, sy, sz) ? 6 + Math.random() * 7 : 2 + Math.random() * 2;
     spawnerTimers.set(k, t);
   });
+  // spawners that were placed / given (not part of a generated dungeon room)
+  placedSpawnerKeys.forEach(k => {
+    if (activeKeys.has(k)) return;
+    const b = world.get(k);
+    if (!b || b.type !== 'spawner') { placedSpawnerKeys.delete(k); return; }   // mined away
+    const sx = b.x, sy = b.y, sz = b.z;
+    if (!ps.some(p => p.ok && (p.x - sx) ** 2 + (p.y - sy) ** 2 + (p.z - sz) ** 2 <= SPAWNER_RANGE * SPAWNER_RANGE)) return;
+    activeKeys.add(k);
+    let t = spawnerTimers.has(k) ? spawnerTimers.get(k) : 1.5 + Math.random() * 3;
+    t -= elapsed;
+    if (t <= 0) t = trySpawnerSpawn(sx, sy, sz) ? 6 + Math.random() * 7 : 2 + Math.random() * 2;
+    spawnerTimers.set(k, t);
+  });
   for (const k of [...spawnerTimers.keys()]) if (!activeKeys.has(k)) spawnerTimers.delete(k);
 }
 
@@ -10048,12 +10063,12 @@ function jcAfterHit(r, tx, ty, tz, h) {
     const rb = document.getElementById('mBtnRun'); if (rb) rb.classList.remove('on');
   }
 }
-const WIND_BURST_UP = [0, 1.15, 1.55, 2.05];
+const WIND_BURST_UP = [0, 17, 20, 23];   // launch speed (blocks/s) - about 5.5 / 7.5 / 10 blocks of height
 function jcWindBurst(r) {
   if (!r || !r.smash || !(r.windburst > 0)) return;
   const lv = Math.max(0, Math.min(3, Math.trunc(r.windburst)));
   const up = WIND_BURST_UP[lv];
-  player.vel.y = Math.max(player.vel.y, up);
+  player.vel.y = up;   // always launch upward, even from a fast fall
   player.onGround = false;
   player.maceSmashCancel = true;
   player.fallDist = 0;
@@ -10836,6 +10851,7 @@ function filterText(str) {
 }
 // ---------- /update : show a message, then refresh the page for everyone ----------
 let _forcedUpdating = false;
+const IS_FILE_VERSION = (location.protocol === 'file:' || !location.protocol || location.protocol === 'about:' || location.origin === 'null');   // opened from a saved file, not the website
 function doForcedUpdate(text) {
   if (_forcedUpdating) return;
   _forcedUpdating = true;
@@ -10846,6 +10862,18 @@ function doForcedUpdate(text) {
   const t = document.createElement('div'); t.textContent = text;
   const c = document.createElement('div'); c.style.cssText = 'font-size:16px;color:#7ec8ff;';
   ov.appendChild(t); ov.appendChild(c); document.body.appendChild(ov);
+  if (IS_FILE_VERSION) {
+    // Playing from a saved .html file: reloading would just reopen the same old file, so instead
+    // ask the player to get the new version. This can't be dismissed; it only goes away when they refresh.
+    t.textContent = 'Please update!';
+    const m = document.createElement('div'); m.style.cssText = 'font-size:18px;font-weight:normal;max-width:620px;'; m.textContent = text;
+    const h = document.createElement('div'); h.style.cssText = 'font-size:16px;color:#7ec8ff;font-weight:normal;';
+    h.textContent = 'A new version of the game is out. Download the latest file, then refresh this page.';
+    ov.insertBefore(m, c); ov.insertBefore(h, c); c.remove();
+    ['keydown', 'keyup', 'wheel', 'contextmenu'].forEach(ev => ov.addEventListener(ev, e => e.stopPropagation()));
+    window.addEventListener('keydown', e => { if (e.key !== 'F5' && !(e.ctrlKey && (e.key === 'r' || e.key === 'R'))) { e.stopImmediatePropagation(); e.preventDefault(); } }, true);
+    return;
+  }
   let n = 5;
   const tick = () => { c.textContent = 'Refreshing in ' + n + '...'; if (n-- <= 0) { location.reload(); return; } setTimeout(tick, 1000); };
   tick();
@@ -11004,7 +11032,7 @@ function runChatCommand(text) {
     const msg = filterText(parts.join(' ').trim().slice(0, 120)) || 'The game was updated! Refreshing the page...';
     playersChannel.send({ type: 'broadcast', event: 'force_update', payload: { from: MY_ID, name: MY_NAME, text: msg } });
     sys('Update sent to everyone.');
-    doForcedUpdate(msg);
+    if (!IS_FILE_VERSION) doForcedUpdate(msg);   // website players refresh; file players get a "Please update" screen (not shown to you)
     return;
   }
   if (cmd === 'biome') { sys('Biome: ' + biomeAt(Math.floor(player.pos.x), Math.floor(player.pos.z))); return; }
