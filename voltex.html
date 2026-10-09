@@ -9618,6 +9618,7 @@ function createMob(kind, px, py, pz, id, remote, eq) {
   const isBr = kind === 'breeze';
   const isB = isSpk(kind);
   const group = isB ? buildZombie(kind === 'flamefrags' ? FLAME_SKIN : SPOKE_SKIN) : isZ ? buildZombie((eq >> 12) & 31) : isBr ? buildBreeze() : (isS ? buildSkeleton((eq >> 12) & 31) : def.build());
+  if (kind === 'wemmbu') wemmbuSetupModel(group);
   if (kind === 'null' || kind === 'null_commander') { group.userData.isNullBlack = true; group.traverse(o => { if (o.isMesh && o.material && o.material.color) { o.material.color.setHex(0x000000); o.userData.nullBlack = true; } }); }
   scene.add(group);
   const pos = new THREE.Vector3(px, py, pz);
@@ -9626,7 +9627,7 @@ function createMob(kind, px, py, pz, id, remote, eq) {
     id: id || (MY_ID + '_m' + (mobSeq++)), remote: !!remote,
     kind,
     group, pos, vel: new THREE.Vector3(0,0,0),
-    hp: isB ? (kind === 'flamefrags' ? FLAME_HP : kind === 'null_commander' ? 32 : SPOKE_HP) : (isZ || isS || isBr) ? 20 : def.hp, maxHp: isB ? (kind === 'flamefrags' ? FLAME_HP : kind === 'null_commander' ? 32 : SPOKE_HP) : (isZ || isS || isBr) ? 20 : def.hp, alive: true,
+    hp: isB ? (kind === 'flamefrags' ? FLAME_HP : kind === 'wemmbu' ? WEMMBU_HP : kind === 'null_commander' ? 32 : SPOKE_HP) : (isZ || isS || isBr) ? 20 : def.hp, maxHp: isB ? (kind === 'flamefrags' ? FLAME_HP : kind === 'wemmbu' ? WEMMBU_HP : kind === 'null_commander' ? 32 : SPOKE_HP) : (isZ || isS || isBr) ? 20 : def.hp, alive: true,
     radius: (isZ || isS || isB || isBr) ? 0.42 : def.radius, height: isZ ? 1.7 : ((isS || isB || isBr) ? 1.8 : def.height),
     wanderTimer: Math.random()*2, facing: 0,
     attackCd: 0,
@@ -9752,6 +9753,20 @@ function giveMobLoot(kind, eq) {
   if (kind === 'zombie') for (let i = 0; i < 4; i++) { const t = ((eq | 0) >> (4 + 2 * i)) & 3; _armXp += t === 1 ? 2 : (t === 2 ? 3 : (t === 3 ? 5 : 0)); }
   jcAddXp(Math.max(1, Math.round(((JC_XP[kind] || 2) + _armXp) * (1 + 0.25 * L))));
   const extra = () => L > 0 ? Math.floor(Math.random() * (L + 1)) : 0;
+  if (kind === 'wemmbu') {   // Wemmbu: big XP + totem, diamonds, golden apples, wind charges, firework rockets, sometimes an Elytra
+    jcAddXp(1400);
+    const _wAt = () => new THREE.Vector3(player.pos.x, player.pos.y + 1, player.pos.z);
+    const _wGive = (t, n) => { const left = addItemToInventory(t, n); if (left > 0) { try { spawnDroppedItem(t, left, _wAt(), new THREE.Vector3(0, 2, 0)); } catch (e) {} } };
+    _wGive('totem_of_undying', 1);
+    _wGive('diamond', 3 + Math.floor(Math.random() * 4));
+    _wGive('golden_apple', 2 + Math.floor(Math.random() * 4));
+    _wGive('wind_charge', 8 + Math.floor(Math.random() * 9));
+    _wGive('firework_3', 6 + Math.floor(Math.random() * 7));
+    if (Math.random() < 0.4) _wGive('elytra', 1);
+    renderHotbar(); if (inventoryOpen) renderInventoryPanel(); saveLocalPlayer();
+    addChatLine('System', 'Wemmbu was defeated!', true);
+    return;
+  }
   if (kind === 'flamefrags') {   // FlameFrags: lots of bonus XP + totem of undying, diamonds, golden apples, wind charges
     jcAddXp(1500);
     const _fAt = () => new THREE.Vector3(player.pos.x, player.pos.y + 1, player.pos.z);
@@ -9852,9 +9867,10 @@ function animateMob(a, dt, spd, grounded) {
 const SPOKE_HP = 20, SPOKE_GAPPLES = 99, SPOKE_TOTEMS = 8, SPOKE_GAP_HEAL = 4, SPOKE_ARROW_DMG = 6, SPOKE_SWORD_DMG = 7, SPOKE_AXE_DMG = 9, SPOKE_HUD_RANGE = 30;
 const NULL_MAX_ALIVE = 14, NULL_PER_POP = 3;
 const SPOKE_NOOB_AIM = 0.025, SPOKE_NOOB_REACH = 3.0, SPOKE_HIT_CHANCE = 0.92;   // PvP: tight aim, player-like reach, rarely whiffs
-function isSpk(k) { return k === 'spoke' || k === 'null' || k === 'flamefrags' || k === 'null_commander'; }
+function isSpk(k) { return k === 'spoke' || k === 'null' || k === 'flamefrags' || k === 'null_commander' || k === 'wemmbu'; }
 function spokeName(a) {
   if (a.kind === 'null_commander') return '______';
+  if (a.kind === 'wemmbu') return 'Wemmbu';
   if (a.kind === 'null') return 'Null';
   if (a.kind === 'flamefrags') return 'FlameFrags';
   return 'Spoke';
@@ -9973,6 +9989,11 @@ function summonSpoke(x, y, z) {
 }
 function spokeSync(a, old) {
   const o = { dur: (old >> 12) & 127, totem: old & 15 }, n = spokeGet(a);
+  if (a.kind === 'wemmbu') {
+    if (o.totem > n.totem) { a.totemFx = 1.6; try { spawnTotemPopFx(new THREE.Vector3(a.pos.x, a.pos.y, a.pos.z), 'totem_of_undying', { remote: true }); } catch (e) {} addChatLine('System', n.totem > 0 ? 'Wemmbu popped a Totem! (' + n.totem + ' left)' : 'Wemmbu popped his last Totem!', true); }
+    if (o.dur > 0 && n.dur <= 0) { addChatLine('System', "Wemmbu's armor broke!", true); applySpokeGear(a); }
+    return;
+  }
   if (a.kind === 'flamefrags') {
     if (o.totem > n.totem) {
       a.totemFx = 1.6; try { spawnTotemPopFx(new THREE.Vector3(a.pos.x, a.pos.y, a.pos.z), 'totem_of_undying', { remote: true }); } catch (e) {}
@@ -10482,6 +10503,253 @@ function spokeAI(a, dt) {
   spokeBuilder(a, dt, mx, mz, tgt, dist);   // breaks walls, bridges gaps, pillars up
 }
 
+// ================= Boss: Wemmbu (/wemmbu) =================
+// A mace master who wears an Elytra. Two combos, chained back-to-back:
+//   Elytra mace:      firework straight up -> aim at the enemy -> second firework -> fly into them and smash with the mace
+//   Wind-charge mace: wind charge under his feet -> launched up -> steers over the enemy -> smashes down (Wind Burst bounces him up again)
+// eq bits: 4 = gliding (wings out + tilted body), 5 = firework boosting (spark trail); rest as Spoke (armor, gapples, totems, eating).
+const WEMMBU_HP = 40, WEMMBU_TOTEMS = 3, WEMMBU_GAPPLES = 40, WEMMBU_DENSITY = 3, WEMMBU_MAX_FALL = 6;
+function wemmbuInitEq() { return (100 << 12) | (WEMMBU_GAPPLES << 19) | WEMMBU_TOTEMS; }
+function wemmbuFly(a, on, boost) {
+  let e = a.eq | 0;
+  e = on ? (e | 16) : (e & ~16);
+  e = boost ? (e | 32) : (e & ~32);
+  a.eq = e; a.fly = !!on;
+}
+// Model: everything goes under a pivot (so the body can lay flat while gliding), plus elytra wings and a floating name tag.
+function wemmbuSetupModel(group) {
+  const ud = group.userData;
+  const pivot = new THREE.Group();
+  for (const c of group.children.slice()) pivot.add(c);
+  group.add(pivot); ud.pivot = pivot;
+  try {
+    if (!window._wingTex) {
+      window._wingTex = [null, null];
+      const spr = sprite16('elytra');
+      if (spr) [0, 8].forEach((x0, i) => {
+        const c = document.createElement('canvas'); c.width = 8; c.height = 16;
+        c.getContext('2d').drawImage(spr, x0, 0, 8, 16, 0, 0, 8, 16);
+        const t = new THREE.CanvasTexture(c); t.magFilter = THREE.NearestFilter; t.minFilter = THREE.NearestFilter; t.generateMipmaps = false;
+        window._wingTex[i] = t;
+      });
+    }
+    ud.wings = [-1, 1].map((side, i) => {
+      const tex = window._wingTex[i] || null;
+      const W = 0.62, H = 0.98;
+      const geo = new THREE.PlaneGeometry(W, H, 4, 8), p = geo.attributes.position;
+      for (let k = 0; k < p.count; k++) {
+        const x = p.getX(k), y = p.getY(k), u = Math.min(1, Math.max(0, (x * side + W / 2) / W));
+        p.setZ(k, -0.05 * u * u); p.setY(k, y - 0.07 * u * u);
+      }
+      geo.computeVertexNormals();
+      const mat = new THREE.MeshLambertMaterial({ map: tex, color: tex ? 0xffffff : 0x9a8fb0, emissive: 0x23222e, transparent: true, alphaTest: 0.3, side: THREE.DoubleSide });
+      const m = new THREE.Mesh(geo, mat); m.userData.noFlash = true; m.position.set(side * W / 2, -H / 2 + 0.05, 0);
+      const grp = new THREE.Group(); grp.position.set(side * 0.06, -0.04, -2.3 * SK_S - 0.03);
+      grp.add(m); ud.torso.add(grp);
+      return { grp, side };
+    });
+  } catch (e) {}
+  try {
+    if (typeof makeNameSprite === 'function') { const spr = makeNameSprite('Wemmbu'); spr.position.y = 2.45; group.add(spr); }
+  } catch (e) {}
+}
+function summonWemmbu(x, y, z) {
+  const e = createMob('wemmbu', x, y, z, null, false, wemmbuInitEq());
+  e.durF = 100; e.eatCd = 3; e.wmCd = 1.5; e.wm = 'ground';
+  e.hp = e.maxHp = WEMMBU_HP;
+  e.cmdWpn = 'mace'; e.maceEnch = BOSS_MACE_ENCH;
+  e.atkDmg = 11; e.atkReach = 2.6; e.atkCd = 0.9;
+  applySpokeGear(e);
+  spokeSet(e, { melee: 1, axe: 0, draw: 0 });
+  addChatLine('System', 'Wemmbu has joined the fight!', true);
+  return e;
+}
+function wemmbuHit(a, tgt, dmg, kb, kdir) {
+  a.attackCd = 1.2; a.swordCd = 0.9;
+  if (tgt.local) damagePlayer(dmg, kdir, kb);
+  else playersChannel.send({ type: 'broadcast', event: 'mob_dmg', payload: { to: tgt.id, dmg, kx: kdir.x, kz: kdir.z, kb, ax: 0 } });
+}
+// Mace smash: Density bonus from the fall + Wind Burst launches the target, and Wind Burst launches Wemmbu back up for the next hit.
+function wemmbuSmash(a, tgt, fall) {
+  const f = Math.min(WEMMBU_MAX_FALL, Math.max(0, fall));
+  const kdir = new THREE.Vector3(tgt.x - a.pos.x, 0, tgt.z - a.pos.z);
+  try { applyBossMaceEffects(tgt, kdir, f); } catch (e) {}   // only used for its Wind Burst launch on the target
+  const dmg = 10 + maceSmashBonus(f, WEMMBU_DENSITY);
+  wemmbuHit(a, tgt, dmg, 14, kdir);
+  try { windBurstParticles({ x: a.pos.x, y: a.pos.y, z: a.pos.z }); } catch (e) {}
+}
+function wemmbuStartWindCharge(a) {
+  a.wm = 'air'; a.wmT = 0; a.peakY = a.pos.y; a.chain = 0;
+  wemmbuFly(a, false, false);
+  try {
+    const origin = new THREE.Vector3(a.pos.x, a.pos.y + 0.15, a.pos.z), vel = new THREE.Vector3(0, -14, 0);
+    spawnWindCharge(origin, vel, { owner: 'mob' });
+    playersChannel.send({ type: 'broadcast', event: 'wind_charge', payload: { from: MY_ID, x: origin.x, y: origin.y, z: origin.z, vx: vel.x, vy: vel.y, vz: vel.z } });
+  } catch (e) {}
+  a.vel.y = 15.5; a.onGround = false;
+}
+function wemmbuStartElytra(a, tgt) {
+  a.wm = 'ascend'; a.wmT = 0; a.peakY = a.pos.y; a.chain = 0; a.lastY = a.pos.y;
+  a.wmAlt = tgt.y + 17 + Math.random() * 7;
+  wemmbuFly(a, true, true);
+  a.vel.y = 10;
+}
+function wemmbuSparks(a, n) {   // firework sparks for the host's own burst effects
+  try { for (let i = 0; i < n; i++) jcSpawn(Math.random() < 0.5 ? 'crit' : 'arc', a.pos.x, a.pos.y + 0.9, a.pos.z, (Math.random() - 0.5) * 8, (Math.random() - 0.5) * 8, (Math.random() - 0.5) * 8, 0.25, 0.6); } catch (e) {}
+}
+function wemmbuAI(a, dt) {
+  a.attackCd = (a.attackCd || 0) - dt; a.swordCd = (a.swordCd || 0) - dt;
+  a.eatCd = (a.eatCd || 0) - dt; a.wmCd = (a.wmCd == null ? 1.5 : a.wmCd) - dt;
+  if (a.regenT > 0) { a.regenT -= dt; a.hp = Math.min(a.maxHp, a.hp + 1.0 * dt); }
+  const tgt = nearestPlayerTarget(a.pos);
+  const dx = tgt.x - a.pos.x, dz = tgt.z - a.pos.z;
+  const dist = Math.hypot(dx, dz) || 0.001, nx = dx / dist, nz = dz / dist;
+  // enemy velocity (for lead aim)
+  const pv = a.tgtVel || (a.tgtVel = { x: 0, y: 0, z: 0 });
+  if (a.prevTgt && dt > 0) {
+    const k = Math.min(1, dt * 8);
+    pv.x += ((tgt.x - a.prevTgt.x) / dt - pv.x) * k; pv.y += ((tgt.y - a.prevTgt.y) / dt - pv.y) * k; pv.z += ((tgt.z - a.prevTgt.z) / dt - pv.z) * k;
+    const l = Math.hypot(pv.x, pv.y, pv.z); if (l > 14) { pv.x *= 14 / l; pv.y *= 14 / l; pv.z *= 14 / l; }
+  }
+  a.prevTgt = { x: tgt.x, y: tgt.y, z: tgt.z };
+  const mode = a.wm || 'ground';
+  const lastY = a.lastY != null ? a.lastY : a.pos.y; a.lastY = a.pos.y;
+  const moved = Math.abs(a.pos.y - lastY);
+  // enemy gone / dead mid-combo: just come down
+  if (mode !== 'ground' && (!tgt.alive || dist > 90)) { wemmbuFly(a, false, false); a.wm = 'ground'; a.wmCd = 2; return; }
+
+  if (mode === 'ground') {
+    if (a.fly) wemmbuFly(a, false, false);
+    if (bossSmartHeal(a, dt, tgt, dist, nx, nz, { safeDist: 10, eatT: 1.5, eatCd: 2.5, regenT: 5 })) return;
+    if (!tgt.alive || dist > 60) { a.vel.x *= 0.5; a.vel.z *= 0.5; return; }
+    if (a.kbT > 0) { a.kbT -= dt; return; }   // knocked back: let it carry him
+    a.facing = Math.atan2(dx, dz);
+    const grounded = Math.abs(a.vel.y) < 0.35;
+    const sp = dist < 2.0 ? 1.6 : 6.4;
+    a.vel.x = nx * sp; a.vel.z = nz * sp;
+    spokeSet(a, { melee: 1, axe: 0, draw: 0 });
+    // pick the next combo
+    if (a.wmCd <= 0 && grounded) {
+      if (dist > 10 || (dist > 5 && Math.random() < 0.45)) wemmbuStartElytra(a, tgt);
+      else wemmbuStartWindCharge(a);
+      return;
+    }
+    // plain mace swing when something is already in reach
+    if (dist < 2.9 && Math.abs(tgt.y - a.pos.y) < 2.5 && a.swordCd <= 0) {
+      wemmbuHit(a, tgt, 10, 10, new THREE.Vector3(dx, 0, dz));
+    }
+    // soft blocks in the way (cobweb, plants)
+    a.bldCd = (a.bldCd || 0) - dt;
+    if (a.bldCd <= 0) {
+      const ax = a.pos.x + nx * 0.8, az = a.pos.z + nz * 0.8, bf = Math.round(a.pos.y);
+      for (const [sx, sy, sz] of [[ax, bf, az], [ax, bf + 1, az], [a.pos.x, bf + 1, a.pos.z]]) {
+        const b = world.get(key(Math.round(sx), Math.round(sy), Math.round(sz)));
+        if (b && (b.type === 'cobweb' || b.type === 'tall_grass' || (typeof isPlantType === 'function' && isPlantType(b.type)))) { if (spokeBreak(sx, sy, sz)) { a.bldCd = 0.45; break; } }
+      }
+      if (a.bldCd <= 0) a.bldCd = 0.15;
+    }
+    return;
+  }
+
+  a.wmT = (a.wmT || 0) + dt;
+  if (mode === 'ascend') {   // firework #1: straight up
+    wemmbuFly(a, true, true);
+    a.vel.y = 24; a.vel.x = nx * Math.min(dist, 10) * 0.5; a.vel.z = nz * Math.min(dist, 10) * 0.5;
+    a.facing = Math.atan2(dx, dz);
+    a.peakY = Math.max(a.peakY, a.pos.y);
+    if (a.pos.y >= a.wmAlt || a.wmT > 2.4 || (a.wmT > 0.25 && moved < 0.002)) { a.wm = 'aim'; a.wmT = 0; wemmbuFly(a, true, false); }
+    return;
+  }
+  if (mode === 'aim') {   // hang in the air for a moment, line up the shot
+    wemmbuFly(a, true, false);
+    a.vel.x *= Math.pow(0.02, dt); a.vel.z *= Math.pow(0.02, dt); a.vel.y = 1.2;
+    a.facing = Math.atan2(dx, dz);
+    a.peakY = Math.max(a.peakY, a.pos.y);
+    if (a.wmT > 0.3) { a.wm = 'dive'; a.wmT = 0; a.lastPos = { x: a.pos.x, y: a.pos.y, z: a.pos.z }; wemmbuFly(a, true, true); wemmbuSparks(a, 14); }   // firework #2
+    return;
+  }
+  if (mode === 'dive') {   // fly at the enemy and mace them
+    wemmbuFly(a, true, true);
+    const SP = 30;
+    const ex = tgt.x, ey = tgt.y + 0.9, ez = tgt.z;
+    const d3 = Math.hypot(ex - a.pos.x, ey - (a.pos.y + 0.9), ez - a.pos.z) || 0.001;
+    const lead = Math.min(0.45, d3 / SP);
+    const ax = ex + pv.x * lead, ay = ey + pv.y * lead, az = ez + pv.z * lead;
+    let vx = ax - a.pos.x, vy = ay - (a.pos.y + 0.9), vz = az - a.pos.z;
+    const vl = Math.hypot(vx, vy, vz) || 1; vx = vx / vl * SP; vy = vy / vl * SP; vz = vz / vl * SP;
+    const k = Math.min(1, dt * 10);
+    a.vel.x += (vx - a.vel.x) * k; a.vel.y += (vy - a.vel.y) * k; a.vel.z += (vz - a.vel.z) * k;
+    if (Math.hypot(a.vel.x, a.vel.z) > 0.5) a.facing = Math.atan2(a.vel.x, a.vel.z);
+    a.peakY = Math.max(a.peakY, a.pos.y);
+    const sp3 = Math.hypot(a.vel.x, a.vel.y, a.vel.z);
+    if (d3 < 3.0 + sp3 * dt * 0.5) {   // close enough: smash
+      wemmbuSmash(a, tgt, a.peakY - a.pos.y);
+      wemmbuFly(a, false, false);
+      a.chain = 1; a.wm = 'air'; a.wmT = 0; a.peakY = a.pos.y; a.vel.set(0, 13.5, 0);   // Wind Burst bounces him up for the next hit
+      return;
+    }
+    if (a.wmT > 3.2 || (a.wmT > 0.5 && sp3 < 6)) {   // missed / blocked: stop flying, keep falling toward them
+      wemmbuFly(a, false, false); a.wm = 'air'; a.wmT = 0; a.peakY = Math.max(a.peakY, a.pos.y); a.chain = 1;
+    }
+    return;
+  }
+  if (mode === 'air') {   // wind-charge / wind-burst arc: steer over the enemy, smash on the way down
+    a.peakY = Math.max(a.peakY, a.pos.y);
+    const lead = 0.4, tx = tgt.x + pv.x * lead, tz = tgt.z + pv.z * lead;
+    const hx = tx - a.pos.x, hz = tz - a.pos.z, hd = Math.hypot(hx, hz) || 0.001;
+    const hs = Math.min(11, 2.5 + hd * 3.5);
+    a.vel.x = hx / hd * hs; a.vel.z = hz / hd * hs;
+    a.facing = Math.atan2(dx, dz);
+    const falling = a.vel.y < -1;
+    const dyF = a.pos.y - tgt.y;
+    if (falling && dist < 2.7 && dyF < 2.6 && dyF > -1.8 && a.peakY - a.pos.y > 1.6 && a.swordCd <= 0) {
+      wemmbuSmash(a, tgt, a.peakY - a.pos.y);
+      a.chain = (a.chain || 0) + 1;
+      if (a.chain >= 3) { a.vel.y = 6; a.wm = 'ground'; a.wmCd = 2.2 + Math.random(); return; }
+      a.peakY = a.pos.y; a.wmT = 0; a.vel.y = 13.5;   // Wind Burst rebound: next smash
+      return;
+    }
+    const landed = a.wmT > 0.3 && a.vel.y === 0 && moved < 0.001;
+    if (landed || a.wmT > 5) { a.wm = 'ground'; a.wmCd = 0.8 + Math.random() * 1.0; a.chain = 0; }
+    return;
+  }
+  a.wm = 'ground';
+}
+// client side, every frame (all players): tilt the body while gliding, spread the wings, firework spark trail
+function wemmbuVisualTick(a, dt) {
+  const ud = a.group.userData, pivot = ud && ud.pivot; if (!pivot || !(dt > 0)) return;
+  const fly = (a.eq >> 4) & 1, boost = (a.eq >> 5) & 1;
+  const lp = a.vlp || (a.vlp = a.pos.clone()), sv = a.vsm || (a.vsm = new THREE.Vector3());
+  let vx = (a.pos.x - lp.x) / dt, vy = (a.pos.y - lp.y) / dt, vz = (a.pos.z - lp.z) / dt; lp.copy(a.pos);
+  const vl = Math.hypot(vx, vy, vz); if (vl > 45) { vx *= 45 / vl; vy *= 45 / vl; vz *= 45 / vl; }
+  const kv = Math.min(1, dt * 10); sv.x += (vx - sv.x) * kv; sv.y += (vy - sv.y) * kv; sv.z += (vz - sv.z) * kv;
+  const sp = sv.length();
+  let th = 0;
+  if (fly && sp > 2) th = Math.PI / 2 - Math.atan2(sv.y, Math.hypot(sv.x, sv.z));
+  a.tilt = (a.tilt || 0) + (th - (a.tilt || 0)) * Math.min(1, dt * 9);
+  pivot.rotation.x = a.tilt;
+  pivot.position.set(0, 0.9 * (1 - Math.cos(a.tilt)), -0.9 * Math.sin(a.tilt));
+  a.wingS = (a.wingS || 0) + ((fly ? 1 : 0) - (a.wingS || 0)) * Math.min(1, dt * 8);
+  if (ud.wings) for (const w of ud.wings) {
+    const s = a.wingS;
+    w.grp.scale.x = 0.5 + s * 1.2;
+    w.grp.rotation.y = w.side * (s * 0.35);   // spread out, swept back
+    w.grp.rotation.z = w.side * (-0.08 - s * 0.18);   // tips droop a little
+    w.grp.rotation.x = 0.06 + s * 0.05;
+  }
+  if (fly && ud.arms) {   // arms tucked back along the body while gliding
+    ud.arms[0].rotation.x = 0.25; ud.arms[1].rotation.x = 0.25; ud.arms[0].rotation.z = 0.1; ud.arms[1].rotation.z = -0.1;
+  }
+  if (boost && sp > 1) {
+    a.sparkT = (a.sparkT || 0) - dt;
+    if (a.sparkT <= 0) {
+      a.sparkT = 0.03;
+      const fx = sv.x / sp, fy = sv.y / sp, fz = sv.z / sp;
+      for (let i = 0; i < 2; i++) jcSpawn(Math.random() < 0.5 ? 'crit' : 'arc', a.pos.x - fx * 0.7, a.pos.y + 0.9 - fy * 0.7, a.pos.z - fz * 0.7, (Math.random() - 0.5) * 2 - fx * 2.5, (Math.random() - 0.5) * 2 - fy * 2.5, (Math.random() - 0.5) * 2 - fz * 2.5, 0.22, 0.5);
+    }
+  }
+}
+
 // ================= Boss: FlameFrags (/flame) =================
 // A combat master with 3 totems. Every totem pop unlocks more of his arsenal (pops = 3 - totems left):
 //   0 pops: diamond sword, axe + shield | 1: + mace and wind charges | 2: + spear (lunge) | 3: everything, incl. bow and trident
@@ -10733,7 +11001,7 @@ function spokeVisualTick(a, dt) {
   const ud = a.group.userData; if (!ud || !a.handAnchor) return;
   const d = spokeGet(a);
   let want;
-  if (a.kind === 'null_commander') {
+  if (a.kind === 'null_commander' || a.kind === 'wemmbu') {
     if (d.eat) want = 'golden_apple';
     else if ((a.cmdWpn || 'mace') === 'bow') want = 'bow';
     else if ((a.cmdWpn || 'mace') === 'sword') want = 'diamond_sword';
@@ -10768,6 +11036,7 @@ function spokeVisualTick(a, dt) {
       A[1].rotation.y = 0.1 - atk * 0.2;
     }
   }
+  if (a.kind === 'wemmbu') wemmbuVisualTick(a, dt);
 }
 // boss bars: HP bar + resource bar (armor durability left, golden apples left)
 let _spokeHud = null;
@@ -10894,7 +11163,7 @@ function updateAnimals(dt) {
       }
     } else if (isSpk(a.kind)) {
       bossFreeIfEmbedded(a, dt);
-      if (a.kind === 'flamefrags') flameAI(a, dt); else spokeAI(a, dt);
+      if (a.kind === 'flamefrags') flameAI(a, dt); else if (a.kind === 'wemmbu') wemmbuAI(a, dt); else spokeAI(a, dt);
     } else if (a.kind === 'skeleton') {
       skeletonAI(a, dt);
     } else if (a.kind === 'breeze') {
@@ -10914,10 +11183,12 @@ function updateAnimals(dt) {
         }
       }
     }
+    if (!a.fly) {   // (Wemmbu gliding on an Elytra: no gravity / drag)
     a.vel.y -= 20*dt;
     // Less friction so knockback shoves farther
     a.vel.x *= Math.pow(0.94, dt * 60);
     a.vel.z *= Math.pow(0.94, dt * 60);
+    }
     const onGround = moveEntity(a.pos, a.vel, dt, a.radius, a.height);
     if (onGround && a.vel.y < 0.01) a.vel.y = 0;
     if (a.pos.y < -60) { a.alive = false; scene.remove(a.group); return; }
@@ -12384,7 +12655,7 @@ function jcPickTarget(ray, reach, pad, minReach) {
 }
 
 // ================= XP & enchanting =================
-const JC_XP = { flamefrags: 800, spoke: 150, null: 40, skeleton: 8, zombie: 8, breeze: 10, cow: 4, sheep: 3, pig: 3 };           // XP per kill
+const JC_XP = { wemmbu: 900, flamefrags: 800, spoke: 150, null: 40, skeleton: 8, zombie: 8, breeze: 10, cow: 4, sheep: 3, pig: 3 };           // XP per kill
 function xpNeed(level) { return 7 + level * 2; }                  // XP points to climb from `level` to level+1
 const xpLvlEl = document.getElementById('xpLvl'), xpFillEl = document.getElementById('xpFill');
 function jcXpUI() {
@@ -12877,6 +13148,11 @@ playersChannel
     const x = Number(payload.x), y = Number(payload.y), z = Number(payload.z);
     if ([x, y, z].every(Number.isFinite)) summonFlame(x, y, z);
   })
+  .on('broadcast', { event: 'wemmbu_summon' }, ({ payload }) => {
+    if (!payload || !isMobHost()) return;
+    const x = Number(payload.x), y = Number(payload.y), z = Number(payload.z);
+    if ([x, y, z].every(Number.isFinite)) summonWemmbu(x, y, z);
+  })
   .on('broadcast', { event: 'spoke_summon' }, ({ payload }) => {
     if (!payload || !isMobHost()) return;
     const x = Number(payload.x), y = Number(payload.y), z = Number(payload.z);
@@ -13347,6 +13623,20 @@ function runChatCommand(text) {
     sys('Summoned FlameFrags.');
     return;
   }
+  if (cmd === 'wemmbu') {
+    const dir = new THREE.Vector3(); camera.getWorldDirection(dir); dir.y = 0;
+    if (dir.lengthSq() < 1e-6) dir.set(0, 0, 1); dir.normalize();
+    let sx = player.pos.x + dir.x * 3, sz = player.pos.z + dir.z * 3;
+    for (const dd of [8, 7, 6, 5, 4, 3]) {
+      const tx = player.pos.x + dir.x * dd, tz = player.pos.z + dir.z * dd;
+      if (!checkCollision(tx, player.pos.y + 0.1, tz, 0.42, 1.8)) { sx = tx; sz = tz; break; }
+    }
+    const sy = player.pos.y + 0.1;
+    if (isMobHost()) summonWemmbu(sx, sy, sz);
+    else playersChannel.send({ type: 'broadcast', event: 'wemmbu_summon', payload: { x: sx, y: sy, z: sz } });
+    sys('Summoned Wemmbu.');
+    return;
+  }
   if (cmd === 'spoke') {
     const dir = new THREE.Vector3(); camera.getWorldDirection(dir); dir.y = 0;
     if (dir.lengthSq() < 1e-6) dir.set(0, 0, 1); dir.normalize();
@@ -13422,7 +13712,7 @@ function runChatCommand(text) {
     sys('Given Null Totem (10 uses, Null I).');
     return;
   }
-  if (cmd === 'help') { sys('/tpa <player> | /tpaccept | /xp <player|@s|@a> <amount>[L] | /swap | /tp @s <x> <y> <z> | /tp @s <player> | /tp <player> @s | /biome | /spawner [tp] | /give <@s|@a|player> <zombie|skeleton|breeze> [count] | /nulltotem | /spoke | /flame | /kill <player|@s|@e> | /rain on|off|auto | /fog [on|off] | /weather clear|rain|fog|auto | /fill <x1> <y1> <z1> <x2> <y2> <z2> <block> [replace|hollow|keep] [filter] | /update [message]'); return; }
+  if (cmd === 'help') { sys('/tpa <player> | /tpaccept | /xp <player|@s|@a> <amount>[L] | /swap | /tp @s <x> <y> <z> | /tp @s <player> | /tp <player> @s | /biome | /spawner [tp] | /give <@s|@a|player> <zombie|skeleton|breeze> [count] | /nulltotem | /spoke | /flame | /wemmbu | /kill <player|@s|@e> | /rain on|off|auto | /fog [on|off] | /weather clear|rain|fog|auto | /fill <x1> <y1> <z1> <x2> <y2> <z2> <block> [replace|hollow|keep] [filter] | /update [message]'); return; }
   sys('Unknown command: /' + cmd + ' (try /help)');
 }
 
