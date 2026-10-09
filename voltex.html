@@ -2332,8 +2332,8 @@ const RECIPES = [
   { shape: [['coal'],['stick']], out: 'torch', outCount: 4, needsTable: false },
   { shape: [['charcoal'],['stick']], out: 'torch', outCount: 4, needsTable: false },
   { shape: [['cobblestone','cobblestone','cobblestone'],['cobblestone',null,'cobblestone'],['cobblestone','cobblestone','cobblestone']], out: 'furnace', outCount: 1, needsTable: true },
-  // Brewing stand: 3 stone + 2 stick + 2 glass
-  { shape: [['glass',null,'glass'],['stone','stick','stone'],[null,'stick','stone']], out: 'brewing_stand', outCount: 1, needsTable: true },
+  // Brewing stand: 3 stone bottom, 2 stick middle column, 2 glass beside middle stick
+  { shape: [[null,'stick',null],['glass','stick','glass'],['stone','stone','stone']], out: 'brewing_stand', outCount: 1, needsTable: true },
   // Glass bottles: 3 glass
   { shape: [['glass',null,'glass'],[null,'glass',null]], out: 'glass_bottle', outCount: 3, needsTable: true },
   { shape: [['planks','planks','planks'],['planks',null,'planks'],['planks','planks','planks']], out: 'chest', outCount: 1, needsTable: true },
@@ -9276,7 +9276,7 @@ function createMob(kind, px, py, pz, id, remote, eq) {
   const isBr = kind === 'breeze';
   const isB = isSpk(kind);
   const group = isB ? buildZombie(kind === 'flamefrags' ? FLAME_SKIN : SPOKE_SKIN) : isZ ? buildZombie((eq >> 12) & 31) : isBr ? buildBreeze() : (isS ? buildSkeleton((eq >> 12) & 31) : def.build());
-  if (kind === 'null') { group.userData.isNullBlack = true; group.traverse(o => { if (o.isMesh && o.material && o.material.color) { o.material.color.setHex(0x000000); o.userData.nullBlack = true; } }); }   // Spoke's Null army: skins are fully black
+  if (kind === 'null' || kind === 'null_commander') { group.userData.isNullBlack = true; group.traverse(o => { if (o.isMesh && o.material && o.material.color) { o.material.color.setHex(0x000000); o.userData.nullBlack = true; } }); }
   scene.add(group);
   const pos = new THREE.Vector3(px, py, pz);
   group.position.copy(pos);
@@ -9284,7 +9284,7 @@ function createMob(kind, px, py, pz, id, remote, eq) {
     id: id || (MY_ID + '_m' + (mobSeq++)), remote: !!remote,
     kind,
     group, pos, vel: new THREE.Vector3(0,0,0),
-    hp: isB ? (kind === 'flamefrags' ? FLAME_HP : SPOKE_HP) : (isZ || isS || isBr) ? 20 : def.hp, maxHp: isB ? (kind === 'flamefrags' ? FLAME_HP : SPOKE_HP) : (isZ || isS || isBr) ? 20 : def.hp, alive: true,
+    hp: isB ? (kind === 'flamefrags' ? FLAME_HP : kind === 'null_commander' ? 32 : SPOKE_HP) : (isZ || isS || isBr) ? 20 : def.hp, maxHp: isB ? (kind === 'flamefrags' ? FLAME_HP : kind === 'null_commander' ? 32 : SPOKE_HP) : (isZ || isS || isBr) ? 20 : def.hp, alive: true,
     radius: (isZ || isS || isB || isBr) ? 0.42 : def.radius, height: isZ ? 1.7 : ((isS || isB || isBr) ? 1.8 : def.height),
     wanderTimer: Math.random()*2, facing: 0,
     attackCd: 0,
@@ -9510,8 +9510,13 @@ function animateMob(a, dt, spd, grounded) {
 const SPOKE_HP = 20, SPOKE_GAPPLES = 99, SPOKE_TOTEMS = 8, SPOKE_GAP_HEAL = 4, SPOKE_ARROW_DMG = 6, SPOKE_SWORD_DMG = 7, SPOKE_AXE_DMG = 9, SPOKE_HUD_RANGE = 30;
 const NULL_MAX_ALIVE = 14, NULL_PER_POP = 3;
 const SPOKE_NOOB_AIM = 0.025, SPOKE_NOOB_REACH = 3.0, SPOKE_HIT_CHANCE = 0.92;   // PvP: tight aim, player-like reach, rarely whiffs
-function isSpk(k) { return k === 'spoke' || k === 'null' || k === 'flamefrags'; }
-function spokeName(a) { return a.kind === 'null' ? 'Null' : (a.kind === 'flamefrags' ? 'FlameFrags' : 'Spoke'); }
+function isSpk(k) { return k === 'spoke' || k === 'null' || k === 'flamefrags' || k === 'null_commander'; }
+function spokeName(a) {
+  if (a.kind === 'null_commander') return '______';
+  if (a.kind === 'null') return 'Null';
+  if (a.kind === 'flamefrags') return 'FlameFrags';
+  return 'Spoke';
+}
 function spokeGet(a) { const e = a.eq | 0; return { dur: (e >> 12) & 127, gap: (e >> 19) & 127, totem: e & 15, eat: (e >> 27) & 1, draw: (e >> 28) & 1, melee: (e >> 29) & 1, axe: (e >> 30) & 1 }; }
 function spokeSet(a, o) {
   const g = spokeGet(a); for (const k in o) g[k] = o[k];
@@ -9542,7 +9547,7 @@ function spokePlayerArmor(a) {
   }
 }
 function blackenNull(a) {
-  if (!a || a.kind !== 'null' || !a.group) return;
+  if (!a || (a.kind !== 'null' && a.kind !== 'null_commander') || !a.group) return;
   // Blacken body skin only — leave armor / held gear alone so diamond armor stays visible
   a.group.traverse(o => {
     if (!o.isMesh || !o.material) return;
@@ -9574,10 +9579,33 @@ function applySpokeGear(a) {
 }
 function killPlayerNow() { announce(MY_NAME + ' was killed'); player.hp = 0; updateHpUI(); respawnPlayer(); }   // straight to respawn: no totem check
 function killAllMobs() { for (const a of animals) if (a.alive) { a.alive = false; scene.remove(a.group); } }
+function summonNullCommander(x, y, z) {
+  // Elite Null: name "______", mace specialist, very strong fighter
+  const e = createMob('null_commander', x, y, z, null, false, (100 << 12) | (20 << 19) | 2);
+  e.durF = 100; e.eatCd = 2; e.shootCd = 0.8;
+  e.hp = e.maxHp = 32;
+  e.atkDmg = 10; e.atkReach = 2.2; e.atkCd = 0.85;
+  e.isCommander = true;
+  e.preferMace = true;
+  applySpokeGear(e);
+  try { blackenNull(e); } catch (err) {}
+  // Force mace visual
+  e.eq = (e.eq & ~(31 << 4)) | (2 << 4);   // wpn = mace
+  addChatLine('System', '______ has joined the fight!', true);
+  return e;
+}
 function summonSpoke(x, y, z) {
   const e = createMob('spoke', x, y, z, null, false, spokeInitEq());
   e.durF = 100; e.eatCd = 3; e.shootCd = 1.2;
   addChatLine('System', 'Spoke has awakened!', true);
+  // Null Commander spawns beside Spoke
+  try {
+    const ang = Math.random() * 6.283, r = 2.2;
+    const cx = x + Math.sin(ang) * r, cz = z + Math.cos(ang) * r;
+    let cy = y;
+    if (checkCollision(cx, cy, cz, 0.42, 1.8)) cy += 1.05;
+    summonNullCommander(cx, cy, cz);
+  } catch (err) {}
   return e;
 }
 function spokeSync(a, old) {
@@ -9649,43 +9677,72 @@ function spokePlace(x, y, z) {
   return true;
 }
 const _solidB = (x, y, z) => { const b = world.get(key(Math.round(x), Math.round(y), Math.round(z))); return !!b && b.type !== 'water' && solidAt(x, y, z); };
-/** Place two cobwebs fully covering the boss (feet + head) + walls toward the player. */
+/** Helper: place a block and track it on the boss cover list. */
+function bossPutCover(a, x, y, z, type, replaceSoft) {
+  x = Math.round(x); y = Math.round(y); z = Math.round(z);
+  const k = key(x, y, z);
+  if (world.has(k)) {
+    const cur = world.get(k);
+    if (!replaceSoft) return false;
+    if (cur && cur.type !== 'tall_grass' && cur.type !== 'cobweb' && !isPlantType(cur.type)) return false;
+    removeBlock(x, y, z);
+  }
+  removedDiffs.delete(k);
+  if (!addBlock(x, y, z, type)) return false;
+  if (type !== 'cobweb') markPlaced(x, y, z);
+  pushBlockDiff(x, y, z, type);
+  if (!a.coverBlocks) a.coverBlocks = [];
+  a.coverBlocks.push([x, y, z]);
+  return true;
+}
+/** Fully web-covered = cobweb on legs AND head (blocks hitbox). */
+function fullyWebCovered(pos, h) {
+  const px = Math.round(pos.x), py = Math.round(pos.y), pz = Math.round(pos.z);
+  const leg = world.get(key(px, py, pz));
+  const head = world.get(key(px, py + 1, pz));
+  return !!(leg && leg.type === 'cobweb' && head && head.type === 'cobweb');
+}
+/** FlameFrags only: drop cobweb on the player's legs + head. */
+function flamePlaceWebOnPlayer(tgt) {
+  if (!tgt || !tgt.alive || !tgt.local) return;   // local player only (host)
+  const px = Math.round(tgt.x), py = Math.round(tgt.y), pz = Math.round(tgt.z);
+  for (const y of [py, py + 1]) {
+    const k = key(px, y, pz);
+    if (world.has(k)) {
+      const cur = world.get(k);
+      if (cur && cur.type !== 'tall_grass' && cur.type !== 'cobweb' && !isPlantType(cur.type)) continue;
+      removeBlock(px, y, pz);
+    }
+    removedDiffs.delete(k);
+    if (addBlock(px, y, pz, 'cobweb')) pushBlockDiff(px, y, pz, 'cobweb');
+  }
+}
+/** Place cover based on kind: Flame/Spoke = self web (leg+head) + walls; Null = walls only. */
 function bossPlaceCover(a, tgt) {
   const px = Math.round(a.pos.x), py = Math.round(a.pos.y), pz = Math.round(a.pos.z);
   const dx = (tgt && tgt.x != null ? tgt.x : a.pos.x) - a.pos.x;
   const dz = (tgt && tgt.z != null ? tgt.z : a.pos.z) - a.pos.z;
   const dl = Math.hypot(dx, dz) || 1, ux = dx / dl, uz = dz / dl;
   if (!a.coverBlocks) a.coverBlocks = [];
-  const put = (x, y, z, type) => {
-    x = Math.round(x); y = Math.round(y); z = Math.round(z);
-    const k = key(x, y, z);
-    if (world.has(k)) {
-      const cur = world.get(k);
-      // Replace air-like plants only; leave solid player builds
-      if (cur && cur.type !== 'tall_grass' && !isPlantType(cur.type)) return false;
-      removeBlock(x, y, z);
-    }
-    removedDiffs.delete(k);
-    if (!addBlock(x, y, z, type)) return false;
-    if (type !== 'cobweb') markPlaced(x, y, z);
-    pushBlockDiff(x, y, z, type);
-    a.coverBlocks.push([x, y, z]);
-    return true;
-  };
-  // Two cobwebs stacked on the boss — fully covers feet + upper body
-  put(px, py, pz, 'cobweb');
-  put(px, py + 1, pz, 'cobweb');
-  // Wall between boss and player (spam while eating reinforces this)
+  const isNull = a.kind === 'null' || a.kind === 'null_commander';
+  const isFlame = a.kind === 'flamefrags';
+  // Self cobweb: FlameFrags + Spoke only — one on legs, one on head
+  if (!isNull) {
+    bossPutCover(a, px, py, pz, 'cobweb', true);
+    bossPutCover(a, px, py + 1, pz, 'cobweb', true);
+  }
+  // Walls toward player (everyone including Null)
   const wx = Math.round(a.pos.x + ux * 1.2), wz = Math.round(a.pos.z + uz * 1.2);
-  put(wx, py, wz, 'cobblestone');
-  put(wx, py + 1, wz, 'cobblestone');
-  // Side pillars if player is close
-  put(Math.round(a.pos.x + ux * 1.2 - uz * 1), py, Math.round(a.pos.z + uz * 1.2 + ux * 1), 'cobblestone');
-  put(Math.round(a.pos.x + ux * 1.2 + uz * 1), py, Math.round(a.pos.z + uz * 1.2 - ux * 1), 'cobblestone');
+  bossPutCover(a, wx, py, wz, 'cobblestone', true);
+  bossPutCover(a, wx, py + 1, wz, 'cobblestone', true);
+  bossPutCover(a, Math.round(a.pos.x + ux * 1.2 - uz * 1), py, Math.round(a.pos.z + uz * 1.2 + ux * 1), 'cobblestone', true);
+  bossPutCover(a, Math.round(a.pos.x + ux * 1.2 + uz * 1), py, Math.round(a.pos.z + uz * 1.2 - ux * 1), 'cobblestone', true);
+  // FlameFrags: also web the player
+  if (isFlame && tgt) flamePlaceWebOnPlayer(tgt);
   a.healCover = true;
   a.bldCd = Math.max(a.bldCd || 0, 0.2);
 }
-/** While eating: keep placing walls toward the player (spam defense). */
+/** While eating: keep placing defense. Null = walls only; Flame/Spoke = self web + walls; Flame also webs player. */
 function bossSpamCover(a, tgt, dt) {
   if (!tgt || !tgt.alive) return;
   a.spamCd = (a.spamCd || 0) - dt;
@@ -9695,26 +9752,18 @@ function bossSpamCover(a, tgt, dt) {
   const dl = Math.hypot(dx, dz) || 1, ux = dx / dl, uz = dz / dl;
   const py = Math.round(a.pos.y);
   if (!a.coverBlocks) a.coverBlocks = [];
-  const put = (x, y, z, type) => {
-    x = Math.round(x); y = Math.round(y); z = Math.round(z);
-    const k = key(x, y, z);
-    if (world.has(k)) return false;
-    removedDiffs.delete(k);
-    if (!addBlock(x, y, z, type)) return false;
-    if (type !== 'cobweb') markPlaced(x, y, z);
-    pushBlockDiff(x, y, z, type);
-    a.coverBlocks.push([x, y, z]);
-    return true;
-  };
-  // Keep self fully webbed
-  put(Math.round(a.pos.x), py, Math.round(a.pos.z), 'cobweb');
-  put(Math.round(a.pos.x), py + 1, Math.round(a.pos.z), 'cobweb');
-  // Stack wall toward player
+  const isNull = a.kind === 'null' || a.kind === 'null_commander';
+  const isFlame = a.kind === 'flamefrags';
+  if (!isNull) {
+    bossPutCover(a, Math.round(a.pos.x), py, Math.round(a.pos.z), 'cobweb', true);
+    bossPutCover(a, Math.round(a.pos.x), py + 1, Math.round(a.pos.z), 'cobweb', true);
+  }
   for (let s = 1; s <= 2; s++) {
     const wx = Math.round(a.pos.x + ux * s), wz = Math.round(a.pos.z + uz * s);
-    put(wx, py, wz, 'cobblestone');
-    put(wx, py + 1, wz, 'cobblestone');
+    bossPutCover(a, wx, py, wz, 'cobblestone', false);
+    bossPutCover(a, wx, py + 1, wz, 'cobblestone', false);
   }
+  if (isFlame) flamePlaceWebOnPlayer(tgt);
   a.healCover = true;
 }
 /** Remove cover blocks placed for healing. */
@@ -9853,6 +9902,42 @@ function spokeShoot(a, tgt) {
 }
 function spokeAI(a, dt) {
   a.shootCd = (a.shootCd || 0) - dt; a.attackCd = (a.attackCd || 0) - dt; a.swordCd = (a.swordCd || 0) - dt;
+  // Null Commander: elite melee — mace, high aggression, place walls only (no self-web)
+  if (a.kind === 'null_commander') {
+    const tgt = nearestPlayerTarget(a.pos);
+    const dx = tgt.x - a.pos.x, dz = tgt.z - a.pos.z;
+    const dist = Math.hypot(dx, dz) || 0.001, nx = dx / dist, nz = dz / dist;
+    a.facing = Math.atan2(dx, dz);
+    // Heal with cover walls only (bossSmartHeal → bossPlaceCover skips self-web for null; commander treated like null for cover)
+    if (a.kind === 'null_commander') a._coverAsNull = true;
+    if (bossSmartHeal(a, dt, tgt, dist, nx, nz, { safeDist: 9, regenT: 4 })) {
+      // force null-style cover: temporarily pretend kind null for cover calls is already kind-based
+    }
+    // Chase hard
+    let mx = nx * 5.8, mz = nz * 5.8;
+    if (dist < 2.8) { mx = nx * 2.2; mz = nz * 2.2; }
+    a.vel.x = mx; a.vel.z = mz;
+    a.swordCd = (a.swordCd || 0);
+    if (dist < 2.6 && a.swordCd <= 0 && tgt.alive) {
+      a.swordCd = 0.7; a.attackCd = 0.9;
+      const kdir = new THREE.Vector3(dx, 0, dz);
+      // Mace hit — heavy damage
+      if (tgt.local) damagePlayer(11, kdir, 12);
+      else playersChannel.send({ type: 'broadcast', event: 'mob_dmg', payload: { to: tgt.id, dmg: 11, kx: kdir.x, kz: kdir.z, kb: 12, ax: 0 } });
+      // occasional smash hop
+      if (Math.random() < 0.25 && Math.abs(a.vel.y) < 0.2) a.vel.y = 8.5;
+    }
+    spokeBuilder(a, dt, mx, mz, tgt, dist);
+    // Place wall blocks near player path (block player) — Null style
+    a.bldCd = (a.bldCd || 0) - dt;
+    if (a.bldCd <= 0 && dist < 5 && tgt.alive) {
+      const ux = nx, uz = nz, py = Math.round(a.pos.y);
+      const wx = Math.round(a.pos.x + ux * 1.5), wz = Math.round(a.pos.z + uz * 1.5);
+      if (spokePlace(wx, py, wz)) a.bldCd = 0.4;
+      else if (spokePlace(wx, py + 1, wz)) a.bldCd = 0.4;
+    }
+    return;
+  }
   a.eatCd = (a.eatCd || 0) - dt; a.dashCd = (a.dashCd || 0) - dt; a.forceRangedT = (a.forceRangedT || 0) - dt;
   if (a.regenT > 0) { a.regenT -= dt; a.hp = Math.min(a.maxHp, a.hp + 0.8 * dt); }
   if (a.kbT > 0) { a.kbT -= dt; return; }
@@ -11551,12 +11636,12 @@ function jcSweep(r, primary) {
   });
 }
 function jcAttackAnimal(a) {
-  // Only block if cobweb/solid is BETWEEN you and the target (not because they stand in web).
-  // Boss heal-cover while eating still blocks free hits.
+  // Block if: cobweb/solid BETWEEN you, OR target fully web-covered (leg+head cobweb), OR boss heal-cover while eating
   if (lineBlockedByCover(player.pos.x, player.pos.y + 1.2, player.pos.z, a.pos.x, a.pos.y + 1.0, a.pos.z) ||
+      (typeof fullyWebCovered === 'function' && fullyWebCovered(a.pos, a.height || 1.8)) ||
       (a.healCover && a.eatT > 0)) {
     jcResetCd();
-    return true;   // swing blocked by web/wall in the way
+    return true;   // swing blocked by web/wall / full web cover
   }
   const r = jcRoll(); jcResetCd();
   const d = jcIframe(a, r.dmg);
