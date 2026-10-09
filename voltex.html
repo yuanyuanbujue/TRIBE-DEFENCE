@@ -749,6 +749,90 @@
     #enchantTop { flex-direction: column; gap: 8px; }
     #enchantChoices { min-width: 0; width: 100%; }
   }
+
+  /* ===== Polished main menu ===== */
+  #startScreen {
+    background:
+      radial-gradient(ellipse at 50% -10%, rgba(255,255,255,0.14), transparent 55%),
+      linear-gradient(180deg, #14234a 0%, #101a38 45%, #080c1c 100%);
+  }
+  #startScreen::after {
+    content: ''; position: absolute; inset: -20%; pointer-events: none; z-index: 0; opacity: 0.55; filter: blur(30px);
+    background:
+      radial-gradient(40% 35% at 20% 30%, rgba(126,232,250,0.28), transparent 70%),
+      radial-gradient(38% 34% at 80% 25%, rgba(167,139,250,0.30), transparent 70%),
+      radial-gradient(45% 38% at 55% 85%, rgba(246,165,255,0.20), transparent 70%);
+    animation: menuAurora 16s ease-in-out infinite alternate;
+  }
+  @keyframes menuAurora { from { transform: translate3d(-3%, -2%, 0) scale(1); } to { transform: translate3d(3%, 3%, 0) scale(1.08); } }
+  #menuCard {
+    background: linear-gradient(160deg, rgba(34,44,78,0.82), rgba(14,19,38,0.86));
+    backdrop-filter: blur(10px); -webkit-backdrop-filter: blur(10px);
+    border: 1px solid rgba(160,190,255,0.22); border-radius: 22px;
+    box-shadow: 0 24px 70px rgba(0,0,0,0.55), 0 0 0 1px rgba(255,255,255,0.04) inset, 0 0 60px rgba(126,140,255,0.12);
+    max-height: 94vh; overflow-y: auto;
+  }
+  #startScreen h1 {
+    font-size: 58px; letter-spacing: 3px;
+    background: linear-gradient(90deg, #7ee8fa, #a78bfa, #f6a5ff, #7ee8fa); background-size: 250% 100%;
+    -webkit-background-clip: text; background-clip: text; color: transparent;
+    animation: titleShimmer 7s linear infinite;
+  }
+  @keyframes titleShimmer { to { background-position: 250% 0; } }
+  #startScreen .tagline { opacity: 0.7; letter-spacing: 4px; }
+  #startScreen .kbd-line { background: rgba(126,232,250,0.07); border: 1px solid rgba(126,232,250,0.16); line-height: 1.7; }
+  #startScreen .kbd-line b { color: #9df0ff; background: rgba(255,255,255,0.08); padding: 1px 6px; border-radius: 5px; font-weight: 700; }
+  .authBtn { transition: transform 0.12s, box-shadow 0.15s, background 0.15s; }
+  .authBtn:active { transform: scale(0.97); }
+  #startBtn {
+    position: relative; overflow: hidden; padding: 15px 54px; font-size: 19px; border-radius: 14px;
+    background: linear-gradient(180deg, #7ff0b0, #2fbf6c); box-shadow: 0 8px 24px rgba(52,199,116,0.4), 0 0 0 1px rgba(255,255,255,0.25) inset;
+  }
+  #startBtn:not(:disabled)::after {
+    content: ''; position: absolute; top: 0; left: -60%; width: 40%; height: 100%;
+    background: linear-gradient(100deg, transparent, rgba(255,255,255,0.45), transparent); transform: skewX(-20deg);
+    animation: btnShine 3.2s ease-in-out infinite;
+  }
+  @keyframes btnShine { 0% { left: -60%; } 55%, 100% { left: 130%; } }
+  #nameInput { border-radius: 10px; }
+
+  /* ===== Brewing stand panel ===== */
+  #brewPanel { backdrop-filter: blur(3px); -webkit-backdrop-filter: blur(3px); }
+  #brewPanelBox {
+    position: relative; width: min(380px, 92vw); box-sizing: border-box; padding: 20px 22px 18px;
+    background: linear-gradient(165deg, #2c2540 0%, #1b1730 60%, #14112a 100%);
+    border: 2px solid #6b5aa8; border-radius: 16px; color: #eee;
+    box-shadow: 0 20px 60px rgba(0,0,0,0.6), 0 0 40px rgba(140,100,255,0.22), 0 0 0 1px rgba(255,255,255,0.05) inset;
+    animation: menuIn 0.22s ease-out;
+  }
+  #brewPanelBox .brewHead { display: flex; align-items: center; justify-content: center; gap: 10px; margin-bottom: 4px; }
+  #brewPanelBox .brewHead h2 { margin: 0; font-size: 20px; letter-spacing: 1px; color: #e6dcff; text-shadow: 0 0 12px rgba(167,139,250,0.6); }
+  #brewPanelBox .brewIcon { font-size: 26px; filter: drop-shadow(0 0 8px rgba(167,139,250,0.7)); }
+  #brewPanelBox #brewHint { text-align: center; font-size: 12.5px; opacity: 0.8; margin: 0 auto 14px; max-width: 300px; line-height: 1.5; }
+  #brewPanelBox .brewList { display: flex; flex-direction: column; gap: 10px; }
+  #brewPanelBox .brewBtn {
+    display: flex; align-items: center; gap: 12px; width: 100%; box-sizing: border-box; text-align: left; cursor: pointer; color: #fff;
+    padding: 11px 14px; border-radius: 12px; border: 1px solid rgba(190,160,255,0.35);
+    background: linear-gradient(180deg, rgba(120,90,200,0.35), rgba(70,50,130,0.35));
+    transition: transform 0.12s, box-shadow 0.15s, border-color 0.15s, filter 0.15s; font-family: inherit;
+  }
+  #brewPanelBox .brewBtn:hover { transform: translateY(-1px); border-color: #c9b2ff; box-shadow: 0 6px 18px rgba(140,100,255,0.35); }
+  #brewPanelBox .brewBtn:active { transform: scale(0.98); }
+  #brewPanelBox .brewBtn.cant { filter: grayscale(0.6) brightness(0.8); }
+  #brewPanelBox .brewBtn .pot {
+    width: 38px; height: 44px; flex-shrink: 0; border-radius: 6px 6px 14px 14px; position: relative;
+    background: linear-gradient(180deg, rgba(255,255,255,0.12), rgba(255,255,255,0.04)); border: 2px solid rgba(255,255,255,0.35);
+  }
+  #brewPanelBox .brewBtn .pot::before { content: ''; position: absolute; left: 50%; top: -9px; width: 12px; height: 9px; transform: translateX(-50%); background: #8a6a3a; border-radius: 3px 3px 0 0; }
+  #brewPanelBox .brewBtn .pot::after { content: ''; position: absolute; left: 2px; right: 2px; bottom: 2px; height: 62%; border-radius: 3px 3px 10px 10px; background: var(--pc, #d4553a); box-shadow: 0 0 10px var(--pc, #d4553a); }
+  #brewPanelBox .brewBtn .info { flex: 1; min-width: 0; }
+  #brewPanelBox .brewBtn .nm { font-size: 15px; font-weight: 800; color: #f0e8ff; }
+  #brewPanelBox .brewBtn .ds { font-size: 11.5px; opacity: 0.75; margin-top: 2px; }
+  #brewPanelBox .brewBtn .cost { flex-shrink: 0; font-size: 12px; font-weight: 800; padding: 5px 9px; border-radius: 999px; background: rgba(120,255,140,0.16); color: #9dff8a; border: 1px solid rgba(120,255,140,0.4); }
+  #brewPanelBox #brewStatus {
+    margin: 14px auto 0; min-height: 18px; text-align: center; font-size: 12.5px; padding: 7px 12px; width: fit-content; max-width: 100%;
+    border-radius: 999px; background: rgba(255,255,255,0.07); border: 1px solid rgba(255,255,255,0.12); color: #d9ccff;
+  }
 </style>
 </head>
 <body>
@@ -846,14 +930,14 @@
 
 <div id="brewPanel" style="display:none;position:fixed;inset:0;z-index:80;background:rgba(0,0,0,0.55);align-items:center;justify-content:center;">
   <button class="panelClose" id="brewCloseBtn" aria-label="Close brewing">✕</button>
-  <div id="brewPanelBox" style="background:#2a2a32;border:3px solid #555;border-radius:8px;padding:16px 20px;min-width:280px;color:#eee;font-family:monospace;">
-    <h2 style="margin:0 0 10px;font-size:16px;text-align:center;">Brewing Stand</h2>
-    <p id="brewHint" style="font-size:12px;opacity:0.85;margin:0 0 12px;max-width:320px;">Needs a <b>glass bottle</b> and XP levels. Click a potion to brew.</p>
-    <div style="display:flex;flex-direction:column;gap:8px;">
-      <button id="brewStr1" class="authBtn" style="width:100%;">Strength I — 8:00 · 20 levels</button>
-      <button id="brewStr2" class="authBtn" style="width:100%;">Strength II — 1:30 · 25 levels</button>
+  <div id="brewPanelBox">
+    <div class="brewHead"><span class="brewIcon">⚗️</span><h2>Brewing Stand</h2></div>
+    <p id="brewHint">Needs a <b>glass bottle</b> and XP levels. Click a potion to brew.</p>
+    <div class="brewList">
+      <button id="brewStr1" class="brewBtn" style="--pc:#c8402e;"><span class="pot"></span><span class="info"><div class="nm">Strength I</div><div class="ds">+30% damage · 8:00</div></span><span class="cost">20 lvl</span></button>
+      <button id="brewStr2" class="brewBtn" style="--pc:#ff6a3d;"><span class="pot"></span><span class="info"><div class="nm">Strength II</div><div class="ds">+60% damage · 1:30</div></span><span class="cost">25 lvl</span></button>
     </div>
-    <p id="brewStatus" style="font-size:12px;margin-top:10px;min-height:16px;"></p>
+    <p id="brewStatus"></p>
   </div>
 </div>
 <div id="furnacePanel">
@@ -1052,6 +1136,10 @@
     <div class="settingRow">
       <label for="brightnessSlider">Brightness</label>
       <span><input type="range" id="brightnessSlider" min="50" max="200" step="5"> <span id="brightnessValue">100%</span></span>
+    </div>
+    <div class="settingRow">
+      <label for="fovSlider">FOV</label>
+      <span><input type="range" id="fovSlider" min="30" max="110" step="1"> <span id="fovValue">75</span></span>
     </div>
     <label class="settingRow" for="rainToggle">
       Rain
@@ -1758,11 +1846,18 @@ const ITEM_INFO = {
   potion_strength:   { maxStack: 1, potion: 'strength', potionLvl: 1, potionSecs: 480 },
   potion_strength_2: { maxStack: 1, potion: 'strength', potionLvl: 2, potionSecs: 90 },
   brewing_stand:  { maxStack: 64 },
+  // ---- elytra + fireworks ----
+  compressed_wool: { maxStack: 64 },
+  paper:          { maxStack: 64 },
+  elytra:         { maxStack: 1, armor: 0, slot: 1, elytra: true, durability: 432 },
+  firework:       { maxStack: 64, firework: 1 },
+  firework_2:     { maxStack: 64, firework: 2 },
+  firework_3:     { maxStack: 64, firework: 3 },
 };
 const ARMOR_TYPES = ['iron_helmet', 'iron_chestplate', 'iron_leggings', 'iron_boots',
   'gold_helmet', 'gold_chestplate', 'gold_leggings', 'gold_boots',
   'diamond_helmet', 'diamond_chestplate', 'diamond_leggings', 'diamond_boots'];
-function isArmor(type) { return !!(ITEM_INFO[type] && ITEM_INFO[type].armor); }
+function isArmor(type) { return !!(ITEM_INFO[type] && (ITEM_INFO[type].armor || ITEM_INFO[type].elytra)); }
 function maxDurability(type) {
   const info = ITEM_INFO[type];
   return (info && info.durability) ? info.durability : 0;
@@ -2077,7 +2172,68 @@ SPRITE_PAL.flint_and_steel = { o:'#14141a', s:'#e6ebef', t:'#aab3ba', u:'#6c757d
   SPRITE_GRIDS.trident = out.map(r => r.join(''));
   SPRITE_PAL.trident = { o: '#0c2420', a: '#3fb7a6', b: '#2a8a7c', c: '#9ff0e2', h: '#7a5530', k: '#563a20' };
 })();
+(function () {   // elytra / paper / compressed wool / firework sprites (16x16)
+  const mk = () => Array.from({ length: 16 }, () => Array(16).fill('.'));
+  const put = (g, x, y, c) => { if (x >= 0 && x < 16 && y >= 0 && y < 16) g[y][x] = c; };
+  const outline = (g) => {
+    const out = g.map(r => r.slice());
+    for (let y = 0; y < 16; y++) for (let x = 0; x < 16; x++) {
+      if (g[y][x] !== '.') continue;
+      for (const [dx, dy] of [[1,0],[-1,0],[0,1],[0,-1]]) { const c = (g[y + dy] || [])[x + dx]; if (c && c !== '.') { out[y][x] = 'o'; break; } }
+    }
+    return out.map(r => r.join(''));
+  };
+  { // compressed wool: a dense white block with a stitched cross
+    const g = mk();
+    for (let y = 2; y <= 13; y++) for (let x = 2; x <= 13; x++) {
+      let c = 'a';
+      if (x === 2 || y === 2) c = 'a'; else if (x === 13 || y === 13) c = 'c';
+      else if (x === 7 || x === 8 || y === 7 || y === 8) c = 'b';
+      else if ((x + y) % 4 === 0) c = 'b';
+      put(g, x, y, c);
+    }
+    SPRITE_GRIDS.compressed_wool = outline(g);
+    SPRITE_PAL.compressed_wool = { a: '#f4f4f4', b: '#d2d2d6', c: '#a8a8b0', o: '#3a3a40' };
+  }
+  { // paper: a white sheet with text lines
+    const g = mk();
+    for (let y = 2; y <= 13; y++) for (let x = 3; x <= 12; x++) put(g, x, y, (y === 13 || x === 12) ? 'c' : 'a');
+    for (const y of [5, 7, 9, 11]) for (let x = 5; x <= 10 - (y === 11 ? 3 : 0); x++) put(g, x, y, 'b');
+    SPRITE_GRIDS.paper = outline(g);
+    SPRITE_PAL.paper = { a: '#f6f2e4', b: '#b9b2a0', c: '#d6d0bc', o: '#4a4638' };
+  }
+  { // elytra: a pair of folded-out wings
+    const g = mk();
+    for (let y = 2; y <= 14; y++) {
+      const xmin = y < 6 ? 2 + (6 - y) : 2 + Math.floor((y - 6) / 2);
+      for (let x = xmin; x <= 7; x++) {
+        const c = (x - y) % 3 === 0 ? 'b' : (x === 7 ? 'c' : 'a');
+        put(g, x, y, c); put(g, 15 - x, y, c);
+      }
+    }
+    for (let y = 3; y <= 12; y++) { put(g, 7, y, 'c'); put(g, 8, y, 'c'); }
+    SPRITE_GRIDS.elytra = outline(g);
+    SPRITE_PAL.elytra = { a: '#9a8fb0', b: '#7c7194', c: '#5f5578', o: '#1e1a2a' };
+  }
+  for (const [name, dots] of [['firework', 1], ['firework_2', 2], ['firework_3', 3]]) {   // rocket; yellow dots = coal count
+    const g = mk();
+    for (let i = 0; i <= 8; i++) { put(g, 4 + i, 11 - i, 'r'); put(g, 5 + i, 11 - i, 'r'); }
+    for (let i = 0; i <= 2; i++) { put(g, 12 + i, 3 - i, 'w'); }
+    put(g, 3, 12, 'y'); put(g, 2, 13, 'y'); put(g, 4, 12, 'y'); put(g, 3, 13, 'y');
+    put(g, 6, 8, 'w'); put(g, 8, 6, 'w');
+    for (let i = 0; i < dots; i++) put(g, 11 + i * 2 - (dots > 1 ? 1 : 0), 12 - (i % 2), 'k');
+    SPRITE_GRIDS[name] = outline(g);
+    SPRITE_PAL[name] = { r: '#d83a3a', w: '#f2f2f2', y: '#ffb52e', k: '#ffd84a', o: '#2a0c0c' };
+  }
+})();
+// real elytra textures (intact + nearly broken)
+SPRITE_GRIDS.elytra = ["................", "................", "....aaabbaaa....", "..aacdaaaadcaa..", ".acdeeb..aeedca.", ".adffeb..aeffdb.", ".affddb..addffb.", ".acddgb..agddcb.", ".adccgb..agccdb.", ".ahcggb..aggcab.", "..ahgcb..bcghb..", "..bhghb..bhghb..", "...bhb....bhb...", "...bb......bb...", "................", "................"];
+SPRITE_PAL.elytra = {"a": "#4b4b4b", "b": "#353535", "c": "#737373", "d": "#7f7f98", "e": "#8f8fb3", "f": "#8c8c8c", "g": "#706e8d", "h": "#696969"};
+SPRITE_GRIDS.elytra_broken = ["................", "................", "....aa..aaaa....", "..aabcaa.abbaa..", ".abddea..aedfda.", ".addfda..afbgbg.", ".abaddg..adg.gg.", "..affdg..afg....", ".abfdfg..gdbg...", "..abffg..gffbg..", "...gbfg..gfgfg..", "....gbg..gbgbg..", "...gbg....g.g...", "...gg...........", "................", "................"];
+SPRITE_PAL.elytra_broken = {"a": "#4e4e4e", "b": "#787878", "c": "#9191c4", "d": "#9090bd", "e": "#9191c3", "f": "#8c8ca2", "g": "#353535"};
+const _EXTRA_SPRITES = new Set(['compressed_wool', 'paper', 'elytra', 'elytra_broken', 'firework', 'firework_2', 'firework_3']);
 function _spriteGridFor(type) {
+  if (_EXTRA_SPRITES.has(type)) return { rows: SPRITE_GRIDS[type], pal: SPRITE_PAL[type] };
   if (type === 'string' || type === 'bow' || type === 'arrow' || type === 'trident') return { rows: SPRITE_GRIDS[type], pal: SPRITE_PAL[type] };
   const m = /^(wood|stone|iron|gold|diamond)_(pickaxe|axe|shovel|sword|spear|hoe)$/.exec(type);
   if (m) return { rows: SPRITE_GRIDS[m[2]], pal: { ...SPRITE_MAT[m[1]], ...SPRITE_HANDLE, ...(m[1] === 'iron' ? { o: '#262b30' } : {}) } };
@@ -2248,6 +2404,7 @@ function iconCanvas(type, N = 64) {
   return (_iconCanvasCache[key] = c);
 }
 const _iconUrlCache = {};
+function itemIconType(it) { return (it && it.type === 'elytra' && it.dur != null && it.dur <= 1) ? 'elytra_broken' : (it ? it.type : ''); }
 function iconFor(type) {
   if (!_iconUrlCache[type]) _iconUrlCache[type] = iconCanvas(type).toDataURL();
   return `<img class="blkIcon" draggable="false" alt="" src="${_iconUrlCache[type]}">`;
@@ -2310,7 +2467,12 @@ function miningTimeFor(blockType) {
   }
   return def.hardness / speedMult;
 }
-function displayName(type) { return type.replace(/_/g, ' '); }
+function displayName(type) {
+  if (type === 'firework') return 'firework (1 coal)';
+  if (type === 'firework_2') return 'firework (2 coal)';
+  if (type === 'firework_3') return 'firework (3 coal)';
+  return type.replace(/_/g, ' ');
+}
 
 // ---------- Recipes ----------
 // Each recipe is a shape: an array of rows (top-to-bottom), each row an
@@ -2340,8 +2502,8 @@ const RECIPES = [
   { shape: [['coal'],['stick']], out: 'torch', outCount: 4, needsTable: false },
   { shape: [['charcoal'],['stick']], out: 'torch', outCount: 4, needsTable: false },
   { shape: [['cobblestone','cobblestone','cobblestone'],['cobblestone',null,'cobblestone'],['cobblestone','cobblestone','cobblestone']], out: 'furnace', outCount: 1, needsTable: true },
-  // Brewing stand: 3 stone bottom, 2 stick middle column, 2 glass beside middle stick
-  { shape: [[null,'stick',null],['glass','stick','glass'],['stone','stone','stone']], out: 'brewing_stand', outCount: 1, needsTable: true },
+  // Brewing stand: 3 cobblestone (stone) bottom, 2 stick middle column, 2 glass beside middle stick
+  { shape: [[null,'stick',null],['glass','stick','glass'],['cobblestone','cobblestone','cobblestone']], out: 'brewing_stand', outCount: 1, needsTable: true },
   // Glass bottles: 3 glass
   { shape: [['glass',null,'glass'],[null,'glass',null]], out: 'glass_bottle', outCount: 3, needsTable: true },
   { shape: [['planks','planks','planks'],['planks',null,'planks'],['planks','planks','planks']], out: 'chest', outCount: 1, needsTable: true },
@@ -2413,6 +2575,13 @@ for (const [mat, pre] of [['planks', 'wood'], ['cobblestone', 'stone'], ['iron_i
 }
 RECIPES.push({ shape: [['wheat', 'wheat', 'wheat']], out: 'bread', outCount: 3, needsTable: true });
 RECIPES.push({ shape: [['breeze_rod']], out: 'wind_charge', outCount: 4, needsTable: false });
+// ---- Elytra / fireworks ----
+RECIPES.push({ shape: [['wool','wool','wool'],['wool','wool','wool'],['wool','wool','wool']], out: 'compressed_wool', outCount: 1, needsTable: true });   // 9 wool -> 1 compressed wool
+RECIPES.push({ shape: [['compressed_wool','compressed_wool'],['compressed_wool','compressed_wool']], out: 'elytra', outCount: 1, needsTable: false });   // 4 compressed wool -> elytra
+RECIPES.push({ shape: [['string','string','string'],['string','string','string']], out: 'paper', outCount: 1, needsTable: true });   // 6 string -> 1 paper
+RECIPES.push({ shape: [['paper','coal']], out: 'firework', outCount: 1, needsTable: false });                          // paper + 1 coal: short boost
+RECIPES.push({ shape: [['paper','coal'],['coal',null]], out: 'firework_2', outCount: 1, needsTable: false });          // paper + 2 coal: medium boost
+RECIPES.push({ shape: [['paper','coal'],['coal','coal']], out: 'firework_3', outCount: 1, needsTable: false });        // paper + 3 coal: long boost
 // Heavy Core: 1 diamond + 4 iron + 4 gold (diamond center, iron corners, gold edges)
 RECIPES.push({ shape: [
   ['iron_ingot','gold_ingot','iron_ingot'],
@@ -5093,7 +5262,7 @@ function renderHotbar() {
       const bar = durBarHtml(s);
       if (bar) { cntHtml += bar; div.classList.add('hasDur'); }
     }
-    div.innerHTML = `<span class="num">${i+1}</span>${s ? iconFor(s.type) : ''}${cntHtml}`;
+    div.innerHTML = `<span class="num">${i+1}</span>${s ? iconFor(itemIconType(s)) : ''}${cntHtml}`;
     div.title = s ? jcItemTitle(s) : '';
     div.addEventListener('click', () => selectSlot(i));
     hotbar.appendChild(div);
@@ -5109,7 +5278,7 @@ function renderHotbar() {
       const bar = durBarHtml(offhand);
       if (bar) { ocHtml += bar; oh.classList.add('hasDur'); }
     }
-    oh.innerHTML = `<span class="num">R</span>${offhand ? iconFor(offhand.type) : ''}${ocHtml}`;
+    oh.innerHTML = `<span class="num">R</span>${offhand ? iconFor(itemIconType(offhand)) : ''}${ocHtml}`;
     oh.title = offhand ? jcItemTitle(offhand) + ' (off hand)' : 'Off hand (right-click)';
   }
 }
@@ -5165,17 +5334,17 @@ function durBarHtml(item) {
 }
 function iconHtml(item) {
   if (!item) return '';
-  if (item.uses != null) return `${iconFor(item.type)}<span class="count">${item.uses}</span>`;
+  if (item.uses != null) return `${iconFor(itemIconType(item))}<span class="count">${item.uses}</span>`;
   const bar = durBarHtml(item);
   if (item.count !== 1 && !isDurableItem(item.type)) {
-    return `${iconFor(item.type)}<span class="count">${item.count}</span>${bar}`;
+    return `${iconFor(itemIconType(item))}<span class="count">${item.count}</span>${bar}`;
   }
   // Durable items: icon + bar only (no number clutter); stack count if somehow >1
   const cnt = (!isDurableItem(item.type) && item.count !== 1)
     ? `<span class="count">${item.count}</span>`
     : (item.count !== 1 && !isDurableItem(item.type) ? `<span class="count">${item.count}</span>` : '');
   // For tools count is always 1; only show uses-style number for non-durable
-  return `${iconFor(item.type)}${item.count !== 1 ? `<span class="count">${item.count}</span>` : ''}${bar}`;
+  return `${iconFor(itemIconType(item))}${item.count !== 1 ? `<span class="count">${item.count}</span>` : ''}${bar}`;
 }
 
 function makeSlotEl(getItem, onLeftClick, onRightClick, extraClass, zone) {
@@ -5814,6 +5983,11 @@ function brewRefreshStatus() {
   const el = document.getElementById('brewStatus');
   if (!el) return;
   el.textContent = 'Bottles: ' + brewCountBottles() + '  ·  Level: ' + (xpState ? xpState.level : 0);
+  const _b = brewCountBottles(), _lv = xpState ? xpState.level : 0;   // grey out potions you can't afford yet
+  for (const [id, key] of [['brewStr1', 'strength'], ['brewStr2', 'strength_2']]) {
+    const bt = document.getElementById(id), rc = BREW_RECIPES[key];
+    if (bt && rc) bt.classList.toggle('cant', _b < 1 || _lv < rc.cost);
+  }
 }
 function tryBrew(key) {
   const r = BREW_RECIPES[key];
@@ -6761,7 +6935,7 @@ function damagePlayer(amount, knockDir, knockStrength, opts) {
   if (!opts.bypassArmor) {
     let armorRed = totalArmorReduction();
     const breachLv = Math.max(0, Math.min(5, Math.trunc(Number(opts.breach) || 0)));
-    if (breachLv > 0) armorRed *= Math.max(0, 1 - 0.15 * breachLv);
+    if (breachLv > 0) armorRed *= Math.max(0, 1 - 0.06 * breachLv);   // Breach: each level ignores 6% of armor (was 15%)
     applied *= (1 - armorRed);
   }
   if (player.absorb > 0) { const soak = Math.min(player.absorb, applied); player.absorb -= soak; applied -= soak; }
@@ -7450,9 +7624,27 @@ function poseArms(m, st, walkSwing) {
   }
 }
 
+// Body lies flat while gliding with an Elytra (like vanilla): lean forward about the body's middle
+function undoGlidePose(m) {
+  if (m && m._gp) { m.group.position.x -= m._gp.x; m.group.position.y -= m._gp.y; m.group.position.z -= m._gp.z; m._gp = null; }
+}
+function applyGlidePose(m, on, dt) {
+  m.glideT = (m.glideT || 0) + ((on ? 1 : 0) - (m.glideT || 0)) * Math.min(1, dt * 9);
+  const k = m.glideT;
+  m.group.rotation.order = 'YXZ';
+  if (k < 0.01) { m.group.rotation.x = 0; m._gp = null; return; }
+  const th = 1.35 * k, yaw = m.group.rotation.y;
+  m.group.rotation.x = -th;
+  const o = { x: 0.9 * Math.sin(th) * Math.sin(yaw) * -1, y: 0.9 * (1 - Math.cos(th)), z: 0.9 * Math.sin(th) * Math.cos(yaw) * -1 };
+  // keep the middle of the body where it was (lean about the waist, not the feet)
+  o.x = -0.9 * Math.sin(th) * Math.sin(yaw) * -1; o.z = -0.9 * Math.sin(th) * Math.cos(yaw) * -1;
+  m.group.position.x += o.x; m.group.position.y += o.y; m.group.position.z += o.z;
+  m._gp = o;
+}
 function updateMyModel(dt, isMoving) {
   myModel.group.position.set(player.pos.x, player.pos.y, player.pos.z);
   updateHeadBody(myModel, myHeadState, player.yaw, player.pitch, isMoving, dt);
+  applyGlidePose(myModel, !!(typeof glide !== 'undefined' && glide.on), dt);
   const held = mainItem();
   const off = offhand;
   setHeldVisual(myModel.heldState, myModel.handAnchor, held ? held.type : null, held && held.ench);
@@ -7801,6 +7993,10 @@ function flashRed(group) {
 // (optional third-person) model and every other connected player.
 function setArmorVisual(armor, mask, enchMask) {
   if (!armor) return;
+  if (armor.wings) {   // Elytra wings on the back: folded when worn, spread while gliding
+    const worn = !!((mask >> 12) & 1), spread = !!((mask >> 13) & 1);
+    for (const w of armor.wings) { w.grp.visible = worn; w.grp.rotation.z = w.side * (spread ? 1.25 : 0.12); w.grp.rotation.x = spread ? 0.15 : 0.05; }
+  }
   for (let i = 0; i < 4; i++) for (const m of armor[i]) m.visible = !!((mask >> i) & 1);
   if (armor.mats) for (let i = 0; i < 4; i++) {
     const tx = ARMOR_TEX[(mask >> (4 + 2 * i)) & 3] || ARMOR_TEX[0];
@@ -7827,7 +8023,11 @@ function setArmorVisual(armor, mask, enchMask) {
   }
 }
 // bits 0-3: which slots are worn; bits 4-11: 2-bit tier (iron/gold/diamond) per slot
-function armorMask() { return armorSlots.reduce((m, a, i) => m | (a ? ((1 << i) | (armorTier(a.type) << (4 + 2 * i))) : 0), 0); }
+function armorMask() {
+  let m = armorSlots.reduce((m, a, i) => m | ((a && a.type !== 'elytra') ? ((1 << i) | (armorTier(a.type) << (4 + 2 * i))) : 0), 0);
+  if (armorSlots[1] && armorSlots[1].type === 'elytra') m |= (1 << 12) | ((typeof glide !== 'undefined' && glide.on) ? (1 << 13) : 0);
+  return m;
+}
 // Like setSkinBoxUV, but the side faces show only rows [r0, r0+rn) of the box (so leggings and boots can share the leg area).
 function armorBoxUV(geo, u, v, w, h, d, r0, rn) {
   geo.computeBoundingBox();
@@ -7924,6 +8124,27 @@ function buildHumanoid(color) {
     piece(leg, 3, 0.32, 0.25, 0.32, 0, -0.625, 0, [0, 16, 4, 12, 4, 8, 4]);   // boots: lower 4 px
   }
 
+  // Elytra wings (hidden until an Elytra is worn): each wing shows one half of the elytra texture
+  if (!window._wingTex) {
+    window._wingTex = [null, null];
+    try {
+      const spr = sprite16('elytra');
+      if (spr) [0, 8].forEach((x0, i) => {
+        const c = document.createElement('canvas'); c.width = 8; c.height = 16;
+        c.getContext('2d').drawImage(spr, x0, 0, 8, 16, 0, 0, 8, 16);
+        const t = new THREE.CanvasTexture(c); t.magFilter = THREE.NearestFilter; t.minFilter = THREE.NearestFilter; t.generateMipmaps = false;
+        window._wingTex[i] = t;
+      });
+    } catch (e) {}
+  }
+  armor.wings = [-1, 1].map((side, i) => {
+    const mat = new THREE.MeshLambertMaterial({ map: window._wingTex[i] || null, color: window._wingTex[i] ? 0xffffff : 0x9a8fb0, transparent: true, alphaTest: 0.3, side: THREE.DoubleSide });
+    const grp = new THREE.Group(); grp.position.set(side * 0.14, 0.34, 0.19); grp.visible = false;
+    const m = new THREE.Mesh(new THREE.PlaneGeometry(0.6, 1.2), mat);
+    m.userData.noFlash = true; m.position.set(side * 0.28, -0.56, 0.0);
+    grp.add(m); torso.add(grp);
+    return { grp, side };
+  });
   group.add(torso, head, legL, legR, armL, armR, shield);
   return { group, head, torso, legL, legR, armL, armR, handAnchor, offhandAnchor, shield, armor, baseColor: color.clone() };
 }
@@ -9109,8 +9330,8 @@ function spawnTrident(pos, vel, o) {
 }
 // ---- Riptide I-III: release a charged trident in water/rain → one-shot FORCE impulse where you look (not a glide lock)
 // Impulse speeds chosen so travel is roughly I≈9 / II≈16 / III≈25 blocks along aim (g≈26 for vertical).
-const RIPTIDE_FORCE = [0, 24, 32, 40];   // launch impulse (blocks/s)
-const rip = { t: 0, dx: 0, dy: 0, dz: 0, lv: 0, loot: 0, sharp: 0, vx: 0, vy: 0, vz: 0, boost: 0 };   // boost = residual force frames
+const RIPTIDE_FORCE = [0, 14, 19, 24];   // launch speed (blocks/s), decays over ~0.4s -> roughly 5 / 7.5 / 10 blocks along aim
+const rip = { t: 0, dx: 0, dy: 0, dz: 0, lv: 0, loot: 0, sharp: 0, vx: 0, vy: 0, vz: 0, boost: 0, speed: 0 };   // boost = residual force frames
 function riptideWet() { return isInWater(player.pos) || (typeof rainLevel === 'number' && rainLevel > 0.3 && !_rainCovered); }
 function tryRiptide(lv, h) {
   if (!riptideWet()) return false;                                // need water or rain
@@ -9121,12 +9342,13 @@ function tryRiptide(lv, h) {
   d.normalize();
   if (player.onGround) player.pos.y += 0.08;
   const force = RIPTIDE_FORCE[lv] || 0;
-  // Residual boost (like Lunge) so movement code cannot wipe horizontal launch
-  rip.vx = d.x * force; rip.vy = d.y * force; rip.vz = d.z * force;
-  rip.boost = 0.85;
-  player.vel.x += rip.vx;
-  player.vel.y += rip.vy;
-  player.vel.z += rip.vz;
+  // Dash exactly along the look direction: the movement code re-applies this every frame
+  // (walk input rebuilds horizontal velocity each frame, which used to wipe the launch).
+  rip.speed = force;
+  rip.boost = 1.0;
+  player.vel.x = d.x * force;
+  player.vel.y = d.y * force;
+  player.vel.z = d.z * force;
   player.onGround = false;
   rip.dx = d.x; rip.dy = d.y; rip.dz = d.z; rip.lv = lv;
   rip.t = 0.65;
@@ -9703,6 +9925,30 @@ function spokePlace(x, y, z) {
   if (!addBlock(x, y, z, 'cobblestone')) return false;
   markPlaced(x, y, z);
   pushBlockDiff(x, y, z, 'cobblestone');
+  return true;
+}
+/** Boss got a block placed inside its body (or is otherwise embedded): break the overlapping blocks,
+ *  or pop it up to free space if they can't be broken, so it never stays frozen in place. */
+function bossFreeIfEmbedded(a, dt) {
+  a.unstuckCd = (a.unstuckCd || 0) - dt;
+  if (a.unstuckCd > 0) return false;
+  const r = a.radius || 0.3, h = a.height || 1.8, px = a.pos.x, py = a.pos.y, pz = a.pos.z;
+  if (!checkCollision(px, py, pz, r, h)) { a.embedT = 0; return false; }
+  a.unstuckCd = 0.1;
+  a.embedT = (a.embedT || 0) + 0.1;
+  let broke = 0;
+  const offs = [[0, 0], [-r, -r], [r, -r], [-r, r], [r, r]];
+  for (let dy = 0.05; dy <= h + 0.01; dy += 0.4) {
+    for (const [ox, oz] of offs) {
+      if (solidAt(px + ox, py + dy, pz + oz) && spokeBreak(px + ox, py + dy, pz + oz)) broke++;
+    }
+  }
+  if (!broke || a.embedT > 0.6) {   // unbreakable (bedrock, chest...) or still stuck: move to nearest free spot above
+    for (let up = 1; up <= 8; up++) {
+      if (!checkCollision(px, py + up, pz, r, h)) { a.pos.y = py + up; a.vel.y = 0; break; }
+    }
+    a.embedT = 0;
+  }
   return true;
 }
 const _solidB = (x, y, z) => { const b = world.get(key(Math.round(x), Math.round(y), Math.round(z))); return !!b && b.type !== 'water' && solidAt(x, y, z); };
@@ -10535,6 +10781,7 @@ function updateAnimals(dt) {
         }
       }
     } else if (isSpk(a.kind)) {
+      bossFreeIfEmbedded(a, dt);
       if (a.kind === 'flamefrags') flameAI(a, dt); else spokeAI(a, dt);
     } else if (a.kind === 'skeleton') {
       skeletonAI(a, dt);
@@ -11083,6 +11330,87 @@ function updateArrows(dt) {
 }
 
 
+// ================= Elytra + Fireworks =================
+// Jump while falling (with an Elytra worn) to glide. Right-click a firework while gliding to get a speed boost.
+const FIREWORK_SECS = { firework: 1.6, firework_2: 2.8, firework_3: 4.0 };   // boost duration by coal count
+const glide = { on: false, boostT: 0, lastJump: false, acc: 0, wear: 0, vx: 0, vy: 0, vz: 0, setH: 0, fwCd: 0, spark: 0 };
+function elytraWorn() { const a = armorSlots[1]; return (a && a.type === 'elytra' && (a.dur == null || a.dur > 0)) ? a : null; }
+function stopGlide() { glide.on = false; glide.boostT = 0; glide.acc = 0; glide.wear = 0; }
+function useFirework() {
+  let held = null, fromOff = false;
+  const m = mainItem();
+  if (m && FIREWORK_SECS[m.type]) held = m;
+  else if (offhand && FIREWORK_SECS[offhand.type]) { held = offhand; fromOff = true; }
+  if (!held) return false;
+  const now = performance.now();
+  if (now < glide.fwCd) return true;
+  glide.fwCd = now + 350;
+  if (!glide.on) { addChatLine('System', 'Fireworks only boost you while gliding with an Elytra (jump in mid-air).', true); return true; }
+  glide.boostT = FIREWORK_SECS[held.type];
+  if (fromOff) { offhand.count--; if (offhand.count <= 0) offhand = null; }
+  else removeFromCurrentSlot(1);
+  startSwing(); renderHotbar();
+  if (inventoryOpen) try { renderInventoryPanel(); } catch (e) {}
+  saveLocalPlayer();
+  return true;
+}
+function updateGlide(dt, inWaterNow) {
+  const el = elytraWorn();
+  const jump = isPlaying() && (keyDown('jump') || (touchMode && mobile.jump));
+  const pressed = jump && !glide.lastJump; glide.lastJump = jump;
+  if (!glide.on) {
+    if (pressed && el && !player.onGround && !inWaterNow && player.vel.y < 0.5 && !checkCollision(player.pos.x, player.pos.y - 1.3, player.pos.z, player.radius, 0.6)) {   // must be floating (in the air), not hopping near the ground
+      glide.on = true; glide.acc = 0; glide.wear = 0; glide.boostT = 0;
+      glide.vx = player.vel.x / 20; glide.vy = player.vel.y / 20; glide.vz = player.vel.z / 20;
+    } else return;
+  }
+  if (!el || player.onGround || inWaterNow) { stopGlide(); return; }
+  // look direction
+  const cp = Math.cos(player.pitch);
+  const lx = -Math.sin(player.yaw) * cp, ly = Math.sin(player.pitch), lz = -Math.cos(player.yaw) * cp;
+  const hLook = Math.hypot(lx, lz), f4 = cp * cp;
+  glide.acc += dt;
+  let guard = 0;
+  while (glide.acc >= 0.05 && guard++ < 4) {   // vanilla-style 20 Hz glide physics (velocities in blocks/tick)
+    glide.acc -= 0.05;
+    let vx = glide.vx, vy = glide.vy, vz = glide.vz;
+    const hSpeed = Math.hypot(vx, vz);
+    vy += -0.08 + f4 * 0.06;
+    if (vy < 0 && hLook > 0) { const d2 = vy * -0.1 * f4; vy += d2; vx += lx * d2 / hLook; vz += lz * d2 / hLook; }
+    if (ly > 0 && hLook > 0) { const d10 = hSpeed * ly * 0.04; vy += d10 * 3.2; vx -= lx * d10 / hLook; vz -= lz * d10 / hLook; }
+    if (hLook > 0) { vx += (lx / hLook * hSpeed - vx) * 0.1; vz += (lz / hLook * hSpeed - vz) * 0.1; }
+    vx *= 0.99; vy *= 0.98; vz *= 0.99;
+    if (glide.boostT > 0) { vx += lx * 0.1 + (lx * 1.5 - vx) * 0.5; vy += ly * 0.1 + (ly * 1.5 - vy) * 0.5; vz += lz * 0.1 + (lz * 1.5 - vz) * 0.5; }
+    const sp = Math.hypot(vx, vy, vz);
+    if (sp > 1.6) { const k = 1.6 / sp; vx *= k; vy *= k; vz *= k; }   // speed cap (keeps chunk loading sane)
+    glide.vx = vx; glide.vy = vy; glide.vz = vz;
+  }
+  if (glide.boostT > 0) {
+    glide.boostT -= dt;
+    glide.spark -= dt;
+    if (glide.spark <= 0 && typeof jcSpawn === 'function') {   // firework sparks trailing behind
+      glide.spark = 0.03;
+      for (let i = 0; i < 2; i++) jcSpawn(Math.random() < 0.5 ? 'crit' : 'arc', player.pos.x - lx * 0.5, player.pos.y + 1.0 - ly * 0.5, player.pos.z - lz * 0.5, (Math.random() - 0.5) * 2 - lx * 2, (Math.random() - 0.5) * 2 - ly * 2, (Math.random() - 0.5) * 2 - lz * 2, 0.2, 0.5);
+    }
+  }
+  // elytra wear: 1 durability per second of flight
+  glide.wear += dt;
+  if (glide.wear >= 1) {
+    glide.wear -= 1;
+    const broke = damageItemRef(el, 1, () => { armorSlots[1] = null; });
+    renderHotbar();
+    if (broke) { stopGlide(); try { addChatLine('System', 'Your Elytra broke!', true); } catch (e) {} return; }
+  }
+  player.vel.x = glide.vx * 20; player.vel.y = glide.vy * 20; player.vel.z = glide.vz * 20;
+  glide.setH = Math.hypot(player.vel.x, player.vel.z);
+  player.onGround = false;
+}
+function glideAfterMove() {   // after collisions: crashing into a wall hurts, and the glide keeps the post-collision speed
+  if (!glide.on) return;
+  const nowH = Math.hypot(player.vel.x, player.vel.z), lost = glide.setH - nowH;
+  if (lost > 14) { const dmg = Math.floor((lost - 14) * 0.5); if (dmg > 0) damagePlayer(dmg); }
+  glide.vx = player.vel.x / 20; glide.vy = player.vel.y / 20; glide.vz = player.vel.z / 20;
+}
 let windChargeCdUntil = 0;   // performance.now() timestamp — 0.3s between throws
 function throwWindCharge() {
   // Prefer off-hand wind charge so it works while holding a mace / tool in the main hand
@@ -11249,7 +11577,7 @@ function windBurst(pt, hitMob) {
   if (hitMob) {
     const dx = hitMob.pos.x - pt.x, dz = hitMob.pos.z - pt.z;
     damageAnimal(hitMob, 1, new THREE.Vector3(pt.x - dx, pt.y, pt.z - dz), 1.4);
-    hitMob.vel.y = Math.max(hitMob.vel.y, 14);   // higher vertical blast
+    hitMob.vel.y = Math.max(hitMob.vel.y, 24);   // higher vertical blast
   }
   for (const a of animals) {
     if (!a.alive || a === hitMob) continue;
@@ -11258,14 +11586,14 @@ function windBurst(pt, hitMob) {
     const k = (R - d) / R;
     a.vel.x += (a.pos.x - pt.x) / (d || 1) * 6 * k;
     a.vel.z += (a.pos.z - pt.z) / (d || 1) * 6 * k;
-    a.vel.y = Math.max(a.vel.y, 10 + 6 * k);   // higher lift
+    a.vel.y = Math.max(a.vel.y, 20 + 8 * k);   // higher lift
   }
   const pd = Math.hypot(player.pos.x - pt.x, player.pos.z - pt.z);
   if (pd < R && Math.abs(player.pos.y - pt.y) < 2.5) {
     const k = (R - pd) / R;
     player.vel.x += (player.pos.x - pt.x) / (pd || 1) * 4 * k;
     player.vel.z += (player.pos.z - pt.z) / (pd || 1) * 4 * k;
-    player.vel.y = Math.max(player.vel.y || 0, 9 + 5 * k);   // higher self-boost
+    player.vel.y = Math.max(player.vel.y || 0, 19 + 8 * k);   // higher self-boost
   }
 }
 
@@ -11570,7 +11898,7 @@ function jcStats(item) {
   return { dmg: JC_DMG[kind][mat], ticks: typeof t === 'object' ? t[mat] : t, kind };
 }
 // Minecraft mace smash bonus from fall distance (blocks). Smash only if fell > 1.5.
-// Density I–V adds +0.5 damage per level per block fallen (MC-style).
+// Density I–V adds +2.5 damage per level per block fallen (boosted).
 function maceSmashBonus(fallBlocks, densityLvl) {
   if (!(fallBlocks > 1.5)) return 0;
   const f = fallBlocks;
@@ -11579,7 +11907,7 @@ function maceSmashBonus(fallBlocks, densityLvl) {
   if (f > 3) { const b = Math.min(f, 8) - 3; bonus += b * 2; }  // blocks 4–8: +2 each
   if (f > 8) bonus += (f - 8) * 1;                    // beyond 8: +1 each
   const dens = Math.max(0, Math.min(5, Math.trunc(Number(densityLvl) || 0)));
-  if (dens) bonus += dens * 0.5 * f;
+  if (dens) bonus += dens * 2.5 * f;   // Density: +2.5 dmg per level per block fallen (5x vanilla-style 0.5)
   return bonus;
 }
 let atkTicks = 99;          // ticks since the last swing (float)
@@ -12350,6 +12678,7 @@ playersChannel
     setHeldVisual(entry.heldState, entry.handAnchor, payload.heldType || null, (_near && payload.heldEnch) ? { _r: 1 } : null);
     if (entry.offhandAnchor) setHeldVisual(entry.offheldState, entry.offhandAnchor, payload.offType || null, (_near && payload.offEnch) ? { _r: 1 } : null);
     setArmorVisual(entry.armor, payload.armor | 0, payload.armorEnch | 0);
+    entry.gliding = !!(((payload.armor | 0) >> 13) & 1);
     entry.blocking = !!payload.blocking; entry.sp = payload.sp | 0;
     entry.mining = !!payload.mining;
     entry.miningOff = !!payload.miningOff;
@@ -12587,6 +12916,7 @@ let mobSnapTick = 0;
 function updateOtherPlayerVisuals(dt) {
   const lerpT = Math.min(1, dt * 10);
   otherPlayers.forEach(entry => {
+    undoGlidePose(entry);
     const dx = entry.target.x - entry.group.position.x;
     const dz = entry.target.z - entry.group.position.z;
     const moving = Math.hypot(entry.target.x - entry.lastPos.x, entry.target.z - entry.lastPos.z) > 0.01;
@@ -12600,6 +12930,7 @@ function updateOtherPlayerVisuals(dt) {
     entry.lookPitch += ((entry.target.pitch || 0) - entry.lookPitch) * Math.min(1, dt * 14);
     entry.moveHold = (moving || Math.hypot(dx, dz) > 0.05) ? 0.25 : Math.max(0, entry.moveHold - dt);
     updateHeadBody(entry, entry, entry.lookYaw, entry.lookPitch, entry.moveHold > 0, dt);
+    applyGlidePose(entry, !!entry.gliding, dt);
 
     if (moving) entry.walkCycle += dt * 8;
     const walkAmt = moving ? Math.sin(entry.walkCycle) * 0.6 : 0;
@@ -13312,6 +13643,7 @@ function tryMobilePlace() {
   if (typeof tryFarmUse === 'function' && tryFarmUse()) return;
   if (typeof startEating === 'function' && startEating()) return;
   if (typeof throwWindCharge === 'function' && throwWindCharge()) return;
+  if (typeof useFirework === 'function' && useFirework()) return;
   if (typeof startBowDraw === 'function' && startBowDraw()) return;
   const heldItem = currentItem();
   if (heldItem && isShield(heldItem.type) && performance.now() >= shieldDisableUntil) { isBlocking = true; return; }
@@ -14169,6 +14501,7 @@ let settings = {
   sensitivity: 1,    // look sensitivity multiplier (mouse + touch)
   btnSize: 1,        // mobile on-screen button scale
   ctrl: 'classic',   // 'classic' (D-pad + tap) | 'joy' (PC style: joystick + click buttons)
+  fov: 75,           // field of view in degrees (30-110)
   brightness: 100,   // game brightness in % (50-200)
   rain: true,        // weather: rain on/off
   hitboxes: false,   // draw hitboxes around players and mobs
@@ -14346,6 +14679,17 @@ brightnessSlider.addEventListener('input', () => {
   settings.brightness = Math.max(50, Math.min(200, parseInt(brightnessSlider.value, 10) || 100));
   brightnessValue.textContent = settings.brightness + '%';
   saveSettings();
+});
+const fovSlider = document.getElementById('fovSlider');
+const fovValue = document.getElementById('fovValue');
+settings.fov = Math.max(30, Math.min(110, Number(settings.fov) || 75));
+fovSlider.value = String(settings.fov);
+fovValue.textContent = String(settings.fov);
+fovSlider.addEventListener('input', () => {
+  settings.fov = Math.max(30, Math.min(110, parseInt(fovSlider.value, 10) || 75));
+  fovValue.textContent = String(settings.fov);
+  saveSettings();
+  camera.fov = settings.fov; camera.updateProjectionMatrix();
 });
 const rainToggle = document.getElementById('rainToggle');
 rainToggle.checked = settings.rain !== false;
@@ -14893,6 +15237,9 @@ canvas.addEventListener('mousedown', e => {
   if (offhand.type === 'wind_charge') {
     if (throwWindCharge()) { e.stopImmediatePropagation(); return; }
   }
+  if (FIREWORK_SECS[offhand.type]) {
+    if (useFirework()) { e.stopImmediatePropagation(); return; }
+  }
   if (mainBlockPlaceable()) return;                   // block in the main hand: place it (off-hand item stays put)
   if (isFood(offhand.type)) { if (!tryIgniteLookedTnt()) startEating(true); e.stopImmediatePropagation(); return; }
   if (isShield(offhand.type) && performance.now() >= shieldDisableUntil) { isBlocking = true; blockFromOff = true; e.stopImmediatePropagation(); return; }
@@ -14928,6 +15275,7 @@ canvas.addEventListener('mousedown', e => {
     if (tryFarmUse()) return; // hoe (make farmland) / wheat seeds (plant)
     if (startEating()) return; // holding food takes priority over placing a block
     if (throwWindCharge()) return; // wind charge: throw on right-click
+    if (useFirework()) return; // firework: boost while gliding
     if (startBowDraw()) return; // bow: hold right-click to draw
     const heldItem = currentItem();
     if (heldItem && isShield(heldItem.type) && performance.now() >= shieldDisableUntil) { isBlocking = true; return; } // hold right-click with a shield to block
@@ -16117,14 +16465,14 @@ function animate() {
   }
   // Riptide residual: keep launching in aim direction (including straight forward) for a short time
   if (typeof rip !== 'undefined' && rip.boost > 0) {
-    const decay = Math.pow(0.88, dt * 60);
-    rip.vx *= decay; rip.vy *= decay; rip.vz *= decay;
     rip.boost -= dt;
-    player.vel.x += rip.vx * 0.55;
-    player.vel.y += rip.vy * 0.55;
-    player.vel.z += rip.vz * 0.55;
-    if (rip.boost <= 0 || (rip.vx * rip.vx + rip.vy * rip.vy + rip.vz * rip.vz) < 1) {
-      rip.boost = 0; rip.vx = rip.vy = rip.vz = 0;
+    rip.speed *= Math.exp(-dt / 0.4);   // smooth slow-down
+    if (rip.boost <= 0 || rip.speed < 2.5) { rip.boost = 0; rip.speed = 0; }
+    else {
+      player.vel.x = rip.dx * rip.speed;   // overrides walk input: you fly where you looked
+      player.vel.z = rip.dz * rip.speed;
+      player.vel.y = rip.dy * rip.speed;
+      player.onGround = false;
     }
   }
   // Gravity, swimming, and jumping always run — this is what previously
@@ -16155,6 +16503,7 @@ function animate() {
     }
   }
 
+  updateGlide(dt, inWater);   // Elytra gliding (overrides velocity while active)
   updateRiptide(dt);   // Riptide contact damage window (velocity is impulse-only, not locked)
   const wasOnGround = player.onGround;
   const preFallVel = player.vel.y;
@@ -16174,6 +16523,7 @@ function animate() {
     player.fallDist = Math.max(0, peak - player.pos.y);
   }
   collideAndMove(player.pos, player.vel, dt);
+  glideAfterMove();
 
   // Fall damage: only triggers on a hard landing (fast downward speed
   // right before impact), not on normal jumps or gentle steps.
@@ -16201,7 +16551,7 @@ function animate() {
 
   if (isPlaying()) {
     // Widen FOV slightly while sprinting for speed feedback, ease back otherwise.
-    const targetFov = sprinting ? 82 : 75;
+    const baseFov = Number(settings.fov) || 75, targetFov = sprinting ? baseFov + 7 : baseFov;
     camera.fov += (targetFov - camera.fov) * Math.min(1, dt * 8);
     camera.updateProjectionMatrix();
   }
