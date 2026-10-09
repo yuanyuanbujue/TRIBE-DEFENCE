@@ -7012,7 +7012,9 @@ function damagePlayer(amount, knockDir, knockStrength, opts) {
   if (amount <= 0 || player.hp <= 0) return;
   opts = opts || {};
   if (!opts.bypassArmor) lastDamageCause = null;
-  const frontBlock = !opts.bypassShield && isShieldBlockingFront(knockDir);
+  const _maceThrough = !!opts.maceHit && !opts.bypassShield && isShieldBlockingFront(knockDir);
+  if (_maceThrough) { shieldDisableUntil = performance.now() + 5000; isBlocking = false; myShieldPulse = 0.4; }   // a mace hit goes straight through the shield and knocks it down
+  const frontBlock = !opts.bypassShield && !opts.maceHit && isShieldBlockingFront(knockDir);
   // Shield blocks nearly all frontal damage; axes that land while blocking disable the shield.
   if (frontBlock && opts.axeHit) {
     shieldDisableUntil = performance.now() + 5000;
@@ -10399,8 +10401,8 @@ function spokeAI(a, dt) {
           const fall = (a.smashFallY != null ? a.smashFallY : a.pos.y) - a.pos.y;
           if (typeof applyBossMaceEffects === 'function') dmg += applyBossMaceEffects(tgt, kdir, Math.max(0, fall));
         }
-        if (tgt.local) damagePlayer(dmg, kdir, kb);
-        else playersChannel.send({ type: 'broadcast', event: 'mob_dmg', payload: { to: tgt.id, dmg, kx: kdir.x, kz: kdir.z, kb, ax: 0 } });
+        if (tgt.local) damagePlayer(dmg, kdir, kb, isMace ? { maceHit: true } : undefined);
+        else playersChannel.send({ type: 'broadcast', event: 'mob_dmg', payload: { to: tgt.id, dmg, kx: kdir.x, kz: kdir.z, kb, ax: isMace ? 2 : 0 } });
         if (a.maceSmashArmed && a.vel.y < 0) { a.maceSmashArmed = false; a.smashFallY = null; }
       }
       if (a.maceSmashArmed && grounded && a.vel.y <= 0.1) { a.maceSmashArmed = false; a.smashFallY = null; }
@@ -10566,10 +10568,10 @@ function summonWemmbu(x, y, z) {
   addChatLine('System', 'Wemmbu has joined the fight!', true);
   return e;
 }
-function wemmbuHit(a, tgt, dmg, kb, kdir) {
+function wemmbuHit(a, tgt, dmg, kb, kdir, mace) {
   a.attackCd = 1.2; a.swordCd = 0.9;
-  if (tgt.local) damagePlayer(dmg, kdir, kb);
-  else playersChannel.send({ type: 'broadcast', event: 'mob_dmg', payload: { to: tgt.id, dmg, kx: kdir.x, kz: kdir.z, kb, ax: 0 } });
+  if (tgt.local) damagePlayer(dmg, kdir, kb, mace ? { maceHit: true } : undefined);
+  else playersChannel.send({ type: 'broadcast', event: 'mob_dmg', payload: { to: tgt.id, dmg, kx: kdir.x, kz: kdir.z, kb, ax: mace ? 2 : 0 } });
 }
 // Mace smash: Density bonus from the fall + Wind Burst launches the target, and Wind Burst launches Wemmbu back up for the next hit.
 function wemmbuSmash(a, tgt, fall) {
@@ -10577,7 +10579,7 @@ function wemmbuSmash(a, tgt, fall) {
   const kdir = new THREE.Vector3(tgt.x - a.pos.x, 0, tgt.z - a.pos.z);
   try { applyBossMaceEffects(tgt, kdir, f); } catch (e) {}   // only used for its Wind Burst launch on the target
   const dmg = 10 + maceSmashBonus(f, WEMMBU_DENSITY);
-  wemmbuHit(a, tgt, dmg, 14, kdir);
+  wemmbuHit(a, tgt, dmg, 14, kdir, true);
 }
 function wemmbuStartWindCharge(a) {
   wemmbuSword(a, false);
@@ -10643,7 +10645,7 @@ function wemmbuAI(a, dt) {
     if (dist < (a.sword ? 3.0 : 2.9) && Math.abs(tgt.y - a.pos.y) < 2.5 && a.swordCd <= 0) {
       const kd = new THREE.Vector3(dx, 0, dz);
       if (a.sword) { wemmbuHit(a, tgt, 8, 8, kd); a.swordCd = 0.5; a.attackCd = 0.75; }
-      else wemmbuHit(a, tgt, 10, 10, kd);
+      else wemmbuHit(a, tgt, 10, 10, kd, true);
     }
     // soft blocks in the way (cobweb, plants)
     a.bldCd = (a.bldCd || 0) - dt;
@@ -10789,7 +10791,7 @@ function flameHurt(a, dmg, fromPos, kbMul, by) {
     const fx = fromPos.x - a.pos.x, fz = fromPos.z - a.pos.z, fl = Math.hypot(fx, fz) || 1;
     if ((Math.sin(a.facing) * fx + Math.cos(a.facing) * fz) / fl > 0.3) {
       const h = (by === MY_ID) ? mainItem() : null;
-      if (h && isAxe(h.type)) { a.shieldBroke = 5; a.blockOff = 5; flameSet(a, { block: 0 }); }   // an axe hit disables the shield
+      if (h && (isAxe(h.type) || isMace(h.type))) { a.shieldBroke = 5; a.blockOff = 5; flameSet(a, { block: 0 }); }   // an axe hit disables the shield
       else { blocked = true; a.shieldHits = (a.shieldHits || 0) + 1; if (a.shieldHits >= 10) { a.shieldHits = 0; a.shieldBroke = 6; a.blockOff = 6; flameSet(a, { block: 0 }); } }
     }
   }
@@ -10809,10 +10811,10 @@ function flameHurt(a, dmg, fromPos, kbMul, by) {
   }
   spokeSync(a, old);
 }
-function flameHit(tgt, dmg, kdir, kb, axe) {
+function flameHit(tgt, dmg, kdir, kb, axe, mace) {
   dmg = Math.min(16, dmg);
-  if (tgt.local) damagePlayer(dmg, kdir, kb, axe ? { axeHit: true } : undefined);
-  else playersChannel.send({ type: 'broadcast', event: 'mob_dmg', payload: { to: tgt.id, dmg, kx: kdir.x, kz: kdir.z, kb, ax: axe ? 1 : 0 } });
+  if (tgt.local) damagePlayer(dmg, kdir, kb, mace ? { maceHit: true } : (axe ? { axeHit: true } : undefined));
+  else playersChannel.send({ type: 'broadcast', event: 'mob_dmg', payload: { to: tgt.id, dmg, kx: kdir.x, kz: kdir.z, kb, ax: mace ? 2 : (axe ? 1 : 0) } });
 }
 function flameAI(a, dt) {
   for (const k of ['shootCd', 'swCd', 'wcCd', 'lungeCd', 'lungeT', 'eatCd', 'shieldBroke', 'blockOff', 'wpnT', 'strafeT', 'jumpCd', 'hopCd', 'wcT']) a[k] = (a[k] || 0) - dt;
@@ -10904,7 +10906,7 @@ function flameAI(a, dt) {
           let _md = 9 + Math.min(10, fall * 1.8);
           if (typeof applyBossMaceEffects === 'function') _md += applyBossMaceEffects(tgt, kdir, fall);
           else if (typeof maceSmashBonus === 'function') _md += maceSmashBonus(fall, 5);
-          flameHit(tgt, _md, kdir, 16, false);
+          flameHit(tgt, _md, kdir, 16, false, true);
           try { mobMaceFx(a.pos, tgt, true); } catch (e) {}
           a.smashArm = false; a.vel.y = 6; a.attackCd = 1.1;
         } else if (a.airT > 0.5 && grounded) a.smashArm = false;
@@ -10933,7 +10935,7 @@ function flameAI(a, dt) {
         const fall = Math.max(0, (a.peakY != null ? a.peakY : a.pos.y) - a.pos.y);
         if (typeof applyBossMaceEffects === 'function') dmg += applyBossMaceEffects(tgt, kdir, fall);
       }
-      if (Math.random() < 0.98) flameHit(tgt, dmg, kdir, 9 + (wpn === 2 ? 3 : 0), wpn === 1);
+      if (Math.random() < 0.98) flameHit(tgt, dmg, kdir, 9 + (wpn === 2 ? 3 : 0), wpn === 1, wpn === 2);
     }
     if (!a.smashArm && a.hopCd <= 0 && dist < 4 && grounded) { a.hopCd = 1.0 + Math.random() * 1.2; a.vel.y = 7.0; }
   } else {
@@ -11752,6 +11754,12 @@ function useFirework() {
 }
 function updateGlide(dt, inWaterNow) {
   const el = elytraWorn();
+  const cr = glide.carry;   // momentum kept after the Elytra comes off in the air (decays slowly, ends on landing / water)
+  if (cr && !glide.on) {
+    cr.t -= dt; cr.vx *= Math.exp(-dt / 1.6); cr.vz *= Math.exp(-dt / 1.6);
+    if (cr.t <= 0 || player.onGround || inWaterNow || Math.hypot(cr.vx, cr.vz) < 3) glide.carry = null;
+    else { player.vel.x = cr.vx; player.vel.z = cr.vz; }
+  }
   const jump = isPlaying() && (keyDown('jump') || (touchMode && mobile.jump));
   const pressed = jump && !glide.lastJump; glide.lastJump = jump;
   if (!glide.on) {
@@ -11762,7 +11770,11 @@ function updateGlide(dt, inWaterNow) {
   }
   // The glide only ends for real: no Elytra, in water, or standing on the ground for a moment. A brush against a block / a
   // one-frame ground flicker mid-air no longer cancels it, and fast low skims over the ground keep gliding.
-  if (!el || inWaterNow) { glide.groundT = 0; stopGlide(); return; }
+  if (!el || inWaterNow) {
+    // Swapped the Elytra for a chestplate (or lost it) mid-air: keep the speed you had instead of dropping dead
+    if (!el && !inWaterNow && !player.onGround) glide.carry = { vx: glide.vx * 20, vz: glide.vz * 20, t: 2.2 };
+    glide.groundT = 0; stopGlide(); return;
+  }
   if (player.onGround) {
     glide.groundT = (glide.groundT || 0) + dt;
     const sp = Math.hypot(glide.vx, glide.vz) * 20;
@@ -12634,7 +12646,7 @@ function jcAttackPlayer(pt) {
     const held = currentItem();
     playersChannel.send({
       type: 'broadcast', event: 'hit',
-      payload: { targetId: pt.id, amount: d, attackerId: MY_ID, kx: g.x - player.pos.x, kz: g.z - player.pos.z, knock: 8.8 * r.kb, axe: !!(held && isAxe(held.type)), breach: r.breach || 0 }
+      payload: { targetId: pt.id, amount: d, attackerId: MY_ID, kx: g.x - player.pos.x, kz: g.z - player.pos.z, knock: 8.8 * r.kb, axe: !!(held && isAxe(held.type)), mace: !!(held && isMace(held.type)), breach: r.breach || 0 }
     });
     flashRed(entry.group);
     if (entry.blocking) entry.shieldPulse = 0.25;
@@ -13210,7 +13222,7 @@ playersChannel
   })
   .on('broadcast', { event: 'mob_dmg' }, ({ payload }) => {
     if (!payload || payload.to !== MY_ID || player.hp <= 0) return;
-    damagePlayer(Math.max(0, Math.min(12, Number(payload.dmg) || 0)), new THREE.Vector3(payload.kx, 0, payload.kz), payload.kb || 8.5, payload.ax ? { axeHit: true } : undefined);
+    damagePlayer(Math.max(0, Math.min(40, Number(payload.dmg) || 0)), new THREE.Vector3(payload.kx, 0, payload.kz), payload.kb || 8.5, payload.ax === 2 ? { maceHit: true } : (payload.ax ? { axeHit: true } : undefined));   // ax: 1 axe, 2 mace (goes through shields)
   })
   .on('broadcast', { event: 'mob_dead' }, ({ payload }) => {
     if (payload && payload.to === MY_ID) giveMobLoot(payload.kind, payload.eq | 0);
@@ -13243,7 +13255,7 @@ playersChannel
       }
       if (isShieldBlockingFront(kdir)) myShieldPulse = 0.25;
       { const _at = payload.attackerId && otherPlayers.get(payload.attackerId); if (_at) lastPvpAttacker = { name: String(_at.name || 'Player'), t: performance.now() }; }
-      damagePlayer(payload.amount, kdir, payload.knock != null ? payload.knock : 8.5, { axeHit: !!payload.axe, breach: payload.breach || 0 });
+      damagePlayer(payload.amount, kdir, payload.knock != null ? payload.knock : 8.5, { axeHit: !!payload.axe, maceHit: !!payload.mace, breach: payload.breach || 0 });
     } else {
       const entry = otherPlayers.get(payload.targetId);
       if (entry) { flashRed(entry.group); if (entry.blocking) entry.shieldPulse = 0.25; }
