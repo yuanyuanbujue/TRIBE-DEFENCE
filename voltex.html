@@ -7039,10 +7039,21 @@ function damagePlayer(amount, knockDir, knockStrength, opts) {
     d.y = 0;
     if (d.lengthSq() < 1e-6) d.set(0, 0, 1);
     d.normalize();
-    knockV.x = knockV.x * 0.5 + d.x * str;     // a fresh hit halves any old shove and adds its own (like Minecraft)
-    knockV.z = knockV.z * 0.5 + d.z * str;
-    player.vel.y = Math.max(player.vel.y, str * 0.55);
-    player.onGround = false;
+    // Keep some of your motion when hit, so you can still land a spear charge or a mace smash while being hit.
+    //  - Horizontal: if you're moving toward the attacker, the shove only eats part of your speed
+    //    (you keep ~HIT_KEEP_SPEED of it) instead of stopping / reversing you.
+    //  - Vertical: if you're falling, the hit no longer pops you upward, so your fall (and mace smash charge) survives.
+    const HIT_KEEP_SPEED = 0.6;
+    let kstr = str;
+    const along = player.vel.x * d.x + player.vel.z * d.z;   // < 0: moving against the shove (toward the attacker)
+    if (along < 0) kstr = Math.min(str, Math.max(str * 0.3, -along * (1 - HIT_KEEP_SPEED)));
+    knockV.x = knockV.x * 0.5 + d.x * kstr;     // a fresh hit halves any old shove and adds its own (like Minecraft)
+    knockV.z = knockV.z * 0.5 + d.z * kstr;
+    const fallingInAir = !player.onGround && player.vel.y < -0.5;
+    if (!fallingInAir) {
+      player.vel.y = Math.max(player.vel.y, str * 0.55);
+      player.onGround = false;
+    }
   }
   updateHpUI();
   flashDamage();
@@ -13558,7 +13569,7 @@ function findPlayerByName(name) {
   });
   return exact || partial;
 }
-const GIVE_ITEMS = { firework: 'firework', firework_1: 'firework', firework_2: 'firework_2', firework_3: 'firework_3', rocket: 'firework', elytra: 'elytra', mace: 'mace' };
+const GIVE_ITEMS = { firework: 'firework', firework_1: 'firework', firework_2: 'firework_2', firework_3: 'firework_3', rocket: 'firework', elytra: 'elytra', mace: 'mace', golden_apple: 'golden_apple', gapple: 'golden_apple', goldenapple: 'golden_apple' };
 function givePlayerItem(item, count) {
   const type = GIVE_ITEMS[String(item || '').toLowerCase()]; if (!type) return false;
   const n = Math.max(1, Math.min(maxStackFor(type) === 1 ? 36 : 64, Math.trunc(Number(count)) || 1));
@@ -13763,7 +13774,7 @@ function runChatCommand(text) {
     playersChannel.send({ type: 'broadcast', event: 'give_item', payload: { from: MY_ID, to: tid, item, count: Number(count) || 1 } });
     sys('Gave ' + e.name + ' ' + nm + '.'); return;
   }
-  if (cmd === 'give' && (parts[0] || '').toLowerCase() !== 'null_totem') { sys('Usage: /give <@s|@a|player> <zombie|skeleton|breeze|firework|elytra|mace> [count]'); return; }
+  if (cmd === 'give' && (parts[0] || '').toLowerCase() !== 'null_totem') { sys('Usage: /give <@s|@a|player> <zombie|skeleton|breeze|firework|elytra|mace|golden_apple> [count]'); return; }
   // /xp <player|@s|@a> <amount>[L] - give XP points (or levels with an L suffix, e.g. 10L; negative takes away). Creator only.
   if (cmd === 'xp') {
     const who = parts[0], raw = (parts[1] || '').trim();
@@ -13798,7 +13809,7 @@ function runChatCommand(text) {
     sys('Given Null Totem (10 uses, Null I).');
     return;
   }
-  if (cmd === 'help') { sys('/tpa <player> | /tpaccept | /xp <player|@s|@a> <amount>[L] | /swap | /tp @s <x> <y> <z> | /tp @s <player> | /tp <player> @s | /biome | /spawner [tp] | /give <@s|@a|player> <zombie|skeleton|breeze|firework|elytra|mace> [count] | /nulltotem | /spoke | /flame | /wemmbu | /kill <player|@s|@e> | /rain on|off|auto | /fog [on|off] | /weather clear|rain|fog|auto | /fill <x1> <y1> <z1> <x2> <y2> <z2> <block> [replace|hollow|keep] [filter] | /update [message]'); return; }
+  if (cmd === 'help') { sys('/tpa <player> | /tpaccept | /xp <player|@s|@a> <amount>[L] | /swap | /tp @s <x> <y> <z> | /tp @s <player> | /tp <player> @s | /biome | /spawner [tp] | /give <@s|@a|player> <zombie|skeleton|breeze|firework|elytra|mace|golden_apple> [count] | /nulltotem | /spoke | /flame | /wemmbu | /kill <player|@s|@e> | /rain on|off|auto | /fog [on|off] | /weather clear|rain|fog|auto | /fill <x1> <y1> <z1> <x2> <y2> <z2> <block> [replace|hollow|keep] [filter] | /update [message]'); return; }
   sys('Unknown command: /' + cmd + ' (try /help)');
 }
 
