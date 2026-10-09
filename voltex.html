@@ -9443,7 +9443,7 @@ function spawnTrident(pos, vel, o) {
 }
 // ---- Riptide I-III: release a charged trident in water/rain → one-shot FORCE impulse where you look (not a glide lock)
 // Impulse speeds chosen so travel is roughly I≈9 / II≈16 / III≈25 blocks along aim (g≈26 for vertical).
-const RIPTIDE_FORCE = [0, 14, 19, 24];   // launch speed (blocks/s), decays over ~0.4s -> roughly 5 / 7.5 / 10 blocks along aim
+const RIPTIDE_FORCE = [0, 26, 36, 48];   // stronger launch (was 14 / 19 / 24)   // launch speed (blocks/s), decays over ~0.4s -> roughly 5 / 7.5 / 10 blocks along aim
 const rip = { t: 0, dx: 0, dy: 0, dz: 0, lv: 0, loot: 0, sharp: 0, vx: 0, vy: 0, vz: 0, boost: 0, speed: 0 };   // boost = residual force frames
 function riptideWet() { return isInWater(player.pos) || (typeof rainLevel === 'number' && rainLevel > 0.3 && !_rainCovered); }
 function tryRiptide(lv, h) {
@@ -9458,13 +9458,13 @@ function tryRiptide(lv, h) {
   // Dash exactly along the look direction: the movement code re-applies this every frame
   // (walk input rebuilds horizontal velocity each frame, which used to wipe the launch).
   rip.speed = force;
-  rip.boost = 1.0;
+  rip.boost = 1.4;
   player.vel.x = d.x * force;
   player.vel.y = d.y * force;
   player.vel.z = d.z * force;
   player.onGround = false;
   rip.dx = d.x; rip.dy = d.y; rip.dz = d.z; rip.lv = lv;
-  rip.t = 0.65;
+  rip.t = 1.0;
   rip.loot = Math.max(0, Math.trunc(Number(h.ench && h.ench.looting) || 0)); rip.sharp = Math.max(0, Number(h.ench && h.ench.sharpness) || 0);
   startSwing(); renderHotbar();
   return true;
@@ -9474,15 +9474,15 @@ function updateRiptide(dt) {
   if (rip.t <= 0) return;
   rip.t -= dt;
   if (rip.t <= 0) { rip.t = 0; return; }
-  const dmg = 8 + (rip.sharp ? 0.5 * rip.sharp + 0.5 : 0);
+  const dmg = 8 + rip.lv * 4 + (rip.sharp ? 0.5 * rip.sharp + 0.5 : 0);   // 12 / 16 / 20 contact damage (was 8)
   for (let i = 0; i < animals.length; i++) {
     const a = animals[i]; if (!a.alive) continue;
     const dx = a.pos.x - player.pos.x, dy = (a.pos.y + (a.height || 1) * 0.5) - (player.pos.y + 0.9), dz = a.pos.z - player.pos.z;
-    if (dx * dx + dy * dy + dz * dz > (1.3 + (a.radius || 0.45)) ** 2) continue;
+    if (dx * dx + dy * dy + dz * dz > (1.8 + (a.radius || 0.45)) ** 2) continue;
     const d = jcIframe(a, dmg);
     if (d > 0) {
       jcNoLootUntil = performance.now() + 1500; jcThrownLootLvl = rip.loot; jcThrownLootUntil = jcNoLootUntil;
-      damageAnimal(a, d, player.pos, 1.0);
+      damageAnimal(a, d, player.pos, 1.6);
     }
   }
 }
@@ -11736,7 +11736,12 @@ function useFirework() {
   const now = performance.now();
   if (now < glide.fwCd) return true;
   glide.fwCd = now + 350;
-  if (!glide.on) { addChatLine('System', 'Fireworks only boost you while gliding with an Elytra (jump in mid-air).', true); return true; }
+  if (!glide.on && elytraWorn() && !isInWater(player.pos)) {   // firework from the ground / mid-air with an Elytra: take off and glide
+    glide.on = true; glide.acc = 0; glide.wear = 0; glide.groundT = 0;
+    glide.vx = player.vel.x / 20; glide.vy = Math.max(player.vel.y, 0) / 20; glide.vz = player.vel.z / 20;
+    player.onGround = false; player.pos.y += 0.1;
+  }
+  if (!glide.on) { addChatLine('System', 'Fireworks only boost you while gliding with an Elytra (wear one, then use a firework or jump in mid-air).', true); return true; }
   glide.boostT = FIREWORK_SECS[held.type];
   if (fromOff) { offhand.count--; if (offhand.count <= 0) offhand = null; }
   else removeFromMainSlot(1);
@@ -11755,7 +11760,14 @@ function updateGlide(dt, inWaterNow) {
       glide.vx = player.vel.x / 20; glide.vy = player.vel.y / 20; glide.vz = player.vel.z / 20;
     } else return;
   }
-  if (!el || player.onGround || inWaterNow) { stopGlide(); return; }
+  // The glide only ends for real: no Elytra, in water, or standing on the ground for a moment. A brush against a block / a
+  // one-frame ground flicker mid-air no longer cancels it, and fast low skims over the ground keep gliding.
+  if (!el || inWaterNow) { glide.groundT = 0; stopGlide(); return; }
+  if (player.onGround) {
+    glide.groundT = (glide.groundT || 0) + dt;
+    const sp = Math.hypot(glide.vx, glide.vz) * 20;
+    if (glide.groundT > (sp > 9 ? 0.45 : 0.15)) { glide.groundT = 0; stopGlide(); return; }
+  } else glide.groundT = 0;
   // look direction
   const cp = Math.cos(player.pitch);
   const lx = -Math.sin(player.yaw) * cp, ly = Math.sin(player.pitch), lz = -Math.cos(player.yaw) * cp;
@@ -13128,6 +13140,10 @@ playersChannel
     jcGiveXp(Math.max(-100000, Math.min(100000, n)), !!payload.levels);
     addChatLine('System', 'You were given ' + n + (payload.levels ? ' XP level(s).' : ' XP.'), true);
   })
+  .on('broadcast', { event: 'give_item' }, ({ payload }) => {
+    if (!payload || payload.from === MY_ID || (payload.to !== '*' && payload.to !== MY_ID)) return;
+    if (givePlayerItem(payload.item, payload.count)) addChatLine('System', 'You were given ' + (payload.count || 1) + ' ' + GIVE_ITEMS[String(payload.item).toLowerCase()] + '.', true);
+  })
   .on('broadcast', { event: 'give_spawner' }, ({ payload }) => {
     if (!payload || payload.from === MY_ID || (payload.to !== '*' && payload.to !== MY_ID)) return;
     if (givePlayerSpawner(payload.kind, payload.count)) addChatLine('System', 'You were given ' + (payload.count || 1) + ' ' + payload.kind + ' spawner(s).', true);
@@ -13530,6 +13546,15 @@ function findPlayerByName(name) {
   });
   return exact || partial;
 }
+const GIVE_ITEMS = { firework: 'firework', firework_1: 'firework', firework_2: 'firework_2', firework_3: 'firework_3', rocket: 'firework', elytra: 'elytra', mace: 'mace' };
+function givePlayerItem(item, count) {
+  const type = GIVE_ITEMS[String(item || '').toLowerCase()]; if (!type) return false;
+  const n = Math.max(1, Math.min(maxStackFor(type) === 1 ? 36 : 64, Math.trunc(Number(count)) || 1));
+  const left = addItemToInventory(type, n);
+  if (left > 0) spawnDroppedItem(type, left, new THREE.Vector3(player.pos.x, player.pos.y + 1, player.pos.z));
+  try { renderHotbar(); if (inventoryOpen) renderInventoryPanel(); saveLocalPlayer(); } catch (e) {}
+  return true;
+}
 function givePlayerSpawner(kind, count) {
   if (kind !== 'zombie' && kind !== 'skeleton' && kind !== 'breeze') return false;
   const n = Math.max(1, Math.min(64, Math.trunc(Number(count)) || 1));
@@ -13711,7 +13736,22 @@ function runChatCommand(text) {
     playersChannel.send({ type: 'broadcast', event: 'give_spawner', payload: { from: MY_ID, to: tid, kind, count: Number(count) || 1 } });
     sys('Gave ' + e.name + ' ' + kind + ' spawner(s).'); return;
   }
-  if (cmd === 'give' && (parts[0] || '').toLowerCase() !== 'null_totem') { sys('Usage: /give <@s|@a|player> <zombie|skeleton|breeze> [count]'); return; }
+  // /give <@s|@a|player> <firework|firework_2|firework_3|elytra|mace> [count]
+  if (cmd === 'give' && parts.length >= 2 && GIVE_ITEMS[(parts[1] || '').toLowerCase()]) {
+    const who = parts[0], item = parts[1].toLowerCase(), count = parts[2] || 1, nm = GIVE_ITEMS[item];
+    if (who === '@s' || who === '@p' || who.toLowerCase() === (MY_NAME || '').toLowerCase()) { givePlayerItem(item, count); sys('Gave yourself ' + (Number(count) || 1) + ' ' + nm + '.'); return; }
+    if (who === '@a') {
+      givePlayerItem(item, count);
+      playersChannel.send({ type: 'broadcast', event: 'give_item', payload: { from: MY_ID, to: '*', item, count: Number(count) || 1 } });
+      sys('Gave everyone ' + nm + '.'); return;
+    }
+    const e = findPlayerByName(who); let tid = null;
+    otherPlayers.forEach((q, id) => { if (q === e) tid = id; });
+    if (!e || tid == null) { sys('No player found: ' + who); return; }
+    playersChannel.send({ type: 'broadcast', event: 'give_item', payload: { from: MY_ID, to: tid, item, count: Number(count) || 1 } });
+    sys('Gave ' + e.name + ' ' + nm + '.'); return;
+  }
+  if (cmd === 'give' && (parts[0] || '').toLowerCase() !== 'null_totem') { sys('Usage: /give <@s|@a|player> <zombie|skeleton|breeze|firework|elytra|mace> [count]'); return; }
   // /xp <player|@s|@a> <amount>[L] - give XP points (or levels with an L suffix, e.g. 10L; negative takes away). Creator only.
   if (cmd === 'xp') {
     const who = parts[0], raw = (parts[1] || '').trim();
@@ -13746,7 +13786,7 @@ function runChatCommand(text) {
     sys('Given Null Totem (10 uses, Null I).');
     return;
   }
-  if (cmd === 'help') { sys('/tpa <player> | /tpaccept | /xp <player|@s|@a> <amount>[L] | /swap | /tp @s <x> <y> <z> | /tp @s <player> | /tp <player> @s | /biome | /spawner [tp] | /give <@s|@a|player> <zombie|skeleton|breeze> [count] | /nulltotem | /spoke | /flame | /wemmbu | /kill <player|@s|@e> | /rain on|off|auto | /fog [on|off] | /weather clear|rain|fog|auto | /fill <x1> <y1> <z1> <x2> <y2> <z2> <block> [replace|hollow|keep] [filter] | /update [message]'); return; }
+  if (cmd === 'help') { sys('/tpa <player> | /tpaccept | /xp <player|@s|@a> <amount>[L] | /swap | /tp @s <x> <y> <z> | /tp @s <player> | /tp <player> @s | /biome | /spawner [tp] | /give <@s|@a|player> <zombie|skeleton|breeze|firework|elytra|mace> [count] | /nulltotem | /spoke | /flame | /wemmbu | /kill <player|@s|@e> | /rain on|off|auto | /fog [on|off] | /weather clear|rain|fog|auto | /fill <x1> <y1> <z1> <x2> <y2> <z2> <block> [replace|hollow|keep] [filter] | /update [message]'); return; }
   sys('Unknown command: /' + cmd + ' (try /help)');
 }
 
@@ -16903,7 +16943,7 @@ function animate() {
   // Riptide residual: keep launching in aim direction (including straight forward) for a short time
   if (typeof rip !== 'undefined' && rip.boost > 0) {
     rip.boost -= dt;
-    rip.speed *= Math.exp(-dt / 0.4);   // smooth slow-down
+    rip.speed *= Math.exp(-dt / 0.55);   // smooth slow-down (longer carry)
     if (rip.boost <= 0 || rip.speed < 2.5) { rip.boost = 0; rip.speed = 0; }
     else {
       player.vel.x = rip.dx * rip.speed;   // overrides walk input: you fly where you looked
