@@ -797,9 +797,9 @@
   #nameInput { border-radius: 10px; }
 
   /* ===== Brewing stand panel ===== */
-  #brewPanel { backdrop-filter: blur(2px); -webkit-backdrop-filter: blur(2px); cursor: default; }
+  #brewPanel { cursor: default; }
   #brewPanelBox {
-    position: relative; width: min(430px, 94vw); max-height: 94vh; overflow-y: auto; box-sizing: border-box; padding: 20px 20px 16px;
+    position: relative; width: min(560px, 96vw); max-height: 96vh; overflow-y: auto; box-sizing: border-box; padding: 20px 20px 16px;
     background: radial-gradient(120% 80% at 50% -10%, rgba(150,110,255,0.22), transparent 60%), linear-gradient(165deg, #2c2540 0%, #1b1730 60%, #14112a 100%);
     border: 2px solid #6b5aa8; border-radius: 18px; color: #eee; user-select: none; -webkit-user-select: none;
     box-shadow: 0 20px 60px rgba(0,0,0,0.6), 0 0 40px rgba(140,100,255,0.22), 0 0 0 1px rgba(255,255,255,0.05) inset;
@@ -807,7 +807,7 @@
   }
   #brewPanelBox .brewHead { display: flex; align-items: center; justify-content: center; gap: 10px; margin-bottom: 12px; }
   #brewPanelBox .brewHead h2 { margin: 0; font-size: 21px; letter-spacing: 1px; color: #e6dcff; text-shadow: 0 0 12px rgba(167,139,250,0.6); }
-  #brewPanelBox .brewIcon { font-size: 28px; filter: drop-shadow(0 0 8px rgba(167,139,250,0.7)); animation: brewBob 2.4s ease-in-out infinite; }
+  #brewPanelBox .brewIcon { font-size: 28px; filter: drop-shadow(0 0 6px rgba(167,139,250,0.45)); }
   @keyframes brewBob { 0%,100% { transform: translateY(0) rotate(-4deg); } 50% { transform: translateY(-3px) rotate(4deg); } }
   #brewPanelBox .brewStats { display: flex; gap: 10px; margin-bottom: 12px; }
   #brewPanelBox .brewStat {
@@ -819,6 +819,38 @@
   #brewPanelBox .brewStat .bi img { width: 26px; height: 26px; image-rendering: pixelated; }
   #brewPanelBox .brewStat .bv { font-size: 20px; font-weight: 800; color: #fff; min-width: 22px; }
   #brewPanelBox .brewStat .bl { font-size: 11.5px; opacity: 0.7; line-height: 1.15; }
+
+  #brewPanelBox .brewMain { display: flex; align-items: center; justify-content: center; gap: 14px; margin-bottom: 12px; padding: 10px; border-radius: 14px; background: rgba(0,0,0,0.22); border: 1px solid rgba(180,150,255,0.25); }
+  #brewPanelBox .brewSlotWrap { display: flex; flex-direction: column; align-items: center; gap: 4px; }
+  #brewPanelBox .brewSlotWrap .invSlot { width: 64px; height: 64px; border-color: #b79cff; background: rgba(167,139,250,0.14); box-shadow: 0 0 14px rgba(167,139,250,0.3); }
+  #brewPanelBox .brewSlotWrap .invSlot .blkIcon { width: 50px; height: 50px; }
+  #brewPanelBox .brewSlotWrap .invSlot.dim { opacity: 0.6; border-style: dashed; }
+  #brewPanelBox .brewSlotWrap .lbl { font-size: 11px; opacity: 0.7; }
+  #brewPanelBox .brewMainArrow { font-size: 26px; opacity: 0.7; }
+  #brewPanelBox .brewMainTxt { flex: 1; min-width: 0; font-size: 12.5px; line-height: 1.35; opacity: 0.85; }
+  #brewPanelBox .brewMainTxt b { color: #e6dcff; }
+  #brewPanelBox .brewInvTitle { font-size: 11px; opacity: 0.6; margin: 12px 0 5px; letter-spacing: 1px; text-transform: uppercase; }
+  #brewMainGrid { display: grid; grid-template-columns: repeat(9, 1fr); gap: 4px; }
+  #brewHotbarGrid { display: grid; grid-template-columns: repeat(9, 1fr); gap: 4px; margin-top: 8px; padding-top: 8px; border-top: 2px solid rgba(255,255,255,0.18); }
+  #brewMainGrid .invSlot, #brewHotbarGrid .invSlot { width: 100%; height: auto; aspect-ratio: 1; }
+  #brewMainGrid .invSlot .blkIcon, #brewHotbarGrid .invSlot .blkIcon { width: 70%; height: 70%; }
+  #brewMainGrid .invSlot.bottle, #brewHotbarGrid .invSlot.bottle { border-color: #b79cff; box-shadow: 0 0 8px rgba(167,139,250,0.55); }
+  #brewPanelBox .brewBtn.pick { border-color: #c9b2ff; }
+  #brewModeRow {
+    display: flex; gap: 8px; margin: 4px 0 12px; padding: 4px;
+    background: rgba(0,0,0,0.28); border-radius: 12px; border: 1px solid rgba(180,150,255,0.25);
+  }
+  #brewModeRow .brewModeBtn {
+    flex: 1; padding: 10px 12px; border-radius: 10px; border: 2px solid transparent;
+    background: rgba(255,255,255,0.06); color: rgba(255,255,255,0.7); font-size: 14px; font-weight: 800;
+    cursor: pointer; font-family: inherit; transition: background 0.15s, border-color 0.15s, color 0.15s, transform 0.1s;
+  }
+  #brewModeRow .brewModeBtn:hover { background: rgba(255,255,255,0.12); color: #fff; }
+  #brewModeRow .brewModeBtn.on {
+    background: linear-gradient(180deg, rgba(140,100,255,0.55), rgba(90,60,180,0.55));
+    border-color: #c9b2ff; color: #fff; box-shadow: 0 0 14px rgba(167,139,250,0.4);
+  }
+  #brewModeRow .brewModeBtn .bmSub { display: block; font-size: 11px; font-weight: 600; opacity: 0.75; margin-top: 2px; }
   #brewPanelBox .brewList { display: flex; flex-direction: column; gap: 10px; }
   #brewPanelBox .brewBtn {
     position: relative; display: flex; align-items: center; gap: 14px; width: 100%; box-sizing: border-box; text-align: left; cursor: pointer; color: #fff;
@@ -827,9 +859,9 @@
     transition: transform 0.12s, box-shadow 0.15s, border-color 0.15s, filter 0.15s; font-family: inherit;
   }
   #brewPanelBox .brewBtn::before { content: ''; position: absolute; inset: 0; background: radial-gradient(90px 70px at 34px 50%, var(--pc, #d4553a), transparent 70%); opacity: 0.22; pointer-events: none; }
-  #brewPanelBox .brewBtn:hover { transform: translateY(-2px); border-color: #c9b2ff; box-shadow: 0 8px 22px rgba(140,100,255,0.38); }
+  #brewPanelBox .brewBtn:hover { border-color: #c9b2ff; }
   #brewPanelBox .brewBtn:active { transform: scale(0.98); }
-  #brewPanelBox .brewBtn.can { border-color: rgba(140,255,160,0.55); box-shadow: 0 0 0 1px rgba(140,255,160,0.15) inset, 0 0 16px rgba(120,255,150,0.14); }
+  #brewPanelBox .brewBtn.can { border-color: rgba(140,255,160,0.55); }
   #brewPanelBox .brewBtn.cant { filter: grayscale(0.55) brightness(0.82); }
   #brewPanelBox .brewBtn.flash { animation: brewFlash 0.55s ease-out; }
   @keyframes brewFlash { 0% { box-shadow: 0 0 0 0 rgba(160,255,170,0.9); } 100% { box-shadow: 0 0 0 22px rgba(160,255,170,0); } }
@@ -960,14 +992,23 @@
   <div id="brewPanelBox">
     <div class="brewBubbles"><i style="left:12%;animation-delay:0s"></i><i style="left:28%;animation-delay:.12s"></i><i style="left:44%;animation-delay:.05s"></i><i style="left:60%;animation-delay:.2s"></i><i style="left:76%;animation-delay:.1s"></i><i style="left:90%;animation-delay:.25s"></i></div>
     <div class="brewHead"><span class="brewIcon">⚗️</span><h2>Brewing Stand</h2></div>
-    <div class="brewStats">
-      <div class="brewStat" id="brewStatBottles"><span class="bi" id="brewBottleIcon"></span><span class="bv" id="brewBottleCount">0</span><span class="bl">Glass<br>bottles</span></div>
-      <div class="brewStat" id="brewStatXp"><span class="bi">✦</span><span class="bv" id="brewXpLevel">0</span><span class="bl">XP<br>levels</span></div>
+    <div class="brewStats"><div class="brewStat" id="brewStatXp"><span class="bi">✦</span><span class="bv" id="brewXpLevel">0</span><span class="bl">XP levels</span></div><div class="brewStat" id="brewStatBottles"><span class="bi" id="brewBottleIcon"></span><span class="bv" id="brewBottleCount">0</span><span class="bl">Bottles in<br>stand</span></div></div>
+    <div class="brewMain">
+      <div class="brewSlotWrap"><div id="brewSlotEl"></div><span class="lbl">Glass bottle</span></div>
+      <span class="brewMainArrow">➜</span>
+      <div class="brewMainTxt" id="brewMainTxt"></div>
+    </div>
+    <div id="brewModeRow" role="tablist" aria-label="Potion type">
+      <button type="button" class="brewModeBtn on" id="brewModeDrink" data-mode="drink">Drink<span class="bmSub">Right-click to drink</span></button>
+      <button type="button" class="brewModeBtn" id="brewModeThrow" data-mode="throw">Throw<span class="bmSub">Right-click to splash</span></button>
     </div>
     <div class="brewList" id="brewList"></div>
     <div id="brewActive"></div>
     <p id="brewStatus"></p>
-    <p id="brewHint">Your mouse is free: click a potion to brew it · <b>1</b> / <b>2</b> quick-brew · <b>Esc</b> / <b>E</b> close</p>
+    <div class="brewInvTitle">Your inventory — click glass bottles to put them in the stand (right-click = 1)</div>
+    <div id="brewMainGrid"></div>
+    <div id="brewHotbarGrid"></div>
+    <p id="brewHint">Choose <b>Drink</b> or <b>Throw</b> above, then pick a potion (costs XP). Drink = hold eat · Throw = right-click splash · <b>1–5</b> quick-brew · <b>Esc</b> / <b>E</b> close</p>
   </div>
 </div>
 <div id="furnacePanel">
@@ -1321,6 +1362,27 @@ function makeTexture(drawFn) {
   tex.anisotropy = 1;
   return tex;
 }
+function texFromDataUrl(dataUrl) {
+  const tex = new THREE.Texture();
+  const img = new Image();
+  img.onload = () => {
+    // normalize to 16x16 canvas so mesh UVs stay consistent
+    const c = document.createElement('canvas'); c.width = 16; c.height = 16;
+    const g = c.getContext('2d'); g.imageSmoothingEnabled = false;
+    g.drawImage(img, 0, 0, 16, 16);
+    tex.image = c; tex.needsUpdate = true;
+  };
+  img.src = dataUrl;
+  tex.magFilter = THREE.NearestFilter;
+  tex.minFilter = THREE.NearestFilter;
+  tex.generateMipmaps = false;
+  tex.anisotropy = 1;
+  // placeholder 16x16 so materials exist before image loads
+  const ph = document.createElement('canvas'); ph.width = ph.height = 16;
+  ph.getContext('2d').fillStyle = '#888'; ph.getContext('2d').fillRect(0,0,16,16);
+  tex.image = ph; tex.needsUpdate = true;
+  return tex;
+}
 function makeSmoothTexture(size, drawFn) {
   const c = document.createElement('canvas');
   c.width = c.height = size;
@@ -1667,6 +1729,12 @@ TEX.birchTrapdoor = makeTexture(ctx => {
 
 // Fallback textures for the new blocks (replaced by the Golden Age pack images below)
 TEX.cobblestone = makeTexture(ctx => speckle(ctx, '#7a7a7a', ['#6a6a6a','#8c8c8c','#5a5a5a'], 70));
+// Piston textures (from pack)
+TEX.pistonSide = texFromDataUrl('data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAABAAAAAQCAYAAAAf8/9hAAABzklEQVR4AWSTvUuCYRTFD+8gBH60SC0u8RK4ZnM0ugj+B0F/U2uju001KQVmg9aQkIR9+IGhUviVilHm79IjQtF5n3vPuee810f0yuXyIpPJLC5OjgxXp8cLh3XNce7Eg+5Vq1XV63VNvyZ6fm3ofThaYV1b5yfTb/Oge5i73a76nzNtbAbtpNbyz2nLcvWP9tb/EB50jwL1pvSil+fuCnf3DRtCo764fBBgDsDj9SqVisDTeFvn9z+Gs/JMoFAomHbdCAl9HXjQvV6vp0goZEgkEkqn00omk/J3dkSP5vu+UqmUAY4eni08HsDf3VUsFlMwGKRVdGtLvU5HB4eHisfjxo3HYw0GA+PR5/O5vGg0aqJ7tNttV9rpeszNZtPMJvw9VhuQPBwOjabm7bwFghBnZlN49EAgIAvY29+3ZIy1x0er4fhI9AAD5nA4rEgkQq6dFkCHgSHSGYQDrobHDOdOagtwqzNECG9kZXiGCYGnB2iY2dgCKCAZYhNunhr+tlQSgc4Ah0aofQsIEAAzPTfOABxbUaPRAzg2s0skERMk61FzOh4DNRwac/8usdFqqVgsKpfLKZvNavkzVa1W02A0MlDD0XMyl8/nydMvAAAA///rtNhSAAAABklEQVQDAHB7npMDPSkpAAAAAElFTkSuQmCC');
+TEX.pistonBottom = texFromDataUrl('data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAABAAAAAQCAYAAAAf8/9hAAABrElEQVR4AWzSsU5yQRQE4JNbUCFUxITIXxETKpIfKWiMEApKHpUnAGNDIz6AoRJDYqxAKhq83+piTCScu7NzZmbPXSjG4/EpV7/fP6lut3vqlgXn3l+rfhHlp35xEcPhMKbTaYxGo5hMJjEYDOLf1VX0er1ot9tBo2Acfb1ej2K320X7+rqM+fmun5/j/e0tGpeXiWy1WmeM50mN8pEmQOz3+9hsNsHM+P/mJhhrtVroMTpID6Yt/ZECEIxWImu1WtVPZj28MKEwjYOL4/GYhB7SiQge7u9/TdRsNkOoaRjpVZoAYJJOZC/MKbd3d9HpdFBxOByCGa/v8KLRaKRmfmy32wzTmvfM3ps5Nb4f5wkkGw8PEzrFXkg2mxSvX6lUvi7RjSMYXRiM80r2Csfsjvz+gq3nCRiIpBMSqIzxzLi8wikgj04kxIlGxhMLwdsrPWYTpwAASWQSNw/jnx4f058rG3B6QtOvoIFQzPZunABnKljPXuFMli5RIhPSeLA18wwwTo/O5cHW9Aovr6+xXC5jPp/HbDaL1WoV6/U6dh8fqWCcvZVusVjIiE8AAAD//6DYcXcAAAAGSURBVAMAA1FKk6o55XYAAAAASUVORK5CYII=');
+TEX.pistonTop = texFromDataUrl('data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAABAAAAAQCAYAAAAf8/9hAAABiUlEQVR4AVzRL0ikYRDH8eFNguW4cu3g0nGcFw6OuwODxWBQsItlDdq1WIyCqMFm0WS3GIwKBlHBIGJYVBBEVvEPimBb+bwwD+sufHlm5jfPPr95p2o2m+2Dvb32XONfYXK0rw0axJ262B1a9dhqhd9g/89IhgZ+KAUNYyN/i5Y9GmjV2tJUXB+uxP3zS4H45XNvnO4sFO385i6QfbSt9emoNG/vnkU3rYfX2D+6LHUxsk+sp/ISy2yiO/bA/z/forOefe7WDp5e34o9F9KmuqZPvT3K9YjGAK12QLm8uA2kPefxyVU9giZxog9GcLcan92I4cZy/P71NVhTZNfXloPmj9Qgn5hZjZnFzShrdJE1J4whB7tqYmRe1miVLLKm0QiQs+r0LcSQWyHKFtIayzAG287UxDQ5PFZvQZDWnOyrgV25E6mr0SuvsMtaIjeSBjW5M5GDXo/AFnsQg0W5JqdakrnHK2vs+d4I9tBpsW94vl6VOsugy935sEZfttuiNUGdZWQfZ7R3AAAA//9VFLQuAAAABklEQVQDAChwuVI3d6HGAAAAAElFTkSuQmCC');
+TEX.pistonTopSticky = texFromDataUrl('data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAABAAAAAQCAYAAAAf8/9hAAACTUlEQVR4AVSTTUiUcRDGH97DUpYd7FBhUpS1a7tFRVRo0afQYZeSDgXRZaOM6BC09AHRpYhKo4uHCIsOHfIQS7iHQAoLC6koqBZ3ff1ERFdYFdcvPLj6G9llXRje+c/zn/k/z8ys47pu9kdbW/Z++EDeas8EshgYhl+I45MD5oylUuJ3ssovz+XDZqeOVBASGHYhtN/i6XNb1Fe5XtzlApjzqv6qGhJ1+rqjRN5yn4YmBhUtnlOi3KN465Nl2IY1pSouK1JjNm1Y7PVNOVSKf0uqM+6q+UOzMgPT6k8MEFZDtyuwlvef9fhWvRUHJ/ZmfFCp0Sk560pWyV/ltcrb/duEXb99TYFqr8VXry0yv+ZKUEf3nlDodEj4m3xlxtIYHBuet5ehz9Otvz/ZmThnXgVLdiUEBlswX9fckoTenhFt/j6s9nd/TApfZECTAvi5Inw5t//qBZJz8e5bBcPPrMvPD1WaZigio/rscaOPHKSRQROhfynyQpG6qPJjhCLdRTMUocuXJCz6MiamAAPoE8uPkVH+b0la9yfT08aCBKO6KIskChNjAkhmhJhNgcV5ULHb6N55GrEuI4NiB8/vsckgJ4cVLpNNATpNG2eMItQ5I4nvvp+T1ljOYMiqyXiUnsgAy2EZPn7pEBJYGKJQ5YzPJKDNZMDxH/79J3LATQK7fqN0q+guL0EV/96undyxhSLGNFg64uTwuI1xhTes8alZ0V0axkpDMxB8pMbaJosTA+MOd8lZNkY6y3KsjHULg+LY4j8VK4zn7kENbAEAAP//hHWfxQAAAAZJREFUAwA/jZ1Stk3PxQAAAABJRU5ErkJggg==');
+TEX.pistonInner = texFromDataUrl('data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAABAAAAAQCAYAAAAf8/9hAAABzElEQVR4AWySvWoCURCFD1sIgj+VCqKpFhu7qG1QsbD0BYLvYWNh4+NYWqmksdFgYyNbRRtNtSooNma/gbuBkJDZmT1zzrlzZ/U6nc7TRaPReP4N1/svw/UU/WXTabVaLfV6PbXbbYtaraaXUklk3/cFh6AGg5/NZuWFYSi/Uolsfv/Bvo9H5QoFA8vlclyD07dG9LAJAM7ns/b7vYLdTpBe63UhzGQyogfGQZhSw430MgMAJ4REI5VKkWJTcMwwpUbDwd7j8TAizgSkt2ZT+Xxe1WpV3W5X7/2+isWiMGUahCaKHjYBwqi2kSEhHo/HGg6HcYBdr1ch5nQ0HO7lcjm0YqO4fywWSiaThvFIJBIiwLg3YnAXNgEgzoA4kxER1Pf7nWTL5f5w0NA3AzYOwCKZ5Ha7CZEL1GCI2REcMLIZ8IIJmUlOp5NGo1Ecg8FAYIjhuExtBtydFzcae5hOp1oul9put9psNgKDR7AL+BxmBhSAXINJ+IzU4J+rlf24nACMHtexr0ADgEDMO58LAhhTUdPjnQDjGrZEHBEBMh412eEIqMHowWN51GS7wtfhYPedzWaaTCZar9cKgkDh5WJBDcY7Gd58PsdDPwAAAP//Y7/EmgAAAAZJREFUAwCb5kqTEtzEqAAAAABJRU5ErkJggg==');
 TEX.wool = makeTexture(ctx => speckle(ctx, '#e8e8e8', ['#dcdcdc','#f4f4f4','#d0d0d0'], 40));
 
 // ================= Golden Age texture pack (embedded) =================
@@ -1697,7 +1765,24 @@ applyTexturePack();
   if (typeof PACK_TEX !== 'undefined' && PACK_TEX.brewing_stand) X.brewing_stand = PACK_TEX.brewing_stand;
   window.__FARM_X = X;
   for (const k in X) {
-    TEX[k] = makeTexture(ctx => { if (k === 'farmland') { ctx.fillStyle = '#5e3a1e'; ctx.fillRect(0, 0, 16, 16); } });
+    TEX[k] = makeTexture(ctx => {
+      if (k === 'farmland') { ctx.fillStyle = '#5e3a1e'; ctx.fillRect(0, 0, 16, 16); }
+      else if (k === 'brewing_stand') {
+        // procedural brewing stand (cross sprite) — base plate + central rod + bottle arms (not stone)
+        ctx.clearRect(0, 0, 16, 16);
+        ctx.fillStyle = '#5a5a5a'; ctx.fillRect(2, 14, 12, 2);          // base plate
+        ctx.fillStyle = '#3a3a3a'; ctx.fillRect(2, 14, 12, 1);
+        ctx.fillStyle = '#8a8a8a'; ctx.fillRect(7, 2, 2, 12);           // central rod
+        ctx.fillStyle = '#b0b0b0'; ctx.fillRect(7, 2, 2, 1);
+        // three bottle arms
+        ctx.fillStyle = '#6e6e6e';
+        ctx.fillRect(1, 6, 5, 1); ctx.fillRect(10, 6, 5, 1); ctx.fillRect(5, 4, 6, 1);
+        // glass bottles (cyan liquid)
+        ctx.fillStyle = 'rgba(180,230,255,0.85)'; ctx.fillRect(1, 7, 3, 4); ctx.fillRect(12, 7, 3, 4); ctx.fillRect(7, 5, 2, 3);
+        ctx.fillStyle = '#3ec8ff'; ctx.fillRect(1, 9, 3, 2); ctx.fillRect(12, 9, 3, 2); ctx.fillRect(7, 6, 2, 2);
+        ctx.fillStyle = '#c8e8ff'; ctx.fillRect(1, 7, 3, 1); ctx.fillRect(12, 7, 3, 1);
+      }
+    });
     const img = new Image();
     img.onload = () => {
       const cv = TEX[k].image, cx = cv.getContext('2d');
@@ -1772,6 +1857,8 @@ const BLOCK_TYPES = {
   repeater:       { transparent: true, hardness: 0.1, tool: null, shape: 'repeater' },
   comparator:     { transparent: true, hardness: 0.1, tool: null, shape: 'comparator' },
   pressure_plate: { transparent: true, hardness: 0.5, tool: 'axe', shape: 'plate', noCollide: true },
+  piston:        { transparent: false, hardness: 1.5, tool: 'pickaxe' },
+  sticky_piston: { transparent: false, hardness: 1.5, tool: 'pickaxe' },
   campfire: { transparent: true, hardness: 0.5, tool: 'axe', shape: 'campfire' },
   spawner:  { transparent: false, hardness: 5.0, tool: 'pickaxe' },   // dungeon mob spawner (Silk Touch to pick up; fixed mob type)
   fire:     { transparent: true, hardness: 0.05, tool: null, cross: true },   // placed by flint and steel; never an item
@@ -1875,6 +1962,15 @@ const ITEM_INFO = {
   glass_bottle:   { maxStack: 64 },
   potion_strength:   { maxStack: 1, potion: 'strength', potionLvl: 1, potionSecs: 480 },
   potion_strength_2: { maxStack: 1, potion: 'strength', potionLvl: 2, potionSecs: 90 },
+  potion_turtle_master: { maxStack: 1, potion: 'turtle_master', potionLvl: 1, potionSecs: 20 },
+  potion_slow_falling:  { maxStack: 1, potion: 'slow_falling', potionLvl: 1, potionSecs: 90 },
+  potion_invisibility:  { maxStack: 1, potion: 'invisibility', potionLvl: 1, potionSecs: 180 },
+  // splash (throwable) potions — same effects, apply on impact in a small radius
+  splash_strength:       { maxStack: 1, potion: 'strength', potionLvl: 1, potionSecs: 480, splash: true },
+  splash_strength_2:     { maxStack: 1, potion: 'strength', potionLvl: 2, potionSecs: 90, splash: true },
+  splash_turtle_master:  { maxStack: 1, potion: 'turtle_master', potionLvl: 1, potionSecs: 20, splash: true },
+  splash_slow_falling:   { maxStack: 1, potion: 'slow_falling', potionLvl: 1, potionSecs: 90, splash: true },
+  splash_invisibility:   { maxStack: 1, potion: 'invisibility', potionLvl: 1, potionSecs: 180, splash: true },
   brewing_stand:  { maxStack: 64 },
   // ---- elytra + fireworks ----
   compressed_wool: { maxStack: 64 },
@@ -1999,6 +2095,36 @@ function isAxe(type) { return !!(type && type.endsWith('_axe')); }
 function isShield(type) { return type === 'shield'; }
 function isFood(type) { return !!(ITEM_INFO[type] && ITEM_INFO[type].food); }
 function isPotion(type) { return !!(ITEM_INFO[type] && ITEM_INFO[type].potion); }
+function isSplashPotionType(type) { return !!(ITEM_INFO[type] && ITEM_INFO[type].potion && ITEM_INFO[type].splash); }
+const POTION_SPRITE_COLORS = {
+  strength: '#c8402e', turtle_master: '#5a8a5a', slow_falling: '#f0e8c8', invisibility: '#c8c8e8'
+};
+function makePotionSprite(type) {
+  const info = ITEM_INFO[type] || {};
+  const col = POTION_SPRITE_COLORS[info.potion] || '#aa88ff';
+  const splash = !!info.splash;
+  const c = document.createElement('canvas'); c.width = c.height = 16;
+  const g = c.getContext('2d'); g.imageSmoothingEnabled = false;
+  // bottle outline
+  g.fillStyle = '#2a2a2a';
+  g.fillRect(5, 1, 6, 2); // neck
+  g.fillRect(4, 3, 8, 11); // body
+  g.fillStyle = 'rgba(200,230,255,0.55)';
+  g.fillRect(5, 4, 6, 9); // glass
+  // liquid
+  g.fillStyle = col;
+  g.fillRect(5, 8, 6, 5);
+  g.fillStyle = '#fff'; g.globalAlpha = 0.35; g.fillRect(5, 8, 6, 1); g.globalAlpha = 1;
+  // cork
+  g.fillStyle = '#6b4423'; g.fillRect(6, 0, 4, 2);
+  if (splash) {
+    // splash mark: angled band
+    g.fillStyle = '#fff'; g.globalAlpha = 0.5;
+    g.fillRect(3, 2, 2, 1); g.fillRect(11, 2, 2, 1);
+    g.globalAlpha = 1;
+  }
+  return c;
+}
 function isDoorType(t) { return t === 'door' || t === 'birch_door'; }
 function isTrapType(t) { return t === 'trapdoor' || t === 'birch_trapdoor'; }
 function isLeavesType(t) { return t === 'leaves' || t === 'birch_leaves'; }
@@ -2297,6 +2423,7 @@ const _sprite16Cache = {};
 function sprite16(type) {                       // -> 16x16 canvas (no outline) or null
   if (type in _sprite16Cache) return _sprite16Cache[type];
   let c = null;
+  if (isPotion(type)) return (_sprite16Cache[type] = makePotionSprite(type));
   { const rsc = rsSprite(type); if (rsc) return (_sprite16Cache[type] = rsc); }
   const sg = _spriteGridFor(type);
   if (sg) {
@@ -2376,6 +2503,8 @@ function blockFaceCanvases(type) {            // -> { top, side } source canvase
     case 'gold_ore': return { top: T('gold_ore'), side: T('gold_ore') };
     case 'diamond_ore': return { top: T('diamond_ore'), side: T('diamond_ore') };
     case 'redstone_ore': return { top: T('redstone_ore'), side: T('redstone_ore') };
+    case 'piston': return { top: T('pistonTop'), side: T('pistonSide') };
+    case 'sticky_piston': return { top: T('pistonTopSticky'), side: T('pistonSide') };
   }
   const b = BLOCK_TYPES[type];
   if (b && !b.cross && !['glass', 'water'].includes(type) && TEX[type]) return { top: T(type), side: T(type) };
@@ -2501,6 +2630,8 @@ function displayName(type) {
   if (type === 'firework') return 'firework (1 coal)';
   if (type === 'firework_2') return 'firework (2 coal)';
   if (type === 'firework_3') return 'firework (3 coal)';
+  if (type === 'piston') return 'piston';
+  if (type === 'sticky_piston') return 'sticky piston';
   return type.replace(/_/g, ' ');
 }
 
@@ -2557,6 +2688,10 @@ const RECIPES = [
   { shape: [['planks','planks']], out: 'pressure_plate', outCount: 1, needsTable: false },
   { shape: [['redstone_torch','redstone','redstone_torch'],['cobblestone','cobblestone','cobblestone']], out: 'repeater', outCount: 1, needsTable: true },
   { shape: [[null,'redstone_torch',null],['redstone_torch','iron_ingot','redstone_torch'],['cobblestone','cobblestone','cobblestone']], out: 'comparator', outCount: 1, needsTable: true },
+  // Piston: 3 iron + 5 stone/cobble + 1 redstone (table). Put piston alone in table to swap sticky ↔ normal.
+  { shape: [['iron_ingot','iron_ingot','iron_ingot'],['cobblestone','cobblestone','cobblestone'],['cobblestone','redstone','cobblestone']], out: 'piston', outCount: 1, needsTable: true },
+  { shape: [['piston']], out: 'sticky_piston', outCount: 1, needsTable: true },
+  { shape: [['sticky_piston']], out: 'piston', outCount: 1, needsTable: true },
 
   { shape: [['planks'],['planks'],['stick']], out: 'wood_sword', outCount: 1, needsTable: true },
   { shape: [['cobblestone'],['cobblestone'],['stick']], out: 'stone_sword', outCount: 1, needsTable: true },
@@ -2706,6 +2841,11 @@ const MI = {
   dirt:      regMat(TEX.dirt),
   stone:     regMat(TEX.stone),
   cobblestone: regMat(TEX.cobblestone),
+  pistonSide: regMat(TEX.pistonSide),
+  pistonBottom: regMat(TEX.pistonBottom),
+  pistonTop: regMat(TEX.pistonTop),
+  pistonTopSticky: regMat(TEX.pistonTopSticky),
+  pistonInner: regMat(TEX.pistonInner),
   wool:      regMat(TEX.wool),
   iron_ore:  regMat(TEX.iron_ore),
   gold_ore:  regMat(TEX.gold_ore),
@@ -2753,8 +2893,9 @@ MI.farmland   = regMat(TEX.farmland);
 for (let i = 0; i < 4; i++) MI['wheat_' + i] = regMat(TEX['wheat_' + i], true);
 MI.brewing_stand = regMat(TEX.brewing_stand, true);
 MI.cobweb = MI.cobweb || regMat(TEX.cobweb, true);
-['tall_grass', 'cobweb', 'wheat_0', 'wheat_1', 'wheat_2', 'wheat_3'].forEach(n => {
+['tall_grass', 'cobweb', 'wheat_0', 'wheat_1', 'wheat_2', 'wheat_3', 'brewing_stand'].forEach(n => {
   const m = MAT_LIST[MI[n]];
+  if (!m) return;
   m.side = THREE.DoubleSide; m.transparent = false; m.opacity = 1; m.alphaTest = 0.5;
 });
 // ---- enchanting table (obsidian-style base, red cloth + book on top) ----
@@ -2978,8 +3119,23 @@ MAT_LIST[MI.fire].emissiveIntensity = 0.95;
   m.opacity = 1;
   m.alphaTest = 0.5;
 });
-function faceMatIndex(type, faceIdx) {
+function faceMatIndex(type, faceIdx, block) {
   // faceIdx: 0=+x,1=-x,2=+y,3=-y,4=+z,5=-z
+  // Piston: front face = head (or inner when extended), back = bottom, sides = side
+  if (type === 'piston' || type === 'sticky_piston') {
+    const m = block ? (block.meta | 0) : 0;
+    const face = m & 7;           // 0:+x 1:-x 2:+z 3:-z 4:+y 5:-y
+    const ext = !!(m & 8);
+    // map piston face index to mesh faceIdx
+    const front = [0, 1, 4, 5, 2, 3][face] ?? 0;
+    const back  = [1, 0, 5, 4, 3, 2][face] ?? 1;
+    if (faceIdx === front) {
+      if (ext) return MI.pistonInner;
+      return type === 'sticky_piston' ? MI.pistonTopSticky : MI.pistonTop;
+    }
+    if (faceIdx === back) return MI.pistonBottom;
+    return MI.pistonSide;
+  }
   switch (type) {
     case 'grass': return faceIdx===2 ? MI.grassTop : (faceIdx===3 ? MI.dirt : MI.grassSide);
     case 'wood':  return (faceIdx===2 || faceIdx===3) ? MI.woodTop : MI.wood;
@@ -3805,7 +3961,7 @@ function rebuildChunk(cx, cz) {
           if (!(visibleMask & (1 << f))) continue;
           const d = FACES[f].dir;
           const shade = cellShade(x+d[0], y+d[1], z+d[2]);
-          const mi = b.type === 'glass' ? MI.glassV[glassFaceMask(x, y, z, f)] : faceMatIndex(b.type, f);
+          const mi = b.type === 'glass' ? MI.glassV[glassFaceMask(x, y, z, f)] : faceMatIndex(b.type, f, b);
           addFace(buffers, mi, x, y, z, f, shade);
         }
       }
@@ -3907,7 +4063,7 @@ const world = new Map(); // key "x,y,z" -> {type,x,y,z}
 let worldMaxY = Y_MIN;
 const chunkYRange = new Map(); // "cx,cz" -> [minY, maxY]
 // Redstone registry: keys of every redstone-relevant block (kept current by the wrappers below).
-const RS_TYPES = { redstone_dust: 1, repeater: 1, comparator: 1, pressure_plate: 1, redstone_torch: 1, door: 1, birch_door: 1, trapdoor: 1, birch_trapdoor: 1 };
+const RS_TYPES = { redstone_dust: 1, repeater: 1, comparator: 1, pressure_plate: 1, redstone_torch: 1, door: 1, birch_door: 1, trapdoor: 1, birch_trapdoor: 1, piston: 1, sticky_piston: 1 };
 const RS_FLOOR = { redstone_dust: 1, repeater: 1, comparator: 1, pressure_plate: 1 };   // need a solid block underneath
 const rsKeys = new Set();
 const _worldSetOrig = world.set.bind(world);
@@ -4994,6 +5150,8 @@ function snapshotSave() {
     xpPoints: xpState.points,
     name: MY_NAME,
     respawnPoint,
+    wantedAnimalKills: typeof wantedAnimalKills !== 'undefined' ? wantedAnimalKills : 0,
+    wantedPlayerKills: typeof wantedPlayerKills !== 'undefined' ? wantedPlayerKills : 0,
     ts: Date.now()
   };
   try { snap.enderChest = enderChest; } catch (e) {}
@@ -5054,6 +5212,10 @@ function applySaveData(data) {
   if (typeof data.hunger === 'number') player.hunger = Math.max(0, Math.min(player.maxHunger, data.hunger));
   if (typeof data.saturation === 'number') player.saturation = Math.max(0, data.saturation);
   if (data.respawnPoint && typeof data.respawnPoint.x === 'number') respawnPoint = data.respawnPoint;
+  try {
+    if (typeof data.wantedAnimalKills === 'number') wantedAnimalKills = Math.max(0, Math.min(9999, Math.trunc(data.wantedAnimalKills)));
+    if (typeof data.wantedPlayerKills === 'number') wantedPlayerKills = Math.max(0, Math.min(9999, Math.trunc(data.wantedPlayerKills)));
+  } catch (e) {}
   if (Number.isInteger(data.xpLevel) && data.xpLevel >= 0) xpState.level = data.xpLevel;
   if (typeof data.xpPoints === 'number' && data.xpPoints >= 0) xpState.points = data.xpPoints;
   if (Array.isArray(data.enderChest)) {
@@ -5194,7 +5356,7 @@ async function pushBlockDiff(x, y, z, type, meta) {
   // Keep removedDiffs in step right now. It used to be updated only when our own write echoed back from the
   // server; since those echoes are skipped now (see ownStamp), do it here at the moment the change is made.
   { const rk = key(x, y, z); if (type === 'air') removedDiffs.add(rk); else removedDiffs.delete(rk); }
-  const typeStr = (meta != null && type !== 'air' && BLOCK_TYPES[type] && (BLOCK_TYPES[type].shape || type === 'spawner')) ? (type + '|' + meta) : type;
+  const typeStr = (meta != null && type !== 'air' && BLOCK_TYPES[type] && (BLOCK_TYPES[type].shape || type === 'spawner' || type === 'piston' || type === 'sticky_piston')) ? (type + '|' + meta) : type;
   const { error } = await sb.from('world_blocks').upsert({ x, y, z, type: typeStr, updated_at: ownStamp() });
   if (error) console.error('pushBlockDiff', error);
 }
@@ -5986,59 +6148,166 @@ function renderFurnacePanel() {
 // ================= Brewing stand =================
 let brewOpen = false;
 let brewOpenedAt = 0, brewTimer = null;
+let brewSlotCount = 0;   // glass bottles currently placed in the brewing stand
+let brewMode = 'drink';  // 'drink' | 'throw' — set by the two buttons above the potion list
+// 5 potion types. drinkOut = bottle you drink; splashOut = bottle you throw. Throw costs a bit more XP.
 const BREW_RECIPES = {
-  strength:   { out: 'potion_strength',   cost: 20, label: 'Strength I',  desc: '+30% damage · 8:00', color: '#c8402e', btn: 'brewStr1', key: '1', secs: 480 },
-  strength_2: { out: 'potion_strength_2', cost: 25, label: 'Strength II', desc: '+60% damage · 1:30', color: '#ff6a3d', btn: 'brewStr2', key: '2', secs: 90 },
+  strength:      { drinkOut: 'potion_strength',      splashOut: 'splash_strength',      cost: 5, throwExtra: 0, label: 'Strength I',    desc: '+30% damage · 8:00', color: '#c8402e', btn: 'brewStr1', key: '1', secs: 480 },
+  strength_2:    { drinkOut: 'potion_strength_2',    splashOut: 'splash_strength_2',    cost: 5, throwExtra: 0, label: 'Strength II',   desc: '+60% damage · 1:30', color: '#ff6a3d', btn: 'brewStr2', key: '2', secs: 90 },
+  turtle_master: { drinkOut: 'potion_turtle_master', splashOut: 'splash_turtle_master', cost: 5, throwExtra: 0, label: 'Turtle Master', desc: '-75% speed · +75% defence · 0:20', color: '#5a8a5a', btn: 'brewTurtle', key: '3', secs: 20 },
+  slow_falling:  { drinkOut: 'potion_slow_falling',  splashOut: 'splash_slow_falling',  cost: 5, throwExtra: 0, label: 'Slow Falling',  desc: 'Soft fall · no mace/crit · 1:30', color: '#f0e8c8', btn: 'brewSlowFall', key: '4', secs: 90 },
+  invisibility:  { drinkOut: 'potion_invisibility',  splashOut: 'splash_invisibility',  cost: 5, throwExtra: 0, label: 'Invisibility',  desc: 'Body invisible · armor shows · 3:00', color: '#c8c8e8', btn: 'brewInvis', key: '5', secs: 180 },
 };
-function brewBuildList() {
-  const list = document.getElementById('brewList');
-  if (!list || list.dataset.built) return;
-  list.dataset.built = '1';
+function brewRecipeCost(r) {
+  return r.cost + (brewMode === 'throw' ? (r.throwExtra || 0) : 0);
+}
+function brewRecipeOut(r) {
+  return brewMode === 'throw' ? r.splashOut : r.drinkOut;
+}
+function setBrewMode(mode) {
+  if (mode !== 'drink' && mode !== 'throw') return;
+  if (brewMode === mode) return;
+  brewMode = mode;
+  const d = document.getElementById('brewModeDrink');
+  const t = document.getElementById('brewModeThrow');
+  if (d) d.classList.toggle('on', mode === 'drink');
+  if (t) t.classList.toggle('on', mode === 'throw');
+  // Cheap in-place update (no wipe / no full DOM rebuild)
+  brewUpdateListLabels();
+  brewRefreshStatus();
+}
+function brewUpdateListLabels() {
+  const modeTag = brewMode === 'throw' ? ' · Throw' : ' · Drink';
   for (const [key, r] of Object.entries(BREW_RECIPES)) {
-    const b = document.createElement('button');
-    b.id = r.btn; b.className = 'brewBtn'; b.style.setProperty('--pc', r.color); b.type = 'button';
-    b.innerHTML = '<span class="potIco">' + iconFor(r.out) + '</span><span class="info"><div class="nm">' + r.label + '</div><div class="ds">' + r.desc + '</div><div class="need"></div></span><span class="cost">' + r.cost + ' lvl</span><span class="key">' + r.key + '</span>';
-    b.onclick = () => tryBrew(key);
-    list.appendChild(b);
+    const bt = document.getElementById(r.btn); if (!bt) continue;
+    const out = brewRecipeOut(r);
+    const cost = brewRecipeCost(r);
+    const ico = bt.querySelector('.potIco');
+    if (ico) ico.innerHTML = iconFor(out);
+    const nm = bt.querySelector('.nm');
+    if (nm) nm.textContent = r.label + modeTag;
+    const costEl = bt.querySelector('.cost');
+    if (costEl) costEl.textContent = cost + ' lvl';
   }
+}
+function brewRebuildList() {
+  const list = document.getElementById('brewList');
+  if (!list) return;
+  // Build once only
+  if (list.dataset.built === '1' && list.children.length) {
+    brewUpdateListLabels();
+    return;
+  }
+  list.innerHTML = '';
+  list.dataset.built = '1';
+  const frag = document.createDocumentFragment();
+  for (const [key, r] of Object.entries(BREW_RECIPES)) {
+    const out = brewRecipeOut(r);
+    const cost = brewRecipeCost(r);
+    const b = document.createElement('button');
+    b.id = r.btn; b.className = 'brewBtn'; b.dataset.key = key;
+    b.style.setProperty('--pc', r.color); b.type = 'button';
+    const modeTag = brewMode === 'throw' ? ' · Throw' : ' · Drink';
+    b.innerHTML = '<span class="potIco">' + iconFor(out) + '</span><span class="info"><div class="nm">' + r.label + modeTag + '</div><div class="ds">' + r.desc + '</div><div class="need"></div></span><span class="cost">' + cost + ' lvl</span><span class="key">' + r.key + '</span>';
+    b.onclick = () => tryBrew(key);
+    frag.appendChild(b);
+  }
+  list.appendChild(frag);
+}
+function brewBuildList() {
+  brewRebuildList();
   const bi = document.getElementById('brewBottleIcon');
-  if (bi) bi.innerHTML = iconFor('glass_bottle');
+  if (bi && !bi.dataset.ready) {
+    bi.innerHTML = iconFor('glass_bottle');
+    bi.dataset.ready = '1';
+  }
+  // wire mode buttons once
+  const d = document.getElementById('brewModeDrink');
+  const t = document.getElementById('brewModeThrow');
+  if (d && !d._bound) { d._bound = 1; d.onclick = () => setBrewMode('drink'); }
+  if (t && !t._bound) { t._bound = 1; t.onclick = () => setBrewMode('throw'); }
+  if (d) d.classList.toggle('on', brewMode === 'drink');
+  if (t) t.classList.toggle('on', brewMode === 'throw');
 }
 function openBrewing() {
   brewOpen = true;
   brewOpenedAt = performance.now();
   brewBuildList();
+  brewSlotCount = 0;
+  brewRenderInv();
   const p = document.getElementById('brewPanel');
   if (p) p.style.display = 'flex';
   try { document.exitPointerLock(); } catch (e) {}      // free the mouse so the menu can be clicked
   const pov = document.getElementById('pauseOverlay'); if (pov) pov.style.display = 'none';
   brewRefreshStatus();
-  const st = document.getElementById('brewStatus'); if (st) { st.textContent = 'Pick a potion to brew'; st.className = ''; }
-  clearInterval(brewTimer); brewTimer = setInterval(() => { if (brewOpen) brewRefreshStatus(true); }, 500);
+  const st = document.getElementById('brewStatus'); if (st) { st.textContent = 'Put a glass bottle in the stand, then pick a potion'; st.className = ''; }
+  clearInterval(brewTimer); brewTimer = setInterval(() => { if (brewOpen) brewRefreshStatus(true); }, 1500);
 }
 function closeBrewing() {
   if (!brewOpen) return;
   brewOpen = false;
+  brewReturnBottles();
   clearInterval(brewTimer); brewTimer = null;
   const p = document.getElementById('brewPanel');
   if (p) p.style.display = 'none';
   try { resumeGameplay(); } catch (e) {}
 }
-function brewCountBottles() {
-  let n = 0;
-  for (const it of inventory) if (it && it.type === 'glass_bottle') n += it.count || 0;
-  return n;
-}
+function brewCountBottles() { return brewSlotCount; }
 function brewTakeBottle() {
-  for (let i = 0; i < inventory.length; i++) {
-    const it = inventory[i];
-    if (it && it.type === 'glass_bottle') {
-      it.count--;
-      if (it.count <= 0) inventory[i] = null;
-      return true;
-    }
+  if (brewSlotCount < 1) return false;
+  brewSlotCount--;
+  return true;
+}
+// Move glass bottles from an inventory slot into the stand (all of them, or just one)
+function brewPutBottles(idx, one) {
+  const it = inventory[idx];
+  if (!it || it.type !== 'glass_bottle' || !(it.count > 0)) return;
+  const n = one ? 1 : it.count;
+  it.count -= n;
+  if (it.count <= 0) inventory[idx] = null;
+  brewSlotCount += n;
+  brewRenderInv(); brewRefreshStatus(); renderHotbar();
+  brewSetStatus('Put ' + n + ' bottle' + (n > 1 ? 's' : '') + ' in the stand', '');
+}
+// Take bottles back out of the stand (all, or one on right-click)
+function brewTakeBack(one) {
+  if (brewSlotCount < 1) return;
+  const n = one ? 1 : brewSlotCount;
+  const left = addItemToInventory('glass_bottle', n);
+  brewSlotCount -= (n - left);
+  brewRenderInv(); brewRefreshStatus(); renderHotbar();
+}
+function brewReturnBottles() {
+  if (brewSlotCount < 1) return;
+  const left = addItemToInventory('glass_bottle', brewSlotCount);
+  if (left > 0 && typeof spawnDroppedItem === 'function' && typeof player !== 'undefined') {
+    try { spawnDroppedItem('glass_bottle', left, new THREE.Vector3(player.pos.x, player.pos.y + 1, player.pos.z)); } catch (e) {}
   }
-  return false;
+  brewSlotCount = 0;
+  try { renderHotbar(); } catch (e) {}
+  if (inventoryOpen) try { renderInventoryPanel(); } catch (e) {}
+  try { saveLocalPlayer(); } catch (e) {}
+}
+function brewRenderInv() {
+  const slotHost = document.getElementById('brewSlotEl');
+  if (slotHost) {
+    slotHost.innerHTML = '';
+    slotHost.appendChild(makeSlotEl(
+      () => brewSlotCount > 0 ? { type: 'glass_bottle', count: brewSlotCount } : null,
+      () => brewTakeBack(false), () => brewTakeBack(true), null, null));
+  }
+  const fill = (host, from, to) => {
+    if (!host) return;
+    host.innerHTML = '';
+    for (let i = from; i < to; i++) {
+      const idx = i, it = inventory[idx];
+      const el = makeSlotEl(() => inventory[idx], () => brewPutBottles(idx, false), () => brewPutBottles(idx, true), (it && it.type === 'glass_bottle') ? 'bottle' : null, null);
+      if (idx === currentSlot && from === 0) el.style.borderColor = '#fff';
+      host.appendChild(el);
+    }
+  };
+  fill(document.getElementById('brewMainGrid'), HOTBAR_SIZE, INV_SIZE);
+  fill(document.getElementById('brewHotbarGrid'), 0, HOTBAR_SIZE);
 }
 function brewFmtTime(t) { t = Math.max(0, Math.ceil(t)); return Math.floor(t / 60) + ':' + String(t % 60).padStart(2, '0'); }
 function brewSetStatus(msg, kind) {
@@ -6053,55 +6322,125 @@ function brewRefreshStatus(quiet) {
   const sb = document.getElementById('brewStatBottles'); if (sb) sb.classList.toggle('low', bottles < 1);
   for (const r of Object.values(BREW_RECIPES)) {
     const bt = document.getElementById(r.btn); if (!bt) continue;
-    const noBottle = bottles < 1, lowXp = lv < r.cost;
+    const cost = brewRecipeCost(r);
+    const noBottle = bottles < 1, lowXp = lv < cost;
     bt.classList.toggle('cant', noBottle || lowXp);
     bt.classList.toggle('can', !noBottle && !lowXp);
     bt.classList.toggle('lowxp', lowXp);
+    const costEl = bt.querySelector('.cost');
+    if (costEl) costEl.textContent = cost + ' lvl';
     const need = bt.querySelector('.need');
-    if (need) need.textContent = (noBottle ? 'Needs a glass bottle' : (lowXp ? 'Needs ' + (r.cost - lv) + ' more level' + ((r.cost - lv) > 1 ? 's' : '') : 'Ready to brew · uses 1 bottle'));
+    if (need) need.textContent = (noBottle ? 'Place a glass bottle in the stand' : (lowXp ? 'Needs ' + (cost - lv) + ' more level' + ((cost - lv) > 1 ? 's' : '') : (brewMode === 'throw' ? 'Ready to brew (throw) · 1 bottle' : 'Ready to brew (drink) · 1 bottle')));
   }
+  const mt = document.getElementById('brewMainTxt');
+  if (mt) mt.innerHTML = bottles < 1
+    ? '<b>Empty.</b> Click a glass bottle in your inventory below to place it in the stand.'
+    : '<b>' + bottles + ' bottle' + (bottles > 1 ? 's' : '') + ' ready.</b> Each potion uses 1 bottle and some XP levels. Click the slot to take them back.';
   const act = document.getElementById('brewActive');
   if (act) {
+    const bits = [];
     if (typeof strengthEffect !== 'undefined' && strengthEffect.t > 0) {
-      const total = strengthEffect.lvl >= 2 ? 90 : 480;
-      act.style.display = 'block';
-      act.innerHTML = '<b>Strength ' + (strengthEffect.lvl >= 2 ? 'II' : 'I') + '</b> active · ' + brewFmtTime(strengthEffect.t) + ' left<div class="bar"><i style="width:' + Math.min(100, strengthEffect.t / total * 100) + '%"></i></div>';
-    } else act.style.display = 'none';
+      bits.push('<b>Strength ' + (strengthEffect.lvl >= 2 ? 'II' : 'I') + '</b> · ' + brewFmtTime(strengthEffect.t));
+    }
+    if (typeof turtleMasterEffect !== 'undefined' && turtleMasterEffect.t > 0)
+      bits.push('<b>Turtle Master</b> · ' + brewFmtTime(turtleMasterEffect.t));
+    if (typeof slowFallingEffect !== 'undefined' && slowFallingEffect.t > 0)
+      bits.push('<b>Slow Falling</b> · ' + brewFmtTime(slowFallingEffect.t));
+    if (typeof invisibilityEffect !== 'undefined' && invisibilityEffect.t > 0)
+      bits.push('<b>Invisibility</b> · ' + brewFmtTime(invisibilityEffect.t));
+    const html = bits.length ? bits.join(' · ') : '';
+    if (html) {
+      if (act.style.display !== 'block') act.style.display = 'block';
+      if (act._lastHtml !== html) { act._lastHtml = html; act.innerHTML = html; }
+    } else if (act.style.display !== 'none') {
+      act.style.display = 'none'; act._lastHtml = '';
+    }
   }
 }
 function tryBrew(key) {
   const r = BREW_RECIPES[key];
   if (!r) return;
-  if (brewCountBottles() < 1) { brewRefreshStatus(); brewSetStatus('You need a glass bottle.', 'err'); return; }
-  if (!xpState || xpState.level < r.cost) { brewRefreshStatus(); brewSetStatus('You need XP level ' + r.cost + ' (you have ' + (xpState ? xpState.level : 0) + ').', 'err'); return; }
+  const cost = brewRecipeCost(r);
+  const out = brewRecipeOut(r);
+  if (brewCountBottles() < 1) { brewRefreshStatus(); brewSetStatus('Place a glass bottle in the brewing stand first.', 'err'); return; }
+  if (!xpState || xpState.level < cost) { brewRefreshStatus(); brewSetStatus('You need XP level ' + cost + ' (you have ' + (xpState ? xpState.level : 0) + ').', 'err'); return; }
   if (!brewTakeBottle()) return;
   // Spend levels
-  if (typeof jcGiveXp === 'function') jcGiveXp(-r.cost, true);
-  else { xpState.level = Math.max(0, xpState.level - r.cost); }
-  addItemToInventory(r.out, 1);
+  if (typeof jcGiveXp === 'function') jcGiveXp(-cost, true);
+  else { xpState.level = Math.max(0, xpState.level - cost); }
+  const leftP = addItemToInventory(out, 1);
+  if (leftP > 0 && typeof spawnDroppedItem === 'function') { try { spawnDroppedItem(out, leftP, new THREE.Vector3(player.pos.x, player.pos.y + 1, player.pos.z)); } catch (e) {} }
   renderHotbar();
   if (inventoryOpen) try { renderInventoryPanel(); } catch (e) {}
+  brewRenderInv();
   brewRefreshStatus();
-  brewSetStatus('Brewed ' + r.label + '!', 'ok');
+  brewSetStatus('Brewed ' + r.label + (brewMode === 'throw' ? ' (Throw)' : ' (Drink)') + '!', 'ok');
   const bt = document.getElementById(r.btn);
   if (bt) { bt.classList.remove('flash'); void bt.offsetWidth; bt.classList.add('flash'); }
   const box = document.getElementById('brewPanelBox');
   if (box) { box.classList.remove('brewing'); void box.offsetWidth; box.classList.add('brewing'); setTimeout(() => box.classList.remove('brewing'), 1400); }
   saveLocalPlayer();
 }
-// Strength potion effect
+// ===== Potion effects =====
 let strengthEffect = { t: 0, lvl: 0 };   // t seconds remaining, lvl 1 or 2
+let turtleMasterEffect = { t: 0 };       // -75% move speed, +75% defence
+let slowFallingEffect = { t: 0 };        // reduce fall speed; disables mace smash / fall crits
+let invisibilityEffect = { t: 0 };       // hide body mesh; armor still visible
+
 function applyStrengthPotion(lvl, secs) {
   strengthEffect.t = Math.max(strengthEffect.t, secs);
   strengthEffect.lvl = Math.max(strengthEffect.lvl, lvl);
+}
+function applyTurtleMasterPotion(secs) {
+  turtleMasterEffect.t = Math.max(turtleMasterEffect.t, secs);
+}
+function applySlowFallingPotion(secs) {
+  slowFallingEffect.t = Math.max(slowFallingEffect.t, secs);
+}
+function applyInvisibilityPotion(secs) {
+  invisibilityEffect.t = Math.max(invisibilityEffect.t, secs);
+}
+function applyPotionEffect(kind, lvl, secs) {
+  if (kind === 'strength') applyStrengthPotion(lvl || 1, secs);
+  else if (kind === 'turtle_master') applyTurtleMasterPotion(secs);
+  else if (kind === 'slow_falling') applySlowFallingPotion(secs);
+  else if (kind === 'invisibility') applyInvisibilityPotion(secs);
 }
 function strengthMul() {
   if (strengthEffect.t <= 0) return 1;
   return strengthEffect.lvl >= 2 ? 1.6 : 1.3;   // +30% / +60% damage
 }
+function turtleDefenceMul() {
+  // +75% defence => take 1 / 1.75 ≈ 0.571 of damage
+  return turtleMasterEffect.t > 0 ? (1 / 1.75) : 1;
+}
+function turtleSpeedMul() {
+  // -75% speed => 0.25x
+  return turtleMasterEffect.t > 0 ? 0.25 : 1;
+}
+function hasSlowFalling() { return slowFallingEffect.t > 0; }
+function hasInvisibility() { return invisibilityEffect.t > 0; }
 function updateStrengthEffect(dt) {
   if (strengthEffect.t > 0) strengthEffect.t = Math.max(0, strengthEffect.t - dt);
   if (strengthEffect.t <= 0) strengthEffect.lvl = 0;
+  if (turtleMasterEffect.t > 0) turtleMasterEffect.t = Math.max(0, turtleMasterEffect.t - dt);
+  if (slowFallingEffect.t > 0) slowFallingEffect.t = Math.max(0, slowFallingEffect.t - dt);
+  if (invisibilityEffect.t > 0) invisibilityEffect.t = Math.max(0, invisibilityEffect.t - dt);
+  // local player body visibility (armor stays)
+  try {
+    if (typeof myModel !== 'undefined' && myModel && myModel.group) {
+      const inv = hasInvisibility();
+      myModel.group.traverse(o => {
+        if (!o.isMesh) return;
+        const n = (o.name || '') + (o.parent && o.parent.name || '');
+        const isArmor = /armor|helmet|chest|leg|boot|shield|elytra/i.test(n) || (o.userData && o.userData.isArmor);
+        if (isArmor) { o.visible = true; return; }
+        // hide body / head / limbs when invisible; keep held items
+        const isHeld = /held|hand|item|weapon|bow|sword|axe|mace|spear|trident/i.test(n);
+        if (!isHeld) o.visible = !inv;
+      });
+    }
+  } catch (e) {}
 }
 // Wire UI once DOM ready
 (function setupBrewUI() {
@@ -7027,6 +7366,7 @@ function damagePlayer(amount, knockDir, knockStrength, opts) {
     const breachLv = Math.max(0, Math.min(5, Math.trunc(Number(opts.breach) || 0)));
     if (breachLv > 0) armorRed *= Math.max(0, 1 - 0.06 * breachLv);   // Breach: each level ignores 6% of armor (was 15%)
     applied *= (1 - armorRed);
+    if (typeof turtleDefenceMul === 'function') applied *= turtleDefenceMul();   // Turtle Master +75% defence
   }
   if (player.absorb > 0) { const soak = Math.min(player.absorb, applied); player.absorb -= soak; applied -= soak; }
   // Durability: shield when blocking, otherwise worn armor (skipped for drowning / true damage)
@@ -7089,6 +7429,9 @@ function announceMyDeath() {
   } else {
     announce(by ? MY_NAME + ' was slain by ' + by : MY_NAME + ' died');
   }
+  try {
+    if (by && typeof lawKindOf === 'function' && lawKindOf(by)) reduceWantedFromLawKill();
+  } catch (e) {}
 }
 let lastDamageCause = null;
 
@@ -7308,17 +7651,21 @@ function applyGoldenAppleEffects() {
 function eatCurrentFood() {
   const it = eating.fromOff ? offhand : currentItem();
   if (!it) return;
-  // Drink potion → strength effect, return empty bottle
+  // Drink potion → apply effect, return empty bottle (splash potions are thrown, not drunk)
   if (isPotion(it.type)) {
     const info = ITEM_INFO[it.type] || {};
+    if (info.splash) return; // splash = throw only
     const lvl = info.potionLvl || 1;
     const secs = info.potionSecs || 60;
-    if (info.potion === 'strength' && typeof applyStrengthPotion === 'function') applyStrengthPotion(lvl, secs);
+    const kind = info.potion || 'strength';
+    if (typeof applyPotionEffect === 'function') applyPotionEffect(kind, lvl, secs);
     if (eating.fromOff) { offhand.count--; if (offhand.count <= 0) offhand = null; } else removeFromCurrentSlot(1);
     addItemToInventory('glass_bottle', 1);
     renderHotbar();
     if (typeof inventoryOpen !== 'undefined' && inventoryOpen) renderInventoryPanel();
-    addChatLine('System', 'Strength ' + (lvl >= 2 ? 'II' : 'I') + ' (' + (secs >= 60 ? Math.floor(secs/60) + ':' + String(secs%60).padStart(2,'0') : secs + 's') + ')', true);
+    const labels = { strength: 'Strength ' + (lvl >= 2 ? 'II' : 'I'), turtle_master: 'Turtle Master', slow_falling: 'Slow Falling', invisibility: 'Invisibility' };
+    const lab = labels[kind] || kind;
+    addChatLine('System', lab + ' (' + (secs >= 60 ? Math.floor(secs/60) + ':' + String(secs%60).padStart(2,'0') : secs + 's') + ')', true);
     saveLocalPlayer();
     return;
   }
@@ -7508,8 +7855,8 @@ let isBlocking = false; // true while holding right-click with a shield equipped
 let shieldDisableUntil = 0; // performance.now() until which the shield is disabled (axe bash)
 function startEating(fromOff) {
   const it = fromOff ? offhand : currentItem();
-  // Potions can always be drunk (like golden apples)
-  if (it && isPotion(it.type)) {
+  // Drinkable potions only (splash potions are thrown)
+  if (it && isPotion(it.type) && !(ITEM_INFO[it.type] && ITEM_INFO[it.type].splash)) {
     mining.active = false; mining.progress = 0; mining.target = null;
     eating.active = true; eating.progress = 0; eating.type = it.type; eating.fromOff = !!fromOff;
     return true;
@@ -8906,6 +9253,18 @@ const ZOMBIE_SKIN_OV = [0, 0, 0, 0, 0, 0, 0, 4, 0, 1, 1, 1, 1, 0, 1, 1, 5, 0, 1,
 ZOMBIE_SKINS[0] = "data:image/png;base64,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"; ZOMBIE_SKIN_OV[0] = 0;
 const SPOKE_SKIN = ZOMBIE_SKINS.push("data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAEAAAABACAMAAACdt4HsAAABEVBMVEUAAAAAZf8AZv8Amf8Av/8A6v8A/xUA/yIA/zMA/0AA/1UA/3IA/3MA/5kA/8QA//8HvVkRERESEhIUFBQVAP8VFRUWFhYXFxcYGBgZGRkaGhobGxscHBwdHR0eHh4fHx8gICAhISEiIiIjIyMkJCQlJSUmJiYnJycoKCgpKSkqKipIAP9R/wBeAP93/wB4/wB6AP97AP+i/wCuAP+7AP+//wDV/wDZAP/q/wDuAP/3AP//AAD/ABH/ACb/ADP/ADz/AFn/AGX/AGb/AHj/AJn/AKL/AMz/AN3/APL/FQD/KwD/QTb/VQD/XgD/ZQD/ZgD/ewD/iAD/kQD/pgD/rgD/uwD/zAD/2QD/3AD//wD///8rp9iXAAAAAXRSTlMAQObYZgAAA/9JREFUWMPdV2mb0zYQ1pYu9KBb2KbIkSLZuhKn9N5uoaXtci/lKBQoZPP/f0jfkZOsojh+/DT0C+OMJduaV3NJmjC2IOtccMZYC3b4sQ3yLLAOglRlrfcWMMG2AATPHEC2knMOwj4E770zbnMyGwDgOjSAECBw1SBv2nR0znQAQHvrnbV1pJaRwdkOBfCZNPeuXlCLE73rcAHD1+BNY0A7ALNQswMAJkCDLoBtMzuy3HlDJsCJ8ATCaGwwUSkWYoaQjXhEcII1a7bAM+Q/UxmkkDHIJQ9LAOpgkY+5BecjuC5EipHCTIn3Sc7G7PERJDaYH/MAjTIEQJjEja0dB4pllboCshCFIKnsaGoSDYbmx+Wu/3D06+ntkz+fv54df/3RZ5//9uzvf85+/vHSx5cP9j+88MGAwXBS2zbus8EiFw2YdA1QdZAh3M4QaA2Q0d7O53U9n4eYb4YcZsg4hxT1MZHHjBYTuZFhPCl/+SA6kcKA6X0D4GpKB1gasDDJDB+a9AvLJRnviA67xNhBzHDEMNQJecpoSkoKj++VC2PQFLR85guqFrR8D8u5VjsA0Dut+wHU9RYN1GgHANJAyRbhlIZiWBRC1rUoCuoLIZUUBT+TZ3gtwQKcAFwrrn2ZshxBRCpNUuVI4kFTX7xRb5RAT5Xg1A9yJIcp6zKOorvQZRwd+6+qV7qsygUnABoTpEw2Q2ZfaynRLZWuKtLhhX4BLNlPA6X0lVnUgCR0qZSUT+XTaH9JPhCdPiC7lX6CgVLGviJ/PMa1JM4TgMMvDq8eSn41tuDhEFHAvAqeRxQwXZTnWFrViiepCaUs5HRaxBaMUA95VLbJRoqpQDuux37FKQC8KlNe5IESQBBNH4YUxfSrab3iDQ1SRh4s7V76g/qTyXhyrkUCUEDrYj7nsQXHqGu6C4qCbvpSrPkgXeTTjJrYU7oomfabBMJ2MSFuWVBzENuF3gOA94/2dwW4Mus7Mh6cf72ezWaDweD690fL90+ycel+UBTv3OLzI+H/o/t3T249e/n25rcXP9n/5qf0wx3cXr7FjT78croN4PT+3T/OEdYAgMzYze8udgOw7ch3GuQFwjtZTPlh+/jW76OR3gGAdueR2lGDstxRg3LU0xd5vRDrAdA9fo+LPimcn5U4sgVOZ/WAP+CV7gGQn9YlDnfa0h/yh7yqegDk9QKdUcSP+COu1H/QAD4QxDf4DS5ki8De3vExFdGonj9F8byX+4DKAeIjXLQPrLaEI1xtTm3qhWpVLzRnYVVunInb9oO8XmhOY/zbQBv6/JPK64WmJpiMYxta9oV8P8jrhbXKJMR94WRtX8j3g7xe2FoXbNsP8nphMqGKoCw3CswF/Qsd0hGasQc0TQAAAABJRU5ErkJggg==") - 1; ZOMBIE_SKIN_OV.push(23);
 const FLAME_SKIN = ZOMBIE_SKINS.push("data:image/png;base64,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") - 1; ZOMBIE_SKIN_OV.push(23);
+const LETTUCE_SKIN = ZOMBIE_SKINS.push("data:image/png;base64,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") - 1; ZOMBIE_SKIN_OV.push(23);
+const LAW_SKINS = [];
+LAW_SKINS.push(ZOMBIE_SKINS.push("data:image/png;base64,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") - 1); ZOMBIE_SKIN_OV.push(23);
+LAW_SKINS.push(ZOMBIE_SKINS.push("data:image/png;base64,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") - 1); ZOMBIE_SKIN_OV.push(23);
+LAW_SKINS.push(ZOMBIE_SKINS.push("data:image/png;base64,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") - 1); ZOMBIE_SKIN_OV.push(23);
+LAW_SKINS.push(ZOMBIE_SKINS.push("data:image/png;base64,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") - 1); ZOMBIE_SKIN_OV.push(23);
+LAW_SKINS.push(ZOMBIE_SKINS.push("data:image/png;base64,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") - 1); ZOMBIE_SKIN_OV.push(23);
+LAW_SKINS.push(ZOMBIE_SKINS.push("data:image/png;base64,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") - 1); ZOMBIE_SKIN_OV.push(23);
+LAW_SKINS.push(ZOMBIE_SKINS.push("data:image/png;base64,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") - 1); ZOMBIE_SKIN_OV.push(23);
+LAW_SKINS.push(ZOMBIE_SKINS.push("data:image/png;base64,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") - 1); ZOMBIE_SKIN_OV.push(23);
+
+
 const WEMMBU_SKIN = ZOMBIE_SKINS.push("data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAEAAAABACAYAAACqaXHeAAAAAXNSR0IArs4c6QAAAddJREFUeF7tW8FNAzEQtNMAdEAHlIBSA4/QBRIF8KIAJLogD4qgBDqgA2ggRkayFDnOze5NTudLJp9E5921dzw761wuMYDXa/hKyGZo/CncRsZ/al+4OAEgBqgEpAGMEEkE1QU6b4OozX2snsP97qVZBUNj1rKxlMjn9irdbX5jfs9xy+f8bp3nmF20AJCdaxBy8q3r3gW1ACiJ1rFuNj//l763181pxgACAfAm5LWvASi77Y2T7cf4dgfAmMQZHwjA2+ohPO7em3MMjVkXZdEAa6wxdhCAEnQ/2VMkXuIuCoB9hI+xwrsLiwHAm5jVfnYA6oWitogWjPwRMGx85F/Pf3CQQAmgCZC/AAAIsAAjfzGgQsDcBhF1ex1HjBAArGj1uvPWg5YYIAaQt71VAp0joC4AbspKBCWCFyqCKaV1iDFcbAmkENb5qzB9X73zJgCXJwAgRGduIAbMvcGoDaOTHLv+2RkgAMA5RAyY+AELlQArIqy/NEAaMPwcokRQIjjtU2bqAqyKs/5n1wXYhFh/74acvATYBFh/AeBEQAxwAnZgjijLxkf+7EGJZoAAmPl3BTGAPCqrBJDIoHFpgDSA+18hYhgalwhKBLn7BeoCqMbQ+NK7wB+IvxLPcNNUcQAAAABJRU5ErkJggg==") - 1; ZOMBIE_SKIN_OV.push(23);
 const _zbTexCache = {};
 function zbTexture(i) {
@@ -8926,7 +9285,13 @@ const ZB_B = {
   leg:  { x0: -2, x1: 2, y0: -12, y1: 0, z0: -2, z1: 2 },
 };
 function buildZombie(variant) {
-  const vi = ((variant | 0) === SPOKE_SKIN) ? SPOKE_SKIN : ((variant | 0) === FLAME_SKIN ? FLAME_SKIN : ((variant | 0) === WEMMBU_SKIN ? WEMMBU_SKIN : 0));   // normal zombies always wear the one zombie skin
+  const vi = (() => {
+    const v = variant | 0;
+    if (v === SPOKE_SKIN || v === FLAME_SKIN || v === WEMMBU_SKIN) return v;
+    if (typeof LETTUCE_SKIN !== 'undefined' && v === LETTUCE_SKIN) return v;
+    if (typeof LAW_SKINS !== 'undefined' && LAW_SKINS.indexOf(v) >= 0) return v;
+    return 0;   // normal zombies always wear the one zombie skin
+  })();
   const ov = ZOMBIE_SKIN_OV[vi] | 0;
   const mat = new THREE.MeshLambertMaterial({ map: zbTexture(vi), alphaTest: 0.1 });
   const group = new THREE.Group();
@@ -9216,7 +9581,15 @@ function skLos(eye, tp) {
 function skShoot(a, tgt) {
   const eye = new THREE.Vector3(a.pos.x, a.pos.y + 1.55, a.pos.z);
   const tp = new THREE.Vector3(tgt.x, tgt.y + 1.2, tgt.z);
-  const to = tp.clone().sub(eye), d = to.length(), speed = 28, tt = d / speed;
+  const speed = 28, pv = a.tgtVel;
+  // Lead the shot: aim where the target will be when the arrow arrives, so jumping / flying / falling players get hit too
+  let tt = tp.clone().sub(eye).length() / speed;
+  if (pv) for (let i = 0; i < 3; i++) {
+    tt = Math.min(1.2, tp.clone().add(new THREE.Vector3(pv.x * tt, pv.y * tt, pv.z * tt)).sub(eye).length() / speed);
+  }
+  if (pv) tp.add(new THREE.Vector3(pv.x * tt, pv.y * tt, pv.z * tt));
+  const to = tp.clone().sub(eye), d = to.length();
+  tt = d / speed;
   to.y += 0.5 * 16 * tt * tt * 0.92;                             // aim a bit high to compensate arrow drop
   const dir = to.normalize();
   dir.x += (Math.random() - 0.5) * 0.05; dir.y += (Math.random() - 0.5) * 0.04; dir.z += (Math.random() - 0.5) * 0.05; dir.normalize();
@@ -9300,7 +9673,7 @@ function brPose(a, ud, dt) {
 
 // Breeze: jumps toward the player and hits with a windy knockback shove (no bow).
 function breezeAI(a, dt) {
-  const tgt = nearestPlayerTarget(a.pos);
+  const tgt = nearestPlayerTargetForMob(a, a.pos);
   const toP = new THREE.Vector3(tgt.x - a.pos.x, 0, tgt.z - a.pos.z);
   const dist = toP.length();
   a.jumpCd = (a.jumpCd || 0) - dt;
@@ -9348,7 +9721,15 @@ function breezeAI(a, dt) {
 }
 function skeletonAI(a, dt) {
   if (a.kbT > 0) { a.kbT -= dt; return; }
-  const tgt = nearestPlayerTarget(a.pos);
+  const tgt = nearestPlayerTargetForMob(a, a.pos);
+  // track target velocity (smoothed) for lead aiming in skShoot
+  const tv = a.tgtVel || (a.tgtVel = { x: 0, y: 0, z: 0 });
+  if (a.prevTgt && dt > 0) {
+    const k = Math.min(1, dt * 8);
+    tv.x += ((tgt.x - a.prevTgt.x) / dt - tv.x) * k; tv.y += ((tgt.y - a.prevTgt.y) / dt - tv.y) * k; tv.z += ((tgt.z - a.prevTgt.z) / dt - tv.z) * k;
+    const l = Math.hypot(tv.x, tv.y, tv.z); if (l > 40) { tv.x *= 40 / l; tv.y *= 40 / l; tv.z *= 40 / l; }
+  }
+  a.prevTgt = { x: tgt.x, y: tgt.y, z: tgt.z };
   const dx = tgt.x - a.pos.x, dz = tgt.z - a.pos.z, dist = Math.hypot(dx, dz);
   if (!(dist < 24 && tgt.alive && mobSense(a, tgt, dt, 1.55))) {
     a.bowT = 0;
@@ -9631,8 +10012,18 @@ function createMob(kind, px, py, pz, id, remote, eq) {
   const isS = kind === 'skeleton';
   const isBr = kind === 'breeze';
   const isB = isSpk(kind);
-  const group = isB ? buildZombie(kind === 'flamefrags' ? FLAME_SKIN : kind === 'wemmbu' ? WEMMBU_SKIN : SPOKE_SKIN) : isZ ? buildZombie((eq >> 12) & 31) : isBr ? buildBreeze() : (isS ? buildSkeleton((eq >> 12) & 31) : def.build());
-  if (kind === 'wemmbu') wemmbuSetupModel(group);
+  const group = isB ? buildZombie(
+    kind === 'flamefrags' ? FLAME_SKIN
+    : kind === 'wemmbu' ? WEMMBU_SKIN
+    : kind === 'law_leader' ? LETTUCE_SKIN
+    : (kind === 'law_normal' || kind === 'law_elite' || kind === 'law_commander')
+        ? (LAW_SKINS.length ? LAW_SKINS[Math.floor(Math.random() * LAW_SKINS.length)] : SPOKE_SKIN)
+        : SPOKE_SKIN
+  ) : isZ ? buildZombie((eq >> 12) & 31) : isBr ? buildBreeze() : (isS ? buildSkeleton((eq >> 12) & 31) : def.build());
+  if (kind === 'wemmbu' || kind === 'law_commander' || kind === 'law_leader') {
+    const tag = kind === 'law_leader' ? 'LettuceK' : (kind === 'law_commander' ? 'Law Commander' : 'Wemmbu');
+    wemmbuSetupModel(group, tag);
+  }
   if (kind === 'null' || kind === 'null_commander') { group.userData.isNullBlack = true; group.traverse(o => { if (o.isMesh && o.material && o.material.color) { o.material.color.setHex(0x000000); o.userData.nullBlack = true; } }); }
   scene.add(group);
   const pos = new THREE.Vector3(px, py, pz);
@@ -9641,7 +10032,7 @@ function createMob(kind, px, py, pz, id, remote, eq) {
     id: id || (MY_ID + '_m' + (mobSeq++)), remote: !!remote,
     kind,
     group, pos, vel: new THREE.Vector3(0,0,0),
-    hp: isB ? (kind === 'flamefrags' ? FLAME_HP : kind === 'wemmbu' ? WEMMBU_HP : kind === 'null_commander' ? 32 : SPOKE_HP) : (isZ || isS || isBr) ? 20 : def.hp, maxHp: isB ? (kind === 'flamefrags' ? FLAME_HP : kind === 'wemmbu' ? WEMMBU_HP : kind === 'null_commander' ? 32 : SPOKE_HP) : (isZ || isS || isBr) ? 20 : def.hp, alive: true,
+    hp: isB ? (kind === 'flamefrags' ? FLAME_HP : kind === 'law_elite' ? 20 : kind === 'wemmbu' || kind === 'law_commander' ? WEMMBU_HP : kind === 'law_leader' ? 50 : kind === 'null_commander' ? 32 : kind === 'law_normal' ? 20 : SPOKE_HP) : (isZ || isS || isBr) ? 20 : def.hp, maxHp: isB ? (kind === 'flamefrags' ? FLAME_HP : kind === 'law_elite' ? 20 : kind === 'wemmbu' || kind === 'law_commander' ? WEMMBU_HP : kind === 'law_leader' ? 50 : kind === 'null_commander' ? 32 : kind === 'law_normal' ? 20 : SPOKE_HP) : (isZ || isS || isBr) ? 20 : def.hp, alive: true,
     radius: (isZ || isS || isB || isBr) ? 0.42 : def.radius, height: isZ ? 1.7 : ((isS || isB || isBr) ? 1.8 : def.height),
     wanderTimer: Math.random()*2, facing: 0,
     attackCd: 0,
@@ -9650,6 +10041,9 @@ function createMob(kind, px, py, pz, id, remote, eq) {
   };
   animals.push(e);
   if (isZ) applyZombieGear(e); else if (isS) applySkeletonGear(e); else if (isB) applySpokeGear(e);
+  if (kind === 'law_normal' || kind === 'law_elite' || kind === 'law_commander') {
+    try { if (typeof attachLawNameplate === 'function') attachLawNameplate(e); } catch (err) {}
+  }
   return e;
 }
 function spawnAnimal(x, z, surfaceY, kind) {
@@ -9712,6 +10106,15 @@ function nearestPlayerTarget(p) {
     if (d < bd) { bd = d; best = { x: t.x, y: t.y, z: t.z, local: false, id, alive: true }; }
   });
   return best;
+}
+function nearestPlayerTargetForMob(a, p) {
+  // Law units only hunt the wanted criminal — never random bystanders.
+  if (a && typeof isLawKind === 'function' && isLawKind(a.kind)) {
+    const t = typeof lawHuntTarget === 'function' ? lawHuntTarget(a) : null;
+    if (t) return t;
+    return { x: (p && p.x) || a.pos.x, y: (p && p.y) || a.pos.y, z: (p && p.z) || a.pos.z, local: true, id: MY_ID, alive: false };
+  }
+  return nearestPlayerTarget(p || a.pos);
 }
 function mobAnchors() {
   const arr = [{ x: player.pos.x, z: player.pos.z, local: true }];
@@ -9791,6 +10194,40 @@ function giveMobLoot(kind, eq) {
     try { _fGive('wind_charge', 8 + Math.floor(Math.random() * 9)); } catch (e) {}
     renderHotbar(); if (inventoryOpen) renderInventoryPanel(); saveLocalPlayer();
     addChatLine('System', 'FlameFrags was defeated!', true);
+    return;
+  }
+  if (kind === 'law_normal' || kind === 'law_elite' || kind === 'law_commander' || kind === 'law_leader') {
+    const nm = kind === 'law_leader' ? 'LettuceK' : kind === 'law_commander' ? 'Law Commander' : kind === 'law_elite' ? 'Law Elite' : 'Law Enforcer';
+    const _lAt = () => new THREE.Vector3(player.pos.x, player.pos.y + 1, player.pos.z);
+    const _lGive = (t, n) => { const left = addItemToInventory(t, n); if (left > 0) { try { spawnDroppedItem(t, left, _lAt(), new THREE.Vector3(0, 2, 0)); } catch (e) {} } };
+    if (kind === 'law_leader') {
+      jcAddXp(2000);
+      _lGive('totem_of_undying', 2 + Math.floor(Math.random() * 3));
+      _lGive('diamond', 5 + Math.floor(Math.random() * 5));
+      _lGive('golden_apple', 4 + Math.floor(Math.random() * 4));
+      _lGive('wind_charge', 12 + Math.floor(Math.random() * 10));
+      _lGive('firework_3', 8 + Math.floor(Math.random() * 8));
+      if (Math.random() < 0.6) _lGive('elytra', 1);
+      if (Math.random() < 0.5) _lGive('mace', 1);
+    } else if (kind === 'law_commander') {
+      jcAddXp(800);
+      _lGive('totem_of_undying', 1);
+      _lGive('diamond', 3 + Math.floor(Math.random() * 3));
+      _lGive('golden_apple', 2 + Math.floor(Math.random() * 3));
+      _lGive('wind_charge', 6 + Math.floor(Math.random() * 6));
+      if (Math.random() < 0.35) _lGive('mace', 1);
+    } else if (kind === 'law_elite') {
+      jcAddXp(400);
+      _lGive('golden_apple', 1 + Math.floor(Math.random() * 3));
+      _lGive('diamond', 2 + Math.floor(Math.random() * 3));
+      try { _lGive('cobweb', 2 + Math.floor(Math.random() * 4)); } catch (e) {}
+    } else {
+      jcAddXp(100);
+      _lGive('cooked_beef', 1 + Math.floor(Math.random() * 3));
+      _lGive('diamond', 1 + Math.floor(Math.random() * 2));
+    }
+    renderHotbar(); if (inventoryOpen) renderInventoryPanel(); saveLocalPlayer();
+    addChatLine('System', nm + ' was defeated!', true);
     return;
   }
   if (kind === 'spoke') {
@@ -9881,12 +10318,16 @@ function animateMob(a, dt, spd, grounded) {
 const SPOKE_HP = 20, SPOKE_GAPPLES = 99, SPOKE_TOTEMS = 8, SPOKE_GAP_HEAL = 4, SPOKE_ARROW_DMG = 6, SPOKE_SWORD_DMG = 7, SPOKE_AXE_DMG = 9, SPOKE_HUD_RANGE = 30;
 const NULL_MAX_ALIVE = 14, NULL_PER_POP = 3;
 const SPOKE_NOOB_AIM = 0.025, SPOKE_NOOB_REACH = 3.0, SPOKE_HIT_CHANCE = 0.92;   // PvP: tight aim, player-like reach, rarely whiffs
-function isSpk(k) { return k === 'spoke' || k === 'null' || k === 'flamefrags' || k === 'null_commander' || k === 'wemmbu'; }
+function isSpk(k) { return k === 'spoke' || k === 'null' || k === 'flamefrags' || k === 'null_commander' || k === 'wemmbu' || k === 'law_normal' || k === 'law_elite' || k === 'law_commander' || k === 'law_leader'; }
 function spokeName(a) {
   if (a.kind === 'null_commander') return '______';
   if (a.kind === 'wemmbu') return 'Wemmbu';
   if (a.kind === 'null') return 'Null';
   if (a.kind === 'flamefrags') return 'FlameFrags';
+  if (a.kind === 'law_normal') return 'Law Enforcer';
+  if (a.kind === 'law_elite') return 'Law Elite';
+  if (a.kind === 'law_commander') return 'Law Commander';
+  if (a.kind === 'law_leader') return 'LettuceK';
   return 'Spoke';
 }
 function spokeGet(a) { const e = a.eq | 0; return { dur: (e >> 12) & 127, gap: (e >> 19) & 127, totem: e & 15, eat: (e >> 27) & 1, draw: (e >> 28) & 1, melee: (e >> 29) & 1, axe: (e >> 30) & 1 }; }
@@ -10003,18 +10444,22 @@ function summonSpoke(x, y, z) {
 }
 function spokeSync(a, old) {
   const o = { dur: (old >> 12) & 127, totem: old & 15 }, n = spokeGet(a);
-  if (a.kind === 'wemmbu') {
-    if (o.totem > n.totem) { a.totemFx = 1.6; try { spawnTotemPopFx(new THREE.Vector3(a.pos.x, a.pos.y, a.pos.z), 'totem_of_undying', { remote: true }); } catch (e) {} addChatLine('System', n.totem > 0 ? 'Wemmbu popped a Totem! (' + n.totem + ' left)' : 'Wemmbu popped his last Totem!', true); }
-    if (o.dur > 0 && n.dur <= 0) { addChatLine('System', "Wemmbu's armor broke!", true); applySpokeGear(a); }
+  if (a.kind === 'wemmbu' || a.kind === 'law_commander' || a.kind === 'law_leader') {
+    const nm = spokeName(a);
+    if (o.totem > n.totem) { a.totemFx = 1.6; try { spawnTotemPopFx(new THREE.Vector3(a.pos.x, a.pos.y, a.pos.z), 'totem_of_undying', { remote: true }); } catch (e) {} addChatLine('System', n.totem > 0 ? nm + ' popped a Totem! (' + n.totem + ' left)' : nm + ' popped his last Totem!', true); }
+    if (o.dur > 0 && n.dur <= 0) { addChatLine('System', nm + "'s armor broke!", true); applySpokeGear(a); }
     return;
   }
-  if (a.kind === 'flamefrags') {
+  if (a.kind === 'flamefrags' || a.kind === 'law_elite') {
+    const nm = spokeName(a);
     if (o.totem > n.totem) {
       a.totemFx = 1.6; try { spawnTotemPopFx(new THREE.Vector3(a.pos.x, a.pos.y, a.pos.z), 'totem_of_undying', { remote: true }); } catch (e) {}
-      const pops = 3 - n.totem, say = ['', 'FlameFrags popped a totem! He now fights with the Mace and Wind Charges!', 'FlameFrags popped a totem! He now wields the Spear too!', 'FlameFrags popped his last totem! Bow and Trident unlocked - all weapons!'];
-      addChatLine('System', say[Math.max(1, Math.min(3, pops))] + ' (' + n.totem + ' left)', true);
+      if (a.kind === 'flamefrags') {
+        const pops = 3 - n.totem, say = ['', 'FlameFrags popped a totem! He now fights with the Mace and Wind Charges!', 'FlameFrags popped a totem! He now wields the Spear too!', 'FlameFrags popped his last totem! Bow and Trident unlocked - all weapons!'];
+        addChatLine('System', say[Math.max(1, Math.min(3, pops))] + ' (' + n.totem + ' left)', true);
+      } else addChatLine('System', n.totem > 0 ? nm + ' popped a Totem! (' + n.totem + ' left)' : nm + ' popped his last Totem!', true);
     }
-    if (o.dur > 0 && n.dur <= 0) { addChatLine('System', "FlameFrags' armor broke!", true); applySpokeGear(a); }
+    if (o.dur > 0 && n.dur <= 0) { addChatLine('System', nm + "'s armor broke!", true); applySpokeGear(a); }
     return;
   }
   if (o.totem > n.totem) { a.totemFx = 1.6; try { spawnTotemPopFx(new THREE.Vector3(a.pos.x, a.pos.y, a.pos.z), 'null_totem', { remote: true }); } catch (e) {} if (a.kind === 'null_commander') addChatLine('System', n.totem > 0 ? '______ popped a Totem! (' + n.totem + ' left)' : '______ popped its last Totem!', true); else if (a.kind === 'null') addChatLine('System', 'A Null popped its Totem!', true); else addChatLine('System', n.totem > 0 ? 'Spoke popped a Null Totem! (' + n.totem + ' left)' : 'Spoke popped its last Null Totem!', true); }
@@ -10022,7 +10467,8 @@ function spokeSync(a, old) {
 }
 function spokeHurt(a, dmg, fromPos, kbMul, by) {
   if (!a.alive) return;
-  if (a.kind === 'flamefrags') { flameHurt(a, dmg, fromPos, kbMul, by); return; }
+  if (typeof isLawKind === 'function' && isLawKind(a.kind)) { a.lawAggroForced = true; a.lawAggro = true; }
+  if (a.kind === 'flamefrags' || a.kind === 'law_elite') { flameHurt(a, dmg, fromPos, kbMul, by); return; }
   // Covered in cobweb / heal wall: melee mostly fails
   if ((a.healCover || entityCoveredInWeb(a.pos, a.height || 1.8)) && a.eatT > 0) dmg *= 0.15;
   const old = a.eq | 0, g = spokeGet(a);
@@ -10151,7 +10597,7 @@ function bossPlaceCover(a, tgt) {
   const dl = Math.hypot(dx, dz) || 1, ux = dx / dl, uz = dz / dl;
   if (!a.coverBlocks) a.coverBlocks = [];
   const isNull = a.kind === 'null' || a.kind === 'null_commander';
-  const isFlame = a.kind === 'flamefrags';
+  const isFlame = a.kind === 'flamefrags' || a.kind === 'law_elite';
   // Self cobweb: FlameFrags + Spoke only — one on legs, one on head
   if (!isNull) {
     bossPutCover(a, px, py, pz, 'cobweb', true);
@@ -10180,7 +10626,7 @@ function bossSpamCover(a, tgt, dt) {
   const py = Math.round(a.pos.y);
   if (!a.coverBlocks) a.coverBlocks = [];
   const isNull = a.kind === 'null' || a.kind === 'null_commander';
-  const isFlame = a.kind === 'flamefrags';
+  const isFlame = a.kind === 'flamefrags' || a.kind === 'law_elite';
   if (!isNull) {
     bossPutCover(a, Math.round(a.pos.x), py, Math.round(a.pos.z), 'cobweb', true);
     bossPutCover(a, Math.round(a.pos.x), py + 1, Math.round(a.pos.z), 'cobweb', true);
@@ -10335,7 +10781,7 @@ function spokeAI(a, dt) {
     a.eatCd = (a.eatCd || 0) - dt;
     a.cmdWpnT = (a.cmdWpnT || 0) - dt;
     if (a.regenT > 0) { a.regenT -= dt; a.hp = Math.min(a.maxHp, a.hp + 1.0 * dt); }
-    const tgt = nearestPlayerTarget(a.pos);
+    const tgt = nearestPlayerTargetForMob(a, a.pos);
     const dx = tgt.x - a.pos.x, dz = tgt.z - a.pos.z;
     const dist = Math.hypot(dx, dz) || 0.001, nx = dx / dist, nz = dz / dist;
     a.facing = Math.atan2(dx, dz);
@@ -10446,7 +10892,7 @@ function spokeAI(a, dt) {
   a.eatCd = (a.eatCd || 0) - dt; a.dashCd = (a.dashCd || 0) - dt; a.forceRangedT = (a.forceRangedT || 0) - dt;
   if (a.regenT > 0) { a.regenT -= dt; a.hp = Math.min(a.maxHp, a.hp + 0.8 * dt); }
   if (a.kbT > 0) { a.kbT -= dt; return; }
-  const d = spokeGet(a), tgt = nearestPlayerTarget(a.pos);
+  const d = spokeGet(a), tgt = nearestPlayerTargetForMob(a, a.pos);
   const dx = tgt.x - a.pos.x, dz = tgt.z - a.pos.z, dist = Math.hypot(dx, dz) || 0.001, nx = dx / dist, nz = dz / dist;
   const awake = tgt.alive && dist < 60;
   const pv = a.tgtVel || (a.tgtVel = { x: 0, z: 0 });
@@ -10532,7 +10978,7 @@ function wemmbuFly(a, on, boost) {
   a.eq = e; a.fly = !!on;
 }
 // Model: everything goes under a pivot (so the body can lay flat while gliding), plus elytra wings and a floating name tag.
-function wemmbuSetupModel(group) {
+function wemmbuSetupModel(group, nameTag) {
   const ud = group.userData;
   const pivot = new THREE.Group();
   for (const c of group.children.slice()) pivot.add(c);
@@ -10565,7 +11011,12 @@ function wemmbuSetupModel(group) {
     });
   } catch (e) {}
   try {
-    if (typeof makeNameSprite === 'function') { const spr = makeNameSprite('Wemmbu'); spr.position.y = 2.45; group.add(spr); }
+    if (typeof makeNameSprite === 'function') {
+      const spr = makeNameSprite(nameTag || 'Wemmbu');
+      spr.position.y = 2.45;
+      spr.userData.isNameTag = true;
+      group.add(spr);
+    }
   } catch (e) {}
 }
 function summonWemmbu(x, y, z) {
@@ -10617,7 +11068,7 @@ function wemmbuAI(a, dt) {
   a.attackCd = (a.attackCd || 0) - dt; a.swordCd = (a.swordCd || 0) - dt;
   a.eatCd = (a.eatCd || 0) - dt; a.wmCd = (a.wmCd == null ? 1.5 : a.wmCd) - dt;
   if (a.regenT > 0) { a.regenT -= dt; a.hp = Math.min(a.maxHp, a.hp + 1.0 * dt); }
-  const tgt = nearestPlayerTarget(a.pos);
+  const tgt = nearestPlayerTargetForMob(a, a.pos);
   const dx = tgt.x - a.pos.x, dz = tgt.z - a.pos.z;
   const dist = Math.hypot(dx, dz) || 0.001, nx = dx / dist, nz = dz / dist;
   // enemy velocity (for lead aim)
@@ -10638,25 +11089,54 @@ function wemmbuAI(a, dt) {
     if (a.fly) wemmbuFly(a, false, false);
     if (bossSmartHeal(a, dt, tgt, dist, nx, nz, { safeDist: 10, eatT: 1.5, eatCd: 2.5, regenT: 5 })) return;
     if (!tgt.alive || dist > 60) { a.vel.x *= 0.5; a.vel.z *= 0.5; return; }
-    if (a.kbT > 0) { a.kbT -= dt; return; }   // knocked back: let it carry him
+    // LettuceK / commanders: don't freeze the whole AI on knockback — still fight
+    if (a.kbT > 0) {
+      a.kbT -= dt;
+      if (!(a.kind === 'law_leader' || a.kind === 'law_commander')) return;
+    }
     a.facing = Math.atan2(dx, dz);
     const grounded = Math.abs(a.vel.y) < 0.35;
     const sp = dist < 2.0 ? 1.6 : 6.4;
     a.vel.x = nx * sp; a.vel.z = nz * sp;
-    spokeSet(a, { melee: 1, axe: 0, draw: 0 });
-    // pick the next combo
+    // weapon mix: mace default, sword up close, axe to break shields (LettuceK)
+    const isLettuce = (a.kind === 'law_leader' || a.kind === 'law_commander');
+    if (isLettuce) {
+      a.axeT = (a.axeT || 0) - dt;
+      a.shieldT = (a.shieldT || 0) - dt;
+      // raise shield briefly when player is close
+      if (dist < 3.5 && a.shieldT <= 0 && Math.random() < dt * 0.9) {
+        a.eq = (a.eq | 0) | (1 << 9);
+        a.shieldT = 0.7 + Math.random() * 0.5;
+      } else if (a.shieldT <= 0.15) {
+        a.eq = (a.eq | 0) & ~(1 << 9);
+      }
+      // swap to axe sometimes to break player shields
+      if (dist < 3.2 && a.axeT <= 0 && Math.random() < dt * 0.7) {
+        spokeSet(a, { melee: 1, axe: 1, draw: 0 });
+        a.axeT = 0.9;
+        wemmbuSword(a, false);
+      } else if (a.axeT <= 0) {
+        spokeSet(a, { melee: 1, axe: 0, draw: 0 });
+      }
+    } else {
+      spokeSet(a, { melee: 1, axe: 0, draw: 0 });
+    }
+    // pick the next combo — elytra mace / wind charge (same as Wemmbu)
     if (a.wmCd <= 0 && grounded) {
       if (dist > 10 || (dist > 5 && Math.random() < 0.45)) wemmbuStartElytra(a, tgt);
       else wemmbuStartWindCharge(a);
       return;
     }
     // close range: swap to the diamond sword for fast hits, back to the mace when the next combo is near
-    if (!a.sword && dist < 4 && a.wmCd > 1.0 && Math.random() < dt * 1.2) wemmbuSword(a, true);
-    else if (a.sword && (dist > 5.5 || a.wmCd < 0.6)) wemmbuSword(a, false);
+    if (!spokeGet(a).axe) {
+      if (!a.sword && dist < 4 && a.wmCd > 1.0 && Math.random() < dt * 1.2) wemmbuSword(a, true);
+      else if (a.sword && (dist > 5.5 || a.wmCd < 0.6)) wemmbuSword(a, false);
+    }
     if (dist < (a.sword ? 3.0 : 2.9) && Math.abs(tgt.y - a.pos.y) < 2.5 && a.swordCd <= 0) {
       const kd = new THREE.Vector3(dx, 0, dz);
-      if (a.sword) { wemmbuHit(a, tgt, 8, 8, kd); a.swordCd = 0.5; a.attackCd = 0.75; }
-      else wemmbuHit(a, tgt, 10, 10, kd, true);
+      if (spokeGet(a).axe) { wemmbuHit(a, tgt, 9, 9, kd); a.swordCd = 0.55; a.attackCd = 0.8; }
+      else if (a.sword) { wemmbuHit(a, tgt, 8, 8, kd); a.swordCd = 0.5; a.attackCd = 0.75; }
+      else wemmbuHit(a, tgt, 10, 10, kd, true);   // mace
     }
     // soft blocks in the way (cobweb, plants)
     a.bldCd = (a.bldCd || 0) - dt;
@@ -10793,8 +11273,348 @@ function summonFlame(x, y, z) {
   addChatLine('System', 'FlameFrags has awakened!', true);
   return e;
 }
+
+// ================= Law / Wanted system =================
+// Killing animals and players raises Wanted Level (0–10). Higher levels attract stronger Law.
+let wantedAnimalKills = 0, wantedPlayerKills = 0;
+let lawEnabled = true;   // /wanted on|off — players can disable Law
+try { const _le = localStorage.getItem('voltex_law_enabled'); if (_le === '0') lawEnabled = false; if (_le === '1') lawEnabled = true; } catch (e) {}
+const WANTED_THRESH = [0, 2, 4, 6, 9, 12, 16, 20, 25, 30, 40];
+const LAW_COMMANDER_MAX = 4;
+let lawSpawnTimer = 8;
+function wantedScore() { return (wantedAnimalKills | 0) + (wantedPlayerKills | 0) * 3; }
+function getWantedLevel() {
+  const s = wantedScore();
+  let lv = 0;
+  for (let i = WANTED_THRESH.length - 1; i >= 0; i--) if (s >= WANTED_THRESH[i]) { lv = i; break; }
+  return Math.min(10, lv);
+}
+function lawKindOf(name) {
+  if (!name) return null;
+  const n = String(name);
+  if (n === 'LettuceK' || n === 'Law Leader') return 'law_leader';
+  if (n === 'Law Commander') return 'law_commander';
+  if (n === 'Law Elite') return 'law_elite';
+  if (n === 'Law Enforcer') return 'law_normal';
+  return null;
+}
+function isLawKind(k) { return k === 'law_normal' || k === 'law_elite' || k === 'law_commander' || k === 'law_leader'; }
+function countLaw(kind) {
+  let n = 0;
+  for (const a of animals) if (a.alive && a.kind === kind) n++;
+  return n;
+}
+function countAllLaw() {
+  let n = 0;
+  for (const a of animals) if (a.alive && isLawKind(a.kind)) n++;
+  return n;
+}
+function registerAnimalKill(kind) {
+  if (!kind) return;
+  if (PASSIVE_KINDS.indexOf(kind) >= 0) {
+    wantedAnimalKills = (wantedAnimalKills | 0) + 1;
+    try { saveLocalPlayer(); } catch (e) {}
+  }
+}
+function registerPlayerKill() {
+  wantedPlayerKills = (wantedPlayerKills | 0) + 1;
+  try { saveLocalPlayer(); } catch (e) {}
+  const lv = getWantedLevel();
+  if (lv >= 1) addChatLine('System', 'Wanted Level raised to ' + lv + '!', true);
+}
+function reduceWantedFromLawKill() {
+  const before = getWantedLevel();
+  wantedPlayerKills = Math.max(0, (wantedPlayerKills | 0) - 2);
+  wantedAnimalKills = Math.max(0, (wantedAnimalKills | 0) - 4);
+  try { saveLocalPlayer(); } catch (e) {}
+  const after = getWantedLevel();
+  if (after < before) addChatLine('System', 'The Law reduced your Wanted Level to ' + after + '.', true);
+  else addChatLine('System', 'The Law noted your death. Wanted Level: ' + after + '.', true);
+}
+function lawPickSpawnNear(px, py, pz) {
+  // Spawn 40–55 blocks away so Law approaches from a distance
+  const ang = Math.random() * Math.PI * 2;
+  const dist = 40 + Math.random() * 15;
+  let sx = px + Math.cos(ang) * dist, sz = pz + Math.sin(ang) * dist;
+  let found = false;
+  for (const dd of [dist, dist - 4, dist - 8, dist - 12, 36, 32, 28]) {
+    const tx = px + Math.cos(ang) * dd, tz = pz + Math.sin(ang) * dd;
+    // sample surface height roughly via collision probes
+    let ty = py;
+    for (let dy = 8; dy >= -12; dy--) {
+      const y = py + dy;
+      if (!checkCollision(tx, y + 0.1, tz, 0.42, 1.8) && checkCollision(tx, y - 0.9, tz, 0.42, 0.4)) {
+        sx = tx; sz = tz; ty = y; found = true; break;
+      }
+    }
+    if (found) return { x: sx, y: ty + 0.1, z: sz };
+  }
+  // fallback: still far out even if terrain is awkward
+  return { x: sx, y: py + 0.1, z: sz };
+}
+
+function makeLawHpSprite(name) {
+  const c = document.createElement('canvas');
+  c.width = 256; c.height = 72;
+  const ctx = c.getContext('2d');
+  ctx.font = 'bold 26px sans-serif';
+  ctx.textAlign = 'center';
+  ctx.fillStyle = 'rgba(0,0,0,0.55)';
+  ctx.fillRect(8, 4, 240, 32);
+  ctx.fillStyle = '#fff';
+  ctx.fillText(name || 'Law', 128, 28);
+  // HP bar background
+  ctx.fillStyle = 'rgba(0,0,0,0.75)';
+  ctx.fillRect(28, 42, 200, 16);
+  ctx.fillStyle = '#c82828';
+  ctx.fillRect(30, 44, 196, 12);
+  const tex = new THREE.CanvasTexture(c);
+  tex.magFilter = THREE.NearestFilter;
+  const mat = new THREE.SpriteMaterial({ map: tex, depthTest: false, transparent: true });
+  const sprite = new THREE.Sprite(mat);
+  sprite.scale.set(1.7, 0.48, 1);
+  sprite.position.y = 2.5;
+  sprite.userData.lawHpCanvas = c;
+  sprite.userData.lawHpTex = tex;
+  return sprite;
+}
+function updateLawHpSprite(a) {
+  if (!a || !a.hpSprite) return;
+  const c = a.hpSprite.userData.lawHpCanvas;
+  const tex = a.hpSprite.userData.lawHpTex;
+  if (!c || !tex) return;
+  const ctx = c.getContext('2d');
+  const name = spokeName(a);
+  ctx.clearRect(0, 0, 256, 72);
+  ctx.font = 'bold 26px sans-serif';
+  ctx.textAlign = 'center';
+  ctx.fillStyle = 'rgba(0,0,0,0.55)';
+  ctx.fillRect(8, 4, 240, 32);
+  ctx.fillStyle = '#fff';
+  ctx.fillText(name, 128, 28);
+  ctx.fillStyle = 'rgba(0,0,0,0.75)';
+  ctx.fillRect(28, 42, 200, 16);
+  const pct = Math.max(0, Math.min(1, a.hp / (a.maxHp || 20)));
+  const col = pct > 0.5 ? '#3dcc4a' : (pct > 0.25 ? '#e0b020' : '#c82828');
+  ctx.fillStyle = col;
+  ctx.fillRect(30, 44, Math.max(0, 196 * pct), 12);
+  ctx.fillStyle = '#fff';
+  ctx.font = 'bold 14px monospace';
+  ctx.fillText(Math.max(0, Math.ceil(a.hp)) + '/' + (a.maxHp || 20), 128, 54);
+  tex.needsUpdate = true;
+}
+function attachLawNameplate(e) {
+  if (!e || !e.group || e.kind === 'law_leader') return;
+  try {
+    if (e.hpSprite) { e.group.remove(e.hpSprite); e.hpSprite = null; }
+    const spr = makeLawHpSprite(spokeName(e));
+    e.group.add(spr);
+    e.hpSprite = spr;
+    updateLawHpSprite(e);
+  } catch (err) {}
+}
+function lawHuntTarget(a) {
+  // Always chase the player who hit us (fight-back), even at wanted 0 / Law off.
+  if (a && a.lawAggroForced) {
+    if (player.hp <= 0) return null;
+    return { x: player.pos.x, y: player.pos.y, z: player.pos.z, local: true, id: MY_ID, alive: true };
+  }
+  // Otherwise only hunt wanted criminals when Law is enabled.
+  if (typeof lawEnabled !== 'undefined' && !lawEnabled) return null;
+  const lv = typeof getWantedLevel === 'function' ? getWantedLevel() : 0;
+  if (lv <= 0) return null;
+  if (player.hp <= 0) return null;
+  return { x: player.pos.x, y: player.pos.y, z: player.pos.z, local: true, id: MY_ID, alive: true };
+}
+function lawShouldAggro(a) {
+  // Always fight back if the player already hit them (works even with Law off / wanted 0).
+  if (a.lawAggroForced) { a.lawAggro = true; return true; }
+  // Manual /lettuce LettuceK: wander; attack if player has any wanted level
+  if (a.lettuceManual) {
+    if (typeof lawEnabled !== 'undefined' && !lawEnabled) return false;
+    const lv = typeof getWantedLevel === 'function' ? getWantedLevel() : 0;
+    if (lv > 0) { a.lawAggro = true; return true; }
+    return false;
+  }
+  if (typeof lawEnabled !== 'undefined' && !lawEnabled) return false;
+  // 1–2: patrol only (never hunt). 3+: actively search/attack wanted player.
+  const lv = typeof getWantedLevel === 'function' ? getWantedLevel() : 0;
+  if (lv <= 0) return false;
+  if (lv <= 2) return false;   // wander only — do not search
+  a.lawAggro = true;
+  return true;
+}
+function lawPassiveWander(a, dt) {
+  a.wanderTimer = (a.wanderTimer || 0) - dt;
+  a.attackCd = (a.attackCd || 0) - dt;
+  if (a.wanderTimer <= 0) {
+    a.wanderTimer = 2.2 + Math.random() * 3.5;
+    if (Math.random() < 0.5) { a.vel.x = 0; a.vel.z = 0; }
+    else {
+      a.facing = Math.random() * Math.PI * 2;
+      a.vel.x = Math.sin(a.facing) * 0.7;
+      a.vel.z = Math.cos(a.facing) * 0.7;
+    }
+  }
+}
+
+function summonLawNormal(x, y, z) {
+  // Unenchanted diamond set; passive at wanted 1–2 until they see you
+  const e = createMob('law_normal', x, y, z, null, false, (100 << 12) | (6 << 19) | 0);
+  e.durF = 100; e.eatCd = 3; e.shootCd = 1.4; e.wpnT = 0;
+  e.hp = e.maxHp = 20;
+  e.noEnchant = true;
+  e.lawAggro = false;
+  applySpokeGear(e);
+  try { attachLawNameplate(e); } catch (err) {}
+  addChatLine('System', 'A Law Enforcer is nearby…', true);
+  return e;
+}
+function summonLawElite(x, y, z) {
+  // Enchanted diamond, gapples, cobweb — weaker than Flame, NO totems
+  const e = createMob('law_elite', x, y, z, null, false, (100 << 12) | (12 << 19) | 0);
+  e.durF = 100; e.eatCd = 3; e.shootCd = 1.1; e.wpnT = 0;
+  e.hp = e.maxHp = 20;
+  e.lawAggro = false;
+  e.maceEnch = BOSS_MACE_ENCH;
+  applySpokeGear(e);
+  try { attachLawNameplate(e); } catch (err) {}
+  addChatLine('System', 'A Law Elite is nearby…', true);
+  return e;
+}
+function summonLawCommander(x, y, z) {
+  if (countLaw('law_commander') >= LAW_COMMANDER_MAX) return null;
+  const e = createMob('law_commander', x, y, z, null, false, (100 << 12) | (24 << 19) | 2);
+  e.hp = e.maxHp = 28;
+  e.durF = 100; e.eatCd = 2.5; e.shootCd = 1.0; e.wpnT = 0;
+  e.cmdWpn = 'mace'; e.maceEnch = BOSS_MACE_ENCH;
+  e.lawAggro = true;
+  applySpokeGear(e);
+  try { attachLawNameplate(e); } catch (err) {}
+  addChatLine('System', 'A Law Commander has been dispatched!', true);
+  return e;
+}
+function summonLawLeader(x, y, z) {
+  if (countLaw('law_leader') >= 1) return null;
+  const e = createMob('law_leader', x, y, z, null, false, (100 << 12) | (60 << 19) | 12);
+  e.hp = e.maxHp = 50;
+  e.durF = 100; e.eatCd = 2; e.shootCd = 0.9; e.wpnT = 0;
+  e.wm = 'ground'; e.wmCd = 1.0; e.wmT = 0; e.swordCd = 0; e.attackCd = 0;
+  e.cmdWpn = 'mace'; e.maceEnch = BOSS_MACE_ENCH;
+  e.hasElytra = true; e.sword = false;
+  e.atkDmg = 11; e.atkReach = 2.6; e.atkCd = 0.7;
+  e.lawAggro = true;
+  applySpokeGear(e);
+  spokeSet(e, { melee: 1, axe: 0, draw: 0 });
+  try {
+    if (e.handAnchor && e.heldState) {
+      e.handAnchor.position.set(0, -0.5, 0.02);
+      e.handAnchor.scale.setScalar(1.3);
+      setHeldVisual(e.heldState, e.handAnchor, 'mace', BOSS_MACE_ENCH);
+      e.heldKey = 'mace';
+    }
+  } catch (err) {}
+  // LettuceK keeps boss HP bar (no floating soldier plate)
+  addChatLine('System', 'LettuceK, Law Leader, has arrived to hunt you!', true);
+  return e;
+}
+function summonLettuceManual(x, y, z) {
+  // Creator /lettuce: wander around; attack if player is wanted or hits them
+  const e = createMob('law_leader', x, y, z, null, false, (100 << 12) | (60 << 19) | 12);
+  e.hp = e.maxHp = 50;
+  e.durF = 100; e.eatCd = 2; e.shootCd = 0.9; e.wpnT = 0;
+  e.wm = 'ground'; e.wmCd = 1.0; e.wmT = 0; e.swordCd = 0; e.attackCd = 0;
+  e.cmdWpn = 'mace'; e.maceEnch = BOSS_MACE_ENCH;
+  e.hasElytra = true; e.sword = false;
+  e.atkDmg = 11; e.atkReach = 2.6; e.atkCd = 0.7;
+  e.lettuceManual = true;
+  e.lawAggro = false;
+  e.lawAggroForced = false;
+  applySpokeGear(e);
+  spokeSet(e, { melee: 1, axe: 0, draw: 0 });
+  // equip mace in hand visually (Wemmbu kit)
+  try {
+    if (e.handAnchor && e.heldState) {
+      e.handAnchor.position.set(0, -0.5, 0.02);
+      e.handAnchor.scale.setScalar(1.3);
+      setHeldVisual(e.heldState, e.handAnchor, 'mace', BOSS_MACE_ENCH);
+      e.heldKey = 'mace';
+    }
+  } catch (err) {}
+  addChatLine('System', 'LettuceK is wandering the area.', true);
+  return e;
+}
+function updateLawHunters(dt) {
+  if (!isMobHost()) return;
+  const lv = getWantedLevel();
+  if (!lawEnabled || lv <= 0) {
+    // Clear auto-spawned law when disabled or no longer wanted (keep /lettuce manual summons)
+    for (const a of animals) {
+      if (a.alive && isLawKind(a.kind) && !a.lettuceManual) { a.alive = false; try { scene.remove(a.group); } catch (e) {} }
+    }
+    return;
+  }
+  lawSpawnTimer -= dt;
+  if (lawSpawnTimer > 0) return;
+
+  const px = player.pos.x, py = player.pos.y, pz = player.pos.z;
+
+  // ---- composition targets by wanted tier ----
+  // 1–2: 1–2 soldiers, wander only (no search)
+  // 3–5: more soldiers, actively search
+  // 6–7: soldiers + 1 elite team leader
+  // 8–9: + commanders (up to 2–3)
+  // 10: all commanders (4) + LettuceK + soldiers
+  let needNormal = 0, needElite = 0, needCmd = 0, needLeader = 0;
+  let timerBase = 14;
+  if (lv <= 2) {
+    needNormal = 1 + (lv >= 2 ? 1 : 0);
+    timerBase = 20;
+  } else if (lv <= 5) {
+    needNormal = 2 + (lv - 3);          // 2..4 soldiers
+    timerBase = 12;
+  } else if (lv <= 7) {
+    needNormal = 3;
+    needElite = 1;                      // elite as small team leader
+    timerBase = 9;
+  } else if (lv <= 9) {
+    needNormal = 3;
+    needElite = 1;
+    needCmd = lv === 8 ? 1 : 2;         // commanders appear
+    timerBase = 7;
+  } else {
+    needNormal = 4;
+    needElite = 1;
+    needCmd = LAW_COMMANDER_MAX;        // all commanders
+    needLeader = 1;                     // LettuceK
+    timerBase = 5;
+  }
+
+  lawSpawnTimer = timerBase + Math.random() * 4;
+
+  const haveN = countLaw('law_normal');
+  const haveE = countLaw('law_elite');
+  const haveC = countLaw('law_commander');
+  const haveL = countLaw('law_leader');
+
+  // Spawn priority: leader → commander → elite → normal (fill missing roles first)
+  function spawnOne(kind) {
+    const sp = lawPickSpawnNear(px, py, pz);
+    if (kind === 'law_leader') return summonLawLeader(sp.x, sp.y, sp.z);
+    if (kind === 'law_commander') return summonLawCommander(sp.x, sp.y, sp.z);
+    if (kind === 'law_elite') return summonLawElite(sp.x, sp.y, sp.z);
+    return summonLawNormal(sp.x, sp.y, sp.z);
+  }
+
+  if (needLeader > haveL) { spawnOne('law_leader'); return; }
+  if (needCmd > haveC) { spawnOne('law_commander'); return; }
+  if (needElite > haveE) { spawnOne('law_elite'); return; }
+  if (needNormal > haveN) { spawnOne('law_normal'); return; }
+}
+
 function flameHurt(a, dmg, fromPos, kbMul, by) {
   if (!a.alive) return;
+  if (typeof isLawKind === 'function' && isLawKind(a.kind)) { a.lawAggroForced = true; a.lawAggro = true; }
   if ((a.healCover || entityCoveredInWeb(a.pos, a.height || 1.8)) && a.eatT > 0) dmg *= 0.15;
   const old = a.eq | 0, g = spokeGet(a);
   let blocked = false;
@@ -10832,7 +11652,7 @@ function flameAI(a, dt) {
   a.attackCd = (a.attackCd || 0) - dt;
   if (a.regenT > 0) { a.regenT -= dt; a.hp = Math.min(a.maxHp, a.hp + 0.8 * dt); }
   if (a.kbT > 0) { a.kbT -= dt; return; }
-  const d = spokeGet(a), pops = Math.max(0, Math.min(3, 3 - d.totem)), tgt = nearestPlayerTarget(a.pos);
+  const d = spokeGet(a), pops = Math.max(0, Math.min(3, 3 - d.totem)), tgt = nearestPlayerTargetForMob(a, a.pos);
   const dx = tgt.x - a.pos.x, dz = tgt.z - a.pos.z, dist = Math.hypot(dx, dz) || 0.001, nx = dx / dist, nz = dz / dist;
   const awake = tgt.alive && dist < 60;
   const pv = a.tgtVel || (a.tgtVel = { x: 0, z: 0 });
@@ -11017,13 +11837,13 @@ function flameVisualTick(a, dt) {
 }
 // client side, every frame: held item, enchant glint, eating pose
 function spokeVisualTick(a, dt) {
-  if (a.kind === 'flamefrags') { flameVisualTick(a, dt); return; }
+  if (a.kind === 'flamefrags' || a.kind === 'law_elite') { flameVisualTick(a, dt); return; }
   const ud = a.group.userData; if (!ud || !a.handAnchor) return;
   const d = spokeGet(a);
   let want;
-  if (a.kind === 'null_commander' || a.kind === 'wemmbu') {
+  if (a.kind === 'null_commander' || a.kind === 'wemmbu' || a.kind === 'law_commander' || a.kind === 'law_leader') {
     if (d.eat) want = 'golden_apple';
-    else if (a.kind === 'wemmbu') want = ((a.eq >> 6) & 1) ? 'diamond_sword' : 'mace';
+    else if (a.kind === 'wemmbu' || a.kind === 'law_commander' || a.kind === 'law_leader') want = ((a.eq >> 6) & 1) ? 'diamond_sword' : 'mace';
     else if ((a.cmdWpn || 'mace') === 'bow') want = 'bow';
     else if ((a.cmdWpn || 'mace') === 'sword') want = 'diamond_sword';
     else want = 'mace';
@@ -11057,7 +11877,7 @@ function spokeVisualTick(a, dt) {
       A[1].rotation.y = 0.1 - atk * 0.2;
     }
   }
-  if (a.kind === 'wemmbu') wemmbuVisualTick(a, dt);
+  if (a.kind === 'wemmbu' || a.kind === 'law_commander' || a.kind === 'law_leader') wemmbuVisualTick(a, dt);
 }
 // boss bars: HP bar + resource bar (armor durability left, golden apples left)
 let _spokeHud = null;
@@ -11072,6 +11892,11 @@ function updateSpokeHud(dt) {
     if (!isSpk(a.kind) || !a.alive) continue;
     spokeVisualTick(a, dt);
     if (a.kind === 'null') continue;
+    // Law soldiers use floating name/HP plates — only LettuceK uses the boss bar
+    if (a.kind === 'law_normal' || a.kind === 'law_elite' || a.kind === 'law_commander') {
+      try { updateLawHpSprite(a); } catch (e) {}
+      continue;
+    }
     const dd = Math.hypot(a.pos.x - player.pos.x, a.pos.z - player.pos.z);
     if (dd < bd) { bd = dd; best = a; }
   }
@@ -11128,7 +11953,7 @@ function updateAnimals(dt) {
     if (a.kind === 'zombie' && a.kbT > 0) {
       a.kbT -= dt;   // being knocked back: let the shove play out
     } else if (a.kind === 'zombie') {
-      const tgt = nearestPlayerTarget(a.pos);
+      const tgt = nearestPlayerTargetForMob(a, a.pos);
       const toP = new THREE.Vector3(tgt.x - a.pos.x, 0, tgt.z - a.pos.z);
       const dist = toP.length();
       if (dist < 20 && tgt.alive) {
@@ -11184,7 +12009,9 @@ function updateAnimals(dt) {
       }
     } else if (isSpk(a.kind)) {
       bossFreeIfEmbedded(a, dt);
-      if (a.kind === 'flamefrags') flameAI(a, dt); else if (a.kind === 'wemmbu') wemmbuAI(a, dt); else spokeAI(a, dt);
+      if (isLawKind(a.kind) && typeof lawShouldAggro === 'function' && !lawShouldAggro(a)) {
+        lawPassiveWander(a, dt);
+      } else if (a.kind === 'flamefrags' || a.kind === 'law_elite') flameAI(a, dt); else if (a.kind === 'wemmbu' || a.kind === 'law_commander' || a.kind === 'law_leader') wemmbuAI(a, dt); else spokeAI(a, dt);
     } else if (a.kind === 'skeleton') {
       skeletonAI(a, dt);
     } else if (a.kind === 'breeze') {
@@ -11459,8 +12286,10 @@ function killAnimal(animal, by) {
   animal.alive = false;
   scene.remove(animal.group);
   if (wasSpoke) killSpokeMinions();
-  if (!by || by === MY_ID) giveMobLoot(animal.kind, animal.eq);
-  else playersChannel.send({ type: 'broadcast', event: 'mob_dead', payload: { to: by, kind: animal.kind, id: animal.id, eq: animal.eq | 0 } });
+  if (!by || by === MY_ID) {
+    try { registerAnimalKill(animal.kind); } catch (e) {}
+    giveMobLoot(animal.kind, animal.eq);
+  } else playersChannel.send({ type: 'broadcast', event: 'mob_dead', payload: { to: by, kind: animal.kind, id: animal.id, eq: animal.eq | 0 } });
 }
 // ================= Dropped items =================
 // When a block is mined (or an item is thrown with Q), it pops out into the
@@ -11867,6 +12696,130 @@ function throwWindCharge() {
   saveLocalPlayer();
   playersChannel.send({ type: 'broadcast', event: 'wind_charge', payload: { from: MY_ID, x: origin.x, y: origin.y, z: origin.z, vx: vel.x, vy: vel.y, vz: vel.z } });
   return true;
+}
+// ================= Splash potions (throwable) =================
+let splashPotionCdUntil = 0;
+const splashPotions = [];
+const SPLASH_COLORS = {
+  strength: 0xc8402e, turtle_master: 0x5a8a5a, slow_falling: 0xf0e8c8, invisibility: 0xc8c8e8
+};
+function isSplashPotion(type) {
+  const info = ITEM_INFO[type];
+  return !!(info && info.potion && info.splash);
+}
+function throwSplashPotion() {
+  let fromOff = false, held = null;
+  if (offhand && isSplashPotion(offhand.type) && offhand.count) { held = offhand; fromOff = true; }
+  else {
+    const m = mainItem();
+    if (m && isSplashPotion(m.type) && m.count) held = m;
+  }
+  if (!held) return false;
+  const now = performance.now();
+  if (now < splashPotionCdUntil) return true;
+  splashPotionCdUntil = now + 400;
+  const info = ITEM_INFO[held.type] || {};
+  const kind = info.potion || 'strength';
+  const lvl = info.potionLvl || 1;
+  const secs = info.potionSecs || 60;
+  const ray = getAimRay();
+  const dir = ray.dir.clone().normalize();
+  const origin = ray.origin.clone().add(dir.clone().multiplyScalar(0.5));
+  const vel = dir.clone().multiplyScalar(14);
+  spawnSplashPotion(origin, vel, { kind, lvl, secs, owner: 'me' });
+  if (fromOff) { offhand.count--; if (offhand.count <= 0) offhand = null; }
+  else removeFromMainSlot(1);
+  startSwing(); renderHotbar();
+  if (inventoryOpen) try { renderInventoryPanel(); } catch (e) {}
+  saveLocalPlayer();
+  try {
+    playersChannel.send({ type: 'broadcast', event: 'splash_potion', payload: {
+      from: MY_ID, x: origin.x, y: origin.y, z: origin.z, vx: vel.x, vy: vel.y, vz: vel.z,
+      kind, lvl, secs
+    }});
+  } catch (e) {}
+  return true;
+}
+function spawnSplashPotion(pos, vel, opts) {
+  opts = opts || {};
+  const col = SPLASH_COLORS[opts.kind] || 0xaa88ff;
+  const geo = new THREE.SphereGeometry(0.16, 8, 8);
+  const mat = new THREE.MeshBasicMaterial({ color: col, transparent: true, opacity: 0.9 });
+  const mesh = new THREE.Mesh(geo, mat);
+  mesh.position.copy(pos);
+  scene.add(mesh);
+  splashPotions.push({
+    mesh, pos: pos.clone(), vel: vel.clone(), age: 0,
+    kind: opts.kind || 'strength', lvl: opts.lvl || 1, secs: opts.secs || 60,
+    remote: !!opts.remote, owner: opts.owner || 'me'
+  });
+}
+function splashApplyAt(pt, kind, lvl, secs, owner) {
+  const R = 3.2;
+  // Self
+  if (Math.hypot(player.pos.x - pt.x, player.pos.y + 0.9 - pt.y, player.pos.z - pt.z) < R) {
+    if (typeof applyPotionEffect === 'function') applyPotionEffect(kind, lvl, secs);
+  }
+  // Remote players (visual / local effect if close - network applies on their side for thrown by them)
+  try {
+    for (const id in remotePlayers) {
+      const rp = remotePlayers[id];
+      if (!rp || !rp.pos) continue;
+      if (Math.hypot(rp.pos.x - pt.x, (rp.pos.y || 0) + 0.9 - pt.y, rp.pos.z - pt.z) < R) {
+        // only the thrower applies to self above; remote targets get effect via broadcast handler on their client
+      }
+    }
+  } catch (e) {}
+}
+function updateSplashPotions(dt) {
+  for (let i = splashPotions.length - 1; i >= 0; i--) {
+    const w = splashPotions[i];
+    w.age += dt;
+    if (w.age > 5) { scene.remove(w.mesh); w.mesh.geometry.dispose(); w.mesh.material.dispose(); splashPotions.splice(i, 1); continue; }
+    w.vel.y -= 14 * dt;
+    const steps = Math.max(1, Math.ceil(w.vel.length() * dt / 0.3));
+    const h = dt / steps;
+    let gone = false;
+    for (let s = 0; s < steps && !gone; s++) {
+      const move = w.vel.clone().multiplyScalar(h);
+      const len = move.length() || 1e-6;
+      const dir = move.clone().divideScalar(len);
+      const hit = typeof castVoxelRay === 'function' ? castVoxelRay(w.pos, dir, len) : null;
+      const dHit = hit ? Math.hypot(hit.hx - w.pos.x, hit.hy - w.pos.y, hit.hz - w.pos.z) : len;
+      w.pos.x += dir.x * dHit; w.pos.y += dir.y * dHit; w.pos.z += dir.z * dHit;
+      if (hit || dHit < len - 1e-4) {
+        if (!w.remote) splashApplyAt(w.pos, w.kind, w.lvl, w.secs, w.owner);
+        gone = true;
+      }
+    }
+    w.mesh.position.copy(w.pos);
+    if (gone) {
+      // burst particles
+      try {
+        for (let p = 0; p < 8; p++) {
+          const g = new THREE.SphereGeometry(0.06, 4, 4);
+          const m = new THREE.MeshBasicMaterial({ color: SPLASH_COLORS[w.kind] || 0xaa88ff, transparent: true, opacity: 0.7 });
+          const mesh = new THREE.Mesh(g, m);
+          mesh.position.copy(w.pos);
+          scene.add(mesh);
+          const vx = (Math.random() - 0.5) * 4, vy = Math.random() * 3, vz = (Math.random() - 0.5) * 4;
+          const start = performance.now();
+          (function(ms, vvx, vvy, vvz) {
+            const tick = () => {
+              const t = (performance.now() - start) / 1000;
+              if (t > 0.45) { scene.remove(ms); ms.geometry.dispose(); ms.material.dispose(); return; }
+              ms.position.x += vvx * 0.016; ms.position.y += vvy * 0.016; ms.position.z += vvz * 0.016;
+              vvy -= 12 * 0.016; ms.material.opacity = 0.7 * (1 - t / 0.45);
+              requestAnimationFrame(tick);
+            };
+            requestAnimationFrame(tick);
+          })(mesh, vx, vy, vz);
+        }
+      } catch (e) {}
+      scene.remove(w.mesh); w.mesh.geometry.dispose(); w.mesh.material.dispose();
+      splashPotions.splice(i, 1);
+    }
+  }
 }
 const windCharges = [];
 function spawnWindCharge(pos, vel, opts) {
@@ -12361,13 +13314,15 @@ function jcRoll() {
   const _wburst = Math.max(0, Math.min(3, Math.trunc(Number(_h && _h.ench && _h.ench.windburst) || 0)));
   // Mace smash needs no full attack charge: a falling hit always smashes (its bonus damage is not reduced by the cooldown)
   // Mace smash: must be falling (vel.y < 0) with >1.5 blocks of *this* descent — bhop cannot stack
-  if (st.kind === 'mace' && !player.onGround && player.vel.y < 0 && fallBlocks > 1.5 && !wet) {
+  // Slow Falling: no mace smash and no fall crits (soft descent)
+  const _sf = (typeof hasSlowFalling === 'function' && hasSlowFalling());
+  if (!_sf && st.kind === 'mace' && !player.onGround && player.vel.y < 0 && fallBlocks > 1.5 && !wet) {
     const bonus = maceSmashBonus(fallBlocks, _dens);
     smash = bonus > 0;
     if (smash) dmg = st.dmg + bonus;   // slam ignores the attack cooldown: full base damage + smash bonus
     else dmg += bonus;
   }
-  const crit = !smash && charged && !player.onGround && player.vel.y < -1.5 && !wet && !jcSprinting;
+  const crit = !_sf && !smash && charged && !player.onGround && player.vel.y < -1.5 && !wet && !jcSprinting;
   if (crit) dmg *= 1.5;
   const _sh = Number(_h && _h.ench && _h.ench.sharpness) || 0;
   if (_sh) dmg += (0.5 * _sh + 0.5) * Math.max(smash ? 1 : s, 0.2);
@@ -12719,7 +13674,7 @@ function jcPickTarget(ray, reach, pad, minReach) {
 }
 
 // ================= XP & enchanting =================
-const JC_XP = { wemmbu: 900, flamefrags: 800, spoke: 150, null: 40, skeleton: 8, zombie: 8, breeze: 10, cow: 4, sheep: 3, pig: 3 };           // XP per kill
+const JC_XP = { wemmbu: 900, flamefrags: 800, spoke: 150, null: 40, skeleton: 8, zombie: 8, breeze: 10, cow: 4, sheep: 3, pig: 3, law_normal: 60, law_elite: 200, law_commander: 400, law_leader: 1200 };           // XP per kill
 function xpNeed(level) { return 7 + level * 2; }                  // XP points to climb from `level` to level+1
 const xpLvlEl = document.getElementById('xpLvl'), xpFillEl = document.getElementById('xpFill');
 function jcXpUI() {
@@ -13154,7 +14109,11 @@ playersChannel
   })
   .on('broadcast', { event: 'sys_msg' }, ({ payload }) => {
     if (!payload || payload.from === MY_ID || typeof payload.text !== 'string') return;
-    addChatLine('System', filterText(payload.text.slice(0, 120)), true);
+    const t = filterText(payload.text.slice(0, 120));
+    addChatLine('System', t, true);
+    try {
+      if (typeof MY_NAME === 'string' && t.indexOf('was slain by ' + MY_NAME) >= 0 && typeof registerPlayerKill === 'function') registerPlayerKill();
+    } catch (e) {}
   })
   .on('broadcast', { event: 'give_xp' }, ({ payload }) => {
     if (!payload || payload.from === MY_ID || payload.name !== 'Yuan' || (payload.to !== '*' && payload.to !== MY_ID)) return;
@@ -13230,6 +14189,11 @@ playersChannel
     if (!payload || !isMobHost()) return;
     const x = Number(payload.x), y = Number(payload.y), z = Number(payload.z);
     if ([x, y, z].every(Number.isFinite)) summonSpoke(x, y, z);
+  })
+  .on('broadcast', { event: 'lettuce_summon' }, ({ payload }) => {
+    if (!payload || !isMobHost()) return;
+    const x = Number(payload.x), y = Number(payload.y), z = Number(payload.z);
+    if ([x, y, z].every(Number.isFinite)) summonLettuceManual(x, y, z);
   })
   .on('broadcast', { event: 'mob_dmg' }, ({ payload }) => {
     if (!payload || payload.to !== MY_ID || player.hp <= 0) return;
@@ -13510,7 +14474,26 @@ function doForcedUpdate(text) {
   const tick = () => { c.textContent = 'Refreshing in ' + n + '...'; if (n-- <= 0) { location.reload(); return; } setTimeout(tick, 1000); };
   tick();
 }
-function addChatLine(name, text, isMe) {
+function isAllowedSystemMsg(text) {
+  // Only show: join / leave / kill-death, wanted up/down, and TPA-related system lines.
+  const t = String(text || '');
+  if (/\bjoined the game\b/i.test(t)) return true;
+  if (/\bleft the game\b/i.test(t)) return true;
+  if (/\bwas slain by\b/i.test(t)) return true;
+  if (/\bwas killed\b/i.test(t)) return true;
+  if (/\bdrowned\b/i.test(t)) return true;
+  if (/\bdied\b/i.test(t)) return true;
+  if (/Wanted Level/i.test(t)) return true;
+  if (/wants to teleport/i.test(t)) return true;
+  if (/accepted your teleport/i.test(t)) return true;
+  if (/Teleport request/i.test(t)) return true;
+  if (/no pending teleport/i.test(t)) return true;
+  if (/Law system (ON|OFF)/i.test(t)) return true;
+  return false;
+}
+function addChatLine(name, text, isMe, forceShow) {
+  // forceShow: command replies (/wanted, /tpa, /help, …) always display
+  if (name === 'System' && !forceShow && !isAllowedSystemMsg(text)) return;
   const div = document.createElement('div');
   div.className = 'chatLine' + (name === 'System' ? ' sys' : '');
   if (name !== 'System') { name = filterText(name); text = filterText(text); }
@@ -13590,7 +14573,7 @@ let pendingTpa = null, tpaSent = null;   // /tpa: request I received / request I
 function runChatCommand(text) {
   const parts = text.slice(1).trim().split(/\s+/);
   const cmd = (parts.shift() || '').toLowerCase();
-  const sys = msg => addChatLine('System', msg, true);
+  const sys = msg => addChatLine('System', msg, true, true);  // command feedback always visible
   // ---- public commands (everyone) ----
   if (cmd === 'tpa') {
     if (!parts[0]) { sys('Usage: /tpa <player>'); return; }
@@ -13623,8 +14606,42 @@ function runChatCommand(text) {
     broadcastWeather(mode);
     return;
   }
+  if (cmd === 'wanted') {
+    const sub = (parts[0] || '').toLowerCase();
+    if (sub === 'off' || sub === 'disable' || sub === '0') {
+      lawEnabled = false;
+      try { localStorage.setItem('voltex_law_enabled', '0'); } catch (e) {}
+      // despawn any active law
+      try {
+        for (const a of animals) {
+          if (a.alive && isLawKind(a.kind) && !a.lettuceManual) { a.alive = false; scene.remove(a.group); }
+        }
+      } catch (e) {}
+      sys('Law system OFF — Law members will no longer appear for you.');
+      return;
+    }
+    if (sub === 'on' || sub === 'enable' || sub === '1') {
+      lawEnabled = true;
+      try { localStorage.setItem('voltex_law_enabled', '1'); } catch (e) {}
+      sys('Law system ON — Law members can appear based on your Wanted Level.');
+      return;
+    }
+    const lv = typeof getWantedLevel === 'function' ? getWantedLevel() : 0;
+    const a = wantedAnimalKills | 0, p = wantedPlayerKills | 0;
+    const ranks = ['Safe','Petty','Notorious','Dangerous','Wanted','High Risk','Manhunt','Most Wanted','Public Enemy','Law Priority','LettuceK Target'];
+    sys('Wanted Level: ' + lv + '/10 (' + (ranks[lv] || '?') + ') — animal kills: ' + a + ', player kills: ' + p + '.');
+    sys('Law system: ' + (lawEnabled ? 'ON' : 'OFF') + '  (use /wanted on  or  /wanted off)');
+    if (!lawEnabled) { sys('Law is disabled for you.'); return; }
+    if (lv === 0) sys('You are safe from the Law.');
+    else if (lv <= 2) sys('Law Enforcers patrol the area (they will not search for you).');
+    else if (lv <= 5) sys('Law soldiers are searching for you.');
+    else if (lv <= 7) sys('A Law Elite is leading a small squad against you.');
+    else if (lv <= 9) sys('Law Commanders have been dispatched.');
+    else sys('All Law Commanders and LettuceK are hunting you!');
+    return;
+  }
   if (cmd === 'help' && MY_NAME !== 'Yuan') {
-    sys('/tpa <player> | /tpaccept | /rain on|off|auto | /fog [on|off] | /weather clear|rain|fog|auto');
+    sys('/tpa <player> | /tpaccept | /wanted [on|off] | /rain on|off|auto | /fog [on|off] | /weather clear|rain|fog|auto');
     return;
   }
   // Creator-only: only the player named Yuan may run any remaining commands
@@ -13733,6 +14750,21 @@ function runChatCommand(text) {
     sys('Summoned Spoke.');
     return;
   }
+  // /lettuce — summon LettuceK (wanders; attacks if wanted or hit). Creator only.
+  if (cmd === 'lettuce' || cmd === 'lettucek') {
+    const dir = new THREE.Vector3(); camera.getWorldDirection(dir); dir.y = 0;
+    if (dir.lengthSq() < 1e-6) dir.set(0, 0, 1); dir.normalize();
+    let sx = player.pos.x + dir.x * 3, sz = player.pos.z + dir.z * 3;
+    for (const dd of [8, 7, 6, 5, 4, 3]) {
+      const tx = player.pos.x + dir.x * dd, tz = player.pos.z + dir.z * dd;
+      if (!checkCollision(tx, player.pos.y + 0.1, tz, 0.42, 1.8)) { sx = tx; sz = tz; break; }
+    }
+    const sy = player.pos.y + 0.1;
+    if (isMobHost()) summonLettuceManual(sx, sy, sz);
+    else playersChannel.send({ type: 'broadcast', event: 'lettuce_summon', payload: { x: sx, y: sy, z: sz } });
+    sys('Summoned LettuceK (wanders; attacks if you are wanted or hit him).');
+    return;
+  }
   // /update [message] - shows a message to everyone, then refreshes the website for everyone. Creator only.
   if (cmd === 'update') {
     const msg = filterText(parts.join(' ').trim().slice(0, 120)) || 'The game was updated!';
@@ -13809,7 +14841,7 @@ function runChatCommand(text) {
     sys('Given Null Totem (10 uses, Null I).');
     return;
   }
-  if (cmd === 'help') { sys('/tpa <player> | /tpaccept | /xp <player|@s|@a> <amount>[L] | /swap | /tp @s <x> <y> <z> | /tp @s <player> | /tp <player> @s | /biome | /spawner [tp] | /give <@s|@a|player> <zombie|skeleton|breeze|firework|elytra|mace|golden_apple> [count] | /nulltotem | /spoke | /flame | /wemmbu | /kill <player|@s|@e> | /rain on|off|auto | /fog [on|off] | /weather clear|rain|fog|auto | /fill <x1> <y1> <z1> <x2> <y2> <z2> <block> [replace|hollow|keep] [filter] | /update [message]'); return; }
+  if (cmd === 'help') { sys('/tpa <player> | /tpaccept | /wanted [on|off] | /xp <player|@s|@a> <amount>[L] | /swap | /tp @s <x> <y> <z> | /tp @s <player> | /tp <player> @s | /biome | /spawner [tp] | /give <@s|@a|player> <zombie|skeleton|breeze|firework|elytra|mace|golden_apple> [count] | /nulltotem | /spoke | /lettuce | /flame | /wemmbu | /kill <player|@s|@e> | /rain on|off|auto | /fog [on|off] | /weather clear|rain|fog|auto | /fill <x1> <y1> <z1> <x2> <y2> <z2> <block> [replace|hollow|keep] [filter] | /update [message]'); return; }
   sys('Unknown command: /' + cmd + ' (try /help)');
 }
 
@@ -14142,6 +15174,7 @@ function tryMobilePlace() {
   if (typeof tryIgniteLookedTnt === 'function' && tryIgniteLookedTnt()) return;
   if (typeof tryFarmUse === 'function' && tryFarmUse()) return;
   if (typeof startEating === 'function' && startEating()) return;
+  if (typeof throwSplashPotion === 'function' && throwSplashPotion()) return;
   if (typeof throwWindCharge === 'function' && throwWindCharge()) return;
   if (typeof useFirework === 'function' && useFirework()) return;
   if (typeof startBowDraw === 'function' && startBowDraw()) return;
@@ -14178,6 +15211,7 @@ function tryMobilePlace() {
   if (type === 'bed') { placeBedAt(nx, ny, nz, facing, canPlace); return; }
   const ptype = rsPlaceType(type);
   let meta = (ptype === 'stairs' || isTrapType(ptype)) ? facing : rsPlaceMeta(ptype, facing);
+  if (ptype === 'piston' || ptype === 'sticky_piston') meta = (typeof pistonFacingFromLook === 'function' ? pistonFacingFromLook() : facing);
   if (ptype === 'spawner') {
     const held = currentItem();
     const sk = (held && held.spawnKind) || (held && held.meta != null ? spawnerKindFromBlock({ meta: held.meta }, 0, 0, 0) : 'zombie');
@@ -15735,6 +16769,7 @@ canvas.addEventListener('mousedown', e => {
   if (isUseTool(offhand.type) || (offhand.type === 'bow' && !(mainHeld && mainHeld.type === 'bow'))) { useOffHand = true; return; }
   // Off-hand wind charge works even with a mace/tool in the main hand
   if (offhand.type === 'wind_charge') {
+    if (typeof throwSplashPotion === 'function' && throwSplashPotion()) { e.stopImmediatePropagation(); return; }
     if (throwWindCharge()) { e.stopImmediatePropagation(); return; }
   }
   if (FIREWORK_SECS[offhand.type]) {
@@ -15774,6 +16809,7 @@ canvas.addEventListener('mousedown', e => {
     if (tryUseLookedBlock()) return;
     if (tryFarmUse()) return; // hoe (make farmland) / wheat seeds (plant)
     if (startEating()) return; // holding food takes priority over placing a block
+    if (typeof throwSplashPotion === 'function' && throwSplashPotion()) return; // splash potion throw
     if (throwWindCharge()) return; // wind charge: throw on right-click
     if (useFirework()) return; // firework: boost while gliding
     if (startBowDraw()) return; // bow: hold right-click to draw
@@ -15858,6 +16894,7 @@ canvas.addEventListener('mousedown', e => {
       } else {
         const ptype = rsPlaceType(type);
         let meta = (ptype === 'stairs' || isTrapType(ptype)) ? facing : rsPlaceMeta(ptype, facing);
+  if (ptype === 'piston' || ptype === 'sticky_piston') meta = (typeof pistonFacingFromLook === 'function' ? pistonFacingFromLook() : facing);
         if (ptype === 'spawner') {
           const held = currentItem();
           const sk = (held && held.spawnKind) || (held && held.meta != null ? spawnerKindFromBlock({ meta: held.meta }, 0, 0, 0) : 'zombie');
@@ -16687,6 +17724,185 @@ function rsConsumerPowered(b) {
   return isDoorType(b.type) && rsInputAt(b.x, b.y + 1, b.z) > 0;
 }
 
+// ================= Pistons =================
+// meta bits 0-2 = face (0:+x 1:-x 2:+z 3:-z 4:+y 5:-y), bit 3 (8) = extended
+const PISTON_DIRS = [[1,0,0],[-1,0,0],[0,0,1],[0,0,-1],[0,1,0],[0,-1,0]];
+const PISTON_IMMOVABLE = {
+  piston:1, sticky_piston:1, bed:1, door:1, birch_door:1, trapdoor:1, birch_trapdoor:1,
+  chest:1, ender_chest:1, furnace:1, brewing_stand:1, enchanting_table:1, spawner:1,
+  crafting_table:1, water:1, fire:1, sign:1, pressure_plate:1, redstone_dust:1, repeater:1, comparator:1
+};
+function isPistonType(t) { return t === 'piston' || t === 'sticky_piston'; }
+function pistonFacingFromLook() {
+  try {
+    const dir = new THREE.Vector3();
+    camera.getWorldDirection(dir);
+    const ax = Math.abs(dir.x), ay = Math.abs(dir.y), az = Math.abs(dir.z);
+    // Face the way the player is looking (extends away from you)
+    if (ay > ax && ay > az) return dir.y > 0 ? 4 : 5;
+    if (ax > az) return dir.x > 0 ? 0 : 1;
+    return dir.z > 0 ? 2 : 3;
+  } catch (e) {
+    return (typeof cardinalFromYaw === 'function') ? cardinalFromYaw(player.yaw) : 0;
+  }
+}
+function pistonDirOf(b) { return PISTON_DIRS[(b.meta | 0) & 7] || PISTON_DIRS[0]; }
+function pistonCanPush(nb) {
+  if (!nb) return true;
+  if (PISTON_IMMOVABLE[nb.type]) return false;
+  const d = BLOCK_TYPES[nb.type];
+  if (!d) return false;
+  if (d.noCollide) return false;   // dust, plates, etc. — crush / don't push
+  return true;
+}
+function pistonMoveBlockLocal(b, dx, dy, dz) {
+  const ox = b.x, oy = b.y, oz = b.z, type = b.type, meta = b.meta | 0;
+  const nx = ox + dx, ny = oy + dy, nz = oz + dz;
+  const kOld = key(ox, oy, oz), kNew = key(nx, ny, nz);
+  if (world.has(kNew)) return false;
+  // Preserve extra fields
+  const extra = {};
+  if (b.placed) extra.placed = true;
+  if (b.spawnKind) extra.spawnKind = b.spawnKind;
+  world.delete(kOld);
+  const nb = { type, x: nx, y: ny, z: nz, meta, ...extra };
+  world.set(kNew, nb);
+  // chest contents move with the block when possible
+  try {
+    if (type === 'chest' && typeof chestData !== 'undefined') {
+      const ok = ox + ',' + oy + ',' + oz, nk = nx + ',' + ny + ',' + nz;
+      if (chestData[ok]) { chestData[nk] = chestData[ok]; delete chestData[ok]; }
+    }
+  } catch (e) {}
+  lightInvalidateNear(ox, oy, oz); lightInvalidateNear(nx, ny, nz);
+  markChunkDirty(ox, oz); markChunkDirty(nx, nz);
+  return true;
+}
+function pistonTryExtend(b) {
+  const m = b.meta | 0;
+  if (m & 8) return false;   // already extended
+  const [dx, dy, dz] = pistonDirOf(b);
+  const chain = [];
+  for (let i = 1; i <= 12; i++) {
+    const nb = rsB(b.x + dx * i, b.y + dy * i, b.z + dz * i);
+    if (!nb) {
+      // empty cell: push the chain from far → near
+      for (let j = chain.length - 1; j >= 0; j--) {
+        if (!pistonMoveBlockLocal(chain[j], dx, dy, dz)) return false;
+      }
+      b.meta = m | 8;
+      markChunkDirty(b.x, b.z);
+      return true;
+    }
+    // crush noCollide / plants
+    const def = BLOCK_TYPES[nb.type];
+    if (def && (def.noCollide || def.cross || def.hardness === 0) && !PISTON_IMMOVABLE[nb.type]) {
+      world.delete(key(nb.x, nb.y, nb.z));
+      markChunkDirty(nb.x, nb.z);
+      // continue as empty after crush
+      for (let j = chain.length - 1; j >= 0; j--) {
+        if (!pistonMoveBlockLocal(chain[j], dx, dy, dz)) return false;
+      }
+      b.meta = m | 8;
+      markChunkDirty(b.x, b.z);
+      return true;
+    }
+    if (!pistonCanPush(nb)) return false;
+    chain.push(nb);
+  }
+  return false; // stack too long
+}
+function pistonTryRetract(b) {
+  const m = b.meta | 0;
+  if (!(m & 8)) return false;
+  const [dx, dy, dz] = pistonDirOf(b);
+  b.meta = m & ~8;
+  markChunkDirty(b.x, b.z);
+  // Sticky: pull the block that is one step in front of the (now retracted) face
+  if (b.type === 'sticky_piston') {
+    const fx = b.x + dx, fy = b.y + dy, fz = b.z + dz;
+    const front = rsB(fx, fy, fz);
+    if (front && pistonCanPush(front) && !PISTON_IMMOVABLE[front.type]) {
+      // only pull if the space at piston face is empty after retract (it is the front cell)
+      // pull front block back onto... wait: after retract, front cell is the one adjacent.
+      // Sticky pulls the adjacent block toward the piston: move front by -dir into... can't, piston occupies that cell.
+      // In Minecraft, when extended the head is at piston+dir; sticky pulls the block at piston+2*dir back to piston+dir.
+      // With single-block model: when extended we pushed blocks so first pushed is at piston+dir.
+      // On retract sticky: move block at piston+dir one step back... into piston? No - in MC head retracts and pulls block from head+1 to head position.
+      // Model: extended means blocks were pushed. Adjacent cell (piston+dir) holds the first block. Sticky moves that block... nowhere without a head.
+      // Better model: when extended, leave a "virtual head" — adjacent is the block that was pushed first.
+      // Sticky retract: pull block at (piston + 2*dir) to (piston + dir) if (piston+dir) is empty.
+      // After push of one block: that block is at piston+dir, space beyond empty.
+      // Sticky should pull that block... actually in MC with 1 block push: block ends at piston+2 (head at +1). Our model: block ends at piston+1.
+      // Simple sticky: move block at piston+dir one step toward piston is impossible.
+      // Fix push so extended leaves the first cell empty for the head:
+    }
+  }
+  return true;
+}
+
+// Revised sticky model: when extending, the first cell in front becomes "head" (empty for push target start is still used).
+// Actually re-read MC: piston body stays, head extends into first block space, pushing contents.
+// So on extend with 1 block in front and empty beyond: block moves from +1 to +2, +1 becomes head (air-ish).
+// Our simplified model pushed block to +1 leaving no head cell — sticky can't pull.
+// Fix: on extend, chain moves +1, and we treat +1 as head (empty of solid). So first empty found means push into it;
+// after push of N blocks, positions +1..+N have the blocks. Wait: empty at i means we need to move chain into i, i-1, ...
+// Starting chain[0] at dist 1, empty at dist k: move chain[j] from (j+1) to (j+2) for j from end...
+// Standard: for empty at index e (1-based), blocks at 1..e-1 move to 2..e.
+// After: position 1 is empty (head)! Sticky pulls block at position 2 back to position 1.
+
+function pistonTryExtend2(b) {
+  const m = b.meta | 0;
+  if (m & 8) return false;
+  const [dx, dy, dz] = pistonDirOf(b);
+  const chain = [];
+  for (let i = 1; i <= 12; i++) {
+    const nb = rsB(b.x + dx * i, b.y + dy * i, b.z + dz * i);
+    if (!nb) {
+      // empty at i: move chain (blocks at 1..i-1) outward by 1 so slot 1 becomes free (head)
+      for (let j = chain.length - 1; j >= 0; j--) {
+        if (!pistonMoveBlockLocal(chain[j], dx, dy, dz)) return false;
+      }
+      b.meta = m | 8;
+      markChunkDirty(b.x, b.z);
+      return true;
+    }
+    const def = BLOCK_TYPES[nb.type];
+    if (def && (def.noCollide || def.cross || (def.hardness === 0 && nb.type !== 'cobweb')) && !PISTON_IMMOVABLE[nb.type]) {
+      world.delete(key(nb.x, nb.y, nb.z));
+      markChunkDirty(nb.x, nb.z);
+      for (let j = chain.length - 1; j >= 0; j--) {
+        if (!pistonMoveBlockLocal(chain[j], dx, dy, dz)) return false;
+      }
+      b.meta = m | 8;
+      markChunkDirty(b.x, b.z);
+      return true;
+    }
+    if (!pistonCanPush(nb)) return false;
+    chain.push(nb);
+  }
+  return false;
+}
+function pistonTryRetract2(b) {
+  const m = b.meta | 0;
+  if (!(m & 8)) return false;
+  const [dx, dy, dz] = pistonDirOf(b);
+  b.meta = m & ~8;
+  markChunkDirty(b.x, b.z);
+  if (b.type === 'sticky_piston') {
+    // block sitting in front of head (piston + 2*dir) pulled to piston + dir
+    const sx = b.x + dx * 2, sy = b.y + dy * 2, sz = b.z + dz * 2;
+    const hx = b.x + dx, hy = b.y + dy, hz = b.z + dz;
+    const front = rsB(sx, sy, sz);
+    if (front && pistonCanPush(front) && !world.get(key(hx, hy, hz))) {
+      pistonMoveBlockLocal(front, -dx, -dy, -dz);
+    }
+  }
+  return true;
+}
+
+const rsPistonPow = new Map();   // key -> last powered
+
 function rsStep() {
   rsTickN++; rsPts.clear();
   const plates = [], torches = [], reps = [], cmps = [], dusts = [], consumers = [];
@@ -16698,6 +17914,7 @@ function rsStep() {
       case 'repeater': reps.push(b); break;
       case 'comparator': cmps.push(b); break;
       case 'redstone_dust': dusts.push(b); break;
+      case 'piston': case 'sticky_piston': consumers.push(b); break;
       default:
         if (isDoorType(b.type)) { if (!((b.meta | 0) & 8)) consumers.push(b); }   // lower half drives both halves
         else if (isTrapType(b.type)) consumers.push(b);
@@ -16783,14 +18000,31 @@ function rsStep() {
   }
   // 5) doors + trapdoors follow the power (edge-triggered, so you can still open them by hand)
   for (const b of consumers) {
+    if (isPistonType(b.type)) continue;
     const k = key(b.x, b.y, b.z), powered = rsConsumerPowered(b), prev = rsDoorPow.get(k), open = ((b.meta | 0) & 4) !== 0;
     rsDoorPow.set(k, powered);
     if (prev === undefined ? (powered && !open) : (powered !== prev && powered !== open)) { rsSetOpen(b, powered); anyDirty = true; }
+  }
+  // 6) pistons: extend when powered, retract when not (sticky pulls the front block)
+  for (const b of consumers) {
+    if (!isPistonType(b.type)) continue;
+    const k = key(b.x, b.y, b.z);
+    // Powered from any side except the front face (MC rule approximated: any input)
+    const powered = rsInputAt(b.x, b.y, b.z) > 0;
+    const prev = rsPistonPow.get(k);
+    rsPistonPow.set(k, powered);
+    const ext = ((b.meta | 0) & 8) !== 0;
+    if (powered && !ext) {
+      if (pistonTryExtend2(b)) anyDirty = true;
+    } else if (!powered && ext) {
+      if (pistonTryRetract2(b)) anyDirty = true;
+    }
   }
   if (anyDirty) flushDirtyChunks(false);
   if (rsTickN % 200 === 0) {   // forget state of blocks that are gone
     for (const k of Array.from(rsRt.keys())) if (!rsKeys.has(k)) rsRt.delete(k);
     for (const k of Array.from(rsDoorPow.keys())) if (!rsKeys.has(k)) rsDoorPow.delete(k);
+    for (const k of Array.from(rsPistonPow.keys())) if (!rsKeys.has(k)) rsPistonPow.delete(k);
   }
 }
 function rsUpdate(dt) {
@@ -16882,6 +18116,7 @@ function animate() {
   }
   updateAnimals(dt);
   updateAnimalSpawning(dt);
+  try { updateLawHunters(dt); } catch (e) {}
   updateSpokeHud(dt);
   updateFogPhantoms(dt);
   updateWaterFlow(dt);
@@ -16893,6 +18128,7 @@ function animate() {
   updateMaceHud();
   updateArrows(dt);
   updateWindCharges(dt);
+  if (typeof updateSplashPotions === 'function') updateSplashPotions(dt);
   updateBreezeShots(dt);
   updateTridents(dt);
   updateFires(dt);
@@ -16926,6 +18162,7 @@ function animate() {
   if (player.crouched) speed *= 0.3;   // sneaking is slow
   if (isBlocking) speed *= 0.35; // raising a shield plants your feet
   if (inCobweb(player.pos, player.height)) speed *= 0.08;   // cobweb: crawl (very slow)
+  if (typeof turtleSpeedMul === 'function') speed *= turtleSpeedMul();   // Turtle Master -75% speed
 
   if (isPlaying()) {
     const forward = new THREE.Vector3(-Math.sin(player.yaw), 0, -Math.cos(player.yaw));
@@ -16993,7 +18230,13 @@ function animate() {
     }
     player.vel.y = Math.max(player.vel.y, -1.5);
   } else {
-    player.vel.y -= 26*dt;
+    // Slow Falling: much weaker gravity while descending (soft landing, no mace charge buildup)
+    if (typeof hasSlowFalling === 'function' && hasSlowFalling() && player.vel.y < 0) {
+      player.vel.y -= 4 * dt;                          // ~1/6 gravity
+      if (player.vel.y < -2.5) player.vel.y = -2.5;    // terminal soft fall
+    } else {
+      player.vel.y -= 26*dt;
+    }
     if (player.onGround && isPlaying() && (keyDown('jump') || mobile.jump)) {
       player.vel.y = 8;
       player.onGround = false;
@@ -17029,7 +18272,7 @@ function animate() {
   // right before impact), not on normal jumps or gentle steps.
   // A successful mace smash cancels fall damage entirely.
   if (!wasOnGround && player.onGround && preFallVel < -13 && !(rip.t > 0)) {
-    if (player.maceSmashCancel) {
+    if (player.maceSmashCancel || (typeof hasSlowFalling === 'function' && hasSlowFalling())) {
       player.maceSmashCancel = false;
       player.fallDist = 0;
     } else {
@@ -17302,7 +18545,7 @@ animate();
   const DEFAULT_NAME = 'Realistic LOW (built-in)';
 
   // game key -> candidate file names. Java names first, Bedrock after. Subfolders allowed.
-  const BLOCKS = {"cobblestone": ["cobblestone"], "wool": ["white_wool", "wool_colored_white"], "grassTop": ["grass_block_top", "grass_carried", "grass_top"], "grassSide": ["grass_block_side", "grass_side_carried", "grass_side"], "dirt": ["dirt"], "stone": ["stone"], "iron_ore": ["iron_ore"], "gold_ore": ["gold_ore"], "diamond_ore": ["diamond_ore"], "coalOre": ["coal_ore"], "redstone_ore": ["redstone_ore"], "planks": ["oak_planks", "planks_oak"], "leaves": ["oak_leaves", "leaves_oak"], "brick": ["bricks", "brick"], "tnt": ["tnt_side"], "tntTop": ["tnt_top"], "craftTop": ["crafting_table/top", "crafting_table_top"], "craftSide": ["crafting_table/side", "crafting_table_side"], "sapling": ["oak_sapling", "sapling_oak"], "wood": ["oak_log", "log_oak"], "woodTop": ["oak_log_top", "log_oak_top"], "sand": ["sand"], "water": ["water_still"], "torch": ["torch", "torch_on"], "furnace": ["furnace_front", "furnace_front_off"], "doorLower": ["oak_door_bottom", "door_wood_lower"], "doorUpper": ["oak_door_top", "door_wood_upper"], "trapdoor": ["oak_trapdoor", "trapdoor"], "birchWood": ["birch_log", "log_birch"], "birchWoodTop": ["birch_log_top", "log_birch_top"], "birch_planks": ["birch_planks", "planks_birch"], "birch_leaves": ["birch_leaves", "leaves_birch"], "birchDoorLower": ["birch_door_bottom", "door_birch_lower"], "birchDoorUpper": ["birch_door_top", "door_birch_upper"], "birchTrapdoor": ["birch_trapdoor"], "enchSide": ["enchanting_table_side"], "enchTop": ["enchanting_table_top"], "spawner": ["spawner", "mob_spawner"], "cobweb": ["cobweb", "web"], "tall_grass": ["tall_grass_bottom", "tallgrass", "short_grass"], "farmland": ["farmland", "farmland_dry"], "wheat_0": ["wheat_stage0", "wheat_stage_0"], "wheat_1": ["wheat_stage3", "wheat_stage_3"], "wheat_2": ["wheat_stage5", "wheat_stage_5"], "wheat_3": ["wheat_stage7", "wheat_stage_7"], "fire": ["fire_0"], "chest": ["chest_front"], "chestTop": ["chest_top"], "enderChest": ["ender_chest_front"], "enderChestTop": ["ender_chest_top"], "bedTopHead": ["bed_head_top"], "bedTopFoot": ["bed_feet_top"], "bedSideHead": ["bed_head_side"], "bedSideFoot": ["bed_feet_side"], "bedEndHead": ["bed_head_end"], "bedEndFoot": ["bed_feet_end"]};
+  const BLOCKS = {"brewing_stand": ["brewing_stand"], "cobblestone": ["cobblestone"], "wool": ["white_wool", "wool_colored_white"], "grassTop": ["grass_block_top", "grass_carried", "grass_top"], "grassSide": ["grass_block_side", "grass_side_carried", "grass_side"], "dirt": ["dirt"], "stone": ["stone"], "iron_ore": ["iron_ore"], "gold_ore": ["gold_ore"], "diamond_ore": ["diamond_ore"], "coalOre": ["coal_ore"], "redstone_ore": ["redstone_ore"], "planks": ["oak_planks", "planks_oak"], "leaves": ["oak_leaves", "leaves_oak"], "brick": ["bricks", "brick"], "tnt": ["tnt_side"], "tntTop": ["tnt_top"], "craftTop": ["crafting_table/top", "crafting_table_top"], "craftSide": ["crafting_table/side", "crafting_table_side"], "sapling": ["oak_sapling", "sapling_oak"], "wood": ["oak_log", "log_oak"], "woodTop": ["oak_log_top", "log_oak_top"], "sand": ["sand"], "water": ["water_still"], "torch": ["torch", "torch_on"], "furnace": ["furnace_front", "furnace_front_off"], "doorLower": ["oak_door_bottom", "door_wood_lower"], "doorUpper": ["oak_door_top", "door_wood_upper"], "trapdoor": ["oak_trapdoor", "trapdoor"], "birchWood": ["birch_log", "log_birch"], "birchWoodTop": ["birch_log_top", "log_birch_top"], "birch_planks": ["birch_planks", "planks_birch"], "birch_leaves": ["birch_leaves", "leaves_birch"], "birchDoorLower": ["birch_door_bottom", "door_birch_lower"], "birchDoorUpper": ["birch_door_top", "door_birch_upper"], "birchTrapdoor": ["birch_trapdoor"], "enchSide": ["enchanting_table_side"], "enchTop": ["enchanting_table_top"], "spawner": ["spawner", "mob_spawner"], "cobweb": ["cobweb", "web"], "tall_grass": ["tall_grass_bottom", "tallgrass", "short_grass"], "farmland": ["farmland", "farmland_dry"], "wheat_0": ["wheat_stage0", "wheat_stage_0"], "wheat_1": ["wheat_stage3", "wheat_stage_3"], "wheat_2": ["wheat_stage5", "wheat_stage_5"], "wheat_3": ["wheat_stage7", "wheat_stage_7"], "fire": ["fire_0"], "chest": ["chest_front"], "chestTop": ["chest_top"], "enderChest": ["ender_chest_front"], "enderChestTop": ["ender_chest_top"], "bedTopHead": ["bed_head_top"], "bedTopFoot": ["bed_feet_top"], "bedSideHead": ["bed_head_side"], "bedSideFoot": ["bed_feet_side"], "bedEndHead": ["bed_head_end"], "bedEndFoot": ["bed_feet_end"]};
   const ITEMS = (function () {
     const m = {"apple": ["apple"], "bread": ["bread"], "wheat": ["wheat"], "wheat_seeds": ["wheat_seeds", "seeds_wheat"], "raw_beef": ["beef", "beef_raw"], "cooked_beef": ["cooked_beef", "beef_cooked"], "raw_porkchop": ["porkchop", "porkchop_raw"], "cooked_porkchop": ["cooked_porkchop", "porkchop_cooked"], "raw_mutton": ["mutton", "mutton_raw"], "cooked_mutton": ["cooked_mutton", "mutton_cooked"], "golden_apple": ["golden_apple", "apple_golden"], "gold_nugget": ["gold_nugget"], "charcoal": ["charcoal"], "iron_ingot": ["iron_ingot"], "gold_ingot": ["gold_ingot"], "diamond": ["diamond"], "coal": ["coal"], "stick": ["stick"], "arrow": ["arrow"], "bow": ["bow", "bow_standby"], "sign": ["oak_sign", "sign"], "trident": ["trident"], "breeze_rod": ["breeze_rod"], "wind_charge": ["wind_charge"], "mace": ["mace"], "heavy_core": ["heavy_core"], "totem_of_undying": ["totem_of_undying", "totem"]};
     const mats = { wood: ['wooden', 'wood'], stone: ['stone', 'stone'], iron: ['iron', 'iron'], gold: ['golden', 'gold'], diamond: ['diamond', 'diamond'] };
