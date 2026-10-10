@@ -496,6 +496,67 @@
   #chestHotbarGrid { display: grid; grid-template-columns: repeat(9, 52px); gap: 5px; margin-top: 6px; padding-top: 10px; border-top: 2px solid rgba(255,255,255,0.25); }
   #chestHint { font-size: 12px; opacity: 0.8; margin-top: 6px; max-width: 480px; }
 
+  #shopPanel {
+    position: fixed; inset: 0; z-index: 61; display: none;
+    background: rgba(0,0,0,0.6); color: white; align-items: center; justify-content: center;
+  }
+  #shopBox {
+    position: relative; background: rgba(40,32,24,0.97); border: 3px solid rgba(255,255,255,0.4); border-radius: 10px;
+    padding: 14px 16px 16px; width: min(760px, 96vw); height: min(560px, 92vh); box-sizing: border-box;
+    display: flex; flex-direction: column; gap: 8px; font-family: inherit;
+  }
+  #shopBox h2 { margin: 0; font-size: 18px; text-align: center; text-shadow: 2px 2px 0 rgba(0,0,0,0.5); }
+  #shopClose {
+    position: absolute; top: 8px; right: 10px; width: 34px; height: 34px; border-radius: 6px; cursor: pointer;
+    border: 2px solid rgba(255,255,255,0.45); background: #b83a3a; color: #fff; font-size: 18px; font-weight: bold; line-height: 1;
+  }
+  #shopClose:hover { background: #d44b4b; }
+  #shopTabs { display: flex; gap: 6px; }
+  #shopTabs button {
+    flex: 1; padding: 8px 4px; border-radius: 6px; cursor: pointer; font-size: 14px; font-weight: bold; color: #fff;
+    border: 2px solid rgba(255,255,255,0.3); background: rgba(255,255,255,0.08);
+  }
+  #shopTabs button.on { background: #3f8f3f; border-color: #8fe08f; }
+  #shopMsg { min-height: 18px; font-size: 13px; text-align: center; }
+  #shopMsg.ok { color: #9be89b; } #shopMsg.bad { color: #ff9b9b; }
+  #shopBody { flex: 1; overflow-y: auto; min-height: 0; }
+  .shopEmpty { text-align: center; padding: 40px 12px; opacity: 0.85; font-size: 14px; line-height: 1.6; }
+  .shopEmpty.small { padding: 14px 6px; font-size: 12px; grid-column: 1 / -1; }
+  .shopEmpty.bad { color: #ff9b9b; }
+  .shopList { display: flex; flex-direction: column; gap: 6px; }
+  .shopRow { display: flex; align-items: center; gap: 10px; padding: 8px 10px; border-radius: 6px; background: rgba(0,0,0,0.35); border: 1px solid rgba(255,255,255,0.18); }
+  .shopWho { min-width: 90px; max-width: 150px; font-size: 13px; opacity: 0.9; word-break: break-word; }
+  .shopDeal { flex: 1; display: flex; align-items: center; gap: 12px; flex-wrap: wrap; }
+  .shopDeal small { display: block; font-size: 10px; opacity: 0.65; text-transform: uppercase; }
+  .shopArrow { font-size: 18px; opacity: 0.8; }
+  .shopIt { display: inline-flex; align-items: center; gap: 6px; font-size: 13px; }
+  .shopIt img, .shopIt .blkIcon { width: 30px; height: 30px; image-rendering: pixelated; }
+  .shopBtn {
+    padding: 7px 14px; border-radius: 6px; cursor: pointer; font-size: 13px; font-weight: bold; color: #fff;
+    border: 2px solid rgba(255,255,255,0.4); background: #3f8f3f;
+  }
+  .shopBtn:hover:not(:disabled) { filter: brightness(1.15); }
+  .shopBtn.red { background: #b83a3a; } .shopBtn.dim { background: #555; } .shopBtn.small { padding: 3px 8px; font-size: 12px; }
+  .shopBtn.big { padding: 10px 28px; font-size: 15px; }
+  .shopBtn:disabled { opacity: 0.55; cursor: default; }
+  .shopTop { display: flex; justify-content: center; margin: 6px 0; }
+  .shopSell { display: flex; gap: 12px; }
+  .shopCol { flex: 1; min-width: 0; display: flex; flex-direction: column; gap: 6px; }
+  .shopCol h3 { margin: 0; font-size: 14px; text-align: center; }
+  .shopGrid { display: grid; grid-template-columns: repeat(auto-fill, 44px); gap: 4px; max-height: 210px; overflow-y: auto; padding: 4px; background: rgba(0,0,0,0.35); border-radius: 6px; border: 1px solid rgba(255,255,255,0.18); min-height: 52px; }
+  .shopCell { position: relative; width: 44px; height: 44px; padding: 2px; border-radius: 5px; cursor: pointer; border: 2px solid rgba(255,255,255,0.2); background: rgba(255,255,255,0.07); }
+  .shopCell:hover { background: rgba(255,255,255,0.18); }
+  .shopCell.sel { border-color: #8fe08f; background: rgba(80,200,80,0.3); }
+  .shopCell img, .shopCell .blkIcon { width: 100%; height: 100%; image-rendering: pixelated; pointer-events: none; }
+  .shopCell i { position: absolute; right: 2px; bottom: 0; font-size: 11px; font-style: normal; font-weight: bold; text-shadow: 1px 1px 0 #000; }
+  .shopSearch, .shopAmt input { padding: 6px 8px; border-radius: 6px; border: 1px solid rgba(255,255,255,0.35); background: rgba(0,0,0,0.45); color: #fff; font-size: 13px; box-sizing: border-box; }
+  .shopSearch { width: 100%; }
+  .shopAmt { display: flex; align-items: center; gap: 6px; font-size: 13px; }
+  .shopAmt input { width: 90px; }
+  .shopSummary { display: flex; justify-content: center; align-items: center; gap: 14px; margin-top: 10px; padding: 8px; border-radius: 6px; background: rgba(0,0,0,0.35); flex-wrap: wrap; }
+  @media (max-width: 560px) { .shopSell { flex-direction: column; } .shopRow { flex-wrap: wrap; } }
+  .shopCell.ench { box-shadow: inset 0 0 8px #b46bff; }
+  .shopEnch { display: block; font-size: 10px; color: #cfa6ff; opacity: 0.9; }
   #signPanel {
     position: fixed; inset: 0; z-index: 60; display: none;
     background: rgba(0,0,0,0.6); color: white; align-items: center; justify-content: center;
@@ -1064,6 +1125,21 @@
     <div id="chestMainGrid"></div>
     <div id="chestHotbarGrid"></div>
     <p id="chestHint">Left-click: pick up / place stack · Right-click: pick up half / place one · Press E to close</p>
+  </div>
+</div>
+
+<div id="shopPanel">
+  <div id="shopBox">
+    <button id="shopClose" title="Close">✕</button>
+    <h2>Shop</h2>
+    <div id="shopTabs">
+      <button data-t="market">Market</button>
+      <button data-t="selling">Selling</button>
+      <button data-t="pending">Pending</button>
+      <button data-t="trade">Trade</button>
+    </div>
+    <div id="shopMsg"></div>
+    <div id="shopBody"></div>
   </div>
 </div>
 
@@ -5957,7 +6033,7 @@ function openInventory(atTable) {
 // allow pointer lock from a user gesture); if the browser refuses, the
 // normal "Click to resume" overlay appears as a fallback.
 function resumeGameplay() {
-  if (!gameStarted || inventoryOpen || furnaceOpen || brewOpen || enchantOpen || chestOpen || chatOpen || settingsOpen || signOpen) return;
+  if (!gameStarted || inventoryOpen || furnaceOpen || brewOpen || enchantOpen || chestOpen || chatOpen || settingsOpen || signOpen || shopOpen) return;
   if (pointerLocked) return;
   pauseOverlay.style.display = 'none';
   try {
@@ -5966,7 +6042,7 @@ function resumeGameplay() {
   } catch (e) { pauseOverlay.style.display = 'flex'; }
 }
 document.addEventListener('pointerlockerror', () => {
-  if (gameStarted && !pointerLocked && !inventoryOpen && !furnaceOpen && !brewOpen && !enchantOpen && !chestOpen && !chatOpen && !settingsOpen && !signOpen && !signOpen) pauseOverlay.style.display = 'flex';
+  if (gameStarted && !pointerLocked && !inventoryOpen && !furnaceOpen && !brewOpen && !enchantOpen && !chestOpen && !chatOpen && !settingsOpen && !signOpen && !shopOpen && !signOpen && !shopOpen) pauseOverlay.style.display = 'flex';
 });
 function closeInventory() {
   inventoryOpen = false;
@@ -14575,6 +14651,7 @@ function runChatCommand(text) {
   const cmd = (parts.shift() || '').toLowerCase();
   const sys = msg => addChatLine('System', msg, true, true);  // command feedback always visible
   // ---- public commands (everyone) ----
+  if (cmd === 'shop' || cmd === 'market') { setTimeout(openShop, 80); return; }   // small delay: chat just closed and re-requested pointer lock
   if (cmd === 'tpa') {
     if (!parts[0]) { sys('Usage: /tpa <player>'); return; }
     const e = findPlayerByName(parts[0]);
@@ -14641,7 +14718,7 @@ function runChatCommand(text) {
     return;
   }
   if (cmd === 'help' && MY_NAME !== 'Yuan') {
-    sys('/tpa <player> | /tpaccept | /wanted [on|off] | /rain on|off|auto | /fog [on|off] | /weather clear|rain|fog|auto');
+    sys('/shop | /tpa <player> | /tpaccept | /wanted [on|off] | /rain on|off|auto | /fog [on|off] | /weather clear|rain|fog|auto');
     return;
   }
   // Creator-only: only the player named Yuan may run any remaining commands
@@ -14841,7 +14918,7 @@ function runChatCommand(text) {
     sys('Given Null Totem (10 uses, Null I).');
     return;
   }
-  if (cmd === 'help') { sys('/tpa <player> | /tpaccept | /wanted [on|off] | /xp <player|@s|@a> <amount>[L] | /swap | /tp @s <x> <y> <z> | /tp @s <player> | /tp <player> @s | /biome | /spawner [tp] | /give <@s|@a|player> <zombie|skeleton|breeze|firework|elytra|mace|golden_apple> [count] | /nulltotem | /spoke | /lettuce | /flame | /wemmbu | /kill <player|@s|@e> | /rain on|off|auto | /fog [on|off] | /weather clear|rain|fog|auto | /fill <x1> <y1> <z1> <x2> <y2> <z2> <block> [replace|hollow|keep] [filter] | /update [message]'); return; }
+  if (cmd === 'help') { sys('/shop | /tpa <player> | /tpaccept | /wanted [on|off] | /xp <player|@s|@a> <amount>[L] | /swap | /tp @s <x> <y> <z> | /tp @s <player> | /tp <player> @s | /biome | /spawner [tp] | /give <@s|@a|player> <zombie|skeleton|breeze|firework|elytra|mace|golden_apple> [count] | /nulltotem | /spoke | /lettuce | /flame | /wemmbu | /kill <player|@s|@e> | /rain on|off|auto | /fog [on|off] | /weather clear|rain|fog|auto | /fill <x1> <y1> <z1> <x2> <y2> <z2> <block> [replace|hollow|keep] [filter] | /update [message]'); return; }
   sys('Unknown command: /' + cmd + ' (try /help)');
 }
 
@@ -14928,7 +15005,8 @@ updateHudKeys();
 document.addEventListener('keydown', e => {
   if (!gameStarted || chatOpen) return;
   if (e.code === 'Escape') {
-    if (signOpen) closeSignEditor(false);
+    if (shopOpen) closeShop();
+    else if (signOpen) closeSignEditor(false);
     else if (settingsOpen) closeSettings();
     else if (brewOpen) closeBrewing();
     else if (enchantOpen) closeEnchant();
@@ -14938,7 +15016,7 @@ document.addEventListener('keydown', e => {
     else document.exitPointerLock();
     return;
   }
-  if (signOpen) return;
+  if (signOpen || shopOpen) return;
   if (!e.ctrlKey && !e.metaKey && !e.altKey && isBoundCode(e.code)) e.preventDefault();   // e.g. Space / Tab / arrows must not scroll or move focus
   if (e.code === binds.inventory) { hoverZone = null; if (signOpen) { closeSignEditor(true); return; } if (brewOpen) closeBrewing(); else if (enchantOpen) closeEnchant(); else if (furnaceOpen) closeFurnace(); else if (chestOpen) closeChest(); else if (!settingsOpen) toggleInventory(); return; }
   if (e.code === binds.thirdPerson) { cycleView(); e.preventDefault(); return; }
@@ -15028,7 +15106,7 @@ console.log('[Voltex] client:', touchMode ? 'mobile' : 'pc');
 
 // Unified "player has control" check — desktop uses pointer lock; mobile uses gameStarted.
 function menusOpen() {
-  return !!(inventoryOpen || furnaceOpen || brewOpen || enchantOpen || chestOpen || chatOpen || settingsOpen || signOpen);
+  return !!(inventoryOpen || furnaceOpen || brewOpen || enchantOpen || chestOpen || chatOpen || settingsOpen || signOpen || shopOpen);
 }
 function isPlaying() {
   if (!gameStarted) return false;
@@ -15503,7 +15581,7 @@ function initMobileControls() {
   function touchOnUi(x, y) {
     const topEl = document.elementFromPoint(x, y);
     return !!(topEl && topEl.closest && topEl.closest(
-      '#dpad, #joyBase, #pcBtns, #mobileBtns, #mobileTopBtns, #hotbar, #offhandHud, #settingsBtn, .slot, button, input, textarea, #invPanel, #furnacePanel, #chestPanel, #enchantPanel, #signPanel, #chatInputWrap, #startScreen, #pauseOverlay, #settingsOverlay, #mobileHint'
+      '#dpad, #joyBase, #pcBtns, #mobileBtns, #mobileTopBtns, #hotbar, #offhandHud, #settingsBtn, .slot, button, input, textarea, #invPanel, #furnacePanel, #chestPanel, #enchantPanel, #signPanel, #shopPanel, #chatInputWrap, #startScreen, #pauseOverlay, #settingsOverlay, #mobileHint'
     ));
   }
   lookTarget.addEventListener('touchstart', e => {
@@ -16010,17 +16088,17 @@ confirmOverlay.addEventListener('click', e => {
   if (e.target === confirmOverlay) confirmOverlay.style.display = 'none';
 });
 canvas.addEventListener('click', () => {
-  if (!pointerLocked && gameStarted && !inventoryOpen && !furnaceOpen && !brewOpen && !enchantOpen && !chestOpen && !chatOpen && !settingsOpen && !signOpen) canvas.requestPointerLock();
+  if (!pointerLocked && gameStarted && !inventoryOpen && !furnaceOpen && !brewOpen && !enchantOpen && !chestOpen && !chatOpen && !settingsOpen && !signOpen && !shopOpen) canvas.requestPointerLock();
 });
 // The pause overlay sits on top of (and fully covers) the canvas while
 // showing, so clicks on it never reached the canvas's own click listener
 // above — "Click to resume" did nothing. Handle it directly here instead.
 pauseOverlay.addEventListener('click', () => {
-  if (gameStarted && !inventoryOpen && !furnaceOpen && !brewOpen && !enchantOpen && !chestOpen && !chatOpen && !settingsOpen && !signOpen) canvas.requestPointerLock();
+  if (gameStarted && !inventoryOpen && !furnaceOpen && !brewOpen && !enchantOpen && !chestOpen && !chatOpen && !settingsOpen && !signOpen && !shopOpen) canvas.requestPointerLock();
 });
 document.addEventListener('pointerlockchange', () => {
   pointerLocked = document.pointerLockElement === canvas;
-  pauseOverlay.style.display = (!pointerLocked && gameStarted && !inventoryOpen && !furnaceOpen && !brewOpen && !enchantOpen && !chestOpen && !chatOpen && !settingsOpen && !signOpen) ? 'flex' : 'none';
+  pauseOverlay.style.display = (!pointerLocked && gameStarted && !inventoryOpen && !furnaceOpen && !brewOpen && !enchantOpen && !chestOpen && !chatOpen && !settingsOpen && !signOpen && !shopOpen) ? 'flex' : 'none';
 });
 
 // ================= Settings (persisted locally) =================
@@ -16981,6 +17059,417 @@ let saveTimer = 0;
 let torchShadowTimer = 0;
 
 
+
+// ================= /shop : player-to-player trading =================
+// Trades live in the shared Supabase table `voltex_shop` (see voltex_shop_setup.sql).
+// Items you list are taken out of your inventory right away (escrow), so they can't be spent twice.
+//   open       -> listed on the Market
+//   sold       -> someone bought it; the seller collects what they asked for on the Trade tab
+//   claimed    -> seller collected
+//   cancelled  -> seller cancelled (items returned instantly)
+let shopOpen = false;
+const SHOP_TABLE = 'voltex_shop';
+const SHOP_MAX = 1024;
+let shopTab = 'market', shopBusy = false, shopTimer = null, shopSearch = '', shopKnownClaims = 0;
+const shopSel = { give: null, giveN: 1, want: null, wantN: 1 };
+const shopPanel = document.getElementById('shopPanel');
+const shopBody = document.getElementById('shopBody');
+const shopMsgEl = document.getElementById('shopMsg');
+let _shopAllTypes = null;
+
+function shopEsc(s) { return String(s == null ? '' : s).replace(/[&<>"']/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c])); }
+function shopTradableType(t) {   // anything that can be asked for in return
+  if (!t || /^(water|fire|air|spawner|bedrock)$/.test(t)) return false;
+  return !!(ITEM_INFO[t] || BLOCK_TYPES[t]);
+}
+function shopIsPlain(s) { return !!(s && !s.ench && s.dur == null && s.uses == null && !s.spawnKind && s.meta == null && maxStackFor(s.type) !== 1); }
+function shopSer(s) {   // slot -> plain JSON object (keeps enchants, durability, spawner kind...)
+  const o = { type: s.type, count: s.count };
+  if (s.ench && Object.keys(s.ench).length) o.ench = JSON.parse(JSON.stringify(s.ench));
+  if (s.dur != null) o.dur = s.dur;
+  if (s.uses != null) o.uses = s.uses;
+  if (s.spawnKind) o.spawnKind = s.spawnKind;
+  if (s.meta != null) o.meta = s.meta;
+  return o;
+}
+function shopEnchText(o) {
+  const bits = [];
+  if (o.ench) for (const k in o.ench) bits.push(String(k).replace(/_/g, ' ') + (o.ench[k] > 1 || o.ench[k] === 1 ? ' ' + o.ench[k] : ''));
+  if (o.spawnKind) bits.push(o.spawnKind);
+  if (o.dur != null) bits.push('durability ' + o.dur);
+  if (o.uses != null) bits.push(o.uses + ' uses');
+  return bits.join(', ');
+}
+function shopAllTypes() {
+  if (_shopAllTypes) return _shopAllTypes;
+  const set = new Set([...Object.keys(ITEM_INFO), ...Object.keys(BLOCK_TYPES)]);
+  _shopAllTypes = [...set].filter(shopTradableType).sort((a, b) => displayName(a).localeCompare(displayName(b)));
+  return _shopAllTypes;
+}
+// Plain stackable items owned, by type (enchanted / tools / special items are listed one by one)
+function shopOwnedPlain() {
+  const m = {};
+  for (let i = 0; i < INV_SIZE; i++) { const s = inventory[i]; if (shopIsPlain(s)) m[s.type] = (m[s.type] || 0) + s.count; }
+  return m;
+}
+// How many of `type` can be paid with (any slot of that type counts, enchanted ones too)
+function shopCount(type) {
+  let n = 0;
+  for (let i = 0; i < INV_SIZE; i++) { const s = inventory[i]; if (s && s.type === type) n += s.count; }
+  return n;
+}
+function shopTakePlain(type, n) {
+  for (let i = 0; i < INV_SIZE && n > 0; i++) {
+    const s = inventory[i];
+    if (!shopIsPlain(s) || s.type !== type) continue;
+    const t = Math.min(n, s.count); s.count -= t; n -= t;
+    if (s.count <= 0) inventory[i] = null;
+  }
+  shopRefreshInv();
+}
+// Takes `n` of `type` as payment (plain ones first, then enchanted/used ones). Returns the list of taken items.
+function shopTakePay(type, n) {
+  const out = [];
+  let plain = 0;
+  const order = [];
+  for (let i = 0; i < INV_SIZE; i++) { const s = inventory[i]; if (s && s.type === type) order.push(i); }
+  order.sort((a, b) => (shopIsPlain(inventory[b]) ? 1 : 0) - (shopIsPlain(inventory[a]) ? 1 : 0));
+  for (const i of order) {
+    if (n <= 0) break;
+    const s = inventory[i];
+    const t = Math.min(n, s.count);
+    if (shopIsPlain(s)) plain += t;
+    else { const o = shopSer(s); o.count = t; out.push(o); }
+    s.count -= t; n -= t;
+    if (s.count <= 0) inventory[i] = null;
+  }
+  if (plain) out.unshift({ type: type, count: plain });
+  shopRefreshInv();
+  return out;
+}
+function shopDropAt(o) {
+  try {
+    spawnDroppedItem(o.type, o.count, new THREE.Vector3(player.pos.x, player.pos.y + 1, player.pos.z),
+      new THREE.Vector3(-Math.sin(player.yaw || 0) * 2, 2, -Math.cos(player.yaw || 0) * 2),
+      { ench: o.ench, dur: o.dur, spawnKind: o.spawnKind, meta: o.meta });
+  } catch (e) {}
+}
+// Puts items in the inventory; whatever doesn't fit is thrown out on the ground.
+function shopGiveObjs(list) {
+  (list || []).forEach(o => {
+    if (!o || !o.type || !(o.count > 0)) return;
+    const special = !!(o.ench || o.dur != null || o.uses != null || o.spawnKind || o.meta != null || maxStackFor(o.type) === 1);
+    if (!special) {
+      let left = addItemToInventory(o.type, o.count);
+      const ms = maxStackFor(o.type);
+      while (left > 0) { const c = Math.min(ms, left); shopDropAt({ type: o.type, count: c }); left -= c; }
+    } else {
+      const copy = JSON.parse(JSON.stringify(o));
+      const slot = inventory.findIndex(x => !x);
+      if (slot >= 0) inventory[slot] = copy;
+      else shopDropAt(copy);
+    }
+  });
+  shopRefreshInv();
+}
+// What a trade row hands over: the saved items, or (older rows) plain give_type/give_count.
+function shopGiveList(r) { return (Array.isArray(r.give_data) && r.give_data.length) ? r.give_data : [{ type: r.give_type, count: r.give_count }]; }
+function shopPaidList(r) { return (Array.isArray(r.paid_data) && r.paid_data.length) ? r.paid_data : [{ type: r.want_type, count: r.want_count }]; }
+function shopRefreshInv() {
+  try { renderHotbar(); if (inventoryOpen) renderInventoryPanel(); saveLocalPlayer(); } catch (e) {}
+}
+function shopSetupError(error) {
+  return !!(error && (error.code === 'PGRST205' || error.code === '42P01' || /voltex_shop/.test(error.message || '')));
+}
+function shopSay(text, bad) {
+  shopMsgEl.textContent = text || '';
+  shopMsgEl.className = bad ? 'bad' : 'ok';
+}
+function shopIcon(type) { try { return iconFor(type); } catch (e) { return '<span class="blkIcon"></span>'; } }
+function shopItemHtml(type, n, extra) {
+  return '<span class="shopIt">' + shopIcon(type) + '<b>' + n + '</b> <span>' + shopEsc(displayName(type)) +
+    (extra ? '<small class="shopEnch">' + shopEsc(extra) + '</small>' : '') + '</span></span>';
+}
+function shopGiveHtml(r) {
+  const l = shopGiveList(r);
+  if (l.length === 1) return shopItemHtml(l[0].type, l[0].count, shopEnchText(l[0]));
+  return l.map(o => shopItemHtml(o.type, o.count, shopEnchText(o))).join('');
+}
+function shopPaidHtml(r) {
+  const l = shopPaidList(r);
+  return l.map(o => shopItemHtml(o.type, o.count, shopEnchText(o))).join('');
+}
+
+// ---------- open / close ----------
+function openShop() {
+  if (!gameStarted || shopOpen) return;
+  shopOpen = true;
+  shopPanel.style.display = 'flex';
+  try { document.exitPointerLock(); } catch (e) {}
+  shopSay('');
+  try { shopSetTab(shopTab); } catch (e) { shopBody.innerHTML = '<div class="shopEmpty bad">Shop error: ' + shopEsc(e.message || e) + '</div>'; }
+  clearInterval(shopTimer);
+  shopTimer = setInterval(() => { if (shopOpen && !shopBusy && shopTab !== 'selling') shopRender(true); else if (shopOpen) shopUpdateBadge(); }, 5000);
+}
+function closeShop() {
+  if (!shopOpen) return;
+  shopOpen = false;
+  shopPanel.style.display = 'none';
+  clearInterval(shopTimer); shopTimer = null;
+  resumeGameplay();
+}
+document.getElementById('shopClose').addEventListener('click', closeShop);
+shopPanel.querySelectorAll('#shopTabs button').forEach(b => b.addEventListener('click', () => shopSetTab(b.dataset.t)));
+shopPanel.addEventListener('keydown', e => { if (e.code !== 'Escape') e.stopPropagation(); });
+function shopSetTab(t) {
+  shopTab = t;
+  shopPanel.querySelectorAll('#shopTabs button').forEach(b => b.classList.toggle('on', b.dataset.t === t));
+  shopSay('');
+  shopRender(false);
+}
+async function shopUpdateBadge() {
+  try {
+    const { count, error } = await sb.from(SHOP_TABLE).select('id', { count: 'exact', head: true }).eq('status', 'sold').eq('seller_name', MY_NAME);
+    if (error) return;
+    const b = shopPanel.querySelector('#shopTabs button[data-t="trade"]');
+    if (b) b.textContent = 'Trade' + (count ? ' (' + count + ')' : '');
+  } catch (e) {}
+}
+
+// ---------- rendering ----------
+async function shopRender(quiet) {
+  if (!shopOpen) return;
+  if (shopTab === 'selling') { shopRenderSell(); shopUpdateBadge(); return; }
+  const tab = shopTab;
+  if (!quiet) shopBody.innerHTML = '<div class="shopEmpty">Loading…</div>';
+  let q = sb.from(SHOP_TABLE).select('*');
+  if (tab === 'market') q = q.eq('status', 'open');
+  else if (tab === 'pending') q = q.eq('status', 'open').eq('seller_name', MY_NAME);
+  else q = q.eq('status', 'sold').eq('seller_name', MY_NAME);
+  let res;
+  try { res = await q.order('created_at', { ascending: false }).limit(200); } catch (e) { res = { error: e }; }
+  if (!shopOpen || shopTab !== tab) return;   // user switched tab while loading
+  if (res.error) {
+    shopBody.innerHTML = shopSetupError(res.error)
+      ? '<div class="shopEmpty bad">The shop database is not set up yet.<br>Run <b>voltex_shop_setup.sql</b> once in the Supabase SQL editor.</div>'
+      : '<div class="shopEmpty bad">Could not load: ' + shopEsc(res.error.message || res.error) + '</div>';
+    return;
+  }
+  const rows = res.data || [];
+  shopUpdateBadge();
+  if (!rows.length) {
+    shopBody.innerHTML = '<div class="shopEmpty">' + ({ market: 'No trades on the market yet. Use the Selling tab to add one!', pending: 'You have no trades waiting.', trade: 'Nothing to claim right now.' }[tab]) + '</div>';
+    return;
+  }
+  let html = '';
+  if (tab === 'trade') html += '<div class="shopTop"><button class="shopBtn" data-act="claimall">Claim all</button></div>';
+  html += '<div class="shopList">';
+  rows.forEach(r => {
+    html += '<div class="shopRow">';
+    if (tab === 'market') {
+      const mine = r.seller_name === MY_NAME;
+      const ok = !mine && shopCount(r.want_type) >= r.want_count;
+      html += '<div class="shopWho">' + shopEsc(r.seller_name) + '</div>' +
+        '<div class="shopDeal"><div><small>You get</small>' + shopGiveHtml(r) + '</div><div class="shopArrow">⇄</div><div><small>You pay</small>' + shopItemHtml(r.want_type, r.want_count) + '</div></div>' +
+        (mine ? '<button class="shopBtn" disabled>Your offer</button>'
+              : '<button class="shopBtn' + (ok ? '' : ' dim') + '" data-act="buy" data-id="' + r.id + '">' + (ok ? 'Buy' : 'Not enough') + '</button>');
+    } else if (tab === 'pending') {
+      html += '<div class="shopDeal"><div><small>Selling</small>' + shopGiveHtml(r) + '</div><div class="shopArrow">⇄</div><div><small>For</small>' + shopItemHtml(r.want_type, r.want_count) + '</div></div>' +
+        '<button class="shopBtn red" data-act="cancel" data-id="' + r.id + '">Cancel</button>';
+    } else {
+      html += '<div class="shopWho">' + shopEsc(r.buyer_name || '?') + ' bought your ' + shopEsc(displayName(r.give_type)) + '</div>' +
+        '<div class="shopDeal"><div><small>You receive</small>' + shopPaidHtml(r) + '</div></div>' +
+        '<button class="shopBtn" data-act="claim" data-id="' + r.id + '">Claim</button>';
+    }
+    html += '</div>';
+  });
+  html += '</div>';
+  shopBody.innerHTML = html;
+}
+shopBody.addEventListener('click', e => {
+  const b = e.target.closest('[data-act]');
+  if (!b || b.disabled) return;
+  const a = b.dataset.act;
+  if (a === 'buy') shopBuy(b.dataset.id);
+  else if (a === 'cancel') shopCancel(b.dataset.id);
+  else if (a === 'claim') shopClaim(b.dataset.id);
+  else if (a === 'claimall') shopClaimAll();
+});
+
+// ---------- Selling tab ----------
+function shopRenderSell() {
+  shopBody.innerHTML =
+    '<div class="shopSell">' +
+      '<div class="shopCol"><h3>You give</h3><div id="shopGiveGrid" class="shopGrid"></div>' +
+        '<label class="shopAmt">Amount <input id="shopGiveN" type="number" min="1" max="' + SHOP_MAX + '" value="' + shopSel.giveN + '"><button class="shopBtn small" id="shopGiveMax">Max</button></label></div>' +
+      '<div class="shopCol"><h3>You want</h3><input id="shopSearch" class="shopSearch" type="text" placeholder="Search item…" value="' + shopEsc(shopSearch) + '"><div id="shopWantGrid" class="shopGrid"></div>' +
+        '<label class="shopAmt">Amount <input id="shopWantN" type="number" min="1" max="' + SHOP_MAX + '" value="' + shopSel.wantN + '"></label></div>' +
+    '</div>' +
+    '<div id="shopSummary" class="shopSummary"></div>' +
+    '<div class="shopTop"><button class="shopBtn big" id="shopListBtn">List trade</button></div>';
+  shopFillGive(); shopFillWant(); shopSummary();
+  document.getElementById('shopGiveN').addEventListener('input', e => { shopSel.giveN = parseInt(e.target.value, 10) || 0; shopSummary(); });
+  document.getElementById('shopWantN').addEventListener('input', e => { shopSel.wantN = parseInt(e.target.value, 10) || 0; shopSummary(); });
+  document.getElementById('shopGiveMax').addEventListener('click', () => {
+    const e = shopGiveEntry(shopSel.give); if (!e || !e.plain) return;
+    shopSel.giveN = Math.min(SHOP_MAX, e.count);
+    document.getElementById('shopGiveN').value = shopSel.giveN; shopSummary();
+  });
+  document.getElementById('shopSearch').addEventListener('input', e => { shopSearch = e.target.value; shopFillWant(); });
+  document.getElementById('shopListBtn').addEventListener('click', shopList);
+}
+// Everything in the inventory can be sold: plain stackable items are grouped by type ("p:type"),
+// everything else (tools, weapons, armor, enchanted items, spawners...) is listed one by one ("s:<slot>").
+function shopGiveEntries() {
+  const out = [], plain = shopOwnedPlain();
+  Object.keys(plain).sort((a, b) => displayName(a).localeCompare(displayName(b))).forEach(t => out.push({ key: 'p:' + t, type: t, count: plain[t], plain: true }));
+  for (let i = 0; i < INV_SIZE; i++) { const s = inventory[i]; if (s && !shopIsPlain(s)) out.push({ key: 's:' + i, type: s.type, count: s.count, plain: false, slot: i, info: shopEnchText(shopSer(s)), ench: !!s.ench }); }
+  return out;
+}
+function shopGiveEntry(key) { return shopGiveEntries().find(e => e.key === key) || null; }
+function shopFillGive() {
+  const el = document.getElementById('shopGiveGrid'); if (!el) return;
+  const list = shopGiveEntries();
+  if (shopSel.give && !list.some(e => e.key === shopSel.give)) shopSel.give = null;
+  if (!list.length) { el.innerHTML = '<div class="shopEmpty small">Your inventory is empty.</div>'; return; }
+  el.innerHTML = list.map(e => '<button class="shopCell' + (shopSel.give === e.key ? ' sel' : '') + (e.ench ? ' ench' : '') + '" data-k="' + e.key + '" title="' + shopEsc(displayName(e.type) + (e.info ? ' (' + e.info + ')' : '')) + '">' + shopIcon(e.type) + (e.count > 1 ? '<i>' + e.count + '</i>' : '') + '</button>').join('');
+  el.querySelectorAll('.shopCell').forEach(c => c.addEventListener('click', () => {
+    shopSel.give = c.dataset.k;
+    const e = shopGiveEntry(shopSel.give);
+    if (e && !e.plain) shopSel.giveN = e.count; else if (e && shopSel.giveN > e.count) shopSel.giveN = e.count;
+    if (e && e.plain && !(shopSel.giveN >= 1)) shopSel.giveN = 1;
+    const gi = document.getElementById('shopGiveN'); if (gi) { gi.value = shopSel.giveN; gi.disabled = !!(e && !e.plain); }
+    shopFillGive(); shopSummary();
+  }));
+}
+function shopFillWant() {
+  const el = document.getElementById('shopWantGrid'); if (!el) return;
+  const q = shopSearch.trim().toLowerCase();
+  const types = shopAllTypes().filter(t => !q || displayName(t).toLowerCase().includes(q));
+  if (!types.length) { el.innerHTML = '<div class="shopEmpty small">No item found.</div>'; return; }
+  el.innerHTML = types.map(t => '<button class="shopCell' + (shopSel.want === t ? ' sel' : '') + '" data-t="' + t + '" title="' + shopEsc(displayName(t)) + '">' + shopIcon(t) + '</button>').join('');
+  el.querySelectorAll('.shopCell').forEach(c => c.addEventListener('click', () => { shopSel.want = c.dataset.t; shopFillWant(); shopSummary(); }));
+}
+function shopSummary() {
+  const el = document.getElementById('shopSummary'); if (!el) return;
+  const ge = shopGiveEntry(shopSel.give), w = shopSel.want;
+  el.innerHTML = (ge ? shopItemHtml(ge.type, shopSel.giveN || 0, ge.info) : '<span class="shopIt"><span>pick an item to sell</span></span>') +
+    '<span class="shopArrow">⇄</span>' +
+    (w ? shopItemHtml(w, shopSel.wantN || 0) : '<span class="shopIt"><span>pick what you want</span></span>');
+}
+
+// ---------- actions ----------
+async function shopList() {
+  if (shopBusy) return;
+  const e = shopGiveEntry(shopSel.give), w = shopSel.want;
+  if (!e) return shopSay('Pick the item you want to sell.', true);
+  if (!w) return shopSay('Pick the item you want in return.', true);
+  const gn = e.plain ? Math.trunc(Number(shopSel.giveN)) : e.count, wn = Math.trunc(Number(shopSel.wantN));
+  if (e.type === w) return shopSay('Choose two different items.', true);
+  const wantMax = maxStackFor(w) === 1 ? 36 : SHOP_MAX;
+  if (!(gn >= 1 && gn <= SHOP_MAX) || !(wn >= 1 && wn <= wantMax)) return shopSay('Amounts must be between 1 and ' + SHOP_MAX + (wantMax < SHOP_MAX ? ' (max ' + wantMax + ' for ' + displayName(w) + ')' : '') + '.', true);
+  if (gn > e.count) return shopSay('You only have ' + e.count + ' ' + displayName(e.type) + '.', true);
+  // escrow: take the items out of the inventory now
+  let giveData = null;
+  if (e.plain) shopTakePlain(e.type, gn);
+  else { giveData = [shopSer(inventory[e.slot])]; inventory[e.slot] = null; shopRefreshInv(); }
+  const refund = () => shopGiveObjs(giveData || [{ type: e.type, count: gn }]);
+  shopBusy = true;
+  try {
+    const row = { seller_name: MY_NAME, give_type: e.type, give_count: gn, want_type: w, want_count: wn };
+    if (giveData) row.give_data = giveData;
+    const { error } = await sb.from(SHOP_TABLE).insert(row);
+    if (error) {
+      refund();
+      shopSay(shopSetupError(error) ? 'The shop database needs the latest voltex_shop_setup.sql (see below).' : 'Could not list: ' + (error.message || error), true);
+    } else {
+      shopSay('Listed ' + gn + ' ' + displayName(e.type) + ' for ' + wn + ' ' + displayName(w) + '. See the Pending tab.');
+      shopSel.give = null; shopSel.giveN = 1;
+      const gi = document.getElementById('shopGiveN'); if (gi) { gi.value = 1; gi.disabled = false; }
+      shopFillGive(); shopSummary();
+    }
+  } catch (err) { refund(); shopSay('Could not list: ' + (err.message || err), true); }
+  shopBusy = false;
+}
+async function shopBuy(id) {
+  if (shopBusy) return;
+  shopBusy = true;
+  try {
+    const { data: found, error: e1 } = await sb.from(SHOP_TABLE).select('*').eq('id', id).eq('status', 'open').limit(1);
+    if (e1) throw e1;
+    const t = found && found[0];
+    if (!t) { shopSay('That trade is no longer available.', true); }
+    else if (t.seller_name === MY_NAME) { shopSay("You can't buy your own trade.", true); }
+    else if (shopCount(t.want_type) < t.want_count) { shopSay('You need ' + t.want_count + ' ' + displayName(t.want_type) + '.', true); }
+    else {
+      // take the payment first, then reserve the trade: only one buyer can flip open -> sold
+      const paid = shopTakePay(t.want_type, t.want_count);
+      const { data: upd, error: e2 } = await sb.from(SHOP_TABLE).update({ status: 'sold', buyer_name: MY_NAME, sold_at: new Date().toISOString(), paid_data: paid }).eq('id', id).eq('status', 'open').select();
+      if (e2 || !upd || !upd.length) {
+        shopGiveObjs(paid);   // lost the race or error: refund
+        if (e2) throw e2;
+        shopSay('Someone else got it first.', true);
+      } else {
+        shopGiveObjs(shopGiveList(t));
+        shopSay('Bought ' + t.give_count + ' ' + displayName(t.give_type) + ' from ' + t.seller_name + '!');
+      }
+    }
+  } catch (e) { shopSay('Trade failed: ' + (e.message || e), true); }
+  shopBusy = false;
+  shopRender(true);
+}
+async function shopCancel(id) {
+  if (shopBusy) return;
+  shopBusy = true;
+  try {
+    const { data: upd, error } = await sb.from(SHOP_TABLE).update({ status: 'cancelled' }).eq('id', id).eq('status', 'open').eq('seller_name', MY_NAME).select();
+    if (error) throw error;
+    if (!upd || !upd.length) shopSay('That trade was already sold or cancelled.', true);
+    else { shopGiveObjs(shopGiveList(upd[0])); shopSay('Cancelled. You got your ' + upd[0].give_count + ' ' + displayName(upd[0].give_type) + ' back.'); }
+  } catch (e) { shopSay('Cancel failed: ' + (e.message || e), true); }
+  shopBusy = false;
+  shopRender(true);
+}
+async function shopClaim(id) {
+  if (shopBusy) return;
+  shopBusy = true;
+  try {
+    const { data: upd, error } = await sb.from(SHOP_TABLE).update({ status: 'claimed' }).eq('id', id).eq('status', 'sold').eq('seller_name', MY_NAME).select();
+    if (error) throw error;
+    if (!upd || !upd.length) shopSay('Already claimed.', true);
+    else { shopGiveObjs(shopPaidList(upd[0])); shopSay('Claimed ' + upd[0].want_count + ' ' + displayName(upd[0].want_type) + '. (Anything that did not fit was thrown out.)'); }
+  } catch (e) { shopSay('Claim failed: ' + (e.message || e), true); }
+  shopBusy = false;
+  shopRender(true);
+}
+async function shopClaimAll() {
+  if (shopBusy) return;
+  shopBusy = true;
+  try {
+    const { data: rows, error } = await sb.from(SHOP_TABLE).select('id').eq('status', 'sold').eq('seller_name', MY_NAME).limit(200);
+    if (error) throw error;
+    let n = 0;
+    for (const r of (rows || [])) {
+      const { data: upd } = await sb.from(SHOP_TABLE).update({ status: 'claimed' }).eq('id', r.id).eq('status', 'sold').eq('seller_name', MY_NAME).select();
+      if (upd && upd.length) { shopGiveObjs(shopPaidList(upd[0])); n++; }
+    }
+    shopSay(n ? 'Claimed ' + n + ' trade(s). (Anything that did not fit was thrown out.)' : 'Nothing to claim.');
+  } catch (e) { shopSay('Claim failed: ' + (e.message || e), true); }
+  shopBusy = false;
+  shopRender(true);
+}
+// Tell the player in chat when someone completed one of their trades.
+async function shopNotifyCheck() {
+  if (!gameStarted || shopOpen || !MY_NAME) return;
+  try {
+    const { count, error } = await sb.from(SHOP_TABLE).select('id', { count: 'exact', head: true }).eq('status', 'sold').eq('seller_name', MY_NAME);
+    if (error || count == null) return;
+    if (count > shopKnownClaims) addChatLine('System', 'You have ' + count + ' trade(s) to claim! Type /shop and open the Trade tab.', true, true);
+    shopKnownClaims = count;
+  } catch (e) {}
+}
+setInterval(shopNotifyCheck, 45000);
+setTimeout(shopNotifyCheck, 15000);
 
 // ================= Signs =================
 // Floor or wall-mounted boards. Text is stored client-side + broadcast so
