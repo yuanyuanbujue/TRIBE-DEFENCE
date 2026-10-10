@@ -304,6 +304,14 @@
     color: #fff; font-size: 15px; cursor: pointer; display: flex; align-items: center; justify-content: center;
   }
   #settingsBtn:hover { background: rgba(0,0,0,0.6); }
+  #effectsHud { position: fixed; top: 12px; right: 50px; z-index: 54; display: flex; flex-direction: row-reverse; gap: 6px; pointer-events: none; }
+  #effectsHud:empty { display: none; }
+  #effectsHud .fx { display: flex; align-items: center; gap: 4px; height: 30px; padding: 0 8px 0 4px; border-radius: 6px;
+    border: 1px solid rgba(255,255,255,0.35); background: rgba(0,0,0,0.4); color: #fff; font-size: 12px; font-weight: 700;
+    text-shadow: 1px 1px 2px #000; font-variant-numeric: tabular-nums; }
+  #effectsHud .fx img { width: 22px; height: 22px; image-rendering: pixelated; }
+  #effectsHud .fx.low { animation: fxBlink 0.9s ease-in-out infinite; }
+  @keyframes fxBlink { 50% { opacity: 0.35; } }
 
   #settingsOverlay {
     position: fixed; inset: 0; z-index: 90; display: none;
@@ -557,6 +565,8 @@
   @media (max-width: 560px) { .shopSell { flex-direction: column; } .shopRow { flex-wrap: wrap; } }
   .shopCell.ench { box-shadow: inset 0 0 8px #b46bff; }
   .shopEnch { display: block; font-size: 10px; color: #cfa6ff; opacity: 0.9; }
+  .shopCell i.kind { left: 2px; right: auto; top: 0; bottom: auto; padding: 0 3px; border-radius: 3px; font-size: 10px; background: #2d6; color: #021; text-shadow: none; }
+  .shopCell i.kind.skeleton { background: #ddd; color: #222; } .shopCell i.kind.breeze { background: #6cf; color: #012; } .shopCell i.kind.zombie { background: #5c5; color: #020; }
   #signPanel {
     position: fixed; inset: 0; z-index: 60; display: none;
     background: rgba(0,0,0,0.6); color: white; align-items: center; justify-content: center;
@@ -597,6 +607,8 @@
   body.touch-mode #hud { font-size: 11px; max-width: 46vw; }
   body.touch-mode #fps { font-size: 10px; top: 44px; }
   body.touch-mode #settingsBtn { top: 8px; right: 8px; width: 36px; height: 36px; font-size: 18px; }
+  body.touch-mode #effectsHud { top: 8px; right: 52px; }
+  body.touch-mode #effectsHud .fx { height: 36px; }
   body.touch-mode #statusBars {
     bottom: calc(78px + env(safe-area-inset-bottom, 0px));
     width: min(420px, calc(100vw - 12px));
@@ -1203,6 +1215,7 @@
 <div id="fps">FPS: --<br><span id="playerCount">Players online: 1</span></div>
 <div id="coordsDisplay">XYZ: 0, 0, 0</div>
 <button id="settingsBtn" title="Settings">⚙️</button>
+<div id="effectsHud"></div>
 <div id="hotbar"></div>
 <div id="offhandHud" class="slot empty"></div>
 
@@ -2172,32 +2185,57 @@ function isShield(type) { return type === 'shield'; }
 function isFood(type) { return !!(ITEM_INFO[type] && ITEM_INFO[type].food); }
 function isPotion(type) { return !!(ITEM_INFO[type] && ITEM_INFO[type].potion); }
 function isSplashPotionType(type) { return !!(ITEM_INFO[type] && ITEM_INFO[type].potion && ITEM_INFO[type].splash); }
+function isDrinkablePotion(type) { return isPotion(type) && !isSplashPotionType(type); }
 const POTION_SPRITE_COLORS = {
   strength: '#c8402e', turtle_master: '#5a8a5a', slow_falling: '#f0e8c8', invisibility: '#c8c8e8'
 };
+// 16x16 bottle: c/C cork, g glass rim, w glass (see-through), B glass base, L/l/d liquid (light / mid / dark)
+const POTION_BOTTLE_ROWS = [
+  '................',
+  '......cCCc......',
+  '......cCCc......',
+  '......gwwg......',
+  '......gwwg......',
+  '.....gwwwwg.....',
+  '....gwwwwwwg....',
+  '...gwwwwwwwwg...',
+  '...gLLLLLLLLg...',
+  '...gllllllllg...',
+  '...gllllllllg...',
+  '...gllllllldg...',
+  '....gddddddg....',
+  '.....gBBBBg.....',
+  '................',
+  '................'
+];
+function _mixCol(hex, to, k) {   // blend '#rrggbb' toward white (to=255) or black (to=0) by k
+  const n = parseInt(hex.slice(1), 16), ch = [(n >> 16) & 255, (n >> 8) & 255, n & 255];
+  return 'rgb(' + ch.map(v => Math.round(v + (to - v) * k)).join(',') + ')';
+}
 function makePotionSprite(type) {
   const info = ITEM_INFO[type] || {};
+  const empty = type === 'glass_bottle';
   const col = POTION_SPRITE_COLORS[info.potion] || '#aa88ff';
   const splash = !!info.splash;
   const c = document.createElement('canvas'); c.width = c.height = 16;
   const g = c.getContext('2d'); g.imageSmoothingEnabled = false;
-  // bottle outline
-  g.fillStyle = '#2a2a2a';
-  g.fillRect(5, 1, 6, 2); // neck
-  g.fillRect(4, 3, 8, 11); // body
-  g.fillStyle = 'rgba(200,230,255,0.55)';
-  g.fillRect(5, 4, 6, 9); // glass
-  // liquid
-  g.fillStyle = col;
-  g.fillRect(5, 8, 6, 5);
-  g.fillStyle = '#fff'; g.globalAlpha = 0.35; g.fillRect(5, 8, 6, 1); g.globalAlpha = 1;
-  // cork
-  g.fillStyle = '#6b4423'; g.fillRect(6, 0, 4, 2);
-  if (splash) {
-    // splash mark: angled band
-    g.fillStyle = '#fff'; g.globalAlpha = 0.5;
-    g.fillRect(3, 2, 2, 1); g.fillRect(11, 2, 2, 1);
-    g.globalAlpha = 1;
+  const pal = {
+    c: '#7a4e24', C: '#a8743a', g: '#d6ecf8', w: 'rgba(205,232,250,0.42)', B: '#8fb6cc',
+    L: empty ? null : _mixCol(col, 255, 0.4), l: empty ? null : col, d: empty ? null : _mixCol(col, 0, 0.3)
+  };
+  POTION_BOTTLE_ROWS.forEach((row, y) => {
+    for (let x = 0; x < 16; x++) {
+      const ch = row[x]; if (ch === '.') continue;
+      g.fillStyle = pal[ch] || pal.w;      // empty bottle: liquid cells are just glass
+      g.fillRect(x, y, 1, 1);
+    }
+  });
+  // glass shine on the left side
+  g.fillStyle = 'rgba(255,255,255,0.85)';
+  g.fillRect(4, 8, 1, 1); g.fillRect(4, 9, 1, 2);
+  if (splash) {   // splash potions: little droplets around the bottle
+    g.fillStyle = 'rgba(255,255,255,0.9)';
+    g.fillRect(1, 6, 1, 1); g.fillRect(14, 6, 1, 1); g.fillRect(2, 3, 1, 1); g.fillRect(13, 3, 1, 1);
   }
   return c;
 }
@@ -2499,7 +2537,7 @@ const _sprite16Cache = {};
 function sprite16(type) {                       // -> 16x16 canvas (no outline) or null
   if (type in _sprite16Cache) return _sprite16Cache[type];
   let c = null;
-  if (isPotion(type)) return (_sprite16Cache[type] = makePotionSprite(type));
+  if (isPotion(type) || type === 'glass_bottle') return (_sprite16Cache[type] = makePotionSprite(type));
   { const rsc = rsSprite(type); if (rsc) return (_sprite16Cache[type] = rsc); }
   const sg = _spriteGridFor(type);
   if (sg) {
@@ -2702,6 +2740,10 @@ function miningTimeFor(blockType) {
   }
   return def.hardness / speedMult;
 }
+function itemName(it) {
+  if (it && it.type === 'spawner') { let k = it.spawnKind; if (!k) { try { k = spawnerKindFromBlock({ meta: it.meta }, 0, 0, 0); } catch (e) { k = 'zombie'; } } return k + ' spawner'; }
+  return displayName(it.type);
+}
 function displayName(type) {
   if (type === 'firework') return 'firework (1 coal)';
   if (type === 'firework_2') return 'firework (2 coal)';
@@ -2720,6 +2762,7 @@ function displayName(type) {
 // (just like real Minecraft — no rotating/mirroring).
 const RECIPES = [
   { shape: [['wood']], out: 'planks', outCount: 4, needsTable: false },
+  { shape: [['stone','stone'],['stone','stone']], out: 'brick', outCount: 4, needsTable: false },   // brick: 2x2 stone (smelt cobblestone) -> 4 brick
   { shape: [['planks'],['planks']], out: 'stick', outCount: 4, needsTable: false },
   // 1 wool -> 4 string; bow = 3 sticks + 3 string; arrow = 1 iron + 1 stick + 1 string -> 4 arrows
   { shape: [['wool']], out: 'string', outCount: 4, needsTable: false },
@@ -5995,7 +6038,7 @@ function renderStatsBoard() {
       for (const k in it.ench) { const lv = it.ench[k]; parts.push((JC_ENCH_NAMES[k] || (k.charAt(0).toUpperCase() + k.slice(1))) + ' ' + (JC_ROMAN[lv] || lv)); }
       if (parts.length) en = `<div class="hEnch">${parts.join(' · ')}</div>`;
     }
-    return `<div class="stHeld"><div class="hName"><span>${label}: ${displayName(it.type)}${cnt}</span>${dur}</div>${bar}${en}</div>`;
+    return `<div class="stHeld"><div class="hName"><span>${label}: ${itemName(it)}${cnt}</span>${dur}</div>${bar}${en}</div>`;
   };
   statsBoardEl.innerHTML =
     '<h2>Stats</h2>' +
@@ -6502,21 +6545,40 @@ function updateStrengthEffect(dt) {
   if (turtleMasterEffect.t > 0) turtleMasterEffect.t = Math.max(0, turtleMasterEffect.t - dt);
   if (slowFallingEffect.t > 0) slowFallingEffect.t = Math.max(0, slowFallingEffect.t - dt);
   if (invisibilityEffect.t > 0) invisibilityEffect.t = Math.max(0, invisibilityEffect.t - dt);
-  // local player body visibility (armor stays)
-  try {
-    if (typeof myModel !== 'undefined' && myModel && myModel.group) {
-      const inv = hasInvisibility();
-      myModel.group.traverse(o => {
-        if (!o.isMesh) return;
-        const n = (o.name || '') + (o.parent && o.parent.name || '');
-        const isArmor = /armor|helmet|chest|leg|boot|shield|elytra/i.test(n) || (o.userData && o.userData.isArmor);
-        if (isArmor) { o.visible = true; return; }
-        // hide body / head / limbs when invisible; keep held items
-        const isHeld = /held|hand|item|weapon|bow|sword|axe|mace|spear|trident/i.test(n);
-        if (!isHeld) o.visible = !inv;
-      });
-    }
-  } catch (e) {}
+  // body visibility (armor + held items stay visible)
+  try { if (typeof myModel !== 'undefined' && myModel) setBodyHidden(myModel, hasInvisibility()); } catch (e) {}
+  try { updateEffectsHud(); } catch (e) {}
+}
+// Hide / show a humanoid's body (skin + skin overlay layers) without touching its armor or held items,
+// which are children of the body parts: only the materials are switched off, never the meshes.
+function setBodyHidden(model, hide) {
+  if (!model) return;
+  const vis = !hide;
+  for (const k of ['head', 'torso', 'legL', 'legR', 'armL', 'armR']) {
+    const m = model[k]; if (!m || !m.material) continue;
+    if (Array.isArray(m.material)) m.material.forEach(x => { x.visible = vis; }); else m.material.visible = vis;
+  }
+  const st = model.skinState;
+  if (st && st.overlays) for (const o of st.overlays) if (o && o.material) o.material.visible = vis;
+}
+// Active potion effects with their time left, shown top-right (left of the settings button).
+function updateEffectsHud() {
+  const el = document.getElementById('effectsHud'); if (!el) return;
+  const list = [];
+  if (strengthEffect.t > 0) { const r = strengthEffect.lvl >= 2; list.push([r ? 'potion_strength_2' : 'potion_strength', 'Strength ' + (r ? 'II' : 'I'), strengthEffect.t]); }
+  if (turtleMasterEffect.t > 0) list.push(['potion_turtle_master', 'Turtle Master', turtleMasterEffect.t]);
+  if (slowFallingEffect.t > 0) list.push(['potion_slow_falling', 'Slow Falling', slowFallingEffect.t]);
+  if (invisibilityEffect.t > 0) list.push(['potion_invisibility', 'Invisibility', invisibilityEffect.t]);
+  const sig = list.map(x => x[0] + (x[2] <= 10 ? '!' : '')).join('|');
+  if (el._sig !== sig) {
+    el._sig = sig;
+    el.innerHTML = list.map(x => '<div class="fx' + (x[2] <= 10 ? ' low' : '') + '" title="' + x[1] + '">' + iconFor(x[0]) + '<span></span></div>').join('');
+  }
+  for (let i = 0; i < list.length; i++) {
+    const sp = el.children[i] && el.children[i].lastElementChild; if (!sp) continue;
+    const t = brewFmtTime(list[i][2]);
+    if (sp.textContent !== t) sp.textContent = t;
+  }
 }
 // Wire UI once DOM ready
 (function setupBrewUI() {
@@ -13898,7 +13960,7 @@ function jcCopy(item, count) {
   return c;
 }
 function jcItemTitle(item) {
-  let t = displayName(item.type);
+  let t = itemName(item);
   if (item.ench) for (const k in item.ench) t += '\n' + (JC_ENCH_NAMES[k] || (k.charAt(0).toUpperCase() + k.slice(1))) + ' ' + (JC_ROMAN[item.ench[k]] || item.ench[k]);
   if (item.uses != null) t += '\nUses: ' + item.uses;
   if (isDurableItem(item.type)) {
@@ -14161,6 +14223,7 @@ playersChannel
     entry.mining = !!payload.mining;
     entry.miningOff = !!payload.miningOff;
     entry.sneak = !!payload.sneak;
+    entry.invisible = !!payload.inv;
     if (payload.mobs) applyMobSnapshot(payload.id, payload.mobs);
   })
   .on('broadcast', { event: 'fire' }, ({ payload }) => {
@@ -14409,6 +14472,7 @@ function broadcastMyPosition(dt) {
       armorEnch: (armorSlots || []).reduce((m, a, i) => m | ((a && a.ench) ? (1 << i) : 0), 0),
       blocking: isBlocking, mining: mining.active, miningOff: !!(mining.active && useOffHand), sneak: !!player.crouched,
       sp: spearCharge.active ? (spearCharge.off ? 2 : 1) : 0,
+      inv: (typeof hasInvisibility === 'function') && hasInvisibility(),
       mobs: (isMobHost() && (mobSnapTick = (mobSnapTick + 1) % 2) === 0) ? buildMobSnapshot() : undefined
     }
   });
@@ -14417,6 +14481,7 @@ let mobSnapTick = 0;
 function updateOtherPlayerVisuals(dt) {
   const lerpT = Math.min(1, dt * 10);
   otherPlayers.forEach(entry => {
+    try { setBodyHidden(entry.model, !!entry.invisible); } catch (e) {}
     undoGlidePose(entry);
     const dx = entry.target.x - entry.group.position.x;
     const dz = entry.target.z - entry.group.position.z;
@@ -15341,7 +15406,7 @@ function mobileLongPressStart() {
   if (mobileFindTargetAlongAim(5)) { mobile.atkHold = true; mobileTryAttack(); return; }
   // Prefer eating if holding food and hungry; else mine
   const held = currentItem();
-  if (held && isFood(held.type) && player.hunger < player.maxHunger) {
+  if (held && ((isFood(held.type) && player.hunger < player.maxHunger) || isDrinkablePotion(held.type))) {
     if (typeof startEating === 'function') startEating(false);
     return;
   }
@@ -15521,14 +15586,14 @@ function initMobileControls() {
       const main = mainItem();
       if (offhand) {
         const mainBow = !!(main && main.type === 'bow');
-        const mainEats = !!(main && isFood(main.type) && player.hunger < player.maxHunger);
+        const mainEats = !!(main && ((isFood(main.type) && player.hunger < player.maxHunger) || isDrinkablePotion(main.type)));
         if (isUseTool(offhand.type) || offhand.type === 'bow') {
           // off-hand tool / bow owns the button, whatever the main hand holds (only a bow in both hands lets the main one draw)
           if (!(offhand.type === 'bow' && mainBow)) useOffHand = true;
         } else if (!mainBow && !mainEats && !mainBlockPlaceable()) {   // a placeable main-hand block still wins, like on PC
           if (isShield(offhand.type)) {
             if (performance.now() >= shieldDisableUntil) { isBlocking = true; blockFromOff = true; return; }
-          } else if (isFood(offhand.type)) {
+          } else if (isFood(offhand.type) || isDrinkablePotion(offhand.type)) {
             if (startEating(true)) return;
           } else if (!(main && (isUseTool(main.type) || isTotemItem(main.type)))) {
             useOffHand = true;                         // off-hand block / item is "in hand" until release
@@ -16371,9 +16436,10 @@ function updateHitboxes() {
       const g = entry.group.position;
       if (!_hbLoaded(g.x, g.z)) return;
       if (!inRenderDistXZ(g.x, g.z)) return;
+      if (entry.invisible) return;   // invisible players show no hitbox
       _hbBox('player', g.x, g.y, g.z, 0.4, 1.8);
     });
-    if (thirdPerson) _hbBox('self', player.pos.x, player.pos.y, player.pos.z, player.radius || 0.3, player.height || 1.8);
+    if (thirdPerson && !(typeof hasInvisibility === 'function' && hasInvisibility())) _hbBox('self', player.pos.x, player.pos.y, player.pos.z, player.radius || 0.3, player.height || 1.8);
   }
   // Enchant glints on other players only while they are in render distance
   try { updateRemoteEnchantVisibility(); } catch (e) {}
@@ -16829,7 +16895,7 @@ canvas.addEventListener('mousedown', e => {
   // Functional blocks always win — open them before off-hand / shield / food logic.
   if (tryUseLookedBlock()) { e.stopImmediatePropagation(); return; }
   const mainHeld = currentItem();   // food in your main (right) hand: right-click eats it, even with an off-hand item
-  if (mainHeld && isFood(mainHeld.type) && player.hunger < player.maxHunger) {
+  if (mainHeld && ((isFood(mainHeld.type) && player.hunger < player.maxHunger) || isDrinkablePotion(mainHeld.type))) {   // potions drink even with an off-hand item
     if (!tryIgniteLookedTnt()) startEating(false);
     e.stopImmediatePropagation(); return;
   }
@@ -16854,7 +16920,7 @@ canvas.addEventListener('mousedown', e => {
     if (useFirework()) { e.stopImmediatePropagation(); return; }
   }
   if (mainBlockPlaceable()) return;                   // block in the main hand: place it (off-hand item stays put)
-  if (isFood(offhand.type)) { if (!tryIgniteLookedTnt()) startEating(true); e.stopImmediatePropagation(); return; }
+  if (isFood(offhand.type) || isDrinkablePotion(offhand.type)) { if (!tryIgniteLookedTnt()) startEating(true); e.stopImmediatePropagation(); return; }
   if (isShield(offhand.type) && performance.now() >= shieldDisableUntil) { isBlocking = true; blockFromOff = true; e.stopImmediatePropagation(); return; }
   if (mainHeld && mainHeld.type === 'bow') return;   // bow in main hand: let the draw handler take the right-click
   if (mainHandOwnsRightClick()) return;               // tool / totem in the main hand: no off-hand block placing
@@ -17082,20 +17148,36 @@ function shopTradableType(t) {   // anything that can be asked for in return
   if (!t || /^(water|fire|air|spawner|bedrock)$/.test(t)) return false;
   return !!(ITEM_INFO[t] || BLOCK_TYPES[t]);
 }
-function shopIsPlain(s) { return !!(s && !s.ench && s.dur == null && s.uses == null && !s.spawnKind && s.meta == null && maxStackFor(s.type) !== 1); }
+function shopKindOf(o) {   // 'zombie' | 'skeleton' | 'breeze' for a spawner item/slot
+  if (!o || o.type !== 'spawner') return null;
+  if (o.spawnKind === 'zombie' || o.spawnKind === 'skeleton' || o.spawnKind === 'breeze') return o.spawnKind;
+  try { return spawnerKindFromBlock({ meta: o.meta }, 0, 0, 0); } catch (e) { return 'zombie'; }
+}
+const SHOP_KINDS = ['zombie', 'skeleton', 'breeze'];
+function shopBase(t) { return String(t).indexOf('spawner:') === 0 ? 'spawner' : t; }       // want key -> item type
+function shopWantKind(t) { return String(t).indexOf('spawner:') === 0 ? String(t).slice(8) : null; }
+function shopName(t, kind) {   // t may be a want key like 'spawner:zombie'
+  const k = kind || shopWantKind(t);
+  if (shopBase(t) === 'spawner') return (k ? k + ' ' : '') + 'spawner';
+  return displayName(t);
+}
+// "Plain" = an ordinary stackable item. Leftover empty fields (ench {}, dur null, meta 0...) must not make a stack special,
+// otherwise stacks of the same item get split into separate entries and only one slot is counted.
+function shopHasEnch(s) { return !!(s && s.ench && typeof s.ench === 'object' && Object.keys(s.ench).length); }
+function shopIsPlain(s) { return !!(s && s.type !== 'spawner' && !shopHasEnch(s) && s.uses == null && maxStackFor(s.type) !== 1); }
 function shopSer(s) {   // slot -> plain JSON object (keeps enchants, durability, spawner kind...)
   const o = { type: s.type, count: s.count };
-  if (s.ench && Object.keys(s.ench).length) o.ench = JSON.parse(JSON.stringify(s.ench));
+  if (s.type === 'spawner') { o.spawnKind = shopKindOf(s); o.meta = s.meta != null ? s.meta : spawnerMetaForKind(o.spawnKind); }
+  if (shopHasEnch(s)) o.ench = JSON.parse(JSON.stringify(s.ench));
   if (s.dur != null) o.dur = s.dur;
   if (s.uses != null) o.uses = s.uses;
-  if (s.spawnKind) o.spawnKind = s.spawnKind;
-  if (s.meta != null) o.meta = s.meta;
+  if (s.type !== 'spawner') { if (s.spawnKind) o.spawnKind = s.spawnKind; if (s.meta != null) o.meta = s.meta; }
   return o;
 }
 function shopEnchText(o) {
   const bits = [];
   if (o.ench) for (const k in o.ench) bits.push(String(k).replace(/_/g, ' ') + (o.ench[k] > 1 || o.ench[k] === 1 ? ' ' + o.ench[k] : ''));
-  if (o.spawnKind) bits.push(o.spawnKind);
+  if (o.spawnKind && o.type !== 'spawner') bits.push(o.spawnKind);
   if (o.dur != null) bits.push('durability ' + o.dur);
   if (o.uses != null) bits.push(o.uses + ' uses');
   return bits.join(', ');
@@ -17104,6 +17186,7 @@ function shopAllTypes() {
   if (_shopAllTypes) return _shopAllTypes;
   const set = new Set([...Object.keys(ITEM_INFO), ...Object.keys(BLOCK_TYPES)]);
   _shopAllTypes = [...set].filter(shopTradableType).sort((a, b) => displayName(a).localeCompare(displayName(b)));
+  SHOP_KINDS.forEach(k => _shopAllTypes.push('spawner:' + k));
   return _shopAllTypes;
 }
 // Plain stackable items owned, by type (enchanted / tools / special items are listed one by one)
@@ -17113,9 +17196,14 @@ function shopOwnedPlain() {
   return m;
 }
 // How many of `type` can be paid with (any slot of that type counts, enchanted ones too)
-function shopCount(type) {
+function shopMatches(s, key) {
+  if (!s || s.type !== shopBase(key)) return false;
+  const k = shopWantKind(key);
+  return !k || shopKindOf(s) === k;
+}
+function shopCount(key) {
   let n = 0;
-  for (let i = 0; i < INV_SIZE; i++) { const s = inventory[i]; if (s && s.type === type) n += s.count; }
+  for (let i = 0; i < INV_SIZE; i++) { const s = inventory[i]; if (shopMatches(s, key)) n += s.count; }
   return n;
 }
 function shopTakePlain(type, n) {
@@ -17128,11 +17216,12 @@ function shopTakePlain(type, n) {
   shopRefreshInv();
 }
 // Takes `n` of `type` as payment (plain ones first, then enchanted/used ones). Returns the list of taken items.
-function shopTakePay(type, n) {
+function shopTakePay(key, n) {
+  const type = shopBase(key);
   const out = [];
   let plain = 0;
   const order = [];
-  for (let i = 0; i < INV_SIZE; i++) { const s = inventory[i]; if (s && s.type === type) order.push(i); }
+  for (let i = 0; i < INV_SIZE; i++) { const s = inventory[i]; if (shopMatches(s, key)) order.push(i); }
   order.sort((a, b) => (shopIsPlain(inventory[b]) ? 1 : 0) - (shopIsPlain(inventory[a]) ? 1 : 0));
   for (const i of order) {
     if (n <= 0) break;
@@ -17158,13 +17247,14 @@ function shopDropAt(o) {
 function shopGiveObjs(list) {
   (list || []).forEach(o => {
     if (!o || !o.type || !(o.count > 0)) return;
-    const special = !!(o.ench || o.dur != null || o.uses != null || o.spawnKind || o.meta != null || maxStackFor(o.type) === 1);
+    const special = !!(o.type === 'spawner' || shopHasEnch(o) || o.uses != null || maxStackFor(o.type) === 1);
     if (!special) {
       let left = addItemToInventory(o.type, o.count);
       const ms = maxStackFor(o.type);
       while (left > 0) { const c = Math.min(ms, left); shopDropAt({ type: o.type, count: c }); left -= c; }
     } else {
       const copy = JSON.parse(JSON.stringify(o));
+      if (copy.type === 'spawner') { copy.spawnKind = shopKindOf(copy); if (copy.meta == null) copy.meta = spawnerMetaForKind(copy.spawnKind); }
       const slot = inventory.findIndex(x => !x);
       if (slot >= 0) inventory[slot] = copy;
       else shopDropAt(copy);
@@ -17174,7 +17264,7 @@ function shopGiveObjs(list) {
 }
 // What a trade row hands over: the saved items, or (older rows) plain give_type/give_count.
 function shopGiveList(r) { return (Array.isArray(r.give_data) && r.give_data.length) ? r.give_data : [{ type: r.give_type, count: r.give_count }]; }
-function shopPaidList(r) { return (Array.isArray(r.paid_data) && r.paid_data.length) ? r.paid_data : [{ type: r.want_type, count: r.want_count }]; }
+function shopPaidList(r) { return (Array.isArray(r.paid_data) && r.paid_data.length) ? r.paid_data : [{ type: shopBase(r.want_type), count: r.want_count, spawnKind: shopWantKind(r.want_type) || undefined }]; }
 function shopRefreshInv() {
   try { renderHotbar(); if (inventoryOpen) renderInventoryPanel(); saveLocalPlayer(); } catch (e) {}
 }
@@ -17185,19 +17275,19 @@ function shopSay(text, bad) {
   shopMsgEl.textContent = text || '';
   shopMsgEl.className = bad ? 'bad' : 'ok';
 }
-function shopIcon(type) { try { return iconFor(type); } catch (e) { return '<span class="blkIcon"></span>'; } }
-function shopItemHtml(type, n, extra) {
-  return '<span class="shopIt">' + shopIcon(type) + '<b>' + n + '</b> <span>' + shopEsc(displayName(type)) +
+function shopIcon(type) { try { return iconFor(shopBase(type)); } catch (e) { return '<span class="blkIcon"></span>'; } }
+function shopItemHtml(type, n, extra, kind) {
+  return '<span class="shopIt">' + shopIcon(type) + '<b>' + n + '</b> <span>' + shopEsc(shopName(type, kind)) +
     (extra ? '<small class="shopEnch">' + shopEsc(extra) + '</small>' : '') + '</span></span>';
 }
 function shopGiveHtml(r) {
   const l = shopGiveList(r);
-  if (l.length === 1) return shopItemHtml(l[0].type, l[0].count, shopEnchText(l[0]));
-  return l.map(o => shopItemHtml(o.type, o.count, shopEnchText(o))).join('');
+  if (l.length === 1) return shopItemHtml(l[0].type, l[0].count, shopEnchText(l[0]), shopKindOf(l[0]));
+  return l.map(o => shopItemHtml(o.type, o.count, shopEnchText(o), shopKindOf(o))).join('');
 }
 function shopPaidHtml(r) {
   const l = shopPaidList(r);
-  return l.map(o => shopItemHtml(o.type, o.count, shopEnchText(o))).join('');
+  return l.map(o => shopItemHtml(o.type, o.count, shopEnchText(o), shopKindOf(o))).join('');
 }
 
 // ---------- open / close ----------
@@ -17277,7 +17367,7 @@ async function shopRender(quiet) {
       html += '<div class="shopDeal"><div><small>Selling</small>' + shopGiveHtml(r) + '</div><div class="shopArrow">⇄</div><div><small>For</small>' + shopItemHtml(r.want_type, r.want_count) + '</div></div>' +
         '<button class="shopBtn red" data-act="cancel" data-id="' + r.id + '">Cancel</button>';
     } else {
-      html += '<div class="shopWho">' + shopEsc(r.buyer_name || '?') + ' bought your ' + shopEsc(displayName(r.give_type)) + '</div>' +
+      html += '<div class="shopWho">' + shopEsc(r.buyer_name || '?') + ' bought your ' + shopEsc(shopName(r.give_type, shopKindOf(shopGiveList(r)[0]))) + '</div>' +
         '<div class="shopDeal"><div><small>You receive</small>' + shopPaidHtml(r) + '</div></div>' +
         '<button class="shopBtn" data-act="claim" data-id="' + r.id + '">Claim</button>';
     }
@@ -17323,7 +17413,7 @@ function shopRenderSell() {
 function shopGiveEntries() {
   const out = [], plain = shopOwnedPlain();
   Object.keys(plain).sort((a, b) => displayName(a).localeCompare(displayName(b))).forEach(t => out.push({ key: 'p:' + t, type: t, count: plain[t], plain: true }));
-  for (let i = 0; i < INV_SIZE; i++) { const s = inventory[i]; if (s && !shopIsPlain(s)) out.push({ key: 's:' + i, type: s.type, count: s.count, plain: false, slot: i, info: shopEnchText(shopSer(s)), ench: !!s.ench }); }
+  for (let i = 0; i < INV_SIZE; i++) { const s = inventory[i]; if (s && !shopIsPlain(s)) out.push({ key: 's:' + i, type: s.type, count: s.count, plain: false, slot: i, info: shopEnchText(shopSer(s)), ench: !!s.ench, kind: shopKindOf(s) }); }
   return out;
 }
 function shopGiveEntry(key) { return shopGiveEntries().find(e => e.key === key) || null; }
@@ -17332,7 +17422,7 @@ function shopFillGive() {
   const list = shopGiveEntries();
   if (shopSel.give && !list.some(e => e.key === shopSel.give)) shopSel.give = null;
   if (!list.length) { el.innerHTML = '<div class="shopEmpty small">Your inventory is empty.</div>'; return; }
-  el.innerHTML = list.map(e => '<button class="shopCell' + (shopSel.give === e.key ? ' sel' : '') + (e.ench ? ' ench' : '') + '" data-k="' + e.key + '" title="' + shopEsc(displayName(e.type) + (e.info ? ' (' + e.info + ')' : '')) + '">' + shopIcon(e.type) + (e.count > 1 ? '<i>' + e.count + '</i>' : '') + '</button>').join('');
+  el.innerHTML = list.map(e => '<button class="shopCell' + (shopSel.give === e.key ? ' sel' : '') + (e.ench ? ' ench' : '') + '" data-k="' + e.key + '" title="' + shopEsc(shopName(e.type, e.kind) + (e.info ? ' (' + e.info + ')' : '')) + '">' + shopIcon(e.type) + (e.kind ? '<i class="kind ' + e.kind + '">' + e.kind.charAt(0).toUpperCase() + '</i>' : (e.count > 1 ? '<i>' + e.count + '</i>' : '')) + '</button>').join('');
   el.querySelectorAll('.shopCell').forEach(c => c.addEventListener('click', () => {
     shopSel.give = c.dataset.k;
     const e = shopGiveEntry(shopSel.give);
@@ -17345,17 +17435,17 @@ function shopFillGive() {
 function shopFillWant() {
   const el = document.getElementById('shopWantGrid'); if (!el) return;
   const q = shopSearch.trim().toLowerCase();
-  const types = shopAllTypes().filter(t => !q || displayName(t).toLowerCase().includes(q));
+  const types = shopAllTypes().filter(t => !q || shopName(t).toLowerCase().includes(q));
   if (!types.length) { el.innerHTML = '<div class="shopEmpty small">No item found.</div>'; return; }
-  el.innerHTML = types.map(t => '<button class="shopCell' + (shopSel.want === t ? ' sel' : '') + '" data-t="' + t + '" title="' + shopEsc(displayName(t)) + '">' + shopIcon(t) + '</button>').join('');
+  el.innerHTML = types.map(t => '<button class="shopCell' + (shopSel.want === t ? ' sel' : '') + '" data-t="' + t + '" title="' + shopEsc(shopName(t)) + '">' + shopIcon(t) + (shopWantKind(t) ? '<i class="kind ' + shopWantKind(t) + '">' + shopWantKind(t).charAt(0).toUpperCase() + '</i>' : '') + '</button>').join('');
   el.querySelectorAll('.shopCell').forEach(c => c.addEventListener('click', () => { shopSel.want = c.dataset.t; shopFillWant(); shopSummary(); }));
 }
 function shopSummary() {
   const el = document.getElementById('shopSummary'); if (!el) return;
   const ge = shopGiveEntry(shopSel.give), w = shopSel.want;
-  el.innerHTML = (ge ? shopItemHtml(ge.type, shopSel.giveN || 0, ge.info) : '<span class="shopIt"><span>pick an item to sell</span></span>') +
+  el.innerHTML = (ge ? shopItemHtml(ge.type, shopSel.giveN || 0, ge.info, ge.kind) : '<span class="shopIt"><span>pick an item to sell</span></span>') +
     '<span class="shopArrow">⇄</span>' +
-    (w ? shopItemHtml(w, shopSel.wantN || 0) : '<span class="shopIt"><span>pick what you want</span></span>');
+    (w ? shopItemHtml(shopBase(w), shopSel.wantN || 0, '', shopWantKind(w)) : '<span class="shopIt"><span>pick what you want</span></span>');
 }
 
 // ---------- actions ----------
@@ -17365,10 +17455,10 @@ async function shopList() {
   if (!e) return shopSay('Pick the item you want to sell.', true);
   if (!w) return shopSay('Pick the item you want in return.', true);
   const gn = e.plain ? Math.trunc(Number(shopSel.giveN)) : e.count, wn = Math.trunc(Number(shopSel.wantN));
-  if (e.type === w) return shopSay('Choose two different items.', true);
-  const wantMax = maxStackFor(w) === 1 ? 36 : SHOP_MAX;
-  if (!(gn >= 1 && gn <= SHOP_MAX) || !(wn >= 1 && wn <= wantMax)) return shopSay('Amounts must be between 1 and ' + SHOP_MAX + (wantMax < SHOP_MAX ? ' (max ' + wantMax + ' for ' + displayName(w) + ')' : '') + '.', true);
-  if (gn > e.count) return shopSay('You only have ' + e.count + ' ' + displayName(e.type) + '.', true);
+  if (e.type === shopBase(w) && !(e.type === 'spawner' && shopWantKind(w) !== e.kind)) return shopSay('Choose two different items.', true);
+  const wantMax = maxStackFor(shopBase(w)) === 1 ? 36 : SHOP_MAX;
+  if (!(gn >= 1 && gn <= SHOP_MAX) || !(wn >= 1 && wn <= wantMax)) return shopSay('Amounts must be between 1 and ' + SHOP_MAX + (wantMax < SHOP_MAX ? ' (max ' + wantMax + ' for ' + shopName(w) + ')' : '') + '.', true);
+  if (gn > e.count) return shopSay('You only have ' + e.count + ' ' + shopName(e.type, e.kind) + '.', true);
   // escrow: take the items out of the inventory now
   let giveData = null;
   if (e.plain) shopTakePlain(e.type, gn);
@@ -17383,7 +17473,7 @@ async function shopList() {
       refund();
       shopSay(shopSetupError(error) ? 'The shop database needs the latest voltex_shop_setup.sql (see below).' : 'Could not list: ' + (error.message || error), true);
     } else {
-      shopSay('Listed ' + gn + ' ' + displayName(e.type) + ' for ' + wn + ' ' + displayName(w) + '. See the Pending tab.');
+      shopSay('Listed ' + gn + ' ' + shopName(e.type, e.kind) + ' for ' + wn + ' ' + shopName(w) + '. See the Pending tab.');
       shopSel.give = null; shopSel.giveN = 1;
       const gi = document.getElementById('shopGiveN'); if (gi) { gi.value = 1; gi.disabled = false; }
       shopFillGive(); shopSummary();
@@ -17400,7 +17490,7 @@ async function shopBuy(id) {
     const t = found && found[0];
     if (!t) { shopSay('That trade is no longer available.', true); }
     else if (t.seller_name === MY_NAME) { shopSay("You can't buy your own trade.", true); }
-    else if (shopCount(t.want_type) < t.want_count) { shopSay('You need ' + t.want_count + ' ' + displayName(t.want_type) + '.', true); }
+    else if (shopCount(t.want_type) < t.want_count) { shopSay('You need ' + t.want_count + ' ' + shopName(t.want_type) + '.', true); }
     else {
       // take the payment first, then reserve the trade: only one buyer can flip open -> sold
       const paid = shopTakePay(t.want_type, t.want_count);
@@ -17411,7 +17501,7 @@ async function shopBuy(id) {
         shopSay('Someone else got it first.', true);
       } else {
         shopGiveObjs(shopGiveList(t));
-        shopSay('Bought ' + t.give_count + ' ' + displayName(t.give_type) + ' from ' + t.seller_name + '!');
+        shopSay('Bought ' + t.give_count + ' ' + shopName(t.give_type, shopKindOf(shopGiveList(t)[0])) + ' from ' + t.seller_name + '!');
       }
     }
   } catch (e) { shopSay('Trade failed: ' + (e.message || e), true); }
@@ -17425,7 +17515,7 @@ async function shopCancel(id) {
     const { data: upd, error } = await sb.from(SHOP_TABLE).update({ status: 'cancelled' }).eq('id', id).eq('status', 'open').eq('seller_name', MY_NAME).select();
     if (error) throw error;
     if (!upd || !upd.length) shopSay('That trade was already sold or cancelled.', true);
-    else { shopGiveObjs(shopGiveList(upd[0])); shopSay('Cancelled. You got your ' + upd[0].give_count + ' ' + displayName(upd[0].give_type) + ' back.'); }
+    else { shopGiveObjs(shopGiveList(upd[0])); shopSay('Cancelled. You got your ' + upd[0].give_count + ' ' + shopName(upd[0].give_type, shopKindOf(shopGiveList(upd[0])[0])) + ' back.'); }
   } catch (e) { shopSay('Cancel failed: ' + (e.message || e), true); }
   shopBusy = false;
   shopRender(true);
@@ -17437,7 +17527,7 @@ async function shopClaim(id) {
     const { data: upd, error } = await sb.from(SHOP_TABLE).update({ status: 'claimed' }).eq('id', id).eq('status', 'sold').eq('seller_name', MY_NAME).select();
     if (error) throw error;
     if (!upd || !upd.length) shopSay('Already claimed.', true);
-    else { shopGiveObjs(shopPaidList(upd[0])); shopSay('Claimed ' + upd[0].want_count + ' ' + displayName(upd[0].want_type) + '. (Anything that did not fit was thrown out.)'); }
+    else { shopGiveObjs(shopPaidList(upd[0])); shopSay('Claimed ' + upd[0].want_count + ' ' + shopName(upd[0].want_type) + '. (Anything that did not fit was thrown out.)'); }
   } catch (e) { shopSay('Claim failed: ' + (e.message || e), true); }
   shopBusy = false;
   shopRender(true);
