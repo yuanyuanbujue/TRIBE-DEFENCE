@@ -415,6 +415,77 @@
     .choice-icon { width: 42px; height: 42px; font-size: 20px; }
     .choice-badge { display: none; }
   }
+
+  /* ===== Announcement ===== */
+  .announce {
+    text-align: left;
+    margin: 4px 0 16px;
+    padding: 14px 16px;
+    border-radius: 12px;
+    background: rgba(246, 194, 82, 0.10);
+    border: 1px solid rgba(246, 194, 82, 0.45);
+  }
+  .announce-title { font-size: 13px; font-weight: 800; letter-spacing: .6px; text-transform: uppercase; color: #f6c252; margin-bottom: 6px; }
+  .announce p { font-size: 12.5px; line-height: 1.55; opacity: .9; }
+  .announce p + p { margin-top: 6px; }
+  .announce strong { color: #fff; }
+
+  /* ===== Report button + menu (top left) ===== */
+  .reportbtn {
+    position: fixed; top: 62px; left: 14px; z-index: 45;
+    padding: 8px 14px; border-radius: 10px; font-size: 13px; font-weight: 700; cursor: pointer;
+    color: #fff; background: rgba(13, 18, 36, 0.7); backdrop-filter: blur(8px);
+    border: 1px solid rgba(255,255,255,0.22); transition: background .15s, border-color .15s;
+  }
+  .reportbtn:hover, .reportbtn[aria-expanded="true"] { background: rgba(255,255,255,0.14); border-color: rgba(126,232,250,0.5); }
+  #reportMenu {
+    position: fixed; top: 104px; left: 14px; z-index: 46; width: 290px; display: none;
+    background: #1b2338; border: 1px solid rgba(255,255,255,0.18); border-radius: 12px; padding: 6px;
+    box-shadow: 0 16px 40px rgba(0,0,0,0.5); animation: menuIn .15s ease-out;
+  }
+  #reportMenu.open { display: block; }
+  .rmenu-item {
+    display: flex; align-items: center; gap: 12px; width: 100%; text-align: left; padding: 10px 12px;
+    border-radius: 8px; border: none; background: transparent; color: #fff; cursor: pointer; font: inherit;
+  }
+  .rmenu-item:hover { background: rgba(255,255,255,0.1); }
+  .rmenu-item > span { font-size: 20px; }
+  .rmenu-item b { display: block; font-size: 13.5px; }
+  .rmenu-item small { display: block; font-size: 11.5px; opacity: .6; margin-top: 1px; }
+
+  /* announcement popup */
+  #announceOverlay { position: fixed; inset: 0; z-index: 300; display: flex; align-items: center; justify-content: center; padding: 16px; background: rgba(0,0,0,0.78); }
+  #announceOverlay.hidden { display: none; }
+  #announceBox {
+    max-width: 460px; width: 100%; padding: 24px 26px; border-radius: 14px; background: #1b2338;
+    border: 1px solid rgba(246, 194, 82, 0.55); box-shadow: 0 20px 50px rgba(0,0,0,0.6); animation: menuIn .25s ease-out;
+  }
+  #announceBox .announce-title { margin-bottom: 12px; font-size: 14px; }
+  #announceBox p { font-size: 13.5px; line-height: 1.6; opacity: .92; margin-bottom: 10px; }
+  #announceBox strong { color: #fff; }
+  #announceOkBtn { width: 100%; margin-top: 8px; padding: 12px; font-size: 14px; }
+
+  #reportOverlay { position: fixed; inset: 0; z-index: 120; display: none; background: rgba(0,0,0,0.6); align-items: center; justify-content: center; padding: 16px; }
+  #reportOverlay.open { display: flex; }
+  #reportBox { background: #1b2338; border: 1px solid rgba(255,255,255,0.18); border-radius: 14px; padding: 22px 24px; max-width: 420px; width: 100%; box-shadow: 0 20px 50px rgba(0,0,0,0.5); animation: menuIn .2s ease-out; text-align: left; }
+  #reportBox h3 { font-size: 17px; margin-bottom: 4px; }
+  #reportBox .sub { font-size: 12px; opacity: .6; margin-bottom: 14px; }
+  #reportBox label { display: block; font-size: 12px; font-weight: 700; margin: 10px 0 5px; opacity: .85; }
+  #reportBox input, #reportBox textarea {
+    width: 100%; padding: 9px 11px; border-radius: 8px; font: inherit; font-size: 13px;
+    background: rgba(255,255,255,0.07); color: #fff; border: 1px solid rgba(255,255,255,0.2);
+  }
+  #reportBox textarea { min-height: 96px; resize: vertical; }
+  #reportBox input:focus, #reportBox textarea:focus { outline: none; border-color: var(--accent-cyan); }
+  #reportErr { min-height: 16px; margin-top: 8px; font-size: 12px; color: #ff9b95; }
+  #reportErr.ok { color: var(--green-bright); }
+  #reportOtherWrap { display: none; }
+  .reportActions { display: flex; gap: 10px; margin-top: 12px; }
+  .reportActions .dlgBtn { flex: 1; }
+  @media (max-width: 520px) {
+    .reportbtn { top: 58px; left: 8px; padding: 7px 11px; font-size: 12px; }
+    #reportMenu { top: 98px; left: 8px; width: calc(100vw - 16px); max-width: 320px; }
+  }
 </style>
 </head>
 <body>
@@ -512,8 +583,48 @@
   </div>
 </div>
 
+<!-- Report button (top left) + menu -->
+<button type="button" class="reportbtn" id="reportBtn" aria-haspopup="true" aria-expanded="false">🚩 Report</button>
+<div id="reportMenu" role="menu" aria-label="Report type">
+  <button type="button" class="rmenu-item" role="menuitem" data-cat="exploiter"><span>🛡️</span><div><b>Exploiter</b><small>A player is cheating or abusing something</small></div></button>
+  <button type="button" class="rmenu-item" role="menuitem" data-cat="bug"><span>🐞</span><div><b>Bugs</b><small>Something in the game is broken</small></div></button>
+  <button type="button" class="rmenu-item" role="menuitem" data-cat="other"><span>💬</span><div><b>Other</b><small>Anything else — you tell us what it is</small></div></button>
+</div>
+
+<!-- Announcement: shown every time this page opens -->
+<div id="announceOverlay" role="dialog" aria-modal="true" aria-labelledby="announceTitle">
+  <div id="announceBox">
+    <div class="announce-title" id="announceTitle">📢 Announcement — database changes</div>
+    <p>Voltex has moved to a <strong>new database</strong>. Your old cloud saves were copied over, but <strong>accounts were not</strong>, so everyone needs to create their account again.</p>
+    <p>Sign up with the <strong>same email</strong> you used before so your old save can be linked to you. Do this <strong>before you start playing</strong>, otherwise the game creates a blank save.</p>
+    <p>If you <strong>lose your progress, items or save</strong>, find me (Yuan) and I'll restore it.</p>
+    <button type="button" class="dlgBtn primary" id="announceOkBtn">I understand</button>
+  </div>
+</div>
+
+<div id="reportOverlay" role="dialog" aria-modal="true" aria-labelledby="reportTitle">
+  <form id="reportBox" autocomplete="off">
+    <h3 id="reportTitle">Report</h3>
+    <p class="sub">Your report goes straight to the game owner.</p>
+    <div id="reportOtherWrap">
+      <label for="reportOther">What is it?</label>
+      <input id="reportOther" maxlength="80" placeholder="e.g. Chat spam, lost item, suggestion">
+    </div>
+    <label for="reportDetails">What is it about?</label>
+    <textarea id="reportDetails" maxlength="1000" placeholder="Describe what happened. For exploiters, include the player name."></textarea>
+    <label for="reportName">Your name (optional)</label>
+    <input id="reportName" maxlength="40" placeholder="Your in-game name">
+    <div id="reportErr" role="status"></div>
+    <div class="reportActions">
+      <button type="submit" class="dlgBtn primary" id="reportSend">Send report</button>
+      <button type="button" class="dlgBtn ghost" id="reportCancel">Cancel</button>
+    </div>
+  </form>
+</div>
+
 <div id="toast"></div>
 
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2.45.4/dist/umd/supabase.js"></script>
 <script>
 (function () {
   // ── Version (shown in settings + UI) ──────────────────────────────────────
@@ -608,11 +719,82 @@
     }
   });
 
+
+  // ── Reports (stored in Supabase table voltex_reports) ──────────────────────
+  const SUPABASE_URL = 'https://fnqcgrrmmwjichloxiug.supabase.co';
+  const SUPABASE_ANON_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImZucWNncnJtbXdqaWNobG94aXVnIiwicm9sZSI6ImFub24iLCJpYXQiOjE3OTE2OTg4MzUsImV4cCI6MjEwNzI3NDgzNX0.VMonGFL8P56PdpCAYUFdFFn7cmuDPR8tp50audej4HU';
+  let reportDb = null;
+  try { reportDb = window.supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY, { auth: { persistSession: false } }); } catch (e) { console.warn('Reports unavailable', e); }
+
+  const reportOverlay = document.getElementById('reportOverlay');
+  const reportOtherWrap = document.getElementById('reportOtherWrap');
+  const reportOther = document.getElementById('reportOther');
+  const reportDetails = document.getElementById('reportDetails');
+  const reportName = document.getElementById('reportName');
+  const reportErr = document.getElementById('reportErr');
+  const reportSend = document.getElementById('reportSend');
+  const REPORT_TITLES = { exploiter: 'Report an exploiter', bug: 'Report a bug', other: 'Other report' };
+  let reportCat = null;
+
+  function setReportMsg(msg, ok) { reportErr.textContent = msg || ''; reportErr.classList.toggle('ok', !!ok); }
+  function closeReport() { reportOverlay.classList.remove('open'); }
+  function openReport(cat) {
+    reportCat = cat;
+    document.getElementById('reportTitle').textContent = REPORT_TITLES[cat];
+    reportOtherWrap.style.display = cat === 'other' ? 'block' : 'none';
+    reportOther.value = '';
+    reportDetails.value = '';
+    try { reportName.value = localStorage.getItem('voltex_report_name') || ''; } catch (e) {}
+    setReportMsg('');
+    reportOverlay.classList.add('open');
+    setTimeout(() => (cat === 'other' ? reportOther : reportDetails).focus(), 50);
+  }
+  const reportBtn = document.getElementById('reportBtn');
+  const reportMenu = document.getElementById('reportMenu');
+  function setMenu(open) { reportMenu.classList.toggle('open', open); reportBtn.setAttribute('aria-expanded', open ? 'true' : 'false'); }
+  reportBtn.addEventListener('click', (e) => { e.stopPropagation(); setMenu(!reportMenu.classList.contains('open')); });
+  reportMenu.addEventListener('click', (e) => e.stopPropagation());
+  document.addEventListener('click', () => setMenu(false));
+  reportMenu.querySelectorAll('.rmenu-item').forEach(b => b.addEventListener('click', () => { setMenu(false); openReport(b.dataset.cat); }));
+
+  // Announcement: shown on every visit; must be acknowledged before anything else can be clicked
+  const announceOverlay = document.getElementById('announceOverlay');
+  document.getElementById('announceOkBtn').addEventListener('click', () => announceOverlay.classList.add('hidden'));
+  document.getElementById('announceOkBtn').focus();
+  document.getElementById('reportCancel').addEventListener('click', closeReport);
+  reportOverlay.addEventListener('click', e => { if (e.target === reportOverlay) closeReport(); });
+
+  document.getElementById('reportBox').addEventListener('submit', async (e) => {
+    e.preventDefault();
+    const other = reportOther.value.trim();
+    const details = reportDetails.value.trim();
+    const name = reportName.value.trim();
+    if (reportCat === 'other' && other.length < 2) { setReportMsg('Please say what it is.'); return; }
+    if (details.length < 3) { setReportMsg('Please describe what it is about.'); return; }
+    let last = 0; try { last = +localStorage.getItem('voltex_report_last') || 0; } catch (e) {}
+    if (Date.now() - last < 30000) { setReportMsg('Please wait a few seconds before sending another report.'); return; }
+    if (!reportDb) { setReportMsg('Reports are unavailable right now.'); return; }
+    reportSend.disabled = true; reportSend.textContent = 'Sending…';
+    const { error } = await reportDb.from('voltex_reports').insert({
+      category: reportCat,
+      other_title: reportCat === 'other' ? other : null,
+      details: details,
+      reporter: name || null
+    });
+    reportSend.disabled = false; reportSend.textContent = 'Send report';
+    if (error) { console.warn(error); setReportMsg('Could not send the report. Please try again later.'); return; }
+    try { localStorage.setItem('voltex_report_last', String(Date.now())); if (name) localStorage.setItem('voltex_report_name', name); } catch (e) {}
+    closeReport();
+    showToast('Report sent — thank you!');
+  });
+
   // Escape closes overlays
   document.addEventListener('keydown', (e) => {
     if (e.key === 'Escape') {
       settingsOverlay.classList.remove('open');
       downloadOverlay.classList.remove('open');
+      closeReport();
+      setMenu(false);
     }
   });
 })();
