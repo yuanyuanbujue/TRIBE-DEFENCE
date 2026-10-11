@@ -1339,8 +1339,8 @@
 // diff on top of everyone's identically-generated base terrain. Placing or
 // breaking a block = upsert a row; Supabase Realtime then pushes that same
 // row to every other connected browser, which applies it the same way.
-const SUPABASE_URL = 'https://qzupfyqizurpkvifkmnn.supabase.co';
-const SUPABASE_ANON_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InF6dXBmeXFpenVycGt2aWZrbW5uIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzYwNjEyNDYsImV4cCI6MjA5MTYzNzI0Nn0.fRfg6wAeCMteat6Jf9yNT__g-N97LFCnWqlSF9rg6jo';
+const SUPABASE_URL = 'https://fnqcgrrmmwjichloxiug.supabase.co'
+const SUPABASE_ANON_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImZucWNncnJtbXdqaWNobG94aXVnIiwicm9sZSI6ImFub24iLCJpYXQiOjE3OTE2OTg4MzUsImV4cCI6MjEwNzI3NDgzNX0.VMonGFL8P56PdpCAYUFdFFn7cmuDPR8tp50audej4HU'
 // Soft-fail: if the Supabase CDN did not load, keep a stub so Guest / local play still works.
 let sb;
 try {
@@ -1356,7 +1356,7 @@ try {
   });
 } catch (e) {
   console.error('Supabase init failed — online auth/multiplayer disabled:', e);
-  const _noopCh = () => ({ on(){return this;}, subscribe(){return this;}, track(){return Promise.resolve();}, send(){return Promise.resolve();}, presenceState(){return {};} });
+  const _noopCh = () => ({ on(){return this;}, subscribe(cb){ if (typeof cb === 'function') setTimeout(() => cb('CLOSED'), 0); return this; }, track(){return Promise.resolve();}, send(){return Promise.resolve();}, presenceState(){return {};} });
   sb = {
     auth: {
       getSession: async () => ({ data: { session: null } }),
@@ -15788,7 +15788,7 @@ function startGame() {
   } else {
     canvas.requestPointerLock();
   }
-  playersChannel.track({ name: MY_NAME, skin: mySkinData, touch: !!touchMode });
+  try { Promise.resolve(playersChannel.track({ name: MY_NAME, skin: mySkinData, touch: !!touchMode })).catch(() => {}); } catch (e) {}
   saveLocalPlayer(); // remember the name (and everything else) for next time
 }
 document.getElementById('startBtn').addEventListener('click', startGame);
@@ -16014,7 +16014,7 @@ async function applyAuthUser(user) {
     let local = null, cloud = null, guest = null;
     try { const raw = localStorage.getItem(SAVE_KEY); if (raw) local = JSON.parse(raw); } catch (e) {}
     try {
-      const { data, error } = await sb.from('voltex_saves').select('data, updated_at').eq('user_id', user.id).maybeSingle();
+      const { data, error } = await Promise.race([sb.from('voltex_saves').select('data, updated_at').eq('user_id', user.id).maybeSingle(), new Promise(r => setTimeout(() => r({ data: null, error: { message: 'timeout' } }), 8000))]);
       if (error) { cloudSaveOk = false; }
       else if (data && data.data) {
         cloud = data.data;
@@ -17094,31 +17094,47 @@ function setLoadProgress(pct, label) {
 }
 
 setLoadProgress(10, 'Connecting to server…');
+function _withTimeout(p, ms) { return Promise.race([p, new Promise(res => setTimeout(() => res('timeout'), ms))]); }
+// Start must never stay locked: online = connected to the shared world, otherwise you can still play offline.
+function enableStart(online) {
+  startBtn.disabled = false;
+  if (online) {
+    setLoadProgress(100, 'Connected to shared world ✔');
+    connDot.style.background = ''; connDot.style.boxShadow = ''; connDot.style.animation = '';
+    connDot.classList.add('ready');
+  } else {
+    setLoadProgress(100, 'Server unreachable — you can still play offline (changes won\u2019t be shared)');
+    connDot.classList.remove('ready');
+    connDot.style.background = '#ffb347'; connDot.style.boxShadow = '0 0 8px #ffb347'; connDot.style.animation = 'none';
+  }
+}
 (async () => {
   try {
     setLoadProgress(30, 'Loading shared world…');
-    await loadWorldDiffs();       // pull every change anyone has ever made
+    const r = await _withTimeout(loadWorldDiffs().then(() => 'ok', e => { console.error(e); return 'error'; }), 12000);   // never wait forever
+    if (r !== 'ok') console.warn('World load incomplete:', r);
     setLoadProgress(60, 'Syncing live changes…');
-    subscribeWorldChanges();      // then start listening live for new ones
+    try { subscribeWorldChanges(); } catch (e) { console.error(e); }   // live block sync
     markGeneratedChunksDirty();
     flushDirtyChunks();
     setLoadProgress(85, 'Placing you in the world…');
     unstickPlayerIfFloating();    // fix stale saved Y that no longer matches real terrain
-    playersChannel.subscribe(status => {
-      if (status === 'SUBSCRIBED') {
-        setLoadProgress(100, 'Connected to shared world ✔');
-        playersChannel.send({ type: 'broadcast', event: 'sync_req', payload: { id: MY_ID } }); // get chests + dropped items from whoever is online
-        connDot.classList.add('ready');
-        startBtn.disabled = false;
-      }
-    });
   } catch (err) {
     console.error(err);
-    connText.textContent = 'Could not reach the server — check your connection and reload.';
-    connDot.style.background = '#ff6b6b';
-    connDot.style.boxShadow = '0 0 8px #ff6b6b';
-    connDot.style.animation = 'none';
   }
+  try {
+    playersChannel.subscribe(status => {
+      if (status === 'SUBSCRIBED') {
+        enableStart(true);
+        try { playersChannel.send({ type: 'broadcast', event: 'sync_req', payload: { id: MY_ID } }); } catch (e) {}   // get chests + dropped items from whoever is online
+        // connected after pressing Start while offline: announce yourself now
+        try { if (gameStarted) playersChannel.track({ name: MY_NAME, skin: mySkinData, touch: !!touchMode }); } catch (e) {}
+      } else if (status === 'CHANNEL_ERROR' || status === 'TIMED_OUT' || status === 'CLOSED') {
+        enableStart(false);
+      }
+    });
+  } catch (e) { console.error(e); enableStart(false); }
+  setTimeout(() => { if (startBtn.disabled) enableStart(false); }, 8000);   // channel never answered: allow offline play
 })();
 
 let saveTimer = 0;
