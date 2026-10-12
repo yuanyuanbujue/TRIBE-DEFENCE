@@ -15598,15 +15598,15 @@ function gojoDomainMake(p) {
   const shell = new THREE.Mesh(new THREE.SphereGeometry(1, 48, 32), new THREE.MeshBasicMaterial({ map: gojoSpaceTex(), side: THREE.DoubleSide, fog: false }));
   g.add(shell);
   // large central black hole with a spinning accretion disc and a glow
-  const bh = new THREE.Group(); bh.position.set(0, 0.5, 0); g.add(bh);
+  const bh = new THREE.Group(); bh.scale.setScalar(0.64); g.add(bh);   // the vortex hangs on the dome's WALL, facing the centre (placed below)
   const core = new THREE.Mesh(new THREE.SphereGeometry(0.16, 24, 16), new THREE.MeshBasicMaterial({ color: 0x000000, fog: false }));
   const glow = new THREE.Sprite(new THREE.SpriteMaterial({ map: gojoGlowTex(), color: 0x5aa8ff, transparent: true, blending: THREE.AdditiveBlending, depthWrite: false, fog: false }));
   glow.scale.setScalar(1.35);
-  const tilt = new THREE.Group(); tilt.rotation.x = 0.36; tilt.rotation.z = 0.12;
+  const tilt = new THREE.Group();
   const disc = new THREE.Mesh(new THREE.RingGeometry(0.2, 0.56, 64, 1), new THREE.MeshBasicMaterial({ map: gojoDiscTex(), transparent: true, blending: THREE.AdditiveBlending, depthWrite: false, side: THREE.DoubleSide, fog: false }));
-  disc.rotation.x = -Math.PI / 2; tilt.add(disc);
+  tilt.add(disc);
   const ink = new THREE.Mesh(new THREE.RingGeometry(0.2, 0.56, 64, 1), new THREE.MeshBasicMaterial({ map: gojoInkTex(), transparent: true, depthWrite: false, side: THREE.DoubleSide, fog: false }));
-  ink.rotation.x = -Math.PI / 2; ink.position.y = 0.004; tilt.add(ink);
+  ink.position.z = 0.004; tilt.add(ink);
   bh.add(glow, core, tilt);
   // glowing white speckles drifting inside
   const N = 170, pos = new Float32Array(N * 3);
@@ -15622,8 +15622,13 @@ function gojoDomainMake(p) {
   const floor = new THREE.Mesh(new THREE.CircleGeometry(fr, 64), new THREE.MeshBasicMaterial({ map: gojoFloorTex(), fog: false, polygonOffset: true, polygonOffsetFactor: -1, polygonOffsetUnits: -1 }));
   floor.rotation.x = -Math.PI / 2; floor.position.y = fu + 0.0005; g.add(floor);
   const inMe = Math.hypot(player.pos.x - p.x, player.pos.y + 0.9 - p.y, player.pos.z - p.z) <= p.R;   // inside when it forms = locked in; outside = locked out
-  const d = { g, shell, disc, ink, dust, x: p.x, y: p.y, z: p.z, R: p.R, life: p.life, age: 0, from: p.from, inMe, home: inMe ? { x: player.pos.x, y: player.pos.y, z: player.pos.z } : null, saved: null,
+  const d = { g, shell, bh, disc, ink, dust, x: p.x, y: p.y, z: p.z, R: p.R, life: p.life, age: 0, from: p.from, inMe, home: inMe ? { x: player.pos.x, y: player.pos.y, z: player.pos.z } : null, saved: null,
     floorY: p.y - 0.9, hp: GOJO_DOMAIN_HP, flash: 0, recarveT: 0.5, broken: false };
+  // Put the vortex on the wall in the direction you are looking (a frozen victim can't turn, so it stays right in front of them)
+  const cd = new THREE.Vector3(); try { camera.getWorldDirection(cd); } catch (e) {}
+  let fx = cd.x, fz = cd.z; const fl = Math.hypot(fx, fz);
+  if (fl < 0.2) { fx = -Math.sin(player.yaw || 0); fz = -Math.cos(player.yaw || 0); } else { fx /= fl; fz /= fl; }
+  bh.position.set(fx * 0.75, 0.28, fz * 0.75); bh.rotation.y = Math.atan2(-fx, -fz);
   gojoDomains.push(d); return d;
 }
 function gojoDomainRemove(i) {
