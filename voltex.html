@@ -14309,7 +14309,8 @@ function findTargetPlayer() {
 function createOtherPlayer(id, name) {
   const color = colorForId(id);
   const model = buildHumanoid(color);
-  model.group.add(makeNameSprite(name));
+  const _nameSpr = makeNameSprite(name); _nameSpr.userData.isPlayerName = true;
+  model.group.add(_nameSpr);
   scene.add(model.group);
   const entry = {
     group: model.group, head: model.head, legL: model.legL, legR: model.legR, armL: model.armL, armR: model.armR,
@@ -14469,6 +14470,17 @@ playersChannel
     const v = [payload.x, payload.y, payload.z, payload.R, payload.life].map(Number);
     if (!v.every(Number.isFinite)) return;
     gojoDomainMake({ from: payload.from, x: v[0], y: v[1], z: v[2], R: Math.min(8, v[3]), life: Math.min(30, v[4]) });
+  })
+  .on('broadcast', { event: 'gojo_domain_hit' }, ({ payload }) => {
+    if (!payload || payload.from === MY_ID) return;
+    const amt = Math.max(0, Math.min(60, Number(payload.amount) || 0));
+    const d = gojoDomains.find(q => q.from === payload.target);
+    if (d && amt > 0) gojoDomainApply(d, amt);
+  })
+  .on('broadcast', { event: 'gojo_domain_break' }, ({ payload }) => {
+    if (!payload || payload.from === MY_ID) return;
+    const d = gojoDomains.find(q => q.from === payload.from);
+    if (d) gojoDomainBreak(d, false);
   })
   .on('broadcast', { event: 'gojo_hold_end' }, ({ payload }) => {
     if (!payload) return;
@@ -14723,6 +14735,8 @@ function updateOtherPlayerVisuals(dt) {
   const lerpT = Math.min(1, dt * 10);
   otherPlayers.forEach(entry => {
     try { setBodyHidden(entry.model, !!entry.invisible); } catch (e) {}
+    // an invisible player (Invisibility potion) must not show their name tag either
+    entry.group.children.forEach(ch => { if (ch.userData && ch.userData.isPlayerName) ch.visible = !entry.invisible; });
     undoGlidePose(entry);
     const dx = entry.target.x - entry.group.position.x;
     const dz = entry.target.z - entry.group.position.z;
@@ -14984,7 +14998,7 @@ function renderGojoBar() {
       div.title = 'Hollow Purple: click to summon Red (left) and Blue (right) in front of you; they smash together into a purple ball. Click again to fire it: it erases every block in its path while you hold the button, for up to 50 blocks. Huge damage.';
     } else if (i === 3) {
       div.innerHTML = '<span class="num">4</span><div class="gojoDomain"></div><span class="gojoName">Domain</span>' + (gojoDomainCd > 0 ? '<span class="gojoCd">' + Math.ceil(gojoDomainCd) + '</span>' : '');
-      div.title = 'Domain Expansion: click to wall off a pitch-black 6-block domain around you. Nobody can enter or leave, the blocks inside vanish, everyone inside but you is frozen. It fades after 12 s and everything returns.';
+      div.title = 'Domain Expansion: click to wall off an outer-space domain (black void, galaxies, a giant black hole) around you. Everyone inside stands on a flat floor, nobody can enter or leave, and everyone inside but you is frozen. It has 100 HP: anyone outside can break it by hitting it. Otherwise it fades after 12 s and everything returns.';
     } else div.innerHTML = '<span class="num">' + (i + 1) + '</span>';
     div.addEventListener('click', () => { gojoSlot = i; renderGojoBar(); });
     hotbar.appendChild(div);
@@ -15067,6 +15081,7 @@ function gojoClick() {
 function gojoDamage(b) {
   // Blue hurts whatever it is dragging (only this caster's client deals the damage)
   const bp = new THREE.Vector3(b.x, b.y, b.z);
+  gojoDomainBlast(b.x, b.y, b.z, 1.5, 3);
   animals.forEach(a => {
     if (!a.alive) return;
     if (b.only != null && b.only !== 'm' + a.id) return;
@@ -15207,6 +15222,7 @@ function gojoRedExplode(r) {
   const mult = r.mult, R = 2.8 + (mult - 1) * 0.9, dmg = RED_BASE_DMG * mult;
   const bp = new THREE.Vector3(r.x, r.y, r.z);
   gojoRedBoom(r.x, r.y, r.z, R);
+  gojoDomainBlast(r.x, r.y, r.z, R, Math.round(dmg));
   try { playersChannel.send({ type: 'broadcast', event: 'gojo_red_hit', payload: { from: MY_ID, rid: r.rid, x: r.x, y: r.y, z: r.z, R } }); } catch (e) {}
   animals.forEach(a => {
     if (!a.alive) return;
@@ -15351,6 +15367,7 @@ function gojoHpCarve(h) {
 }
 function gojoHpDamage(h) {
   const R = HP_CARVE_R + 1.2, bp = new THREE.Vector3(h.x, h.y, h.z);
+  gojoDomainBlast(h.x, h.y, h.z, HP_CARVE_R, HP_DMG);
   animals.forEach(a => {
     if (!a.alive) return;
     const d = Math.hypot(h.x - a.pos.x, h.y - (a.pos.y + (a.height || 1) * 0.5), h.z - a.pos.z);
@@ -15430,9 +15447,14 @@ function updateGojoHp(dt) {
         }
       } else if (h.readyT > 20) { gojoHpCancel(); continue; }
     } else if (h.st === 'fire') {
-      const step = HP_SPEED * dt;
-      h.x += h.dx * step; h.y += h.dy * step; h.z += h.dz * step; h.traveled += step;
-      h.carveT -= dt; if (h.carveT <= 0) { h.carveT = 0.04; gojoHpCarve(h); }
+      // Never stops on its own: it flies on through anything (blocks in the way are erased) until you release or it reaches 50 blocks.
+      // Moved in small sub-steps so even a lag spike can't skip a stretch of blocks.
+      let left = Math.min(HP_SPEED * dt, 4);
+      while (left > 1e-4 && h.traveled < HP_RANGE) {
+        const st = Math.min(left, 0.7, HP_RANGE - h.traveled);
+        h.x += h.dx * st; h.y += h.dy * st; h.z += h.dz * st; h.traveled += st; left -= st;
+        gojoHpCarve(h);
+      }
       h.dmgT -= dt; if (h.dmgT <= 0) { h.dmgT = 0.1; gojoHpDamage(h); }
       if (h.traveled >= HP_RANGE) { gojoHpEnd(h); continue; }
     }
@@ -15441,15 +15463,122 @@ function updateGojoHp(dt) {
   }
 }
 // ----- Domain Expansion (slot 4): a dome that freezes everyone inside (except you) -----
-const GOJO_DOMAIN_R = 6, GOJO_DOMAIN_TIME = 12, GOJO_DOMAIN_CD = 25;
+const GOJO_DOMAIN_R = 6, GOJO_DOMAIN_TIME = 12, GOJO_DOMAIN_CD = 25, GOJO_DOMAIN_HP = 100;
 const gojoDomains = [];
 let gojoFrozen = false, gojoDomainCd = 0, _frz = null, _frzOverlay = null;
+// ---- Outer-space look of the domain: starfield + distant galaxies (sky), black hole accretion disc, glowing stardust, flat floor ----
+let _gTexSpace = null, _gTexDisc = null, _gTexGlow = null, _gTexFloor = null;
+function _gRng(seed) { let q = seed >>> 0; return () => ((q = (q * 1664525 + 1013904223) >>> 0) / 4294967296); }
+function _gTex(c) { const t = new THREE.CanvasTexture(c); t.anisotropy = 4; return t; }
+function gojoGlowTex() {
+  if (_gTexGlow) return _gTexGlow;
+  const c = document.createElement('canvas'); c.width = c.height = 128; const g = c.getContext('2d');
+  const gr = g.createRadialGradient(64, 64, 0, 64, 64, 64);
+  gr.addColorStop(0, 'rgba(255,255,255,1)'); gr.addColorStop(0.2, 'rgba(255,255,255,0.7)'); gr.addColorStop(0.5, 'rgba(255,255,255,0.18)'); gr.addColorStop(1, 'rgba(255,255,255,0)');
+  g.fillStyle = gr; g.fillRect(0, 0, 128, 128);
+  return (_gTexGlow = _gTex(c));
+}
+function gojoSpaceTex() {
+  if (_gTexSpace) return _gTexSpace;
+  const W = 2048, H = 1024, c = document.createElement('canvas'); c.width = W; c.height = H; const g = c.getContext('2d'), rnd = _gRng(777);
+  g.fillStyle = '#000'; g.fillRect(0, 0, W, H);
+  // faint nebula haze
+  const hazeCols = ['80,40,200', '30,70,200', '160,40,160', '40,120,180'];
+  for (let i = 0; i < 9; i++) {
+    const x = rnd() * W, y = 160 + rnd() * (H - 320), r = 160 + rnd() * 260, gr = g.createRadialGradient(x, y, 0, x, y, r);
+    gr.addColorStop(0, 'rgba(' + hazeCols[i % 4] + ',0.16)'); gr.addColorStop(1, 'rgba(' + hazeCols[i % 4] + ',0)');
+    g.fillStyle = gr; g.fillRect(x - r, y - r, r * 2, r * 2);
+  }
+  // stardust: thousands of tiny white speckles
+  for (let i = 0; i < 5200; i++) {
+    const x = rnd() * W, y = rnd() * H, a = 0.2 + rnd() * 0.8, r = 0.35 + rnd() * 1.0;
+    g.fillStyle = 'rgba(255,255,255,' + a.toFixed(2) + ')'; g.beginPath(); g.arc(x, y, r, 0, 6.2832); g.fill();
+  }
+  // bigger glowing white stars
+  for (let i = 0; i < 190; i++) {
+    const x = rnd() * W, y = rnd() * H, r = 3 + rnd() * 8, gr = g.createRadialGradient(x, y, 0, x, y, r);
+    const tint = rnd() < 0.3 ? '200,220,255' : rnd() < 0.5 ? '255,235,210' : '255,255,255';
+    gr.addColorStop(0, 'rgba(255,255,255,1)'); gr.addColorStop(0.25, 'rgba(' + tint + ',0.65)'); gr.addColorStop(1, 'rgba(' + tint + ',0)');
+    g.fillStyle = gr; g.fillRect(x - r, y - r, r * 2, r * 2);
+  }
+  // distant spiral galaxies
+  const gal = [['255,200,140', '120,150,255'], ['255,170,230', '150,90,255'], ['190,220,255', '70,130,255'], ['255,230,170', '255,120,90']];
+  for (let i = 0; i < 17; i++) {
+    const cx = 130 + rnd() * (W - 260), cy = 170 + rnd() * (H - 340), size = 36 + rnd() * 95, pal = gal[i % 4], tilt = rnd() * 3.14, squash = 0.28 + rnd() * 0.45;
+    g.save(); g.translate(cx, cy); g.rotate(tilt); g.scale(1, squash);
+    const gr = g.createRadialGradient(0, 0, 0, 0, 0, size);
+    gr.addColorStop(0, 'rgba(255,255,255,0.95)'); gr.addColorStop(0.12, 'rgba(' + pal[0] + ',0.7)'); gr.addColorStop(0.5, 'rgba(' + pal[1] + ',0.2)'); gr.addColorStop(1, 'rgba(' + pal[1] + ',0)');
+    g.fillStyle = gr; g.fillRect(-size, -size, size * 2, size * 2);
+    for (let arm = 0; arm < 2; arm++) for (let t = 0; t < 230; t++) {
+      const ang = t * 0.085 + arm * Math.PI, rad = (t / 230) * size * 0.95, jx = (rnd() - 0.5) * size * 0.07, jy = (rnd() - 0.5) * size * 0.07;
+      g.fillStyle = 'rgba(' + (t < 90 ? pal[0] : pal[1]) + ',' + (0.12 + rnd() * 0.45).toFixed(2) + ')';
+      g.beginPath(); g.arc(Math.cos(ang) * rad + jx, Math.sin(ang) * rad + jy, 0.6 + rnd() * 1.3, 0, 6.2832); g.fill();
+    }
+    g.restore();
+  }
+  return (_gTexSpace = _gTex(c));
+}
+function gojoDiscTex() {
+  if (_gTexDisc) return _gTexDisc;
+  const S = 512, c = document.createElement('canvas'); c.width = c.height = S; const g = c.getContext('2d'), h = S / 2, rnd = _gRng(4242);
+  const gr = g.createRadialGradient(h, h, 0, h, h, h);
+  gr.addColorStop(0, 'rgba(0,0,0,0)'); gr.addColorStop(0.40, 'rgba(0,0,0,0)'); gr.addColorStop(0.42, 'rgba(255,250,235,1)'); gr.addColorStop(0.5, 'rgba(255,205,120,0.95)');
+  gr.addColorStop(0.68, 'rgba(255,110,40,0.7)'); gr.addColorStop(0.85, 'rgba(150,50,200,0.35)'); gr.addColorStop(1, 'rgba(60,10,120,0)');
+  g.fillStyle = gr; g.fillRect(0, 0, S, S);
+  for (let i = 0; i < 90; i++) {   // bright streaks so the spin is visible
+    const r0 = (0.44 + rnd() * 0.52) * h, a0 = rnd() * 6.28, len = 0.25 + rnd() * 0.9;
+    g.strokeStyle = 'rgba(255,' + Math.round(170 + rnd() * 85) + ',' + Math.round(110 + rnd() * 120) + ',' + (0.12 + rnd() * 0.38).toFixed(2) + ')';
+    g.lineWidth = 1 + rnd() * 2.6; g.beginPath(); g.arc(h, h, r0, a0, a0 + len); g.stroke();
+  }
+  return (_gTexDisc = _gTex(c));
+}
+function gojoFloorTex() {
+  if (_gTexFloor) return _gTexFloor;
+  const S = 512, c = document.createElement('canvas'); c.width = c.height = S; const g = c.getContext('2d'), h = S / 2, rnd = _gRng(99);
+  g.fillStyle = '#01000a'; g.fillRect(0, 0, S, S);
+  const gr = g.createRadialGradient(h, h, 0, h, h, h);
+  gr.addColorStop(0, 'rgba(18,6,36,1)'); gr.addColorStop(0.7, 'rgba(8,2,20,1)'); gr.addColorStop(0.93, 'rgba(80,36,160,0.7)'); gr.addColorStop(0.985, 'rgba(200,150,255,0.95)'); gr.addColorStop(1, 'rgba(0,0,0,0)');
+  g.fillStyle = gr; g.fillRect(0, 0, S, S);
+  g.strokeStyle = 'rgba(140,90,230,0.12)'; g.lineWidth = 1;
+  for (let r = 40; r < h * 0.92; r += 34) { g.beginPath(); g.arc(h, h, r, 0, 6.2832); g.stroke(); }
+  for (let i = 0; i < 380; i++) {
+    const a = rnd() * 6.28, r = Math.sqrt(rnd()) * h * 0.95;
+    g.fillStyle = 'rgba(255,255,255,' + (0.1 + rnd() * 0.5).toFixed(2) + ')'; g.fillRect(h + Math.cos(a) * r, h + Math.sin(a) * r, 1.2, 1.2);
+  }
+  return (_gTexFloor = _gTex(c));
+}
 function gojoDomainMake(p) {
-  const g = new THREE.Group();
-  const shell = new THREE.Mesh(new THREE.SphereGeometry(1, 32, 24), new THREE.MeshBasicMaterial({ color: 0x000000, side: THREE.DoubleSide }));   // pitch black, opaque
-  g.add(shell); g.position.set(p.x, p.y, p.z); g.scale.setScalar(0.01); scene.add(g);
+  const R = p.R, g = new THREE.Group();
+  g.position.set(p.x, p.y, p.z); g.scale.setScalar(0.01); scene.add(g);
+  const fu = -0.9 / R;   // floor height in dome units (the floor is at the caster's feet: p.y is feet + 0.9)
+  // sky: infinite black void, galaxies + stardust (seen from inside and outside)
+  const shell = new THREE.Mesh(new THREE.SphereGeometry(1, 48, 32), new THREE.MeshBasicMaterial({ map: gojoSpaceTex(), side: THREE.DoubleSide, fog: false }));
+  g.add(shell);
+  // large central black hole with a spinning accretion disc and a glow
+  const bh = new THREE.Group(); bh.position.set(0, 0.5, 0); g.add(bh);
+  const core = new THREE.Mesh(new THREE.SphereGeometry(0.16, 24, 16), new THREE.MeshBasicMaterial({ color: 0x000000, fog: false }));
+  const glow = new THREE.Sprite(new THREE.SpriteMaterial({ map: gojoGlowTex(), color: 0xff9a50, transparent: true, blending: THREE.AdditiveBlending, depthWrite: false, fog: false }));
+  glow.scale.setScalar(1.1);
+  const tilt = new THREE.Group(); tilt.rotation.x = 0.36; tilt.rotation.z = 0.12;
+  const disc = new THREE.Mesh(new THREE.RingGeometry(0.19, 0.46, 64, 1), new THREE.MeshBasicMaterial({ map: gojoDiscTex(), transparent: true, blending: THREE.AdditiveBlending, depthWrite: false, side: THREE.DoubleSide, fog: false }));
+  disc.rotation.x = -Math.PI / 2; tilt.add(disc);
+  bh.add(glow, core, tilt);
+  // glowing white speckles drifting inside
+  const N = 170, pos = new Float32Array(N * 3);
+  for (let i = 0; i < N; i++) {
+    const u = Math.random() * 2 - 1, a = Math.random() * 6.2832, r = 0.2 + Math.random() * 0.75, q = Math.sqrt(1 - u * u);
+    pos[i * 3] = Math.cos(a) * q * r; pos[i * 3 + 1] = Math.max(fu + 0.03, u * r); pos[i * 3 + 2] = Math.sin(a) * q * r;
+  }
+  const dg = new THREE.BufferGeometry(); dg.setAttribute('position', new THREE.BufferAttribute(pos, 3));
+  const dust = new THREE.Points(dg, new THREE.PointsMaterial({ size: 0.16, map: gojoGlowTex(), color: 0xffffff, transparent: true, opacity: 0.95, depthWrite: false, blending: THREE.AdditiveBlending, fog: false }));
+  g.add(dust);
+  // flat ground for everyone inside
+  const fr = Math.sqrt(1 - fu * fu) * 0.998;
+  const floor = new THREE.Mesh(new THREE.CircleGeometry(fr, 64), new THREE.MeshBasicMaterial({ map: gojoFloorTex(), fog: false, polygonOffset: true, polygonOffsetFactor: -1, polygonOffsetUnits: -1 }));
+  floor.rotation.x = -Math.PI / 2; floor.position.y = fu + 0.0005; g.add(floor);
   const inMe = Math.hypot(player.pos.x - p.x, player.pos.y + 0.9 - p.y, player.pos.z - p.z) <= p.R;   // inside when it forms = locked in; outside = locked out
-  const d = { g, shell, x: p.x, y: p.y, z: p.z, R: p.R, life: p.life, age: 0, from: p.from, inMe, home: inMe ? { x: player.pos.x, y: player.pos.y, z: player.pos.z } : null, saved: null };
+  const d = { g, shell, disc, dust, x: p.x, y: p.y, z: p.z, R: p.R, life: p.life, age: 0, from: p.from, inMe, home: inMe ? { x: player.pos.x, y: player.pos.y, z: player.pos.z } : null, saved: null,
+    floorY: p.y - 0.9, hp: GOJO_DOMAIN_HP, flash: 0, recarveT: 0.5, broken: false };
   gojoDomains.push(d); return d;
 }
 function gojoDomainRemove(i) {
@@ -15463,8 +15592,10 @@ function gojoDomainRemove(i) {
   gojoDomains.splice(i, 1);
 }
 // The caster's client clears every block inside the dome (remembering them) and puts them all back when it ends.
-function gojoDomainCarve(d) {
-  const n = Math.ceil(d.R), cx = Math.round(d.x), cy = Math.round(d.y), cz = Math.round(d.z), R2 = d.R * d.R;
+function gojoDomainCarve(d, again) {
+  if (again && !d.saved) return;
+  const RC = d.R + 0.87;   // a block can poke into the dome even when its centre is a bit outside the radius
+  const n = Math.ceil(RC), cx = Math.round(d.x), cy = Math.round(d.y), cz = Math.round(d.z), R2 = RC * RC;
   const cand = [];
   for (let dx = -n; dx <= n; dx++) for (let dy = -n; dy <= n; dy++) for (let dz = -n; dz <= n; dz++) {
     if (dx * dx + dy * dy + dz * dz <= R2) cand.push([cx + dx, cy + dy, cz + dz]);
@@ -15476,7 +15607,7 @@ function gojoDomainCarve(d) {
     const s = { x, y, z, type: blk.type, meta: blk.meta, placed: !!blk.placed };
     if (removeBlock(x, y, z, true)) { removedDiffs.add(key(x, y, z)); saved.push(s); list.push({ x, y, z }); }
   }
-  d.saved = saved;
+  if (again) d.saved.push(...saved); else d.saved = saved;
   if (!list.length) return;
   const seen = new Set();
   list.forEach(q => { const k = q.x + ',' + q.z; if (!seen.has(k)) { seen.add(k); markChunkDirty(q.x, q.z); } });
@@ -15505,11 +15636,68 @@ function gojoDomainCast() {
   if (gojoDomains.some(d => d.from === MY_ID)) return;
   gojoDomainCd = GOJO_DOMAIN_CD; _gojoSig = ''; renderGojoBar();
   try { startSwing(); } catch (e) {}
-  const p = { from: MY_ID, x: player.pos.x, y: player.pos.y + 0.9, z: player.pos.z, R: GOJO_DOMAIN_R, life: GOJO_DOMAIN_TIME };
+  let fy = player.pos.y;   // the domain floor is the ground you stand on (if you cast in mid-air: the ground below you)
+  if (!player.onGround) for (let i = 0; i < 14; i++) { const b = getBlock(player.pos.x, Math.round(player.pos.y) - i, player.pos.z); if (b && !/water|lava/.test(b.type)) { fy = Math.round(player.pos.y) - i + 0.5; break; } }
+  const p = { from: MY_ID, x: player.pos.x, y: fy + 0.9, z: player.pos.z, R: GOJO_DOMAIN_R, life: GOJO_DOMAIN_TIME };
   const d = gojoDomainMake(p);
   gojoDomainCarve(d);
   try { playersChannel.send({ type: 'broadcast', event: 'gojo_domain', payload: p }); } catch (e) {}
   addChatLine('System', 'Domain Expansion!', true, true);
+}
+// ---- The domain has 100 HP: anyone OUTSIDE can break it (melee, Red, Blue, Hollow Purple) ----
+let _gdHud = null, _gdHudT = 0;
+function gojoDomainHud(d) {
+  if (!_gdHud) {
+    _gdHud = document.createElement('div');
+    _gdHud.style.cssText = 'position:fixed;top:64px;left:50%;transform:translateX(-50%);z-index:6;pointer-events:none;display:none;min-width:250px;text-align:center;font:bold 14px sans-serif;color:#e8d8ff;text-shadow:0 0 8px #8a5bff';
+    _gdHud.innerHTML = '<div id="gdHudT"></div><div style="height:10px;margin-top:4px;background:#1a0a30;border:1px solid #7a4cff;border-radius:6px;overflow:hidden"><div id="gdHudB" style="height:100%;width:100%;background:linear-gradient(90deg,#7a3cff,#d9a0ff)"></div></div>';
+    document.body.appendChild(_gdHud);
+  }
+  _gdHud.style.display = 'block'; _gdHudT = 3;
+  _gdHud.querySelector('#gdHudT').textContent = 'DOMAIN  ' + Math.ceil(d.hp) + ' / ' + GOJO_DOMAIN_HP;
+  _gdHud.querySelector('#gdHudB').style.width = Math.max(0, d.hp / GOJO_DOMAIN_HP * 100) + '%';
+}
+function gojoDomainBreak(d, announce) {
+  if (d.broken) return;
+  d.broken = true; d.life = Math.min(d.life, 0.45);   // it shrinks away; the caster's client then puts the blocks back
+  gojoFxAdd(new THREE.SphereGeometry(1, 20, 14), new THREE.MeshBasicMaterial({ color: 0xcfa0ff, transparent: true, opacity: 0.55, depthWrite: false }), d.x, d.y, d.z, 0.5, d.R * 0.7, d.R * 1.5, false, false);
+  gojoFxAdd(new THREE.TorusGeometry(1, 0.1, 6, 48), new THREE.MeshBasicMaterial({ color: 0xffffff, transparent: true, opacity: 0.9, depthWrite: false }), d.x, d.floorY + 0.1, d.z, 0.6, d.R * 0.6, d.R * 2, false, true);
+  if (announce) {
+    try { playersChannel.send({ type: 'broadcast', event: 'gojo_domain_break', payload: { from: MY_ID } }); } catch (e) {}
+    addChatLine('System', 'Your Domain Expansion was shattered!', true, true);
+  }
+}
+function gojoDomainApply(d, amount) {   // every client applies the same hits to its copy; the caster's client decides when it breaks
+  if (d.broken) return;
+  d.hp = Math.max(0, d.hp - amount); d.flash = 0.22;
+  gojoDomainHud(d);
+  if (d.hp <= 0 && d.from === MY_ID) gojoDomainBreak(d, true);
+}
+function gojoDomainHurt(d, amount) {    // I hit the domain
+  if (!d || d.from === MY_ID || d.broken || d.age < 0.6 || d.life < 0.5) return;
+  if (gojoFrozen || gojoDomains.some(q => q.inMe)) return;   // only from outside
+  gojoDomainApply(d, amount);
+  try { playersChannel.send({ type: 'broadcast', event: 'gojo_domain_hit', payload: { from: MY_ID, target: d.from, amount } }); } catch (e) {}
+}
+function gojoDomainAimed(reach) {      // the domain wall under the crosshair (for melee)
+  if (gojoFrozen || gojoDomains.some(q => q.inMe)) return null;
+  let o, dir; try { const a = getAimRay(); o = a.origin; dir = a.dir; } catch (e) { return null; }
+  let best = null, bt = reach;
+  for (const d of gojoDomains) {
+    if (d.from === MY_ID || d.broken || d.age < 0.6 || d.life < 0.5) continue;
+    const ox = o.x - d.x, oy = o.y - d.y, oz = o.z - d.z, b = ox * dir.x + oy * dir.y + oz * dir.z, c = ox * ox + oy * oy + oz * oz - d.R * d.R, disc = b * b - c;
+    if (disc < 0) continue;
+    const t = -b - Math.sqrt(disc);
+    if (t > 0 && t < bt) { bt = t; best = d; }
+  }
+  return best;
+}
+function gojoDomainBlast(x, y, z, r, amount) {   // Red / Blue / Hollow Purple touching the domain wall
+  for (const d of gojoDomains) {
+    if (d.from === MY_ID || d.broken || d.age < 0.6 || d.life < 0.5 || (d._bt || 0) > 0) continue;
+    if (Math.abs(Math.hypot(x - d.x, y - d.y, z - d.z) - d.R) > r) continue;
+    d._bt = 0.3; gojoDomainHurt(d, amount);
+  }
 }
 function gojoFrozenUI(on) {
   if (!_frzOverlay) {
@@ -15525,12 +15713,17 @@ window.addEventListener('mousedown', e => { if (gojoFrozen && pointerLocked) { e
 window.addEventListener('mousemove', e => { if (gojoFrozen) e.stopPropagation(); }, true);
 function updateGojoDomain(dt) {
   if (gojoDomainCd > 0) { gojoDomainCd = Math.max(0, gojoDomainCd - dt); if (gojoBarOn) renderGojoBar(); }
-  let inside = false;
+  if (_gdHudT > 0) { _gdHudT -= dt; if (_gdHudT <= 0 && _gdHud) _gdHud.style.display = 'none'; }
+  let inside = false, insideD = null;
   animals.forEach(a => { a._frzSeen = false; });
   for (let i = gojoDomains.length - 1; i >= 0; i--) {
     const d = gojoDomains[i];
     d.age += dt; d.life -= dt;
     if (d.life <= 0) { gojoDomainRemove(i); continue; }
+    if (d._bt > 0) d._bt -= dt;
+    d.shell.rotation.y += dt * 0.02; d.disc.rotation.z += dt * 0.7; d.dust.rotation.y += dt * 0.05;   // slow drifting sky, spinning accretion disc
+    if (d.flash > 0) { d.flash -= dt; d.shell.material.color.setRGB(1, d.flash > 0 ? 0.45 : 1, d.flash > 0 ? 0.45 : 1); }
+    if (d.from === MY_ID && d.saved && !d.broken) { d.recarveT -= dt; if (d.recarveT <= 0) { d.recarveT = 0.5; gojoDomainCarve(d, true); } }   // sweep up any block that shows up inside
     const grow = Math.min(1, d.age / 0.6), e = 1 - Math.pow(1 - grow, 3), shrink = Math.min(1, d.life / 0.5);
     d.g.scale.setScalar(Math.max(0.01, d.R * e * shrink));
     // the wall: whoever was inside can't leave, whoever was outside can't enter
@@ -15543,10 +15736,12 @@ function updateGojoDomain(dt) {
         const nx = px / dist, ny = py / dist, nz = pz / dist, vn = player.vel.x * nx + player.vel.y * ny + player.vel.z * nz;
         if (d.inMe ? vn > 0 : vn < 0) { player.vel.x -= vn * nx; player.vel.y -= vn * ny; player.vel.z -= vn * nz; }
         knockV.x = 0; knockV.z = 0;
-        if (d.inMe && py < 0) player.onGround = true;   // the bottom of the dome is the floor
+      }
+      if (d.inMe && player.pos.y < d.floorY) {   // flat ground: nobody inside can sink below the floor
+        player.pos.y = d.floorY; if (player.vel.y < 0) player.vel.y = 0; player.onGround = true;
       }
       if (d.inMe) player.fallDist = 0;
-      if (d.inMe && d.from !== MY_ID && d.age > 0.3 && d.life > 0.4) inside = true;
+      if (d.inMe && d.from !== MY_ID && d.age > 0.3 && d.life > 0.4) { inside = true; insideD = d; }
     }
     animals.forEach(a => {
       if (!a.alive || a.remote) return;
@@ -15554,7 +15749,7 @@ function updateGojoDomain(dt) {
       const ax = a.pos.x - d.x, ay = a.pos.y + h - d.y, az = a.pos.z - d.z, ad = Math.hypot(ax, ay, az) || 0.001;
       if (ad <= d.R) {   // mobs inside are frozen where they stand
         if (d.age > 0.3 && d.life > 0.4) {
-          if (!a._frz) a._frz = { x: a.pos.x, y: a.pos.y, z: a.pos.z };
+          if (!a._frz) a._frz = { x: a.pos.x, y: d.floorY, z: a.pos.z };   // mobs are put on the flat floor too
           a.pos.set(a._frz.x, a._frz.y, a._frz.z); a.vel.set(0, 0, 0); a.kbT = 0.3; a._frzSeen = true;
         }
       } else if (ad < d.R + 0.5) {   // mobs outside are kept out
@@ -15567,7 +15762,7 @@ function updateGojoDomain(dt) {
   if (inside) {
     if (!gojoFrozen) {
       gojoFrozen = true;
-      _frz = { x: player.pos.x, y: player.pos.y, z: player.pos.z, yaw: player.yaw, pitch: player.pitch };
+      _frz = { x: player.pos.x, y: insideD ? insideD.floorY : player.pos.y, z: player.pos.z, yaw: player.yaw, pitch: player.pitch };   // frozen on the flat floor
       if (gojoHold) gojoHoldStop();
       if (gojoRedC) gojoRedCancel();
       if (gojoDown) { clearTimeout(gojoDown.timer); gojoDown = null; }
@@ -17859,6 +18054,7 @@ function rightHandToolUse() {
   if (playerTarget) { jcAttackPlayer(playerTarget); return; }
   const target = findTargetAnimal();
   if (target) { jcAttackAnimal(target); return; }
+  { const dm = gojoDomainAimed(5); if (dm) { const rr = jcRoll(); jcResetCd(); gojoDomainHurt(dm, Math.max(2, Math.round(rr.dmg))); return; } }
   jcResetCd();
   mining.active = true; mining.progress = 0; mining.target = null;
 }
@@ -17915,6 +18111,7 @@ canvas.addEventListener('mousedown', e => {
     if (playerTarget) { jcAttackPlayer(playerTarget); return; }   // hitting a player takes priority over mining
     const target = findTargetAnimal();
     if (target) { jcAttackAnimal(target); return; }               // hitting an animal takes priority over mining
+    { const dm = gojoDomainAimed(5); if (dm) { const rr = jcRoll(); jcResetCd(); gojoDomainHurt(dm, Math.max(2, Math.round(rr.dmg))); return; } }   // hit a Domain Expansion from outside
     jcResetCd();                                                  // a swing that hits nothing empties the charge
     mining.active = true;
     mining.progress = 0;
