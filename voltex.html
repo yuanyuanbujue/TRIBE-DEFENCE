@@ -5071,6 +5071,7 @@ function ensureChunksNear(px, pz, radius, maxNew) {
 
 let streamTimer = 0, _chunkUrgent = false;
 function updateChunkStreaming(dt) {
+  try { if (gojoDomains.some(q => q.inMe)) return; } catch (e) {}   // inside a domain arena: don't generate terrain around the far-away arena
   streamTimer -= dt;
   if (streamTimer > 0) return;
   streamTimer = 0.1; // throttle: several times a second
@@ -5302,7 +5303,10 @@ let enderChest = new Array(ENDER_SIZE).fill(null);
 const CHEST_SAVE_KEY = 'voltex_chests_v1'; // chest contents, keyed by block position — local to this device/browser, same as the rest of the local save (world_blocks itself has no per-block inventory column)
 function snapshotSave() {
   const snap = {
-    playerPos: [player.pos.x, player.pos.y, player.pos.z],
+    playerPos: (() => {   // inside a Domain arena the real position is where you will be sent back to, never the far-away arena
+      try { const dm = gojoDomains.find(q => q.inMe && q.home); if (dm) return [dm.home.x, dm.home.y, dm.home.z]; } catch (e) {}
+      return [player.pos.x, player.pos.y, player.pos.z];
+    })(),
     inventory,
     armorSlots,
     offhand,
@@ -5465,7 +5469,7 @@ function applyBlockDiff(row, skipMark) {
     const parts = type.split('|');
     type = parts[0]; meta = parseInt(parts[1], 10) || 0;
   }
-  lightInvalidateNear(x, y, z);
+  try { lightInvalidateNear(x, y, z); } catch (e) {}
   const k = key(x,y,z);
   diffTouched.add(k);
   if (type === 'air') {
@@ -5477,9 +5481,11 @@ function applyBlockDiff(row, skipMark) {
     if (type === 'spawner') { rowB.spawnKind = spawnerKindFromBlock(rowB, x, y, z); placedSpawnerKeys.add(k); }
     world.set(k, rowB);   // saved/synced non-air rows are player placements
   }
-  syncBlockLight(x, y, z, type === 'air' ? null : type, skipMark);
-  syncSaplingGrowth(x, y, z, type === 'air' ? null : type);
-  syncCropGrowth(x, y, z, type === 'air' ? null : type);
+  // (each helper is guarded: if one of them throws, the block is already in `world` and the chunk MUST still be redrawn,
+  //  otherwise other players' blocks stay invisible until you mine something in that chunk)
+  try { syncBlockLight(x, y, z, type === 'air' ? null : type, skipMark); } catch (e) { console.warn('syncBlockLight', e); }
+  try { syncSaplingGrowth(x, y, z, type === 'air' ? null : type); } catch (e) {}
+  try { syncCropGrowth(x, y, z, type === 'air' ? null : type); } catch (e) {}
   if (!skipMark) markChunkDirty(x,z);
 }
 
@@ -5528,15 +5534,40 @@ async function pushBlockDiff(x, y, z, type, meta) {
 // Live sync: any insert/update to world_blocks (from any player, including
 // other tabs) is applied here. `self: true`-ish — our own writes come back
 // too, but applyBlockDiff is idempotent so that's harmless.
+const _wbApplied = new Map();   // "x,y,z" -> updated_at we last applied (so a row is never applied twice by realtime + the re-sync below)
+function _wbApply(row) {
+  if (!row || row.x == null || row.y == null || row.z == null) return;
+  const k = row.x + ',' + row.y + ',' + row.z;
+  if (row.updated_at) { if (_wbApplied.get(k) === row.updated_at) return; _wbApplied.set(k, row.updated_at); if (_wbApplied.size > 4000) { let n = 0; for (const q of _wbApplied.keys()) { _wbApplied.delete(q); if (++n >= 2000) break; } } }
+  if (isOwnWriteEcho(row)) return;   // our own change coming back: already applied locally
+  try { applyBlockDiff(row, false); } catch (e) { console.warn('applyBlockDiff', e); try { markChunkDirty(row.x, row.z); } catch (e2) {} }
+  // no synchronous rebuild here: stepDirtyChunks() picks the dirty chunk up on the next frame
+}
+let _wbSince = null, _wbPolling = false;
+async function _wbResync() {   // safety net: realtime events can be dropped, so also pull recent changes every few seconds
+  if (_wbPolling || document.hidden) return;
+  _wbPolling = true;
+  try {
+    if (!_wbSince) _wbSince = new Date(Date.now() - 20000).toISOString();
+    const { data, error } = await sb.from('world_blocks').select('x,y,z,type,updated_at').gt('updated_at', _wbSince).order('updated_at', { ascending: true }).limit(600);
+    if (!error && data && data.length) {
+      data.forEach(_wbApply);
+      const last = Date.parse(data[data.length - 1].updated_at);
+      if (!isNaN(last)) _wbSince = new Date(last - 3000).toISOString();   // small overlap; rows already applied are skipped
+    }
+  } catch (e) {} finally { _wbPolling = false; }
+}
 function subscribeWorldChanges() {
   sb.channel('world_blocks_changes')
     .on('postgres_changes', { event: '*', schema: 'public', table: 'world_blocks' }, payload => {
-      if (!payload.new) return;
-      if (isOwnWriteEcho(payload.new)) return;   // our own change coming back: already applied locally
-      applyBlockDiff(payload.new, false);
-      // no synchronous rebuild here: stepDirtyChunks() picks the dirty chunk up on the next frame
+      if (payload.new && payload.new.x != null) { _wbApply(payload.new); return; }
+      if (payload.eventType === 'DELETE' && payload.old && payload.old.x != null && payload.old.y != null && payload.old.z != null) {
+        try { applyBlockDiff({ x: payload.old.x, y: payload.old.y, z: payload.old.z, type: 'air' }, false); } catch (e) {}
+      }
     })
     .subscribe();
+  _wbSince = new Date(Date.now() - 20000).toISOString();
+  setInterval(_wbResync, 3000);
 }
 
 // ================= Inventory (slot-based, Minecraft-style) =================
@@ -15023,7 +15054,7 @@ function renderGojoBar() {
       div.title = 'Hollow Purple: click to summon Red (left) and Blue (right) in front of you; they smash together into a purple ball. Click again to fire it: it erases every block in its path while you hold the button, for up to 50 blocks. Huge damage.';
     } else if (i === 3) {
       div.innerHTML = '<span class="num">4</span><div class="gojoDomain"></div><span class="gojoName">Domain</span>' + (gojoDomainCd > 0 ? '<span class="gojoCd">' + Math.ceil(gojoDomainCd) + '</span>' : '');
-      div.title = 'Domain Expansion: click to wall off an Infinite Void domain (dark blue void, white glowing splatters, a giant blue vortex) around you. Everyone inside stands on a flat floor, nobody can enter or leave, and everyone inside but you is frozen. It has 100 HP: anyone outside can break it by hitting it. Otherwise it fades after 12 s and everything returns.';
+      div.title = 'Domain Expansion: click to wall off an Infinite Void domain (dark blue void, white glowing splatters, a giant blue vortex) around you. Everyone near you is pulled into a separate far-away void arena (flat floor, frozen except you), so nothing in the real world is destroyed. The orb left behind has 100 HP: anyone outside can break it by hitting it, which sends everyone back. Otherwise it ends after 12 s.';
     } else div.innerHTML = '<span class="num">' + (i + 1) + '</span>';
     div.addEventListener('click', () => { gojoSlot = i; renderGojoBar(); });
     hotbar.appendChild(div);
@@ -15590,9 +15621,16 @@ function gojoFloorTex() {
   for (let i = 0; i < 5; i++) { const a = rnd() * 6.28, r = (0.35 + rnd() * 0.5) * h; _gSplat(g, rnd, h + Math.cos(a) * r, h + Math.sin(a) * r, 16 + rnd() * 26, rnd() * 6.28, 'rgba(245,250,255,0.9)', 'rgba(150,205,255,0.9)'); }
   return (_gTexFloor = _gTex(c));
 }
+// Where a caster's domain interior lives: a private spot ~1000+ blocks away and high in the sky (no terrain there), so the
+// real world and its buildings are never touched. Everyone inside is teleported there and sent back when it ends.
+function gojoArenaPos(from) {
+  let h = 2166136261; const str = String(from);
+  for (let i = 0; i < str.length; i++) { h ^= str.charCodeAt(i); h = Math.imul(h, 16777619) >>> 0; }
+  return { x: 1000 + (h % 40) * 50, z: 1000 + ((h >>> 8) % 40) * 50, y: 300 };
+}
 function gojoDomainMake(p) {
-  const R = p.R, g = new THREE.Group();
-  g.position.set(p.x, p.y, p.z); g.scale.setScalar(0.01); scene.add(g);
+  const R = p.R, A = gojoArenaPos(p.from), g = new THREE.Group();
+  g.position.set(A.x, A.y, A.z); g.scale.setScalar(0.01);   // only added to the scene (below) for people who are inside
   const fu = -0.9 / R;   // floor height in dome units (the floor is at the caster's feet: p.y is feet + 0.9)
   // sky: infinite black void, galaxies + stardust (seen from inside and outside)
   const shell = new THREE.Mesh(new THREE.SphereGeometry(1, 48, 32), new THREE.MeshBasicMaterial({ map: gojoSpaceTex(), side: THREE.DoubleSide, fog: false }));
@@ -15621,14 +15659,24 @@ function gojoDomainMake(p) {
   const fr = Math.sqrt(1 - fu * fu) * 0.998;
   const floor = new THREE.Mesh(new THREE.CircleGeometry(fr, 64), new THREE.MeshBasicMaterial({ map: gojoFloorTex(), fog: false, polygonOffset: true, polygonOffsetFactor: -1, polygonOffsetUnits: -1 }));
   floor.rotation.x = -Math.PI / 2; floor.position.y = fu + 0.0005; g.add(floor);
-  const inMe = Math.hypot(player.pos.x - p.x, player.pos.y + 0.9 - p.y, player.pos.z - p.z) <= p.R;   // inside when it forms = locked in; outside = locked out
-  const d = { g, shell, bh, disc, ink, dust, x: p.x, y: p.y, z: p.z, R: p.R, life: p.life, age: 0, from: p.from, inMe, home: inMe ? { x: player.pos.x, y: player.pos.y, z: player.pos.z } : null, saved: null,
-    floorY: p.y - 0.9, hp: GOJO_DOMAIN_HP, flash: 0, recarveT: 0.5, broken: false };
+  const inMe = p.from === MY_ID || Math.hypot(player.pos.x - p.x, player.pos.y + 0.9 - p.y, player.pos.z - p.z) <= p.R;   // inside when it forms = pulled into the domain; outside = locked out
+  // What everybody outside sees at the original spot: a solid dark orb (it can be hit to break the domain). NO blocks are removed.
+  const outer = new THREE.Mesh(new THREE.SphereGeometry(1, 32, 24), new THREE.MeshBasicMaterial({ map: gojoSpaceTex(), side: THREE.DoubleSide, fog: false }));
+  outer.position.set(p.x, p.y, p.z); outer.scale.setScalar(0.01); scene.add(outer);
+  const d = { g: inMe ? g : null, outer, shell, bh, disc, ink, dust, x: p.x, y: p.y, z: p.z, ax: A.x, ay: A.y, az: A.z, R: p.R, life: p.life, age: 0, from: p.from, inMe, home: inMe ? { x: player.pos.x, y: player.pos.y, z: player.pos.z } : null, saved: null,
+    floorY: A.y - 0.9, hp: GOJO_DOMAIN_HP, flash: 0, recarveT: 0.5, broken: false };
   // Put the vortex on the wall in the direction you are looking (a frozen victim can't turn, so it stays right in front of them)
   const cd = new THREE.Vector3(); try { camera.getWorldDirection(cd); } catch (e) {}
   let fx = cd.x, fz = cd.z; const fl = Math.hypot(fx, fz);
   if (fl < 0.2) { fx = -Math.sin(player.yaw || 0); fz = -Math.cos(player.yaw || 0); } else { fx /= fl; fz /= fl; }
   bh.position.set(fx * 0.75, 0.28, fz * 0.75); bh.rotation.y = Math.atan2(-fx, -fz);
+  if (inMe) {   // pull me into the arena, keeping my position relative to the caster; I return to d.home when it ends
+    scene.add(g);
+    let ox = player.pos.x - p.x, oz = player.pos.z - p.z; const ol = Math.hypot(ox, oz), lim = Math.max(0, R - 1.6);
+    if (ol > lim) { ox *= lim / ol; oz *= lim / ol; }
+    if (p.from === MY_ID) { ox = 0; oz = 0; }
+    player.pos.set(A.x + ox, d.floorY, A.z + oz); player.vel.set(0, 0, 0); knockV.x = 0; knockV.z = 0; player.fallDist = 0; player.onGround = true;
+  }
   gojoDomains.push(d); return d;
 }
 function gojoDomainRemove(i) {
@@ -15637,8 +15685,8 @@ function gojoDomainRemove(i) {
     player.pos.set(d.home.x, d.home.y, d.home.z); player.vel.set(0, 0, 0); knockV.x = 0; knockV.z = 0; player.fallDist = 0;
   }
   if (d.saved) gojoDomainRestore(d);
-  scene.remove(d.g);
-  d.g.traverse(o => { if (o.geometry) o.geometry.dispose(); if (o.material) o.material.dispose(); });
+  if (d.g) { scene.remove(d.g); d.g.traverse(o => { if (o.geometry) o.geometry.dispose(); if (o.material) o.material.dispose(); }); }
+  scene.remove(d.outer); d.outer.geometry.dispose(); d.outer.material.dispose();
   gojoDomains.splice(i, 1);
 }
 // The caster's client clears every block inside the dome (remembering them) and puts them all back when it ends.
@@ -15689,8 +15737,7 @@ function gojoDomainCast() {
   let fy = player.pos.y;   // the domain floor is the ground you stand on (if you cast in mid-air: the ground below you)
   if (!player.onGround) for (let i = 0; i < 14; i++) { const b = getBlock(player.pos.x, Math.round(player.pos.y) - i, player.pos.z); if (b && !/water|lava/.test(b.type)) { fy = Math.round(player.pos.y) - i + 0.5; break; } }
   const p = { from: MY_ID, x: player.pos.x, y: fy + 0.9, z: player.pos.z, R: GOJO_DOMAIN_R, life: GOJO_DOMAIN_TIME };
-  const d = gojoDomainMake(p);
-  gojoDomainCarve(d);
+  const d = gojoDomainMake(p);   // (nothing in the world is removed any more: the inside is a separate far-away arena)
   try { playersChannel.send({ type: 'broadcast', event: 'gojo_domain', payload: p }); } catch (e) {}
   addChatLine('System', 'Domain Expansion!', true, true);
 }
@@ -15711,7 +15758,7 @@ function gojoDomainBreak(d, announce) {
   if (d.broken) return;
   d.broken = true; d.life = Math.min(d.life, 0.45);   // it shrinks away; the caster's client then puts the blocks back
   gojoFxAdd(new THREE.SphereGeometry(1, 20, 14), new THREE.MeshBasicMaterial({ color: 0x9ad0ff, transparent: true, opacity: 0.55, depthWrite: false }), d.x, d.y, d.z, 0.5, d.R * 0.7, d.R * 1.5, false, false);
-  gojoFxAdd(new THREE.TorusGeometry(1, 0.1, 6, 48), new THREE.MeshBasicMaterial({ color: 0xffffff, transparent: true, opacity: 0.9, depthWrite: false }), d.x, d.floorY + 0.1, d.z, 0.6, d.R * 0.6, d.R * 2, false, true);
+  gojoFxAdd(new THREE.TorusGeometry(1, 0.1, 6, 48), new THREE.MeshBasicMaterial({ color: 0xffffff, transparent: true, opacity: 0.9, depthWrite: false }), d.x, d.y, d.z, 0.6, d.R * 0.6, d.R * 2, false, true);
   if (announce) {
     try { playersChannel.send({ type: 'broadcast', event: 'gojo_domain_break', payload: { from: MY_ID } }); } catch (e) {}
     addChatLine('System', 'Your Domain Expansion was shattered!', true, true);
@@ -15771,18 +15818,18 @@ function updateGojoDomain(dt) {
     d.age += dt; d.life -= dt;
     if (d.life <= 0) { gojoDomainRemove(i); continue; }
     if (d._bt > 0) d._bt -= dt;
-    d.shell.rotation.y += dt * 0.02; d.disc.rotation.z += dt * 0.7; d.ink.rotation.z += dt * 0.7; d.dust.rotation.y += dt * 0.05;   // slow drifting sky, spinning accretion disc
-    if (d.flash > 0) { d.flash -= dt; d.shell.material.color.setRGB(1, d.flash > 0 ? 0.45 : 1, d.flash > 0 ? 0.45 : 1); }
-    if (d.from === MY_ID && d.saved && !d.broken) { d.recarveT -= dt; if (d.recarveT <= 0) { d.recarveT = 0.5; gojoDomainCarve(d, true); } }   // sweep up any block that shows up inside
+    if (d.g) { d.shell.rotation.y += dt * 0.02; d.disc.rotation.z += dt * 0.7; d.ink.rotation.z += dt * 0.7; d.dust.rotation.y += dt * 0.05; }   // slow drifting sky, spinning vortex
+    if (d.flash > 0) { d.flash -= dt; const fv = d.flash > 0 ? 0.45 : 1; d.outer.material.color.setRGB(1, fv, fv); if (d.g) d.shell.material.color.setRGB(1, fv, fv); }
     const grow = Math.min(1, d.age / 0.6), e = 1 - Math.pow(1 - grow, 3), shrink = Math.min(1, d.life / 0.5);
-    d.g.scale.setScalar(Math.max(0.01, d.R * e * shrink));
+    { const sc = Math.max(0.01, d.R * e * shrink); d.outer.scale.setScalar(sc); if (d.g) d.g.scale.setScalar(sc); }
     // the wall: whoever was inside can't leave, whoever was outside can't enter
     if (player.hp > 0) {
-      const px = player.pos.x - d.x, py = player.pos.y + 0.9 - d.y, pz = player.pos.z - d.z, dist = Math.hypot(px, py, pz) || 0.001;
+      const wx = d.inMe ? d.ax : d.x, wy = d.inMe ? d.ay : d.y, wz = d.inMe ? d.az : d.z;   // insiders are bound to the arena, everyone else to the orb at the original spot
+      const px = player.pos.x - wx, py = player.pos.y + 0.9 - wy, pz = player.pos.z - wz, dist = Math.hypot(px, py, pz) || 0.001;
       const lim = d.inMe ? d.R - 0.5 : d.R + 0.4;
       if (d.inMe ? dist > lim : dist < lim) {
         const s = lim / dist;
-        player.pos.set(d.x + px * s, d.y + py * s - 0.9, d.z + pz * s);
+        player.pos.set(wx + px * s, wy + py * s - 0.9, wz + pz * s);
         const nx = px / dist, ny = py / dist, nz = pz / dist, vn = player.vel.x * nx + player.vel.y * ny + player.vel.z * nz;
         if (d.inMe ? vn > 0 : vn < 0) { player.vel.x -= vn * nx; player.vel.y -= vn * ny; player.vel.z -= vn * nz; }
         knockV.x = 0; knockV.z = 0;
@@ -15797,12 +15844,7 @@ function updateGojoDomain(dt) {
       if (!a.alive || a.remote) return;
       const h = (a.height || 1) * 0.5;
       const ax = a.pos.x - d.x, ay = a.pos.y + h - d.y, az = a.pos.z - d.z, ad = Math.hypot(ax, ay, az) || 0.001;
-      if (ad <= d.R) {   // mobs inside are frozen where they stand
-        if (d.age > 0.3 && d.life > 0.4) {
-          if (!a._frz) a._frz = { x: a.pos.x, y: d.floorY, z: a.pos.z };   // mobs are put on the flat floor too
-          a.pos.set(a._frz.x, a._frz.y, a._frz.z); a.vel.set(0, 0, 0); a.kbT = 0.3; a._frzSeen = true;
-        }
-      } else if (ad < d.R + 0.5) {   // mobs outside are kept out
+      if (ad < d.R + 0.5) {   // mobs are kept out of the orb
         const s = (d.R + 0.5) / ad;
         a.pos.set(d.x + ax * s, d.y + ay * s - h, d.z + az * s); a.vel.set(0, 0, 0);
       }
