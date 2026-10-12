@@ -4186,9 +4186,13 @@ function stepDirtyChunks() {
   if (!dirtyChunkKeys.size) return;
   // The chunk you just edited was rebuilt immediately; its neighbours (edge faces / torch light) can wait a
   // frame instead of landing right behind it — two rebuilds in a row is what felt like a stutter on mining.
-  if (performance.now() - _lastRebuildEnd < 9) return;
   const k = _nearestDirtyChunkKey();
-  if (k) _rebuildDirtyKey(k);
+  if (!k) return;
+  const c = k.indexOf(','), ndx = +k.slice(0, c) - (player.pos.x / CHUNK_SIZE - 0.5), ndz = +k.slice(c + 1) - (player.pos.z / CHUNK_SIZE - 0.5);
+  const hasMesh = !!(chunks.get(k) && chunks.get(k).mesh);
+  // a nearby chunk with NO mesh yet (just generated / came back into range) is built immediately, no spacing delay
+  if (hasMesh || ndx * ndx + ndz * ndz > 9) { if (performance.now() - _lastRebuildEnd < 9) return; }
+  _rebuildDirtyKey(k);
 }
 function markGeneratedChunksDirty() {
   generatedChunks.forEach(ck => { const [cx,cz] = ck.split(',').map(Number); markOne(cx,cz); });
@@ -5053,7 +5057,7 @@ function ensureChunksNear(px, pz, radius, maxNew) {
         else generateChunkColumns(cx,cz);
         markOne(cx,cz);
         generated++;
-      } else if (!genJobs.has(ck) && queued < 6) {      // streaming: queue it, pumpChunkGen() builds it over the next frames
+      } else if (!genJobs.has(ck) && queued < 12) {      // streaming: queue it, pumpChunkGen() builds it over the next frames
         genJobs.set(ck, { gen: generateChunkColumnsGen(cx,cz), cx, cz, started: false });
         genOrder.push(ck);
         queued++;
@@ -5065,13 +5069,34 @@ function ensureChunksNear(px, pz, radius, maxNew) {
   }
 }
 
-let streamTimer = 0;
+let streamTimer = 0, _chunkUrgent = false;
 function updateChunkStreaming(dt) {
   streamTimer -= dt;
   if (streamTimer > 0) return;
-  streamTimer = 0.25; // throttle: a few times a second is plenty
-  ensureChunksNear(player.pos.x, player.pos.z, RENDER_CHUNKS, CHUNKS_PER_TICK);
+  streamTimer = 0.1; // throttle: several times a second
   const pcx = Math.floor(player.pos.x/CHUNK_SIZE), pcz = Math.floor(player.pos.z/CHUNK_SIZE);
+  // Chunks right next to the player must never be missing: any ungenerated chunk within 2 chunks is built NOW
+  // (nearest first, at most 2 per pass so it can't hitch); anything still missing within 3 chunks makes the
+  // background generator work harder (see _chunkUrgent / pumpChunkGen in the main loop).
+  _chunkUrgent = false;
+  { const near = [];
+    for (let dx = -3; dx <= 3; dx++) for (let dz = -3; dz <= 3; dz++) {
+      const d2 = dx*dx + dz*dz; if (d2 > 10) continue;
+      if (!generatedChunks.has((pcx+dx)+','+(pcz+dz))) near.push([d2, pcx+dx, pcz+dz]);
+    }
+    near.sort((a, b) => a[0] - b[0]);
+    let forced = 0;
+    for (const [d2, cx, cz] of near) {
+      if (d2 <= 5 && forced < 2) {
+        const ck = cx+','+cz, job = genJobs.get(ck);
+        generatedChunks.add(ck);
+        if (job) { while (!job.gen.next().done) {} genJobs.delete(ck); const gi = genOrder.indexOf(ck); if (gi >= 0) genOrder.splice(gi, 1); }
+        else generateChunkColumns(cx, cz);
+        markOne(cx, cz); forced++;
+      } else _chunkUrgent = true;
+    }
+  }
+  ensureChunksNear(player.pos.x, player.pos.z, RENDER_CHUNKS, CHUNKS_PER_TICK);
   chunks.forEach((c, ck) => {
     if (!c.mesh) return;
     const [cx,cz] = ck.split(',').map(Number);
@@ -14998,7 +15023,7 @@ function renderGojoBar() {
       div.title = 'Hollow Purple: click to summon Red (left) and Blue (right) in front of you; they smash together into a purple ball. Click again to fire it: it erases every block in its path while you hold the button, for up to 50 blocks. Huge damage.';
     } else if (i === 3) {
       div.innerHTML = '<span class="num">4</span><div class="gojoDomain"></div><span class="gojoName">Domain</span>' + (gojoDomainCd > 0 ? '<span class="gojoCd">' + Math.ceil(gojoDomainCd) + '</span>' : '');
-      div.title = 'Domain Expansion: click to wall off an outer-space domain (black void, galaxies, a giant black hole) around you. Everyone inside stands on a flat floor, nobody can enter or leave, and everyone inside but you is frozen. It has 100 HP: anyone outside can break it by hitting it. Otherwise it fades after 12 s and everything returns.';
+      div.title = 'Domain Expansion: click to wall off an Infinite Void domain (dark blue void, white glowing splatters, a giant blue vortex) around you. Everyone inside stands on a flat floor, nobody can enter or leave, and everyone inside but you is frozen. It has 100 HP: anyone outside can break it by hitting it. Otherwise it fades after 12 s and everything returns.';
     } else div.innerHTML = '<span class="num">' + (i + 1) + '</span>';
     div.addEventListener('click', () => { gojoSlot = i; renderGojoBar(); });
     hotbar.appendChild(div);
@@ -15478,73 +15503,91 @@ function gojoGlowTex() {
   g.fillStyle = gr; g.fillRect(0, 0, 128, 128);
   return (_gTexGlow = _gTex(c));
 }
+// paint splatter helper: a blob of overlapping ellipses + flung droplets + thin streaks (used for the white glowing splats and the black ink)
+function _gSplat(g, rnd, x, y, size, ang, fill, glow) {
+  g.save(); g.translate(x, y); g.rotate(ang);
+  if (glow) { g.shadowColor = glow; g.shadowBlur = size * 0.4; }
+  g.fillStyle = fill; g.strokeStyle = fill;
+  const n = 8 + (rnd() * 7 | 0);
+  for (let i = 0; i < n; i++) { const ox = (rnd() - 0.3) * size * 1.15, oy = (rnd() - 0.5) * size * 0.34, r = size * (0.1 + rnd() * 0.2); g.beginPath(); g.ellipse(ox, oy, r * (1 + rnd() * 0.9), r, rnd() * 3, 0, 6.2832); g.fill(); }
+  for (let i = 0; i < 26; i++) { const ox = (rnd() * 1.7 - 0.4) * size * 1.35, oy = (rnd() - 0.5) * size * (0.5 + rnd() * 0.9), r = size * (0.008 + rnd() * rnd() * 0.06); g.beginPath(); g.arc(ox, oy, r, 0, 6.2832); g.fill(); }
+  g.lineWidth = Math.max(1, size * 0.012);
+  for (let i = 0; i < 6; i++) { const ox = (rnd() * 0.8) * size, oy = (rnd() - 0.5) * size * 0.2; g.beginPath(); g.moveTo(ox, oy); g.lineTo(ox + size * (0.25 + rnd() * 0.5), oy + (rnd() - 0.5) * size * 0.15); g.stroke(); }
+  g.restore();
+}
+// Gojo's domain (Infinite Void look): dark navy void, glowing blue mist, white paint-splatter glows, streaks and specks
 function gojoSpaceTex() {
   if (_gTexSpace) return _gTexSpace;
   const W = 2048, H = 1024, c = document.createElement('canvas'); c.width = W; c.height = H; const g = c.getContext('2d'), rnd = _gRng(777);
-  g.fillStyle = '#000'; g.fillRect(0, 0, W, H);
-  // faint nebula haze
-  const hazeCols = ['80,40,200', '30,70,200', '160,40,160', '40,120,180'];
-  for (let i = 0; i < 9; i++) {
-    const x = rnd() * W, y = 160 + rnd() * (H - 320), r = 160 + rnd() * 260, gr = g.createRadialGradient(x, y, 0, x, y, r);
-    gr.addColorStop(0, 'rgba(' + hazeCols[i % 4] + ',0.16)'); gr.addColorStop(1, 'rgba(' + hazeCols[i % 4] + ',0)');
+  const bg = g.createLinearGradient(0, 0, 0, H);
+  bg.addColorStop(0, '#02060f'); bg.addColorStop(0.5, '#071a30'); bg.addColorStop(1, '#02060d');
+  g.fillStyle = bg; g.fillRect(0, 0, W, H);
+  // blue smoky mist along the middle
+  for (let i = 0; i < 70; i++) {
+    const x = rnd() * W, y = H * 0.5 + (rnd() - 0.5) * 230, r = 60 + rnd() * 150, gr = g.createRadialGradient(x, y, 0, x, y, r), a = 0.05 + rnd() * 0.09;
+    gr.addColorStop(0, 'rgba(70,140,215,' + a.toFixed(3) + ')'); gr.addColorStop(1, 'rgba(70,140,215,0)');
     g.fillStyle = gr; g.fillRect(x - r, y - r, r * 2, r * 2);
   }
-  // stardust: thousands of tiny white speckles
-  for (let i = 0; i < 5200; i++) {
-    const x = rnd() * W, y = rnd() * H, a = 0.2 + rnd() * 0.8, r = 0.35 + rnd() * 1.0;
-    g.fillStyle = 'rgba(255,255,255,' + a.toFixed(2) + ')'; g.beginPath(); g.arc(x, y, r, 0, 6.2832); g.fill();
+  // fine specks
+  for (let i = 0; i < 3200; i++) {
+    const x = rnd() * W, y = rnd() * H, a = 0.15 + rnd() * 0.7, r = 0.3 + rnd() * 0.9;
+    g.fillStyle = 'rgba(210,230,255,' + a.toFixed(2) + ')'; g.beginPath(); g.arc(x, y, r, 0, 6.2832); g.fill();
   }
-  // bigger glowing white stars
-  for (let i = 0; i < 190; i++) {
+  // glowing white speckles
+  for (let i = 0; i < 160; i++) {
     const x = rnd() * W, y = rnd() * H, r = 3 + rnd() * 8, gr = g.createRadialGradient(x, y, 0, x, y, r);
-    const tint = rnd() < 0.3 ? '200,220,255' : rnd() < 0.5 ? '255,235,210' : '255,255,255';
-    gr.addColorStop(0, 'rgba(255,255,255,1)'); gr.addColorStop(0.25, 'rgba(' + tint + ',0.65)'); gr.addColorStop(1, 'rgba(' + tint + ',0)');
+    gr.addColorStop(0, 'rgba(255,255,255,1)'); gr.addColorStop(0.3, 'rgba(190,225,255,0.6)'); gr.addColorStop(1, 'rgba(120,180,255,0)');
     g.fillStyle = gr; g.fillRect(x - r, y - r, r * 2, r * 2);
   }
-  // distant spiral galaxies
-  const gal = [['255,200,140', '120,150,255'], ['255,170,230', '150,90,255'], ['190,220,255', '70,130,255'], ['255,230,170', '255,120,90']];
-  for (let i = 0; i < 17; i++) {
-    const cx = 130 + rnd() * (W - 260), cy = 170 + rnd() * (H - 340), size = 36 + rnd() * 95, pal = gal[i % 4], tilt = rnd() * 3.14, squash = 0.28 + rnd() * 0.45;
-    g.save(); g.translate(cx, cy); g.rotate(tilt); g.scale(1, squash);
-    const gr = g.createRadialGradient(0, 0, 0, 0, 0, size);
-    gr.addColorStop(0, 'rgba(255,255,255,0.95)'); gr.addColorStop(0.12, 'rgba(' + pal[0] + ',0.7)'); gr.addColorStop(0.5, 'rgba(' + pal[1] + ',0.2)'); gr.addColorStop(1, 'rgba(' + pal[1] + ',0)');
-    g.fillStyle = gr; g.fillRect(-size, -size, size * 2, size * 2);
-    for (let arm = 0; arm < 2; arm++) for (let t = 0; t < 230; t++) {
-      const ang = t * 0.085 + arm * Math.PI, rad = (t / 230) * size * 0.95, jx = (rnd() - 0.5) * size * 0.07, jy = (rnd() - 0.5) * size * 0.07;
-      g.fillStyle = 'rgba(' + (t < 90 ? pal[0] : pal[1]) + ',' + (0.12 + rnd() * 0.45).toFixed(2) + ')';
-      g.beginPath(); g.arc(Math.cos(ang) * rad + jx, Math.sin(ang) * rad + jy, 0.6 + rnd() * 1.3, 0, 6.2832); g.fill();
-    }
-    g.restore();
+  // thin white streaks (flung droplets)
+  g.lineCap = 'round';
+  for (let i = 0; i < 140; i++) {
+    const x = rnd() * W, y = rnd() * H, a = -0.6 + rnd() * 1.0, len = 8 + rnd() * 34;
+    g.strokeStyle = 'rgba(230,242,255,' + (0.2 + rnd() * 0.6).toFixed(2) + ')'; g.lineWidth = 0.8 + rnd() * 1.6;
+    g.beginPath(); g.moveTo(x, y); g.lineTo(x + Math.cos(a) * len, y + Math.sin(a) * len); g.stroke();
   }
+  // black ink blobs drifting in the mist
+  for (let i = 0; i < 12; i++) _gSplat(g, rnd, rnd() * W, 250 + rnd() * (H - 500), 26 + rnd() * 60, rnd() * 6.28, 'rgba(0,3,8,0.92)', null);
+  // big white glowing paint splatters (towards the edges of the view)
+  for (let i = 0; i < 24; i++) _gSplat(g, rnd, rnd() * W, 130 + rnd() * (H - 260), 70 + rnd() * 170, rnd() * 6.28, 'rgba(250,252,255,0.96)', 'rgba(170,215,255,0.95)');
   return (_gTexSpace = _gTex(c));
 }
-function gojoDiscTex() {
+function gojoDiscTex() {   // glowing blue vortex: concentric rings + light swirl
   if (_gTexDisc) return _gTexDisc;
   const S = 512, c = document.createElement('canvas'); c.width = c.height = S; const g = c.getContext('2d'), h = S / 2, rnd = _gRng(4242);
   const gr = g.createRadialGradient(h, h, 0, h, h, h);
-  gr.addColorStop(0, 'rgba(0,0,0,0)'); gr.addColorStop(0.40, 'rgba(0,0,0,0)'); gr.addColorStop(0.42, 'rgba(255,250,235,1)'); gr.addColorStop(0.5, 'rgba(255,205,120,0.95)');
-  gr.addColorStop(0.68, 'rgba(255,110,40,0.7)'); gr.addColorStop(0.85, 'rgba(150,50,200,0.35)'); gr.addColorStop(1, 'rgba(60,10,120,0)');
+  gr.addColorStop(0, 'rgba(0,0,0,0)'); gr.addColorStop(0.33, 'rgba(0,0,0,0)'); gr.addColorStop(0.35, 'rgba(235,248,255,1)'); gr.addColorStop(0.40, 'rgba(120,190,255,0.85)');
+  gr.addColorStop(0.5, 'rgba(60,130,230,0.45)'); gr.addColorStop(0.62, 'rgba(210,240,255,0.9)'); gr.addColorStop(0.68, 'rgba(70,140,230,0.5)');
+  gr.addColorStop(0.8, 'rgba(40,100,200,0.3)'); gr.addColorStop(0.9, 'rgba(180,225,255,0.7)'); gr.addColorStop(0.96, 'rgba(60,120,220,0.25)'); gr.addColorStop(1, 'rgba(20,60,140,0)');
   g.fillStyle = gr; g.fillRect(0, 0, S, S);
-  for (let i = 0; i < 90; i++) {   // bright streaks so the spin is visible
-    const r0 = (0.44 + rnd() * 0.52) * h, a0 = rnd() * 6.28, len = 0.25 + rnd() * 0.9;
-    g.strokeStyle = 'rgba(255,' + Math.round(170 + rnd() * 85) + ',' + Math.round(110 + rnd() * 120) + ',' + (0.12 + rnd() * 0.38).toFixed(2) + ')';
-    g.lineWidth = 1 + rnd() * 2.6; g.beginPath(); g.arc(h, h, r0, a0, a0 + len); g.stroke();
+  for (let i = 0; i < 110; i++) {   // light swirl arcs so the spin is visible
+    const r0 = (0.36 + rnd() * 0.6) * h, a0 = rnd() * 6.28, len = 0.3 + rnd() * 1.1;
+    g.strokeStyle = 'rgba(' + Math.round(150 + rnd() * 105) + ',' + Math.round(205 + rnd() * 50) + ',255,' + (0.1 + rnd() * 0.38).toFixed(2) + ')';
+    g.lineWidth = 1 + rnd() * 3; g.beginPath(); g.arc(h, h, r0, a0, a0 + len); g.stroke();
   }
   return (_gTexDisc = _gTex(c));
+}
+let _gTexInk = null;
+function gojoInkTex() {   // black ink splatters that sit on the vortex
+  if (_gTexInk) return _gTexInk;
+  const S = 512, c = document.createElement('canvas'); c.width = c.height = S; const g = c.getContext('2d'), h = S / 2, rnd = _gRng(31337);
+  for (let i = 0; i < 9; i++) { const a = rnd() * 6.28, r = (0.42 + rnd() * 0.45) * h; _gSplat(g, rnd, h + Math.cos(a) * r, h + Math.sin(a) * r, 22 + rnd() * 38, rnd() * 6.28, '#000', null); }
+  return (_gTexInk = _gTex(c));
 }
 function gojoFloorTex() {
   if (_gTexFloor) return _gTexFloor;
   const S = 512, c = document.createElement('canvas'); c.width = c.height = S; const g = c.getContext('2d'), h = S / 2, rnd = _gRng(99);
-  g.fillStyle = '#01000a'; g.fillRect(0, 0, S, S);
+  g.fillStyle = '#02070f'; g.fillRect(0, 0, S, S);
   const gr = g.createRadialGradient(h, h, 0, h, h, h);
-  gr.addColorStop(0, 'rgba(18,6,36,1)'); gr.addColorStop(0.7, 'rgba(8,2,20,1)'); gr.addColorStop(0.93, 'rgba(80,36,160,0.7)'); gr.addColorStop(0.985, 'rgba(200,150,255,0.95)'); gr.addColorStop(1, 'rgba(0,0,0,0)');
+  gr.addColorStop(0, 'rgba(10,28,52,1)'); gr.addColorStop(0.7, 'rgba(5,16,32,1)'); gr.addColorStop(0.93, 'rgba(40,110,200,0.65)'); gr.addColorStop(0.985, 'rgba(200,230,255,0.95)'); gr.addColorStop(1, 'rgba(0,0,0,0)');
   g.fillStyle = gr; g.fillRect(0, 0, S, S);
-  g.strokeStyle = 'rgba(140,90,230,0.12)'; g.lineWidth = 1;
+  g.strokeStyle = 'rgba(110,180,255,0.12)'; g.lineWidth = 1;
   for (let r = 40; r < h * 0.92; r += 34) { g.beginPath(); g.arc(h, h, r, 0, 6.2832); g.stroke(); }
   for (let i = 0; i < 380; i++) {
     const a = rnd() * 6.28, r = Math.sqrt(rnd()) * h * 0.95;
-    g.fillStyle = 'rgba(255,255,255,' + (0.1 + rnd() * 0.5).toFixed(2) + ')'; g.fillRect(h + Math.cos(a) * r, h + Math.sin(a) * r, 1.2, 1.2);
+    g.fillStyle = 'rgba(230,242,255,' + (0.1 + rnd() * 0.5).toFixed(2) + ')'; g.fillRect(h + Math.cos(a) * r, h + Math.sin(a) * r, 1.2, 1.2);
   }
+  for (let i = 0; i < 5; i++) { const a = rnd() * 6.28, r = (0.35 + rnd() * 0.5) * h; _gSplat(g, rnd, h + Math.cos(a) * r, h + Math.sin(a) * r, 16 + rnd() * 26, rnd() * 6.28, 'rgba(245,250,255,0.9)', 'rgba(150,205,255,0.9)'); }
   return (_gTexFloor = _gTex(c));
 }
 function gojoDomainMake(p) {
@@ -15557,11 +15600,13 @@ function gojoDomainMake(p) {
   // large central black hole with a spinning accretion disc and a glow
   const bh = new THREE.Group(); bh.position.set(0, 0.5, 0); g.add(bh);
   const core = new THREE.Mesh(new THREE.SphereGeometry(0.16, 24, 16), new THREE.MeshBasicMaterial({ color: 0x000000, fog: false }));
-  const glow = new THREE.Sprite(new THREE.SpriteMaterial({ map: gojoGlowTex(), color: 0xff9a50, transparent: true, blending: THREE.AdditiveBlending, depthWrite: false, fog: false }));
-  glow.scale.setScalar(1.1);
+  const glow = new THREE.Sprite(new THREE.SpriteMaterial({ map: gojoGlowTex(), color: 0x5aa8ff, transparent: true, blending: THREE.AdditiveBlending, depthWrite: false, fog: false }));
+  glow.scale.setScalar(1.35);
   const tilt = new THREE.Group(); tilt.rotation.x = 0.36; tilt.rotation.z = 0.12;
-  const disc = new THREE.Mesh(new THREE.RingGeometry(0.19, 0.46, 64, 1), new THREE.MeshBasicMaterial({ map: gojoDiscTex(), transparent: true, blending: THREE.AdditiveBlending, depthWrite: false, side: THREE.DoubleSide, fog: false }));
+  const disc = new THREE.Mesh(new THREE.RingGeometry(0.2, 0.56, 64, 1), new THREE.MeshBasicMaterial({ map: gojoDiscTex(), transparent: true, blending: THREE.AdditiveBlending, depthWrite: false, side: THREE.DoubleSide, fog: false }));
   disc.rotation.x = -Math.PI / 2; tilt.add(disc);
+  const ink = new THREE.Mesh(new THREE.RingGeometry(0.2, 0.56, 64, 1), new THREE.MeshBasicMaterial({ map: gojoInkTex(), transparent: true, depthWrite: false, side: THREE.DoubleSide, fog: false }));
+  ink.rotation.x = -Math.PI / 2; ink.position.y = 0.004; tilt.add(ink);
   bh.add(glow, core, tilt);
   // glowing white speckles drifting inside
   const N = 170, pos = new Float32Array(N * 3);
@@ -15570,14 +15615,14 @@ function gojoDomainMake(p) {
     pos[i * 3] = Math.cos(a) * q * r; pos[i * 3 + 1] = Math.max(fu + 0.03, u * r); pos[i * 3 + 2] = Math.sin(a) * q * r;
   }
   const dg = new THREE.BufferGeometry(); dg.setAttribute('position', new THREE.BufferAttribute(pos, 3));
-  const dust = new THREE.Points(dg, new THREE.PointsMaterial({ size: 0.16, map: gojoGlowTex(), color: 0xffffff, transparent: true, opacity: 0.95, depthWrite: false, blending: THREE.AdditiveBlending, fog: false }));
+  const dust = new THREE.Points(dg, new THREE.PointsMaterial({ size: 0.16, map: gojoGlowTex(), color: 0xd6ebff, transparent: true, opacity: 0.95, depthWrite: false, blending: THREE.AdditiveBlending, fog: false }));
   g.add(dust);
   // flat ground for everyone inside
   const fr = Math.sqrt(1 - fu * fu) * 0.998;
   const floor = new THREE.Mesh(new THREE.CircleGeometry(fr, 64), new THREE.MeshBasicMaterial({ map: gojoFloorTex(), fog: false, polygonOffset: true, polygonOffsetFactor: -1, polygonOffsetUnits: -1 }));
   floor.rotation.x = -Math.PI / 2; floor.position.y = fu + 0.0005; g.add(floor);
   const inMe = Math.hypot(player.pos.x - p.x, player.pos.y + 0.9 - p.y, player.pos.z - p.z) <= p.R;   // inside when it forms = locked in; outside = locked out
-  const d = { g, shell, disc, dust, x: p.x, y: p.y, z: p.z, R: p.R, life: p.life, age: 0, from: p.from, inMe, home: inMe ? { x: player.pos.x, y: player.pos.y, z: player.pos.z } : null, saved: null,
+  const d = { g, shell, disc, ink, dust, x: p.x, y: p.y, z: p.z, R: p.R, life: p.life, age: 0, from: p.from, inMe, home: inMe ? { x: player.pos.x, y: player.pos.y, z: player.pos.z } : null, saved: null,
     floorY: p.y - 0.9, hp: GOJO_DOMAIN_HP, flash: 0, recarveT: 0.5, broken: false };
   gojoDomains.push(d); return d;
 }
@@ -15649,8 +15694,8 @@ let _gdHud = null, _gdHudT = 0;
 function gojoDomainHud(d) {
   if (!_gdHud) {
     _gdHud = document.createElement('div');
-    _gdHud.style.cssText = 'position:fixed;top:64px;left:50%;transform:translateX(-50%);z-index:6;pointer-events:none;display:none;min-width:250px;text-align:center;font:bold 14px sans-serif;color:#e8d8ff;text-shadow:0 0 8px #8a5bff';
-    _gdHud.innerHTML = '<div id="gdHudT"></div><div style="height:10px;margin-top:4px;background:#1a0a30;border:1px solid #7a4cff;border-radius:6px;overflow:hidden"><div id="gdHudB" style="height:100%;width:100%;background:linear-gradient(90deg,#7a3cff,#d9a0ff)"></div></div>';
+    _gdHud.style.cssText = 'position:fixed;top:64px;left:50%;transform:translateX(-50%);z-index:6;pointer-events:none;display:none;min-width:250px;text-align:center;font:bold 14px sans-serif;color:#e0f0ff;text-shadow:0 0 8px #4a9bff';
+    _gdHud.innerHTML = '<div id="gdHudT"></div><div style="height:10px;margin-top:4px;background:#0a1a30;border:1px solid #4c8cff;border-radius:6px;overflow:hidden"><div id="gdHudB" style="height:100%;width:100%;background:linear-gradient(90deg,#2c78ff,#bfe0ff)"></div></div>';
     document.body.appendChild(_gdHud);
   }
   _gdHud.style.display = 'block'; _gdHudT = 3;
@@ -15660,7 +15705,7 @@ function gojoDomainHud(d) {
 function gojoDomainBreak(d, announce) {
   if (d.broken) return;
   d.broken = true; d.life = Math.min(d.life, 0.45);   // it shrinks away; the caster's client then puts the blocks back
-  gojoFxAdd(new THREE.SphereGeometry(1, 20, 14), new THREE.MeshBasicMaterial({ color: 0xcfa0ff, transparent: true, opacity: 0.55, depthWrite: false }), d.x, d.y, d.z, 0.5, d.R * 0.7, d.R * 1.5, false, false);
+  gojoFxAdd(new THREE.SphereGeometry(1, 20, 14), new THREE.MeshBasicMaterial({ color: 0x9ad0ff, transparent: true, opacity: 0.55, depthWrite: false }), d.x, d.y, d.z, 0.5, d.R * 0.7, d.R * 1.5, false, false);
   gojoFxAdd(new THREE.TorusGeometry(1, 0.1, 6, 48), new THREE.MeshBasicMaterial({ color: 0xffffff, transparent: true, opacity: 0.9, depthWrite: false }), d.x, d.floorY + 0.1, d.z, 0.6, d.R * 0.6, d.R * 2, false, true);
   if (announce) {
     try { playersChannel.send({ type: 'broadcast', event: 'gojo_domain_break', payload: { from: MY_ID } }); } catch (e) {}
@@ -15702,7 +15747,7 @@ function gojoDomainBlast(x, y, z, r, amount) {   // Red / Blue / Hollow Purple t
 function gojoFrozenUI(on) {
   if (!_frzOverlay) {
     _frzOverlay = document.createElement('div');
-    _frzOverlay.style.cssText = 'position:fixed;inset:0;z-index:5;pointer-events:none;display:none;background:radial-gradient(circle,rgba(20,0,50,0) 35%,rgba(30,0,80,0.6) 100%);color:#d8c4ff;font:bold 22px sans-serif;letter-spacing:4px;text-align:center;padding-top:14vh;text-shadow:0 0 12px #8a5bff';
+    _frzOverlay.style.cssText = 'position:fixed;inset:0;z-index:5;pointer-events:none;display:none;background:radial-gradient(circle,rgba(0,10,40,0) 35%,rgba(0,30,90,0.6) 100%);color:#d6ebff;font:bold 22px sans-serif;letter-spacing:4px;text-align:center;padding-top:14vh;text-shadow:0 0 12px #4a9bff';
     _frzOverlay.textContent = 'DOMAIN EXPANSION';
     document.body.appendChild(_frzOverlay);
   }
@@ -15721,7 +15766,7 @@ function updateGojoDomain(dt) {
     d.age += dt; d.life -= dt;
     if (d.life <= 0) { gojoDomainRemove(i); continue; }
     if (d._bt > 0) d._bt -= dt;
-    d.shell.rotation.y += dt * 0.02; d.disc.rotation.z += dt * 0.7; d.dust.rotation.y += dt * 0.05;   // slow drifting sky, spinning accretion disc
+    d.shell.rotation.y += dt * 0.02; d.disc.rotation.z += dt * 0.7; d.ink.rotation.z += dt * 0.7; d.dust.rotation.y += dt * 0.05;   // slow drifting sky, spinning accretion disc
     if (d.flash > 0) { d.flash -= dt; d.shell.material.color.setRGB(1, d.flash > 0 ? 0.45 : 1, d.flash > 0 ? 0.45 : 1); }
     if (d.from === MY_ID && d.saved && !d.broken) { d.recarveT -= dt; if (d.recarveT <= 0) { d.recarveT = 0.5; gojoDomainCarve(d, true); } }   // sweep up any block that shows up inside
     const grow = Math.min(1, d.age / 0.6), e = 1 - Math.pow(1 - grow, 3), shrink = Math.min(1, d.life / 0.5);
@@ -19868,7 +19913,7 @@ function animate() {
 
   updateDayNight(dt);
   updateChunkStreaming(dt);
-  pumpChunkGen((performance.now() - _lastRebuildEnd < 12) ? 1.5 : 4);   // spread terrain generation over frames
+  pumpChunkGen(_chunkUrgent ? 9 : ((performance.now() - _lastRebuildEnd < 12) ? 1.5 : 4));   // spread terrain generation over frames (harder when chunks near you are still missing)
   updateMining(dt);
   updateFurnace(dt);
   updateSaplingGrowth(dt);
