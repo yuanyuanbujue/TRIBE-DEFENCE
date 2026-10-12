@@ -7792,7 +7792,7 @@ function announce(text) {
 function announceMyDeath() {
   const now = performance.now();
   let by = null;
-  if (lastPvpAttacker.name && now - lastPvpAttacker.t < 10000) by = lastPvpAttacker.name;
+  if (lastPvpAttacker.name && now - lastPvpAttacker.t < 10000) by = lastPvpAttacker.inv ? ('@@INV:' + lastPvpAttacker.id + '@@') : lastPvpAttacker.name;   // an invisible killer shows as animated gibberish
   else {
     let bd = 1e9;
     for (const a of animals) {
@@ -14575,7 +14575,7 @@ playersChannel
     const t = filterText(payload.text.slice(0, 120));
     addChatLine('System', t, true);
     try {
-      if (typeof MY_NAME === 'string' && t.indexOf('was slain by ' + MY_NAME) >= 0 && typeof registerPlayerKill === 'function') registerPlayerKill();
+      if (typeof registerPlayerKill === 'function' && ((typeof MY_NAME === 'string' && t.indexOf('was slain by ' + MY_NAME) >= 0) || t.indexOf('was slain by @@INV:' + MY_ID + '@@') >= 0)) registerPlayerKill();
     } catch (e) {}
   })
   .on('broadcast', { event: 'give_xp' }, ({ payload }) => {
@@ -14692,7 +14692,7 @@ playersChannel
         kdir = new THREE.Vector3(player.pos.x - at.group.position.x, 0, player.pos.z - at.group.position.z);
       }
       if (isShieldBlockingFront(kdir)) myShieldPulse = 0.25;
-      { const _at = payload.attackerId && otherPlayers.get(payload.attackerId); if (_at) lastPvpAttacker = { name: String(_at.name || 'Player'), t: performance.now() }; }
+      { const _at = payload.attackerId && otherPlayers.get(payload.attackerId); if (_at) lastPvpAttacker = { name: String(_at.name || 'Player'), t: performance.now(), id: payload.attackerId, inv: !!_at.invisible }; }
       damagePlayer(payload.amount, kdir, payload.knock != null ? payload.knock : 8.5, { axeHit: !!payload.axe, maceHit: !!payload.mace, breach: payload.breach || 0 });
     } else {
       const entry = otherPlayers.get(payload.targetId);
@@ -14958,13 +14958,32 @@ function isAllowedSystemMsg(text) {
   if (/Law system (ON|OFF)/i.test(t)) return true;
   return false;
 }
+// An invisible player's kill shows their name as random text that keeps changing, e.g.  %&*H!DI9hdiedy9o
+const _gScrChars = '%&*#@!$?^~+=<>HDIhdiedy9oXQZWKJ0123456789abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ';
+function gScrText() { const n = 12 + (Math.random() * 9 | 0); let o = ''; for (let i = 0; i < n; i++) o += _gScrChars[(Math.random() * _gScrChars.length) | 0]; return o; }
+let _gScrTimer = null;
+function gScrEnsure() {
+  if (_gScrTimer) return;
+  _gScrTimer = setInterval(() => {
+    const els = document.querySelectorAll('.gScr');
+    if (!els.length) { clearInterval(_gScrTimer); _gScrTimer = null; return; }
+    els.forEach(e => { e.textContent = gScrText(); });
+  }, 70);
+}
+function chatBodyHtml(text) {
+  const re = /@@INV:[^@]*@@/g; let out = '', last = 0, m, any = false;
+  while ((m = re.exec(text))) { out += escapeHtml(text.slice(last, m.index)) + '<span class="gScr" style="color:#ff6b6b;font-family:monospace">' + escapeHtml(gScrText()) + '</span>'; last = m.index + m[0].length; any = true; }
+  out += escapeHtml(text.slice(last));
+  if (any) gScrEnsure();
+  return out;
+}
 function addChatLine(name, text, isMe, forceShow) {
   // forceShow: command replies (/wanted, /tpa, /help, …) always display
   if (name === 'System' && !forceShow && !isAllowedSystemMsg(text)) return;
   const div = document.createElement('div');
   div.className = 'chatLine' + (name === 'System' ? ' sys' : '');
   if (name !== 'System') { name = filterText(name); text = filterText(text); }
-  div.innerHTML = `<span class="chatName" style="color:${isMe ? '#7ec8ff' : '#ffd54a'}">${escapeHtml(name)}:</span> ${escapeHtml(text)}`;
+  div.innerHTML = `<span class="chatName" style="color:${isMe ? '#7ec8ff' : '#ffd54a'}">${escapeHtml(name)}:</span> ${name === 'System' ? chatBodyHtml(text) : escapeHtml(text)}`;
   chatLog.appendChild(div);
   while (chatLog.children.length > 50) chatLog.removeChild(chatLog.firstChild);
   chatLog.scrollTop = chatLog.scrollHeight;
