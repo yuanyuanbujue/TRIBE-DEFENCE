@@ -143,6 +143,7 @@
   .gojoSlot.active { border-color: #fff; box-shadow: 0 0 12px rgba(120,200,255,0.9); }
   .gojoBlue { width: 24px; height: 24px; border-radius: 50%; background: radial-gradient(circle at 35% 30%, #fff, #7fd0ff 35%, #1e6bff 70%, #0b2a8a); box-shadow: 0 0 10px #4aa8ff; }
   .gojoRed { width: 24px; height: 24px; border-radius: 50%; background: radial-gradient(circle at 35% 30%, #fff, #ff9a8a 30%, #ff2a2a 65%, #7a0000); box-shadow: 0 0 10px #ff4040; }
+  .gojoPurple { width: 24px; height: 24px; border-radius: 50%; background: radial-gradient(circle at 35% 30%, #fff, #e0a8ff 30%, #9a3dff 65%, #3a0a7a); box-shadow: 0 0 10px #b060ff; }
   .gojoDomain { width: 24px; height: 24px; border-radius: 50%; background: radial-gradient(circle at 40% 35%, #8a6bff, #2a0f66 55%, #05010f); box-shadow: 0 0 10px #8a5bff, inset 0 0 6px #cfe0ff; }
   .invSlot.dragSel { outline: 2px solid #8fd3ff; background: rgba(120,200,255,0.25) !important; }
   #craftableBox { margin-top: 8px; padding: 6px 8px; border-radius: 6px; background: rgba(0,0,0,0.25); font-size: 12px; }
@@ -978,6 +979,11 @@
   #brewPanelBox .brewBubbles i { position: absolute; bottom: -14px; width: 10px; height: 10px; border-radius: 50%; background: rgba(190,160,255,0.55); border: 1px solid rgba(255,255,255,0.6); opacity: 0; }
   #brewPanelBox.brewing .brewBubbles i { animation: brewRise 1.1s ease-out forwards; }
   @keyframes brewRise { 0% { transform: translateY(0) scale(0.6); opacity: 0.9; } 100% { transform: translateY(-380px) scale(1.3); opacity: 0; } }
+  /* Fix: a centered flex column that is taller than the screen cuts off its top and can't be scrolled up.
+     Start from the top and let the box's auto margins do the centering instead, so the whole panel scrolls. */
+  #invPanel, #furnacePanel, #chestPanel { justify-content: flex-start !important; overflow-y: auto !important; overscroll-behavior: contain; }
+  #invPanelBox, #furnacePanelBox, #chestPanelBox { margin-top: auto !important; margin-bottom: auto !important; flex: none; }
+  #invPanel::after, #furnacePanel::after, #chestPanel::after { content: ''; display: block; flex: none; height: 12px; }
 </style>
 </head>
 <body>
@@ -14448,6 +14454,16 @@ playersChannel
     const r = gojoReds.find(q => q.mode === 'charge' && q.from === payload.from);
     if (r) r.dead = true;
   })
+  .on('broadcast', { event: 'gojo_hp' }, ({ payload }) => {
+    if (!payload || payload.from === MY_ID) return;
+    const v = [payload.x, payload.y, payload.z, payload.dx, payload.dy, payload.dz, payload.p].map(Number);
+    if (!v.every(Number.isFinite)) return;
+    if (payload.st === 'end') { const q = gojoHps.find(h => h.remote && h.from === payload.from); if (q) gojoHpRemove(q, true); return; }
+    let h = gojoHps.find(q => q.remote && q.from === payload.from);
+    if (!h) h = gojoHpMake(payload.from, true);
+    h.st = payload.st === 'fire' ? 'fire' : payload.st === 'ready' ? 'ready' : 'form';
+    h.x = v[0]; h.y = v[1]; h.z = v[2]; h.dx = v[3]; h.dy = v[4]; h.dz = v[5]; h.p = Math.max(0, Math.min(1, v[6])); h.idle = 0;
+  })
   .on('broadcast', { event: 'gojo_domain' }, ({ payload }) => {
     if (!payload || payload.from === MY_ID) return;
     const v = [payload.x, payload.y, payload.z, payload.R, payload.life].map(Number);
@@ -14918,7 +14934,7 @@ function findPlayerByName(name) {
   });
   return exact || partial;
 }
-const GIVE_ITEMS = { firework: 'firework', firework_1: 'firework', firework_2: 'firework_2', firework_3: 'firework_3', rocket: 'firework', elytra: 'elytra', mace: 'mace', golden_apple: 'golden_apple', gapple: 'golden_apple', goldenapple: 'golden_apple' };
+const GIVE_ITEMS = { firework: 'firework', firework_1: 'firework', firework_2: 'firework_2', firework_3: 'firework_3', rocket: 'firework', elytra: 'elytra', mace: 'mace', golden_apple: 'golden_apple', gapple: 'golden_apple', goldenapple: 'golden_apple', wind_charge: 'wind_charge', windcharge: 'wind_charge' };
 function givePlayerItem(item, count) {
   const type = GIVE_ITEMS[String(item || '').toLowerCase()]; if (!type) return false;
   const n = Math.max(1, Math.min(maxStackFor(type) === 1 ? 36 : 64, Math.trunc(Number(count)) || 1));
@@ -14944,16 +14960,16 @@ function gojoSetActive(on) {
   gojoActive = !!on;
   if (!gojoActive) { gojoBarOn = false; gojoCd = 0; }
   _gojoSig = ''; _hotbarSig = ''; renderHotbar();
-  addChatLine('System', gojoActive ? 'Curse energy awakened. Press V to open the ability hotbar (1 Blue: click pulls, hold steers. 2 Red: click fires, hold to charge up to 300%. 4 Domain: freezes everyone nearby).' : 'Curse energy removed.', true, true);
+  addChatLine('System', gojoActive ? 'Curse energy awakened. Press V to open the ability hotbar (1 Blue: click pulls, hold steers. 2 Red: click fires, hold to charge up to 300%. 3 Hollow Purple: click to summon Red + Blue and fuse them, click again to fire (hold to keep it going, release to stop). 4 Domain: freezes everyone nearby).' : 'Curse energy removed.', true, true);
 }
 function renderGojoBar() {
-  const sig = 'g|' + gojoSlot + '|' + (gojoCd > 0 ? Math.ceil(gojoCd) : 0) + '|' + (gojoRedC ? Math.round(gojoRedC.mult * 10) : 0) + '|' + (gojoDomainCd > 0 ? Math.ceil(gojoDomainCd) : 0);
+  const sig = 'g|' + gojoSlot + '|' + (gojoCd > 0 ? Math.ceil(gojoCd) : 0) + '|' + (gojoRedC ? Math.round(gojoRedC.mult * 10) : 0) + '|' + (gojoDomainCd > 0 ? Math.ceil(gojoDomainCd) : 0) + '|' + (gojoHpCd > 0 ? Math.ceil(gojoHpCd) : 0) + '|' + (gojoHpMine ? gojoHpMine.st : '');
   if (sig === _gojoSig && hotbar.firstChild) return;
   _gojoSig = sig;
   hotbar.innerHTML = '';
   for (let i = 0; i < HOTBAR_SIZE; i++) {
     const div = document.createElement('div');
-    div.className = 'slot gojoSlot' + (i === gojoSlot ? ' active' : '') + (i > 1 && i !== 3 ? ' empty' : '');
+    div.className = 'slot gojoSlot' + (i === gojoSlot ? ' active' : '') + (i > 3 ? ' empty' : '');
     const cdTxt = gojoCd > 0 ? '<span class="gojoCd">' + Math.ceil(gojoCd) + '</span>' : '';
     if (i === 0) {
       div.innerHTML = '<span class="num">1</span><div class="gojoBlue"></div><span class="gojoName">Blue</span>' + cdTxt;
@@ -14962,6 +14978,10 @@ function renderGojoBar() {
       const chg = gojoRedC ? '<span class="gojoCd" style="background:rgba(70,0,0,0.55);font-size:12px">' + Math.round(gojoRedC.mult * 100) + '%</span>' : '';
       div.innerHTML = '<span class="num">2</span><div class="gojoRed"></div><span class="gojoName">Red</span>' + (chg || cdTxt);
       div.title = 'Red: click = fire a red sphere. Hold = charge it (up to 300% damage); release to fire.';
+    } else if (i === 2) {
+      const hpTxt = gojoHpMine ? '<span class="gojoCd" style="background:rgba(60,0,100,0.55);font-size:11px">' + (gojoHpMine.st === 'form' ? 'FUSE' : gojoHpMine.st === 'ready' ? 'FIRE' : 'FIRING') + '</span>' : (gojoHpCd > 0 ? '<span class="gojoCd">' + Math.ceil(gojoHpCd) + '</span>' : '');
+      div.innerHTML = '<span class="num">3</span><div class="gojoPurple"></div><span class="gojoName">Purple</span>' + hpTxt;
+      div.title = 'Hollow Purple: click to summon Red (left) and Blue (right) in front of you; they smash together into a purple ball. Click again to fire it: it erases every block in its path while you hold the button, for up to 50 blocks. Huge damage.';
     } else if (i === 3) {
       div.innerHTML = '<span class="num">4</span><div class="gojoDomain"></div><span class="gojoName">Domain</span>' + (gojoDomainCd > 0 ? '<span class="gojoCd">' + Math.ceil(gojoDomainCd) + '</span>' : '');
       div.title = 'Domain Expansion: click to wall off a pitch-black 6-block domain around you. Nobody can enter or leave, the blocks inside vanish, everyone inside but you is frozen. It fades after 12 s and everything returns.';
@@ -14981,8 +15001,8 @@ window.addEventListener('mousedown', e => {
   e.stopPropagation(); e.preventDefault();
   gojoPressStart();
 }, true);
-window.addEventListener('mouseup', e => { if (e.button === 0 || e.button === 2) gojoPressEnd(); }, true);
-window.addEventListener('blur', () => { if (gojoDown) { clearTimeout(gojoDown.timer); gojoDown = null; } gojoHoldStop(); gojoRedCancel(); });
+window.addEventListener('mouseup', e => { if (e.button === 0 || e.button === 2) { gojoHpRelease(); gojoPressEnd(); } }, true);
+window.addEventListener('blur', () => { if (gojoDown) { clearTimeout(gojoDown.timer); gojoDown = null; } gojoHoldStop(); gojoRedCancel(); gojoHpRelease(); });
 function gojoFindAimed(eye, dir, maxD) {
   let best = null;
   const test = (cx, cy, cz, rad, h, make) => {
@@ -15004,6 +15024,7 @@ let gojoDown = null, gojoHold = null, gojoRedC = null;   // pressed button, stee
 function gojoPressStart() {
   if (gojoFrozen) return;   // frozen by someone else's domain: no abilities
   if (gojoSlot === 3) { gojoDomainCast(); return; }
+  if (gojoSlot === 2) { gojoHpPress(); return; }
   if (gojoSlot > 1 || gojoCd > 0 || gojoDown) return;
   gojoDown = { slot: gojoSlot, timer: setTimeout(gojoHoldStart, 220) };   // held longer than 0.22 s = hold/charge; shorter = a click
 }
@@ -15247,6 +15268,178 @@ function updateGojoRed(dt) {
     r.ringB.rotation.z += dt * (6 + r.mult * 3); r.ringB.rotation.y += dt * 4;
   }
 }
+
+// ----- Hollow Purple (slot 3): Red (left) + Blue (right) smash together in front of you, then fire the purple ball -----
+const gojoHps = [];            // every Hollow Purple on screen (mine + other players')
+let gojoHpMine = null, gojoHpCd = 0;
+const HP_FORM_TIME = 1.7, HP_SPEED = 26, HP_RANGE = 50, HP_CARVE_R = 3, HP_DMG = 30, HP_CD = 12;
+const _hpGeoSph = new THREE.SphereGeometry(1, 20, 14), _hpGeoRing = new THREE.TorusGeometry(1, 0.045, 6, 40), _hpGeoSpark = new THREE.SphereGeometry(0.25, 6, 5);
+function _hpOrb(coreCol, glowCol, ringCol) {
+  const g = new THREE.Group();
+  const core = new THREE.Mesh(_hpGeoSph, new THREE.MeshBasicMaterial({ color: coreCol }));
+  core.scale.setScalar(0.45);
+  const glow = new THREE.Mesh(_hpGeoSph, new THREE.MeshBasicMaterial({ color: glowCol, transparent: true, opacity: 0.38, depthWrite: false }));
+  const r1 = new THREE.Mesh(_hpGeoRing, new THREE.MeshBasicMaterial({ color: ringCol, transparent: true, opacity: 0.85, depthWrite: false }));
+  const r2 = new THREE.Mesh(_hpGeoRing, new THREE.MeshBasicMaterial({ color: ringCol, transparent: true, opacity: 0.85, depthWrite: false }));
+  r1.scale.setScalar(1.25); r2.scale.setScalar(1.45);
+  g.add(core, glow, r1, r2); g.visible = false; scene.add(g);
+  return { g, core, glow, r1, r2 };
+}
+function gojoHpMake(from, remote) {
+  const h = { from, remote: !!remote, st: 'form', p: 0, age: 0, idle: 0, readyT: 0, x: 0, y: 0, z: 0, dx: 0, dy: 0, dz: -1, traveled: 0, carveT: 0, dmgT: 0, sendT: 0, trailT: 0, fused: false, hit: new Map(),
+    red: _hpOrb(0xff3a3a, 0xff0000, 0xffa090), blue: _hpOrb(0x7fd8ff, 0x2a6bff, 0x9fe0ff), purple: _hpOrb(0xd9a0ff, 0x8a2cff, 0xcf8cff) };
+  h.purple.core.material.color.setHex(0xf0d0ff);
+  gojoHps.push(h); return h;
+}
+function gojoHpRemove(h, boom) {
+  if (boom) { try { gojoHpBoom(h.x, h.y, h.z, 4.5); } catch (e) {} }
+  [h.red, h.blue, h.purple].forEach(o => { scene.remove(o.g); o.g.traverse(m => { if (m.material) m.material.dispose(); }); });
+  const i = gojoHps.indexOf(h); if (i >= 0) gojoHps.splice(i, 1);
+  if (gojoHpMine === h) gojoHpMine = null;
+}
+function gojoHpBoom(x, y, z, R) {
+  gojoFxAdd(new THREE.SphereGeometry(1, 16, 12), new THREE.MeshBasicMaterial({ color: 0xb050ff, transparent: true, opacity: 0.65, depthWrite: false }), x, y, z, 0.45, R * 0.25, R, false, false);
+  gojoFxAdd(new THREE.TorusGeometry(1, 0.09, 6, 44), new THREE.MeshBasicMaterial({ color: 0xe6c0ff, transparent: true, opacity: 0.95, depthWrite: false }), x, y, z, 0.55, R * 0.4, R * 1.7, false, true);
+}
+function gojoHpSend(h, st) {
+  try { playersChannel.send({ type: 'broadcast', event: 'gojo_hp', payload: { from: MY_ID, st, p: h.p, x: h.x, y: h.y, z: h.z, dx: h.dx, dy: h.dy, dz: h.dz } }); } catch (e) {}
+}
+function gojoHpPress() {
+  if (gojoFrozen || !gojoBarOn || !gojoActive || !pointerLocked) return;
+  if (gojoHpMine) { if (gojoHpMine.st === 'ready') gojoHpFire(gojoHpMine); return; }
+  if (gojoHpCd > 0) return;
+  try { startSwing(); } catch (e) {}
+  const h = gojoHpMake(MY_ID, false); gojoHpMine = h;
+  _gojoSig = ''; renderGojoBar();
+  addChatLine('System', 'Hollow Purple: Red and Blue are gathering...', true, true);
+}
+function gojoHpFire(h) {
+  const d = new THREE.Vector3(); camera.getWorldDirection(d);
+  h.st = 'fire'; h.dx = d.x; h.dy = d.y; h.dz = d.z; h.traveled = 0; h.carveT = 0; h.dmgT = 0; h.hit.clear();
+  try { startSwing(); } catch (e) {}
+  gojoHpBoom(h.x, h.y, h.z, 3);
+  gojoHpSend(h, 'fire'); _gojoSig = ''; renderGojoBar();
+}
+function gojoHpRelease() {   // let go of the click: a fired Hollow Purple stops and vanishes
+  const h = gojoHpMine; if (h && h.st === 'fire') gojoHpEnd(h);
+}
+function gojoHpCancel() {
+  const h = gojoHpMine; if (!h) return;
+  if (h.st === 'fire') { gojoHpEnd(h); return; }
+  gojoHpSend(h, 'end'); gojoHpRemove(h, false); _gojoSig = ''; if (gojoBarOn) renderGojoBar();
+}
+function gojoHpEnd(h) {
+  gojoHpCd = HP_CD;
+  gojoHpSend(h, 'end'); gojoHpRemove(h, true);
+  _gojoSig = ''; if (gojoBarOn) renderGojoBar();
+}
+function gojoHpCarve(h) {
+  const R = HP_CARVE_R, n = Math.ceil(R), cx = Math.round(h.x), cy = Math.round(h.y), cz = Math.round(h.z), removed = [];
+  for (let dx = -n; dx <= n; dx++) for (let dy = -n; dy <= n; dy++) for (let dz = -n; dz <= n; dz++) {
+    if (dx * dx + dy * dy + dz * dz > R * R) continue;
+    const x = cx + dx, y = cy + dy, z = cz + dz;
+    const blk = getBlock(x, y, z);
+    if (!blk || blk.type === 'bedrock') continue;
+    if (Math.hypot(x - player.pos.x, y - player.pos.y, z - player.pos.z) < 2.2) continue;   // never erase the ground under the caster
+    if (removeBlock(x, y, z, true)) { removedDiffs.add(key(x, y, z)); removed.push({ x, y, z }); }
+  }
+  if (!removed.length) return;
+  const seen = new Set();
+  removed.forEach(q => { const k = q.x + ',' + q.z; if (!seen.has(k)) { seen.add(k); markChunkDirty(q.x, q.z); } });
+  if (blockLights.size) markLightArea(cx, cy, cz, false, 5);
+  pushBlockDiffsBatch(removed);
+}
+function gojoHpDamage(h) {
+  const R = HP_CARVE_R + 1.2, bp = new THREE.Vector3(h.x, h.y, h.z);
+  animals.forEach(a => {
+    if (!a.alive) return;
+    const d = Math.hypot(h.x - a.pos.x, h.y - (a.pos.y + (a.height || 1) * 0.5), h.z - a.pos.z);
+    if (d > R + (a.radius || 0.45)) return;
+    const k = 'm' + a.id; if ((h.hit.get(k) || 0) > h.age) return; h.hit.set(k, h.age + 0.3);
+    damageAnimal(a, HP_DMG, bp, 3);
+  });
+  otherPlayers.forEach((entry, id) => {
+    const g = entry.group.position;
+    if (Math.hypot(h.x - g.x, h.y - (g.y + 0.9), h.z - g.z) > R + 0.4) return;
+    const k = 'p' + id; if ((h.hit.get(k) || 0) > h.age) return; h.hit.set(k, h.age + 0.3);
+    try { playersChannel.send({ type: 'broadcast', event: 'hit', payload: { targetId: id, amount: HP_DMG, attackerId: MY_ID, kx: g.x - h.x, kz: g.z - h.z, knock: 12 } }); } catch (e) {}
+  });
+}
+function _hpSpin(o, dt, sp) { o.r1.rotation.x += dt * sp; o.r1.rotation.y += dt * sp * 0.7; o.r2.rotation.z += dt * sp * 1.2; o.r2.rotation.y -= dt * sp * 0.8; }
+function _hpPlace(o, x, y, z, s, pulse) { o.g.position.set(x, y, z); o.g.scale.setScalar(Math.max(0.01, s * pulse)); o.g.visible = true; }
+function _hpSpark(col, x, y, z, life, s0, s1) {
+  gojoFxAdd(_hpGeoSpark, new THREE.MeshBasicMaterial({ color: col, transparent: true, opacity: 0.6, depthWrite: false }), x, y, z, life, s0, s1, true, false);
+}
+function gojoHpVisual(h, dt) {
+  const up = new THREE.Vector3(0, 1, 0), d = new THREE.Vector3(h.dx, h.dy, h.dz).normalize();
+  let right = new THREE.Vector3().crossVectors(d, up); if (right.lengthSq() < 1e-4) right.set(1, 0, 0); right.normalize();
+  const pulse = 1 + Math.sin(h.age * 16) * 0.06;
+  if (h.st === 'form') {
+    const p = h.p, appear = Math.min(1, p / 0.2);
+    const q = Math.max(0, (p - 0.25) / 0.75), e = q * q * (3 - 2 * q);
+    const sep = 3.1 * (1 - e), bob = Math.sin(h.age * 9) * 0.35 * (1 - q);
+    const s = (0.55 + 0.45 * e) * appear;
+    h.purple.g.visible = false;
+    _hpPlace(h.red, h.x - right.x * sep, h.y - right.y * sep + bob, h.z - right.z * sep, s, pulse);
+    _hpPlace(h.blue, h.x + right.x * sep, h.y + right.y * sep - bob, h.z + right.z * sep, s, pulse);
+    _hpSpin(h.red, dt, 6 + q * 14); _hpSpin(h.blue, dt, 6 + q * 14);
+    h.trailT -= dt;
+    if (h.trailT <= 0) {
+      h.trailT = 0.04;
+      const rp = h.red.g.position, bp = h.blue.g.position;
+      _hpSpark(0xff4a3a, rp.x, rp.y, rp.z, 0.3, 0.9 * s, 0.1); _hpSpark(0x4aa8ff, bp.x, bp.y, bp.z, 0.3, 0.9 * s, 0.1);
+    }
+  } else {
+    h.red.g.visible = false; h.blue.g.visible = false;
+    const base = h.st === 'fire' ? 2.7 : 1.35;
+    const pop = Math.min(1, (h.readyT + 0.02) / 0.25), pop2 = 1 + Math.sin(Math.min(1, pop) * Math.PI) * 0.35;
+    _hpPlace(h.purple, h.x, h.y, h.z, base * pop * pop2, pulse);
+    _hpSpin(h.purple, dt, h.st === 'fire' ? 20 : 9);
+    h.purple.glow.material.opacity = h.st === 'fire' ? 0.5 : 0.38;
+    h.trailT -= dt;
+    if (h.trailT <= 0 && h.st === 'fire') {
+      h.trailT = 0.025;
+      _hpSpark(0xa040ff, h.x - d.x * 1.0 + (Math.random() - 0.5) * 2, h.y - d.y * 1.0 + (Math.random() - 0.5) * 2, h.z - d.z * 1.0 + (Math.random() - 0.5) * 2, 0.5, 2.0, 0.1);
+    }
+  }
+}
+function updateGojoHp(dt) {
+  if (gojoHpCd > 0) { gojoHpCd = Math.max(0, gojoHpCd - dt); if (gojoBarOn) renderGojoBar(); }
+  const mine = gojoHpMine;
+  if (mine && (!gojoBarOn || !gojoActive || !pointerLocked || gojoFrozen || player.hp <= 0)) gojoHpCancel();
+  for (let i = gojoHps.length - 1; i >= 0; i--) {
+    const h = gojoHps[i];
+    h.age += dt;
+    if (h.st !== 'form') h.readyT += dt;
+    if (h.remote) { h.idle += dt; if (h.idle > 1.2) { gojoHpRemove(h, false); continue; } gojoHpVisual(h, dt); continue; }
+    // ---- my own ----
+    const d = new THREE.Vector3(); camera.getWorldDirection(d);
+    const up = new THREE.Vector3(0, 1, 0);
+    if (h.st === 'form' || h.st === 'ready') {
+      const e = camera.position;
+      h.dx = d.x; h.dy = d.y; h.dz = d.z;
+      h.x = e.x + d.x * 4.2; h.y = e.y - 0.25 + d.y * 4.2; h.z = e.z + d.z * 4.2;
+      if (h.st === 'form') {
+        h.p = Math.min(1, h.p + dt / HP_FORM_TIME);
+        if (h.p >= 1) {   // SMASH: Red and Blue collide and become Hollow Purple
+          h.st = 'ready'; h.readyT = 0;
+          gojoHpBoom(h.x, h.y, h.z, 3.2);
+          for (let k = 0; k < 14; k++) _hpSpark(k % 2 ? 0xff5a4a : 0x5ab4ff, h.x, h.y, h.z, 0.5, 0.8, 0.1);
+          _gojoSig = ''; if (gojoBarOn) renderGojoBar();
+          addChatLine('System', 'Hollow Purple ready: click to fire (hold to keep it going).', true, true);
+        }
+      } else if (h.readyT > 20) { gojoHpCancel(); continue; }
+    } else if (h.st === 'fire') {
+      const step = HP_SPEED * dt;
+      h.x += h.dx * step; h.y += h.dy * step; h.z += h.dz * step; h.traveled += step;
+      h.carveT -= dt; if (h.carveT <= 0) { h.carveT = 0.04; gojoHpCarve(h); }
+      h.dmgT -= dt; if (h.dmgT <= 0) { h.dmgT = 0.1; gojoHpDamage(h); }
+      if (h.traveled >= HP_RANGE) { gojoHpEnd(h); continue; }
+    }
+    h.sendT -= dt; if (h.sendT <= 0) { h.sendT = 0.05; gojoHpSend(h, h.st); }
+    gojoHpVisual(h, dt);
+  }
+}
 // ----- Domain Expansion (slot 4): a dome that freezes everyone inside (except you) -----
 const GOJO_DOMAIN_R = 6, GOJO_DOMAIN_TIME = 12, GOJO_DOMAIN_CD = 25;
 const gojoDomains = [];
@@ -15390,6 +15583,7 @@ function updateGojo(dt) {
   if (gojoHold && (!gojoBarOn || !gojoActive || !pointerLocked)) gojoHoldStop();
   if (gojoRedC && (!gojoBarOn || !gojoActive || !pointerLocked)) gojoRedCancel();
   updateGojoRed(dt);
+  updateGojoHp(dt);
   updateGojoDomain(dt);
   for (let i = gojoBalls.length - 1; i >= 0; i--) {
     const b = gojoBalls[i];
@@ -15731,7 +15925,7 @@ function runChatCommand(text) {
     playersChannel.send({ type: 'broadcast', event: 'give_item', payload: { from: MY_ID, to: tid, item, count: Number(count) || 1 } });
     sys('Gave ' + e.name + ' ' + nm + '.'); return;
   }
-  if (cmd === 'give' && (parts[0] || '').toLowerCase() !== 'null_totem') { sys('Usage: /give <@s|@a|player> <zombie|skeleton|breeze|firework|elytra|mace|golden_apple> [count]'); return; }
+  if (cmd === 'give' && (parts[0] || '').toLowerCase() !== 'null_totem') { sys('Usage: /give <@s|@a|player> <zombie|skeleton|breeze|firework|elytra|mace|golden_apple|wind_charge> [count]'); return; }
   // /xp <player|@s|@a> <amount>[L] - give XP points (or levels with an L suffix, e.g. 10L; negative takes away). Creator only.
   if (cmd === 'xp') {
     const who = parts[0], raw = (parts[1] || '').trim();
@@ -15766,7 +15960,7 @@ function runChatCommand(text) {
     sys('Given Null Totem (10 uses, Null I).');
     return;
   }
-  if (cmd === 'help') { sys('/shop | /list | /tpa <player> | /tpaccept | /wanted [on|off] | /xp <player|@s|@a> <amount>[L] | /swap | /tp @s <x> <y> <z> | /tp @s <player> | /tp <player> @s | /biome | /spawner [tp] | /give <@s|@a|player> <zombie|skeleton|breeze|firework|elytra|mace|golden_apple> [count] | /nulltotem | /spoke | /lettuce | /flame | /wemmbu | /kill <player|@s|@e> | /gojo <player|@s> | /rain on|off|auto | /fog [on|off] | /weather clear|rain|fog|auto | /fill <x1> <y1> <z1> <x2> <y2> <z2> <block> [replace|hollow|keep] [filter] | /update [message]'); return; }
+  if (cmd === 'help') { sys('/shop | /list | /tpa <player> | /tpaccept | /wanted [on|off] | /xp <player|@s|@a> <amount>[L] | /swap | /tp @s <x> <y> <z> | /tp @s <player> | /tp <player> @s | /biome | /spawner [tp] | /give <@s|@a|player> <zombie|skeleton|breeze|firework|elytra|mace|golden_apple|wind_charge> [count] | /nulltotem | /spoke | /lettuce | /flame | /wemmbu | /kill <player|@s|@e> | /gojo <player|@s> | /rain on|off|auto | /fog [on|off] | /weather clear|rain|fog|auto | /fill <x1> <y1> <z1> <x2> <y2> <z2> <block> [replace|hollow|keep] [filter] | /update [message]'); return; }
   sys('Unknown command: /' + cmd + ' (try /help)');
 }
 
