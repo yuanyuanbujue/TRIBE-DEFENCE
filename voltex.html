@@ -3971,6 +3971,7 @@ function rebuildChunk(cx, cz) {
   const ck = cx+','+cz;
   const chunk = chunks.get(ck);
   if (!chunk) return;
+  chunk.ver = chunkVer.get(ck) || 0;   // the data version this mesh is built from
   const buffers = {};
   const x0 = cx*CHUNK_SIZE, x1 = x0+CHUNK_SIZE-1;
   const z0 = cz*CHUNK_SIZE, z1 = z0+CHUNK_SIZE-1;
@@ -4215,8 +4216,14 @@ const _worldDeleteOrig = world.delete.bind(world);
 // column with string-keyed Map lookups, ~400 columns per chunk rebuild.
 const skyTopCache = new Map();
 function skyKey(x, z) { return (x + 100000) * 200003 + (z + 100000); }
+// Per-chunk change counter: bumped on EVERY world.set / world.delete (whatever code path made the change). A chunk whose
+// drawn mesh was built at an older counter is stale, and the streaming pass below redraws it. This is the safety net for
+// blocks (other players' buildings, saved builds, ...) that changed the data without a redraw being queued.
+const chunkVer = new Map();
+function bumpChunkVer(x, z) { const ck = Math.floor(x / CHUNK_SIZE) + ',' + Math.floor(z / CHUNK_SIZE); chunkVer.set(ck, (chunkVer.get(ck) || 0) + 1); }
 world.delete = function (k) {
   const b = world.get(k);
+  if (b && typeof b.x === 'number') bumpChunkVer(b.x, b.z);
   if (b && RS_TYPES[b.type]) rsKeys.delete(k);
   if (b) skyTopCache.delete(skyKey(b.x, b.z));
   if (b && b.type === 'sign') {
@@ -4228,6 +4235,7 @@ world.delete = function (k) {
   return _worldDeleteOrig(k);
 };
 world.set = function (k, v) {
+  if (v && typeof v.x === 'number') bumpChunkVer(v.x, v.z);
   if (v && RS_TYPES[v.type]) rsKeys.add(k); else if (rsKeys.size) rsKeys.delete(k);
   if (v && typeof v.x === 'number') {
     const sk = skyKey(v.x, v.z), t = skyTopCache.get(sk);
@@ -5075,6 +5083,13 @@ function updateChunkStreaming(dt) {
   streamTimer -= dt;
   if (streamTimer > 0) return;
   streamTimer = 0.1; // throttle: several times a second
+  { // stale-mesh check: redraw any nearby chunk whose blocks changed since its mesh was built
+    const hx = Math.floor(player.pos.x / CHUNK_SIZE), hz = Math.floor(player.pos.z / CHUNK_SIZE), hr = Math.min(RENDER_CHUNKS, 7);
+    for (let dx = -hr; dx <= hr; dx++) for (let dz = -hr; dz <= hr; dz++) {
+      const ck = (hx + dx) + ',' + (hz + dz), c = chunks.get(ck);
+      if (c && !c.dirty && (c.ver || 0) !== (chunkVer.get(ck) || 0)) markOne(hx + dx, hz + dz);
+    }
+  }
   const pcx = Math.floor(player.pos.x/CHUNK_SIZE), pcz = Math.floor(player.pos.z/CHUNK_SIZE);
   // Chunks right next to the player must never be missing: any ungenerated chunk within 2 chunks is built NOW
   // (nearest first, at most 2 per pass so it can't hitch); anything still missing within 3 chunks makes the
