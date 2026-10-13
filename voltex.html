@@ -4854,11 +4854,11 @@ function scatterOreVeins(cx, cz) {
   // [oreType, attempts, minY, maxYOffsetFromSurface, veinSizeMin, veinSizeMax, salt]
   // maxY is relative: actual max = min(h-4, maxYAbs) checked per attempt via height at center
   const configs = [
-    ['coal_ore',    14, WORLD_BOTTOM + 2,  999,  6, 14, 501], // common, almost any depth under dirt
-    ['iron_ore',    10, WORLD_BOTTOM + 2,  -4,   4, 10, 502], // mid/deep
-    ['gold_ore',     6, WORLD_BOTTOM + 2, -10,   3,  7, 503], // deeper
-    ['diamond_ore',  4, WORLD_BOTTOM + 2, -18,   2,  5, 504], // rare, very deep
-    ['redstone_ore', 8, WORLD_BOTTOM + 2, -12,   3,  7, 505], // deep, a bit more common than diamond
+    ['coal_ore',    18, WORLD_BOTTOM + 2,  999,  6, 14, 501], // common, almost any depth under dirt
+    ['iron_ore',     7, WORLD_BOTTOM + 2,  -4,   4,  9, 502], // mid/deep
+    ['gold_ore',     4, WORLD_BOTTOM + 2, -10,   3,  6, 503], // deeper
+    ['diamond_ore',  2, WORLD_BOTTOM + 2, -18,   1,  3, 504], // rare, very deep
+    ['redstone_ore', 5, WORLD_BOTTOM + 2, -12,   3,  6, 505], // deep, a bit more common than diamond
   ];
   for (const [ore, attempts, minY, maxYAbs, szMin, szMax, salt] of configs) {
     for (let a = 0; a < attempts; a++) {
@@ -7854,6 +7854,10 @@ function announce(text) {
   addChatLine('System', text, true);
   try { playersChannel.send({ type: 'broadcast', event: 'sys_msg', payload: { from: MY_ID, text } }); } catch (e) {}
 }
+function announceBotDefeat(nm) {   // boss / law member killed: tell everyone who did it (an invisible killer shows as scrambled text)
+  const by = (typeof hasInvisibility === 'function' && hasInvisibility()) ? ('@@INV:' + MY_ID + '@@') : MY_NAME;
+  announce(nm + ' was defeated by ' + by);
+}
 function announceMyDeath() {
   const now = performance.now();
   let by = null;
@@ -10681,7 +10685,7 @@ function giveMobLoot(kind, eq) {
   if (XP_ONLY[kind] != null) {
     jcAddXp(Math.round(XP_ONLY[kind] * (1 + 0.25 * L)));
     const _nm = { spoke: 'Spoke', wemmbu: 'Wemmbu', flamefrags: 'FlameFrags', law_leader: 'LettuceK', law_commander: 'Law Commander', law_elite: 'Law Elite', law_normal: 'Law Enforcer' }[kind];
-    if (_nm) addChatLine('System', _nm + ' was defeated!', true);
+    if (_nm) announceBotDefeat(_nm);
     saveLocalPlayer();
     return;
   }
@@ -10696,7 +10700,7 @@ function giveMobLoot(kind, eq) {
     _wGive('firework_3', 6 + Math.floor(Math.random() * 7));
     if (Math.random() < 0.4) _wGive('elytra', 1);
     renderHotbar(); if (inventoryOpen) renderInventoryPanel(); saveLocalPlayer();
-    addChatLine('System', 'Wemmbu was defeated!', true);
+    announceBotDefeat('Wemmbu');
     return;
   }
   if (kind === 'flamefrags') {   // FlameFrags: lots of bonus XP + totem of undying, diamonds, golden apples, wind charges
@@ -10708,7 +10712,7 @@ function giveMobLoot(kind, eq) {
     _fGive('golden_apple', 2 + Math.floor(Math.random() * 4));
     try { _fGive('wind_charge', 8 + Math.floor(Math.random() * 9)); } catch (e) {}
     renderHotbar(); if (inventoryOpen) renderInventoryPanel(); saveLocalPlayer();
-    addChatLine('System', 'FlameFrags was defeated!', true);
+    announceBotDefeat('FlameFrags');
     return;
   }
   if (kind === 'law_normal' || kind === 'law_elite' || kind === 'law_commander' || kind === 'law_leader') {
@@ -10742,7 +10746,7 @@ function giveMobLoot(kind, eq) {
       _lGive('diamond', 1 + Math.floor(Math.random() * 2));
     }
     renderHotbar(); if (inventoryOpen) renderInventoryPanel(); saveLocalPlayer();
-    addChatLine('System', nm + ' was defeated!', true);
+    announceBotDefeat(nm);
     return;
   }
   if (kind === 'spoke') {
@@ -10756,7 +10760,7 @@ function giveMobLoot(kind, eq) {
     if (sl >= 0) inventory[sl] = { type: 'null_totem', count: 1, uses: 10, ench: { null: 1 } };
     else { try { spawnDroppedItem('null_totem', 1, _spAt(), new THREE.Vector3(0, 2, 0), { ench: { null: 1 }, uses: 10 }); } catch (e) {} }
     renderHotbar(); if (inventoryOpen) renderInventoryPanel(); saveLocalPlayer();
-    addChatLine('System', 'Spoke was defeated!', true);
+    announceBotDefeat('Spoke');
     return;
   }
   if (kind === 'null') {
@@ -11286,15 +11290,20 @@ function spokeBuilder(a, dt, mx, mz, tgt, dist) {
   }
 }
 function spokeShoot(a, tgt) {
-  const speed = 44, eye = new THREE.Vector3(a.pos.x, a.pos.y + 1.55, a.pos.z), pv = a.tgtVel || { x: 0, z: 0 };
+  // Law members shoot much worse than the real bosses: slower arrows, barely lead a moving target, wide spread, longer reload
+  const _law = isLawKind(a.kind);
+  if (_law) a.shootCd = (a.shootCd || 0) + 1.5 + Math.random() * 1.5;
+  const speed = _law ? 30 : 44, eye = new THREE.Vector3(a.pos.x, a.pos.y + 1.55, a.pos.z), pv = a.tgtVel || { x: 0, z: 0 };
   const d0 = Math.hypot(tgt.x - eye.x, tgt.y - eye.y, tgt.z - eye.z);
   let tt = d0 / speed;
-  const tp = new THREE.Vector3(tgt.x + pv.x * tt, tgt.y + 1.2, tgt.z + pv.z * tt);   // leads a moving target like a good player
+  const _lead = _law ? 0.2 : 1;
+  const tp = new THREE.Vector3(tgt.x + pv.x * tt * _lead, tgt.y + 1.2, tgt.z + pv.z * tt * _lead);   // leads a moving target like a good player (Law barely leads)
   tt = tp.distanceTo(eye) / speed;
-  tp.x = tgt.x + pv.x * tt; tp.z = tgt.z + pv.z * tt;
+  tp.x = tgt.x + pv.x * tt * _lead; tp.z = tgt.z + pv.z * tt * _lead;
   const to = tp.sub(eye); to.y += 0.5 * 16 * tt * tt * 0.92;
   const dir = to.clone().normalize();
-  dir.x += (Math.random() - 0.5) * SPOKE_NOOB_AIM; dir.z += (Math.random() - 0.5) * SPOKE_NOOB_AIM; dir.y += (Math.random() - 0.5) * SPOKE_NOOB_AIM * 0.8; dir.normalize();
+  const _sp = SPOKE_NOOB_AIM * (_law ? 4 : 1);
+  dir.x += (Math.random() - 0.5) * _sp; dir.z += (Math.random() - 0.5) * _sp; dir.y += (Math.random() - 0.5) * _sp * 0.8; dir.normalize();
   const origin = eye.clone().add(dir.clone().multiplyScalar(0.7)), vel = dir.clone().multiplyScalar(speed);
   spawnArrow(origin, vel, { hostile: true, hDmg: SPOKE_ARROW_DMG, hKb: 7, noPickup: true });
   playersChannel.send({ type: 'broadcast', event: 'arrow', payload: { from: MY_ID, x: origin.x, y: origin.y, z: origin.z, vx: vel.x, vy: vel.y, vz: vel.z } });
@@ -11812,6 +11821,7 @@ try { const _le = localStorage.getItem('voltex_law_enabled'); if (_le === '0') l
 const WANTED_THRESH = [0, 2, 4, 6, 9, 12, 16, 20, 25, 30, 40];
 const LAW_COMMANDER_MAX = 4;
 let lawSpawnTimer = 8;
+let lawLv10Since = 0;   // when wanted 10 started (ms); the army / commanders / LettuceK arrive in stages after this
 function wantedScore() { return (wantedAnimalKills | 0) + (wantedPlayerKills | 0) * 3; }
 function getWantedLevel() {
   const s = wantedScore();
@@ -11915,6 +11925,12 @@ function updateLawHpSprite(a) {
   if (!c || !tex) return;
   const ctx = c.getContext('2d');
   const name = spokeName(a);
+  // perf: redrawing a 256x72 canvas + re-uploading its texture every frame for every Law member was the main lag
+  // with a big crowd. Only redraw when the name / HP actually changed, and skip it while the member is far away.
+  const _key = name + '|' + Math.ceil(a.hp) + '|' + (a.maxHp || 20);
+  if (a._hpKey === _key) return;
+  if (Math.abs(a.pos.x - player.pos.x) > 48 || Math.abs(a.pos.z - player.pos.z) > 48) return;
+  a._hpKey = _key;
   ctx.clearRect(0, 0, 256, 72);
   ctx.font = 'bold 26px sans-serif';
   ctx.textAlign = 'center';
@@ -12115,14 +12131,24 @@ function updateLawHunters(dt) {
     needCmd = lv === 8 ? 1 : 2;         // commanders appear
     timerBase = 7;
   } else {
-    needNormal = 30;                    // wanted 10: a whole army of Law Enforcers
+    needNormal = 20;                    // wanted 10: a big army of Law Enforcers (was 30 — too laggy)
     needElite = 1;
     needCmd = LAW_COMMANDER_MAX;        // all commanders
     needLeader = 1;                     // LettuceK
-    timerBase = 1.2;
+    timerBase = 4;
+  }
+  // wanted 10 no longer drops everything at once: soldiers after 15s, commanders after 30s, LettuceK after 60s
+  { const _now = performance.now();
+    if (lv >= 10) { if (!lawLv10Since) lawLv10Since = _now; } else lawLv10Since = 0;
+    if (lv >= 10) {
+      const _since = (_now - lawLv10Since) / 1000;
+      if (_since < 15) { needNormal = 0; needElite = 0; }
+      if (_since < 30) needCmd = 0;
+      if (_since < 60) needLeader = 0;
+    }
   }
 
-  lawSpawnTimer = timerBase + Math.random() * (lv >= 10 ? 1 : 4);
+  lawSpawnTimer = timerBase + Math.random() * (lv >= 10 ? 2 : 4);
 
   const haveN = countLaw('law_normal');
   const haveE = countLaw('law_elite');
@@ -12142,7 +12168,7 @@ function updateLawHunters(dt) {
   if (needCmd > haveC) { spawnOne('law_commander'); return; }
   if (needElite > haveE) { spawnOne('law_elite'); return; }
   if (needNormal > haveN) {
-    const burst = lv >= 10 ? Math.min(5, needNormal - haveN) : 1;   // wanted 10 spawns them in groups
+    const burst = lv >= 10 ? Math.min(2, needNormal - haveN) : 1;   // wanted 10 spawns them in groups
     for (let i = 0; i < burst; i++) spawnOne('law_normal');
     return;
   }
@@ -12437,7 +12463,10 @@ function updateSpokeHud(dt) {
   let best = null, bd = 1e9;
   for (const a of animals) {
     if (!isSpk(a.kind) || !a.alive) continue;
-    spokeVisualTick(a, dt);
+    if (isLawKind(a.kind) && (Math.abs(a.pos.x - player.pos.x) > 40 || Math.abs(a.pos.z - player.pos.z) > 40)) {   // perf: far Law members only need an occasional visual tick
+      a._vtAcc = (a._vtAcc || 0) + dt;
+      if (a._vtAcc >= 0.2) { spokeVisualTick(a, a._vtAcc); a._vtAcc = 0; }
+    } else spokeVisualTick(a, dt);
     if (a.kind === 'null') continue;
     // Law soldiers use floating name/HP plates — only LettuceK uses the boss bar
     if (a.kind === 'law_normal' || a.kind === 'law_elite' || a.kind === 'law_commander') {
@@ -15155,6 +15184,7 @@ function isAllowedSystemMsg(text) {
   if (/\bleft the game\b/i.test(t)) return true;
   if (/\bwas slain by\b/i.test(t)) return true;
   if (/\bwas killed\b/i.test(t)) return true;
+  if (/\bwas defeated by\b/i.test(t)) return true;
   if (/\bdrowned\b/i.test(t)) return true;
   if (/\bdied\b/i.test(t)) return true;
   if (/Wanted Level/i.test(t)) return true;
