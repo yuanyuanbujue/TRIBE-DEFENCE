@@ -1842,6 +1842,17 @@ TEX.birchTrapdoor = makeTexture(ctx => {
 
 // Fallback textures for the new blocks (replaced by the Golden Age pack images below)
 TEX.cobblestone = makeTexture(ctx => speckle(ctx, '#7a7a7a', ['#6a6a6a','#8c8c8c','#5a5a5a'], 70));
+TEX.obsidian = makeTexture(ctx => { const pal = ["000001", "06030b", "100c1c", "271e3d", "3b2754"], d = 'baaaabcbaedbbdedbabcacbaecbbdecbaaeedabddccacdabaedccdbcbcaabcbaadcccaaaaaabbbabcccaacbbbbedbbaaccbcdeedbadabaabbaceccacaaaaaedaaaedcccddbaadcccdcaacbddcbacbcbbcbbabbbcbbaacbadacbbcabcbeedccccbeecacccdecbcecbddcbbbacccbbbadbadbbcbdbbccabaabcbacabcdcabbbbbb'; for (let i = 0; i < 256; i++) { ctx.fillStyle = '#' + pal[d.charCodeAt(i) - 97]; ctx.fillRect(i % 16, (i / 16) | 0, 1, 1); } });
+// lava: animated-looking orange/red blotches (static texture, scrolled slowly in updateLavaAnim)
+TEX.lava = makeTexture(ctx => {
+  for (let y = 0; y < 16; y++) for (let x = 0; x < 16; x++) {
+    const v = Math.sin(x * 0.9 + Math.sin(y * 0.7) * 2) * Math.cos(y * 0.8 + Math.sin(x * 0.5)) + 0.5 * Math.sin((x + y) * 1.3);
+    const t = (v + 1.5) / 3;
+    const r = 200 + Math.round(55 * t), g = 40 + Math.round(150 * t * t), b = Math.round(20 * t);
+    ctx.fillStyle = 'rgb(' + Math.min(255, r) + ',' + Math.min(255, g) + ',' + b + ')'; ctx.fillRect(x, y, 1, 1);
+  }
+});
+TEX.lava.wrapS = TEX.lava.wrapT = THREE.RepeatWrapping;
 // Piston textures (from pack)
 TEX.pistonSide = texFromDataUrl('data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAABAAAAAQCAYAAAAf8/9hAAABzklEQVR4AWSTvUuCYRTFD+8gBH60SC0u8RK4ZnM0ugj+B0F/U2uju001KQVmg9aQkIR9+IGhUviVilHm79IjQtF5n3vPuee810f0yuXyIpPJLC5OjgxXp8cLh3XNce7Eg+5Vq1XV63VNvyZ6fm3ofThaYV1b5yfTb/Oge5i73a76nzNtbAbtpNbyz2nLcvWP9tb/EB50jwL1pvSil+fuCnf3DRtCo764fBBgDsDj9SqVisDTeFvn9z+Gs/JMoFAomHbdCAl9HXjQvV6vp0goZEgkEkqn00omk/J3dkSP5vu+UqmUAY4eni08HsDf3VUsFlMwGKRVdGtLvU5HB4eHisfjxo3HYw0GA+PR5/O5vGg0aqJ7tNttV9rpeszNZtPMJvw9VhuQPBwOjabm7bwFghBnZlN49EAgIAvY29+3ZIy1x0er4fhI9AAD5nA4rEgkQq6dFkCHgSHSGYQDrobHDOdOagtwqzNECG9kZXiGCYGnB2iY2dgCKCAZYhNunhr+tlQSgc4Ah0aofQsIEAAzPTfOABxbUaPRAzg2s0skERMk61FzOh4DNRwac/8usdFqqVgsKpfLKZvNavkzVa1W02A0MlDD0XMyl8/nydMvAAAA///rtNhSAAAABklEQVQDAHB7npMDPSkpAAAAAElFTkSuQmCC');
 TEX.pistonBottom = texFromDataUrl('data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAABAAAAAQCAYAAAAf8/9hAAABrElEQVR4AWzSsU5yQRQE4JNbUCFUxITIXxETKpIfKWiMEApKHpUnAGNDIz6AoRJDYqxAKhq83+piTCScu7NzZmbPXSjG4/EpV7/fP6lut3vqlgXn3l+rfhHlp35xEcPhMKbTaYxGo5hMJjEYDOLf1VX0er1ot9tBo2Acfb1ej2K320X7+rqM+fmun5/j/e0tGpeXiWy1WmeM50mN8pEmQOz3+9hsNsHM+P/mJhhrtVroMTpID6Yt/ZECEIxWImu1WtVPZj28MKEwjYOL4/GYhB7SiQge7u9/TdRsNkOoaRjpVZoAYJJOZC/MKbd3d9HpdFBxOByCGa/v8KLRaKRmfmy32wzTmvfM3ps5Nb4f5wkkGw8PEzrFXkg2mxSvX6lUvi7RjSMYXRiM80r2Csfsjvz+gq3nCRiIpBMSqIzxzLi8wikgj04kxIlGxhMLwdsrPWYTpwAASWQSNw/jnx4f058rG3B6QtOvoIFQzPZunABnKljPXuFMli5RIhPSeLA18wwwTo/O5cHW9Aovr6+xXC5jPp/HbDaL1WoV6/U6dh8fqWCcvZVusVjIiE8AAAD//6DYcXcAAAAGSURBVAMAA1FKk6o55XYAAAAASUVORK5CYII=');
@@ -1937,6 +1948,8 @@ const BLOCK_TYPES = {
   brick:  { transparent: false, hardness: 1.5, tool: 'pickaxe' },
   glass:  { transparent: true, hardness: 0.3, tool: null },
   water:  { transparent: true, hardness: 0 },
+  lava:   { transparent: true, hardness: 0 },   // liquid: see addLavaBlock / lava flow
+  obsidian: { transparent: false, hardness: 30, tool: 'pickaxe' },   // lava source + water; only a diamond pickaxe drops it
   crafting_table: { transparent: false, hardness: 1.0, tool: 'axe' },
   enchanting_table: { transparent: false, hardness: 2.0, tool: 'pickaxe' },
   sapling: { transparent: true, hardness: 0.1, tool: null, cross: true },
@@ -2058,6 +2071,7 @@ const ITEM_INFO = {
   null_totem: { maxStack: 1 },
   bucket: { maxStack: 16 },
   water_bucket: { maxStack: 1 },
+  lava_bucket: { maxStack: 1 },
   flint_and_steel: { maxStack: 1, durability: 65 },
   // ---- farming ----
   wood_hoe:       { maxStack: 1, durability: 59 },
@@ -2675,6 +2689,7 @@ const _iconCanvasCache = {};
 const PACK_ITEMS = { bucket: "data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAABAAAAAQCAYAAAAf8/9hAAAA5UlEQVR4nK2TMY6FIBRFj5Pp7PwLsCGxtbFkiazBgqXQSUNlYvK2AJ31TAUjSjKZ/LkV3nDPezwQ3lTXMpdl+Wr53vvH/srIQa01SqniD8MAgDHmAequYa01ADHGEn69XmWtlEJEcM4VyOe1gxgj53mW777vq3ZFpII/APu+AzCOYwXNXTjnuKsCWGsJIZSz3pVns65rGwAwzzPWWgBCCACklBCRJvSjZU7T1NwMPzfSBOSKf1EF2Lbt10BKqQ3w3nd5ysdxNMN5gNeH9JjB/Rj3indVAO99Z4x5QESkWR3+4Wd6W99wfWnIDev0hwAAAABJRU5ErkJggg==", water_bucket: "data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAABAAAAAQCAYAAAAf8/9hAAABMUlEQVR4nK2TP0vDQBjGfxGxqGDOCBGEwhUKxdKhS8ZO+Qp18hP0w2R2zJCxfoVM3XrLTYZKxC1uZyuI1KVOLflzKlKf6Tie9/fyPNzBnnJsl0EQbGz3SqmG/9A2GIYhAFLKun9TB+0OQRBswjBkmo05PW7hX/oslysAPtdrAN4/1txc35Om6Q5yUMZPszEd2WbQl/gXJwjhAjDoS45aLTqyzTQbfx/BKyasCni+uuNcnCGEixAuj08vvC7fcB5u8X7qIEkStNZE0QQKWJVyesBoNKLb7RLHsR0AMBwOSZIEAK01AMYY8jyvW2l0sFWv17OaATyvGqIC2G78iyqA+Xz+64Axxg5QSjmz2QyAxWJhHd4WWH5IjQ7qMeob66oAlFJOFEUNSJ7n1u3wD59pb30BmENvP7N5unwAAAAASUVORK5CYII=", breeze_rod: "data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAABAAAAAQCAYAAAAf8/9hAAAA4UlEQVR4AaSSLQ7CQBCFBxycgANU8qNJAMMNMLhqBBdAERSnwOAwKFB1FDwNBFUIkjOAKHmTPFL6w25Dk0nF7vftm90py59fYcFwvIh67jziuYUEgN12QzpOV1qDqUqsBYBH/bocrk/Zh74E61kJKawEhC+3qsK75URhKwFgxPZOL1kFG4nDRgFhxk7CPwWA4z1nwbkCwoi9PXqp2ABZqUsEzJ4B87YJJP9fAsCMbQND9hEQZmzTyYBRKsBoMnZ8SLDBVCpo1hy5PyqpITHBWFeBH54zhwQbTKUC9Jv3zibBGwAA///n71XsAAAABklEQVQDANSsfiEy46WCAAAAAElFTkSuQmCC", wind_charge: "data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAABAAAAAQCAYAAAAf8/9hAAABc0lEQVR4AcyQQUsCURSFz0QEZomGRUybAgNTWwRGhhSFYtDK2lbrIPoJLfsJEbSO1tnSqFUIhe5KIzISLA0MHEpzE03vvHBSRiFw08AZ5r17z3fPnS50+PxjwP5hXG9Uu01NK1zf63qprOuLAR+oKfcIxoatIKwVxAS4uDzFyyvgdKqwWFXY7Q4hOwZtXSCYAxpBBuD8Std39451NnajgGw2jeJzGppWFgAHFubDqNaAk3is0Q8DMDTwc9/XazFMnO5yeWWSVCqBZPJMNnGY/BAvA9BvBTbXouIK0DRNqCzFJLfpBCofNZTevrC+GkV9GJsNwKiqKNzd7w9iwhuUsdmgCRjNPo8Hy6EI3qvA5LiisEYZAB5YODiKyai53KNIoAmQHTR/QsVDvtlMTxOAF7PTURmVU3l+KhRxk8nInxea+Z3MGmUCsGkuEIHbE0aPLShhd/kKdrZXjNg01mUCsMBVKMK2NpaUdmb2tgSw8Fd1DPgGAAD//2hbKBUAAAAGSURBVAMAnhyQIcPpPakAAAAASUVORK5CYII=", trident: "data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAABAAAAAQCAYAAAAf8/9hAAABM0lEQVR4nJSSsUrDUBSG/2inCjGDUh3clOQFsgbJ7FTI4uLUoXkDIYNDniEZ6uIiQqCT4BZHB/sACeokogUDUYijac+Be0mhSZofLuGem++//zlJDw0KgqC0bXulZhiGUt1voUW6rvPqaxriOGbTJEl40XmvCc6yDL7v42I0ws1kAs/z5Fmapmg1cByHbxZ6n89xNBgwTGkaW6CoBBNwP51yCgELURuNCYTOhkMJR1HENTL8y3NsZFCNTaCsLQ2266DPw/7VXfyA/49vqKrKX8I0TfwWBQ/Usiwecm0CdX8PB8cnuH565BZogFWFYcjPtQanl+OS4K/XF97TEIVc1135kZQ6+G02w3N4q6BFMoE5Pi93tF10gaVBFabYm8LSgCTgIv9BF0kDik3qcjup08vrtAAAAP//8RfNCQAAAAZJREFUAwBhNYVcM3GtogAAAABJRU5ErkJggg==", raw_beef: "data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAABAAAAAQCAYAAAAf8/9hAAAB0UlEQVQ4jaWSv0tCURTHv0+LXps1uDTUUBokRC01NFTQIIHg5FC2aC3VUEM/IKKhcjSICAsRkv6BQByCJMiCBmmw6IcVBUFcIl81JFS+OPd5Xz0tGvrCe+++c+/ne8659+K/kv7i1wec6g9haXAjrg3olcvlsG2rK1l139mi9s0HS+KbM2O6ya8GAn5YXID0qMB0foa8zQ612oKKfg+21la4iemnsgX8HFnisGVpGflwmMP0/z4yDtfQMC1Vy4pB+hJ80OOErdkBTE4gND+HpycFXR1taEjsA1arzpQVZyUR3FhZDihZYHoankAAF4d7sIciBlg3iA65OZz1+wHG0Fhbo80yBrO7G/D5YLda8dHepu+HkImOicMuFwcoQ95SxccEfCTTWlbGNFjJ4vT1rbQFCvKyGYOJMb7j5qtrzRTg/6IqR3gZl7txpDI3msHLbearqUKPtON5GliqUN5UAyTTOL250+FoLIHW+lrtGClAE7w0yk4tUH9Klj9vx3cl8NVRRhIVSNFYQvUCfAEp7Rs17LRjdgqOQiIBU3x1/0RrgUoRJhwoGAkRyE/rGyykX2XSWHcrv0je3i6DAYGk4E7KAMuybDQQEkZCxaBuIMv4BGj85crKXrMAAAAAAElFTkSuQmCC", raw_porkchop: "data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAABAAAAAQCAYAAAAf8/9hAAAACXBIWXMAAAsTAAALEwEAmpwYAAAE7mlUWHRYTUw6Y29tLmFkb2JlLnhtcAAAAAAAPD94cGFja2V0IGJlZ2luPSLvu78iIGlkPSJXNU0wTXBDZWhpSHpyZVN6TlRjemtjOWQiPz4gPHg6eG1wbWV0YSB4bWxuczp4PSJhZG9iZTpuczptZXRhLyIgeDp4bXB0az0iQWRvYmUgWE1QIENvcmUgNy4xLWMwMDAgNzkuZWRhMmIzZiwgMjAyMS8xMS8xNC0xMjozMDo0MiAgICAgICAgIj4gPHJkZjpSREYgeG1sbnM6cmRmPSJodHRwOi8vd3d3LnczLm9yZy8xOTk5LzAyLzIyLXJkZi1zeW50YXgtbnMjIj4gPHJkZjpEZXNjcmlwdGlvbiByZGY6YWJvdXQ9IiIgeG1sbnM6eG1wPSJodHRwOi8vbnMuYWRvYmUuY29tL3hhcC8xLjAvIiB4bWxuczpkYz0iaHR0cDovL3B1cmwub3JnL2RjL2VsZW1lbnRzLzEuMS8iIHhtbG5zOnBob3Rvc2hvcD0iaHR0cDovL25zLmFkb2JlLmNvbS9waG90b3Nob3AvMS4wLyIgeG1sbnM6eG1wTU09Imh0dHA6Ly9ucy5hZG9iZS5jb20veGFwLzEuMC9tbS8iIHhtbG5zOnN0RXZ0PSJodHRwOi8vbnMuYWRvYmUuY29tL3hhcC8xLjAvc1R5cGUvUmVzb3VyY2VFdmVudCMiIHhtcDpDcmVhdG9yVG9vbD0iQWRvYmUgUGhvdG9zaG9wIDIzLjEgKFdpbmRvd3MpIiB4bXA6Q3JlYXRlRGF0ZT0iMjAyMi0wMS0xOFQwMjozMjoyOCswMTowMCIgeG1wOk1vZGlmeURhdGU9IjIwMjItMDEtMThUMTI6MjQ6MTYrMDE6MDAiIHhtcDpNZXRhZGF0YURhdGU9IjIwMjItMDEtMThUMTI6MjQ6MTYrMDE6MDAiIGRjOmZvcm1hdD0iaW1hZ2UvcG5nIiBwaG90b3Nob3A6Q29sb3JNb2RlPSIzIiB4bXBNTTpJbnN0YW5jZUlEPSJ4bXAuaWlkOjBkOThlZDI1LWIxMmYtNjQ0NS1hZTlmLWRhOTM4YmEyMWM1MyIgeG1wTU06RG9jdW1lbnRJRD0ieG1wLmRpZDowZDk4ZWQyNS1iMTJmLTY0NDUtYWU5Zi1kYTkzOGJhMjFjNTMiIHhtcE1NOk9yaWdpbmFsRG9jdW1lbnRJRD0ieG1wLmRpZDowZDk4ZWQyNS1iMTJmLTY0NDUtYWU5Zi1kYTkzOGJhMjFjNTMiPiA8eG1wTU06SGlzdG9yeT4gPHJkZjpTZXE+IDxyZGY6bGkgc3RFdnQ6YWN0aW9uPSJjcmVhdGVkIiBzdEV2dDppbnN0YW5jZUlEPSJ4bXAuaWlkOjBkOThlZDI1LWIxMmYtNjQ0NS1hZTlmLWRhOTM4YmEyMWM1MyIgc3RFdnQ6d2hlbj0iMjAyMi0wMS0xOFQwMjozMjoyOCswMTowMCIgc3RFdnQ6c29mdHdhcmVBZ2VudD0iQWRvYmUgUGhvdG9zaG9wIDIzLjEgKFdpbmRvd3MpIi8+IDwvcmRmOlNlcT4gPC94bXBNTTpIaXN0b3J5PiA8L3JkZjpEZXNjcmlwdGlvbj4gPC9yZGY6UkRGPiA8L3g6eG1wbWV0YT4gPD94cGFja2V0IGVuZD0iciI/PnOGCY8AAAFYSURBVDiNpZM9S8NQFIafK4ULOpgiGYoZTHFTlw6BDuYnVKdW8B+41LmuxrmDTm6CoFO7uDm1c6fSpSh1KBQJmnQR0uU6pPmgX4I9U3Jy3o/z5l6hlGKd2lgLDWSiByHE0iHHtmdtiqtWC6VUQrAKfFEoxO+alDgvt+r6cEvAHyukwZqUaIYBus7Z3iaAWkng2LaqVashCPCDAFwXTJOd/fN4bm6FaN9asYjfbqMZBpqU4UddB+Dr7XExgWPbqlYqhYrDYdh03Tl33bFHZ5Jn8QpTm5GqHwRh37LANAHoeTIejwmiwPwggMEgBBCGh2VBLgdAs16JICv+wtS2Vi4n4NGIZr1Cz5N0JrvzDtR3J1GEWHEJOD516RDF3eu9OsgGnF4+x833mxOePn7i0NLgWYIkoHqFo+0s3bG3UDVdIrqN0V1oHGd4+MzPnf1ZYKPfRymVEPy3fgHIln2VsnexWwAAAABJRU5ErkJggg==", raw_mutton: "data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAABAAAAAQCAYAAAAf8/9hAAABdklEQVQ4jWMY+oAR5oP///8zMDIywtnrTPT/I/su+OwlRpgcMmDBpdk6PITh140bYDFBG1uGtVOnw3QyIhvABBZhRBEDg5dLljCwaWiA8fsjhxlM9XUY3LIzMVzGhMxBth0EQC5ANwjdECZkzTAA0vj69x+G0xevMIjHxDAcXbkGbhDMNTBDmEAaYZpBgiDJ92fOMNz68ROs8Mr8BQzILgLJgQDMJUww/29Y3fXfehPElqOfvzKICwmDxT9y8WC4CGQIyCUv371lYFq/qvP/y2eX/weEljC0dHUxrJs+E6wZZOuW/QcZYC4CGQRig7yiVFCICMTAsHLG40e3M+QWxDNMnrCQIejIdgam8miG4wrsYDbMRcjg65vXYEM3vnyNGqcg1+w9epmhpqyMQVxKG2yo1qb9cBeBbL/DygF2OgiADUBPWbDwABkEctHLZ1cZQC58Xj4JbBBIM0gjCOz4+pMRqwHoBoHA7dmr4OIgjTg1kQQYGBgA+w/lCSXOCcAAAAAASUVORK5CYII=", cooked_beef: "data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAABAAAAAQCAYAAAAf8/9hAAACLElEQVQ4jaWSX0hTYRjGn7NWnDX3p22tJayGuMRECqwLiahdJHQhlNKFGoJi8yJvLCFKqKWtPyQzKIq8aQT9uZGC7iSSClxQXo0NViBq5lbM5TaOnFO6E+83zmlnGV30XJzv+w7v73mf75wX/yvuX3yguUFe5zUXeDFd3NBDFEU821v3R1XCa5VP33qA5e9LsG6xs5X06PKAavJXA4I7Lo0g1NGOlPQTTuNmbPV4oON5tHS14fn9O8xEt15spfPT2yHYq70IT03j/MMnDC6IIh4HR3Cst49KZX05SCt1Pnu8BTvclegZuoZ7wSFks8vwNR3B8MUr2O2wqIy+vCvdc7j7FAxrP1CQRIyd64f/xig+fpjCy3CYwd+EFa3B9RMH2H1He3uwKggMpqJ4NMGAu31+6I1GRGYWcGjfHlgyS78N6DdR55sn25DPZNQP5t2+Dc5cHvF0Fg5hhZ0JjsXiMJmt2gQUOyVIcNlsKOTyxe7pLA7W16DRbGKFn5JfUWezM6P2wQHMvZ/ETDpXNBBSs6yIEtjdbiCZgtMIvI0m4DBsZIlqq6sw/3kRZ64OMnh8IoIqh5nbcLimMmCQBRzt7MSb1+/wJZmEZ5cXJpcLbksFdJLEEkmrsgZeiC1yaxWbwAWaGyiK3NrUiJ37fSxJ6EJQMxcEkkphOr/KCcUrUJTxiYjcWgYoIpBUCitSR5nk99WzQaI0pSKQNDYZ1cA8z2sNFClGispB1YDn8QsrEf1EiKNcyAAAAABJRU5ErkJggg==", cooked_porkchop: "data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAABAAAAAQCAYAAAAf8/9hAAAACXBIWXMAAAsTAAALEwEAmpwYAAAE7mlUWHRYTUw6Y29tLmFkb2JlLnhtcAAAAAAAPD94cGFja2V0IGJlZ2luPSLvu78iIGlkPSJXNU0wTXBDZWhpSHpyZVN6TlRjemtjOWQiPz4gPHg6eG1wbWV0YSB4bWxuczp4PSJhZG9iZTpuczptZXRhLyIgeDp4bXB0az0iQWRvYmUgWE1QIENvcmUgNy4xLWMwMDAgNzkuZWRhMmIzZiwgMjAyMS8xMS8xNC0xMjozMDo0MiAgICAgICAgIj4gPHJkZjpSREYgeG1sbnM6cmRmPSJodHRwOi8vd3d3LnczLm9yZy8xOTk5LzAyLzIyLXJkZi1zeW50YXgtbnMjIj4gPHJkZjpEZXNjcmlwdGlvbiByZGY6YWJvdXQ9IiIgeG1sbnM6eG1wPSJodHRwOi8vbnMuYWRvYmUuY29tL3hhcC8xLjAvIiB4bWxuczpkYz0iaHR0cDovL3B1cmwub3JnL2RjL2VsZW1lbnRzLzEuMS8iIHhtbG5zOnBob3Rvc2hvcD0iaHR0cDovL25zLmFkb2JlLmNvbS9waG90b3Nob3AvMS4wLyIgeG1sbnM6eG1wTU09Imh0dHA6Ly9ucy5hZG9iZS5jb20veGFwLzEuMC9tbS8iIHhtbG5zOnN0RXZ0PSJodHRwOi8vbnMuYWRvYmUuY29tL3hhcC8xLjAvc1R5cGUvUmVzb3VyY2VFdmVudCMiIHhtcDpDcmVhdG9yVG9vbD0iQWRvYmUgUGhvdG9zaG9wIDIzLjEgKFdpbmRvd3MpIiB4bXA6Q3JlYXRlRGF0ZT0iMjAyMi0wMS0xOFQwMjozMjoyOCswMTowMCIgeG1wOk1vZGlmeURhdGU9IjIwMjItMDEtMThUMTI6MjM6NTIrMDE6MDAiIHhtcDpNZXRhZGF0YURhdGU9IjIwMjItMDEtMThUMTI6MjM6NTIrMDE6MDAiIGRjOmZvcm1hdD0iaW1hZ2UvcG5nIiBwaG90b3Nob3A6Q29sb3JNb2RlPSIzIiB4bXBNTTpJbnN0YW5jZUlEPSJ4bXAuaWlkOjhhYWU1Njg0LTdiMDgtZGU0ZC1hZmZjLWM0ODBmNzk0YzYyZiIgeG1wTU06RG9jdW1lbnRJRD0ieG1wLmRpZDo4YWFlNTY4NC03YjA4LWRlNGQtYWZmYy1jNDgwZjc5NGM2MmYiIHhtcE1NOk9yaWdpbmFsRG9jdW1lbnRJRD0ieG1wLmRpZDo4YWFlNTY4NC03YjA4LWRlNGQtYWZmYy1jNDgwZjc5NGM2MmYiPiA8eG1wTU06SGlzdG9yeT4gPHJkZjpTZXE+IDxyZGY6bGkgc3RFdnQ6YWN0aW9uPSJjcmVhdGVkIiBzdEV2dDppbnN0YW5jZUlEPSJ4bXAuaWlkOjhhYWU1Njg0LTdiMDgtZGU0ZC1hZmZjLWM0ODBmNzk0YzYyZiIgc3RFdnQ6d2hlbj0iMjAyMi0wMS0xOFQwMjozMjoyOCswMTowMCIgc3RFdnQ6c29mdHdhcmVBZ2VudD0iQWRvYmUgUGhvdG9zaG9wIDIzLjEgKFdpbmRvd3MpIi8+IDwvcmRmOlNlcT4gPC94bXBNTTpIaXN0b3J5PiA8L3JkZjpEZXNjcmlwdGlvbj4gPC9yZGY6UkRGPiA8L3g6eG1wbWV0YT4gPD94cGFja2V0IGVuZD0iciI/Pv5d+BEAAAHASURBVDiNpZO/axNRAMc/T9OGpkiGU2qgLQ7xVNKiS0EEVzsIqW06OfgfOKZ/gdChu/Rf6JIunW6R0EWIixyFclYM8aA5jmvonXd5l6Q8h3oxp9cp3+kN7/uD73tfoZRiGtyaig3kkoMQIvOCUoqd7Y1xzODiFEDsf7JQSv0VuAk72xtqfVNnYfEuAN8avzBMW31YmRepBFmo16rqzdsn3FteBSDsfefh1ivAwDBRgLixg4Tc71/hdkzi0EYrVfC9HuXHr//vYJIIkDjHoQ3AaBAjpWRJX+NL82O2QL1WVe/ev6ColbG+fsbtmCzpa0gpAZs4tAl7MVbX4YdfyE7gez18r4X+9DmX3hne+Qm52TxFrYyUEt8zabtDYAaY+Af1WlWtb+r0+1cU7hSQUlLUyuRm8wB45ycAHB8cAVAIIpESAJibu83yo2cAxKHNpXdGfn6R0SAmCiIae7u03eE4fkoguDjFabZwOyZaqcJoEAPXTxcFEccHR2Ny4v5vB8IwbfWg67BVX0UrVfhptXCaLQzT/uM6kyJnlth2hzT2dtHvL2B1nUzXSYhkjckWDl/m2I9WUhPNIh9a11sQ0875N6u92VaMfnFaAAAAAElFTkSuQmCC", cooked_mutton: "data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAABAAAAAQCAYAAAAf8/9hAAABfklEQVQ4jWMY+oAR5oP///8zMDIywtlVLpr/kX3XvvcGI0wOGbDg0qyla8Tw6+NbsJicihpYCqqPEdkAJrAII4oYGNy/do6BjV8YjB/ducWgIifP4OTkiuEyJmQOsu0gAHIBukHohjAha4YBkMaXX5gYbj18x6CoZcRw5dJtuEEw18AMYQJphGkGCYIknz59yPD861cGNXkhsGYdPVW4i0ByIABzCRPM/xtWd/3PX7QKbMuFl98ZVIXFwOJffnzFcBHIEJBLbr75zsC0flXn/5fPLv8PCC1haOnqYli//yhYM8jWreduMBipy4I18HBwg10E8oqlvSsiEAPDyhmPH93OkFsQzzB5wkKGads2M1hkhDDwWOmD2TAXIYMXryFeufH8HWqcglyz9+hlhpqyMgZxKW2woc8OHIa7CGT71z+8DLffvgKrBxuAnrJg4QEyCOSil8+uMoBcuLh1GtggkGaQRhC4+vITI1YD0A0CgX3LN8LFQRpxaiIJMDAwAABL6eKwVSnldAAAAABJRU5ErkJggg==", wood_spear: "data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAABgAAAAYCAYAAADgdz34AAAAAXNSR0IArs4c6QAAAARnQU1BAACxjwv8YQUAAAAJcEhZcwAADr8AAA6/ATgFUyQAAAAZdEVYdFNvZnR3YXJlAFBhaW50Lk5FVCA1LjEuMTITAUd0AAAAuGVYSWZJSSoACAAAAAUAGgEFAAEAAABKAAAAGwEFAAEAAABSAAAAKAEDAAEAAAACAAAAMQECABEAAABaAAAAaYcEAAEAAABsAAAAAAAAAKZ2AQDoAwAApnYBAOgDAABQYWludC5ORVQgNS4xLjEyAAADAACQBwAEAAAAMDIzMAGgAwABAAAAAQAAAAWgBAABAAAAlgAAAAAAAAACAAEAAgAEAAAAUjk4AAIABwAEAAAAMDEwMAAAAAC8FLx49dea3QAAAPhJREFUSEtjZKABMNcU+A9lMjBBaaoAkMEww31NxRhevv/FQBUfILsYZDAIzNn1BExTbIG4v9p/hVuv4AY/+fCD4er9rwyPX39nePDiGyNFQQRyeS4/A8MDNYThz9/8ZvhabQfmgwDFPgBZArIg8P8PhvWMHGAxzpNPwK4HsakSydKR2mDDLV5/Bhv+3VwGKkOhD0DhD2WCDZYV5YSHPVSYfGC0IhCcJEE0VIhBQYILzqYIgFwOMhxkILIvqAJghlPdYBDI8JODuxwqRD0wajhWMGo4VjBqODoAF9cgw0HFLagOpUpJiAxAhoNKRJoECwjQLMzBgIEBAIFqjTnYCGXyAAAAAElFTkSuQmCC", stone_spear: "data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAABgAAAAYCAYAAADgdz34AAAAAXNSR0IArs4c6QAAAARnQU1BAACxjwv8YQUAAAAJcEhZcwAADsIAAA7CARUoSoAAAAAZdEVYdFNvZnR3YXJlAFBhaW50Lk5FVCA1LjEuMTITAUd0AAAAuGVYSWZJSSoACAAAAAUAGgEFAAEAAABKAAAAGwEFAAEAAABSAAAAKAEDAAEAAAACAAAAMQECABEAAABaAAAAaYcEAAEAAABsAAAAAAAAAPJ2AQDoAwAA8nYBAOgDAABQYWludC5ORVQgNS4xLjEyAAADAACQBwAEAAAAMDIzMAGgAwABAAAAAQAAAAWgBAABAAAAlgAAAAAAAAACAAEAAgAEAAAAUjk4AAIABwAEAAAAMDEwMAAAAACDfy8cctDT3wAAAQNJREFUSEtjZKAB8PT0/A9lMjBDaYrBsdXd/599YWlQVVVtaG5uZnj27BnD9evXGajiA5Dh+27+BLM9PDwYlixZwvDw4UOGR48eMTCBRSkA4ODglgAbDMKXLl2CG3727FlGiiwAGW5tbQ1mgwyGYWRAsQ/evHnDwPD1BZgNcz0yoDgOQL6oTXKCcIBBBQK5tRPAwQNiU2QBKHLBhgJ9sOroU7DrS6OsGKxCSylPPBl+cv/NNQX+gy0BAmNj4/8gDJakFIAMP7ZtMdxwqgKYyxUkuEYNR4BRw7GCUcOxglHDsQEmUAnIoRTE8PL9L4YHL75RpY5GBuAa7fDhwzQxnIGBgQEAFcylMdaudkgAAAAASUVORK5CYII=", iron_spear: "data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAABgAAAAYCAYAAADgdz34AAAAAXNSR0IArs4c6QAAAARnQU1BAACxjwv8YQUAAAAJcEhZcwAADsIAAA7CARUoSoAAAAAZdEVYdFNvZnR3YXJlAFBhaW50Lk5FVCA1LjEuMTITAUd0AAAAuGVYSWZJSSoACAAAAAUAGgEFAAEAAABKAAAAGwEFAAEAAABSAAAAKAEDAAEAAAACAAAAMQECABEAAABaAAAAaYcEAAEAAABsAAAAAAAAAPJ2AQDoAwAA8nYBAOgDAABQYWludC5ORVQgNS4xLjEyAAADAACQBwAEAAAAMDIzMAGgAwABAAAAAQAAAAWgBAABAAAAlgAAAAAAAAACAAEAAgAEAAAAUjk4AAIABwAEAAAAMDEwMAAAAACDfy8cctDT3wAAATZJREFUSEtjZKABcHFx+Q+inz9/DuZTDYAMBmEQWLFixX8JCYn/TFA5igDMYBB79+7dDNevX2c4cOAAWI5iADIY5Np9+/aBXX7k0///GRkZYNeD5KniAzExMYbvco4M+/fvZ3iybSXDhg0boDIUWgALlhkzZjB4KTMwvHr1Ch40L168oCwBwcIdFjSgIAEFjba2Njx4QIBoW3YwKf/3+HcXrL4HyJYA0kd8fjOcv/2JwdA+AiVYkF1PkjdAllwB0iVAizL85P6rbGFlAFlUIvYVLE9xsMAAyHBzTYH/ChJc/8G+QQoSdEByJIMMBwXLy/e/GB68+AZ2MU1cDhUCA5AvoEzyAcjwM2fOYBhOFYDL5VQBQ9vw0TDHAKOGYwNMoPKbQcoLpWyhJgAXdocPH6aJ4QwMDAwAbt/G7VtCe2AAAAAASUVORK5CYII=", gold_spear: "data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAABgAAAAYCAYAAADgdz34AAAAAXNSR0IArs4c6QAAAARnQU1BAACxjwv8YQUAAAAJcEhZcwAADsIAAA7CARUoSoAAAAAZdEVYdFNvZnR3YXJlAFBhaW50Lk5FVCA1LjEuMTITAUd0AAAAuGVYSWZJSSoACAAAAAUAGgEFAAEAAABKAAAAGwEFAAEAAABSAAAAKAEDAAEAAAACAAAAMQECABEAAABaAAAAaYcEAAEAAABsAAAAAAAAAPJ2AQDoAwAA8nYBAOgDAABQYWludC5ORVQgNS4xLjEyAAADAACQBwAEAAAAMDIzMAGgAwABAAAAAQAAAAWgBAABAAAAlgAAAAAAAAACAAEAAgAEAAAAUjk4AAIABwAEAAAAMDEwMAAAAACDfy8cctDT3wAAAOdJREFUSEtjZKABaI4V/Q9lUheADAbh/697/v9/HPnfXo+PehaBDQYaCjYcCFbl6VFuAczFcMOh4MFEG+oYDjYU6uqTvgr/1zpL/X+6wRbF9WRFMshwKBMMavrKGRhEihl2c8gxfEgXZJh64AHDwUufyE9AyBbsYpeFhAvQJyDXUzViQcHydLkJOGhABmMLeyYoTTLI8JP7/+TbL4arCS8Zgvc+AwfHqbufwHIUA5Dh5poC/xUkuOCuBbmcKsEDMhwU3jQzHN3lVAPYXE41MOpyrGBoGw4qHUddjgKGrstBgGYuBwMGBgAjoc/Ai5ZE4AAAAABJRU5ErkJggg==", diamond_spear: "data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAABgAAAAYCAYAAADgdz34AAAAAXNSR0IArs4c6QAAAARnQU1BAACxjwv8YQUAAAAJcEhZcwAADsIAAA7CARUoSoAAAAAZdEVYdFNvZnR3YXJlAFBhaW50Lk5FVCA1LjEuMTITAUd0AAAAuGVYSWZJSSoACAAAAAUAGgEFAAEAAABKAAAAGwEFAAEAAABSAAAAKAEDAAEAAAACAAAAMQECABEAAABaAAAAaYcEAAEAAABsAAAAAAAAAPJ2AQDoAwAA8nYBAOgDAABQYWludC5ORVQgNS4xLjEyAAADAACQBwAEAAAAMDIzMAGgAwABAAAAAQAAAAWgBAABAAAAlgAAAAAAAAACAAEAAgAEAAAAUjk4AAIABwAEAAAAMDEwMAAAAACDfy8cctDT3wAAATlJREFUSEtjZKAy4HOx+Q9lUheADAbhRZ9//T/z7ReY5jLUpo5lIIPddh6CG668/dB/wehEsAVkBxFyUFiUtjHEWFkwaDEzMIQfPMHw/fNThu8bdzH8vHYKqoJEgOximKtBYiAXS61a/l+suAoePExgHWSCnEAnMAYB0eI2MP3n5GWG3y+eg9kgQFEQfdpzhBFEwwwHBQ3Igi/7NjJ8O3+VOikUFjSw4IEFDQyQHUQwg0G+gLkW5Hp0QJYFyMECAiCL2LXMUMKebAAyHFsmAvHRxUCApIgAGc4srgpO31SLRBjI8JP7b64pgNWVFAOY4QoSXKOGI8Co4TAALMERAJQE/716w/Dy/S+GBy++USWdwy0AZSJWRT2GV0wsDC8v3aVuJsKV/akCQIaD6lCaGA4CIINpZjgDAwMAAtzJDUVX1ygAAAAASUVORK5CYII=", gold_nugget: "data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAABAAAAAQCAYAAAAf8/9hAAAArElEQVR4nOWSrQ7CMBRGDwuZmMKNh6lALVOzS6Z4jGnUHmOKgEUtKEQFj7K9AGLmYujSkdssYBCcpEl/7vna5BZ+zSp0UGWJuPnx+gjWqWKVJSLjfRqnw0b8QJ+1dmthYgAGuwegrDtocgB5f02kyWXdTbIfpBH5C01eIlougdS03wekpuXc5FzsqHZjtlFliRQmZme2ANxsHxQdsy68CgV6gEU5iPsLH4t/yhPDNEr1XX6z+wAAAABJRU5ErkJggg==", golden_apple: "data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAABAAAAAQCAYAAAAf8/9hAAAAy0lEQVR42mNgoAeQlJT8j0uOiRLNFNvOwMDAwEhIo/if1wwvWUQZnj9/zkiUFyQlJf9LSkr+v3jVjsGa+wODCj8rw6HOX3BxvC6AaUQGH7fsYeD3cWH4uGUPAwMDA4NdORuKa7AGoqjgCgZRwRUMDAwMDPw+Lig0Ti/AbIdpfP0+AqsGmHeIjkZCgAVdAJfNZCck5MDEa8Dz588Z9bUPYVWILIYeCyyk2EZ00r29SPj/7UXC/03FWf+birPC+UTnC/RUhysVMjAwMAAAprVV3jDXbi4AAAAASUVORK5CYII=", iron_helmet: "data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAABAAAAAQCAYAAAAf8/9hAAAAmUlEQVR42tVSsQ3EIBAzUXoWQZRsxErU7IIooAOxCBPcVx8BfyTfxg06bHMnc8DrIdYLYwzdGXLOYksaY4iIqJSyPdcGYjSnlFBrvcje+08TKSWstdckx0g+mQEgxjjV51horVFrRe8drbVJqJRiHzzXCb5m7/0kTCkhhIDHAJ1zxP3Ejt9mwIHjjzWDO3C84BZotyz/aF6ID1hucr6ph8znAAAAAElFTkSuQmCC", iron_chestplate: "data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAABAAAAAQCAYAAAAf8/9hAAAApElEQVR42uWRsQ0DIQxFTXTzUPomYiUoaNgFUeAOxCJM4FScyMlESJcuv8ESz98fDPBQahSIyKMmIiXBSwYRmZm5lMIzJBncuWNc1lohpQTeezDGiCY5Z3DOrZ3nCdJprWVE/Eig5rcRkUJEzjlDrRV679eQ1hqEEC5m8C8p6r35m0QDrfX2GpcJdnVIe9daQ4xx2TTzv0kg/YG4712D8zzhj/QG31uCnOHNTkwAAAAASUVORK5CYII=", iron_leggings: "data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAABAAAAAQCAYAAAAf8/9hAAAAmklEQVR42t1SsQ0DIQw8UHo2oTQTsRe7IBp3oF/EE5AKCR5ISBXp3RiD73w+Afw7VDsQUf0FyMxquCCiWmutOeevuR/26klKKVMWEcQYAQAxRlzXNQzWfWGtHR5TShPgHnqloIFDCAghwBhzRtAUNDAzK2ZW3vstyaRARJaN9/WOPNitd+TBSsHKUH3S9Il8+AfOua0C7z0eGm9y6Ww84LNpjAAAAABJRU5ErkJggg==", iron_boots: "data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAABAAAAAQCAYAAAAf8/9hAAAAdUlEQVR42u2RwRXAEBBEl5d6HCl1D+pxGEedqCA5bUKyRAHmhP+MsUO0ZWThvT9bkHM27X7EbXsIgGKMw9c03hmUUiilNDTQeGfgnJv+V+OfBDNp3MqAAFCtdSkBgHuoh1xm5t/KJAEzEwAKIZzmXc9qjVuPLl6YPuT3JjzIAAAAAElFTkSuQmCC", gold_helmet: "data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAABAAAAAQCAYAAAAf8/9hAAAAqUlEQVR42mNgGPKAEV3AXpf/Pz4NBy9/ZMQpaa/L///f/73//9+wxUmjW8CIrHn/pXUMjDcb4JIPb33GsERejZfBIfQS3CVMKKYR0MzAwMCwbtEbFD4LMue/egMD480Ghoe3PjOcPfETRaGxBTtWA1nQXQDTPGnzMxSF+1vXMTzaXMxAMADXVmn+xxYTuORxhgHWOMciz4QeBvgANnlGbAkIV2IhRs0QBADA52nbNkQ7ygAAAABJRU5ErkJggg==", gold_chestplate: "data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAABAAAAAQCAYAAAAf8/9hAAAAt0lEQVR42mNgoBAwwhj2uvz/YeyDlz8yYlOMU429Lv//f//3/v9/w/Y/siJsBqCrY4E75WYDw7pFbxgOrNZjcAi9hNWQ/ZfWMayvzsFtMrIN2Oi1VZr/7XX5UVzAiOy3g5c/Mtrr8v/ff2kdA+PNBoaHtz7DLTl74ifDpM3P4Gpg6pmwhiyaZnwAqwH/1RuIjkacLiAWsGCL9//qDQwMt4pxakJWTx0XYAuDs4tyyDfAUS+IYQQBAI/zecgZL271AAAAAElFTkSuQmCC", gold_leggings: "data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAABAAAAAQCAYAAAAf8/9hAAAAsElEQVR42mNgGGjACGPY6/L/J0XjwcsfGVEE7HX5///7v/f//xu2BGlky1BccGC1HoZND299RuGfPfGTYdLmZ3AXMCFL/ldvQFG8btEbhrMnfuL1CgtKgNxsQNE8afMzBgYGBoYDcXoYLoEBrC6AaT54+SPjwcsfGR1CLzHIq/ESNoDxZgNOm9C9h9cFWOP7ZgNxLsAF/qs3YA1QJmIU4TMcJRYc9YJwusAh9BLDMAUAhnRo9pIqym4AAAAASUVORK5CYII=", gold_boots: "data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAABAAAAAQCAYAAAAf8/9hAAAAgklEQVR42mNgGAWMMIa9Lv9/ZImDlz8yIvNxyTMhC+6/tI7hwGo9nLZhk0cxgPFmA8O6RW9wOxeLPIoB/9Ub8PoXmzyGC/AG2E0cBtjr8v/ff2kdw8Nbn4lywf5L6+CBygLTvL46h3CUQV2wvjqHYf+ldQyOekH/GdGjh9hoHAUIAACC9DprCyCQKwAAAABJRU5ErkJggg==", diamond_helmet: "data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAABAAAAAQCAYAAAAf8/9hAAAAqUlEQVR42mNgGPKAEV2A18r0Pz4Nn4+dZsQpyWtl+v/p/1//vd7exEmjW8CIrPnG0aMMqe/uwyWfPX6KYYmUrDTDYd8YuEuYkCUJaWZgYGC4tXkHCp8FmTNbSJEh9d19hmePnzJ8uXAZRSGPgS5WA1nQXQDT/HLWEhSFB48eZfC+eISBYACqLJj4H1tM4JLHGQbYADZ5JvQwwAewyTNiS0C4EgsxaoYgAAAmLW2iExkjdwAAAABJRU5ErkJggg==", diamond_chestplate: "data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAABAAAAAQCAYAAAAf8/9hAAAAtklEQVR42mNgoBAwwhi8Vqb/YezPx04zYlOMUw2vlen/p/9//fd6e/M/siJsBqCrY4FJpr67z3Br8w4G281LGA77xmA15MbRowz2C6fjNhnZBmy0yoKJ/3mtTFFcwIjst8/HTjPyWpn+v3H0KEPqu/sMzx4/hVvy5cJlhpezlsDVwNQzYXMqumZ8AKsBs4UUiY5GnC4gFrBgi/fZQooM3ni8gKyeOi7AFgb2m3eQb4CGtTXDCAIAmiB9DkupwCoAAAAASUVORK5CYII=", diamond_leggings: "data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAABAAAAAQCAYAAAAf8/9hAAAArElEQVR42mNgGGjACGPwWpn+J0Xj52OnGVEEeK1M/z/9/+u/19ubBGlky1BcYLt5CYZNzx4/ReF/uXCZ4eWsJXAXMCFLzhZSRFF8a/MOhi8XLuP1CgsyJ/XdfRTNL2dBXKS2eQmGS2AAqwtgmj8fO834+dhpxsO+MQxSstKEDUh9dx+nTejew+sCbADZe3hdgAvMFlLEGqBMxCjCZzhKLGhYW+N0wWHfGIZhCgAp5mkEv+S6UAAAAABJRU5ErkJggg==", diamond_boots: "data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAABAAAAAQCAYAAAAf8/9hAAAAf0lEQVR42mNgGAWMMAavlel/ZInPx04zIvNxyTMhC944epTBdvMSnLZhk0cxIPXdfYZbm3fgNACbPIoBs4UU8foXmzyGC/ABbPJMsAC6cfQow7PHT4lywY2jR+GBygLTbL9wOsEog7nAfuF0hhtHjzJoWFv/Z0SPHmKjcRQgAAAVgTyY+we4SgAAAABJRU5ErkJggg==", apple: "data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAABAAAAAQCAYAAAAf8/9hAAABCklEQVR4nL2STUoDQRCFvw6DkpCIjSYwEELAA8SF4AVcu/IAuYUriZKL5ACuXHuBKK4UBDfKoAT8YfLnhEwSKgtx7GFmtFHwLetVf6+6uuE/dLhTkiwvZ3P46jnM9H8EAJx7U2XTF5PWWs42arJddmSvtpp5hQT5ptEQ6Y1RbpHj9zsAmn6ZbhgA0B69qkzAdWVLlFtMTXp49AHohkEMYrUDgHpVU6/qRD0CfJduanelwFFpM9qJ9QSmbudfz/orgKkIcL+Y/Q2w/+ZZfZZO0Od0Mox6HdO88F6o5D5K5sYHT0N8WaQCE6kH+TVpFtYBOHF6ALTmbmp6YgLgs0EALiczBdDJ98XwYloCVg1WWG8S5iYAAAAASUVORK5CYII=" , charcoal: "data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAABAAAAAQCAYAAAAf8/9hAAABgklEQVR42q2TS28TMRSFv3k4dqI82swkGmkELEACgbqgEqzaJf9/QyWCAAVSQUmBQjPMy55xF1GjTjNBlcrd2NLx+XyvdQz3LOdfopLCXu/zQjt3Bnieh/BdG03HeK6DEIL54qwV4u4yT8M9wv0hD+MpWmviKGh01ArwPI8wDAHoKsmg3yXLCo5fvwBohWx1IKUEwBjD0avnhOMhJ+8XTMYjhBBbkC3A8vs3G0cBcRSw+HqO7AjGe32q2pJmOT8vVkyC0Qbi3p79zfFLtKnIcs27D6d8+nLGyewzxhiKQgOQ/M13jzA/XQIwCUb0eorLJAXYrIN+t/0Rhe/aOAoA6HUVs48L0nR9U5LmFIXm8OAJAFle7O7g4NkjtNY8ffyA819/KLVZB8Z1eDubb85pUzuNICkp7CQYoXWFUh08dy2V2rBKMuq6xvd9Sm0wxqBN7VRV1UziNQRglWSNmcvSYK3lMkk35tYoKymskh0AhoMeyx+/G/pN886/cDMotw3/va4AGJytBqZp1KgAAAAASUVORK5CYII=", sign: "data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAABAAAAAQCAYAAAAf8/9hAAAAl0lEQVR42mNgGGjACGPMb/H9T4rGUxeeMUxfc5aRCVlwwcqDWBU3Td0Hl0NXg2LAozd/GZqm7sPQBJNbsPIgw6M3f2noBWQnLlh5EMUFuLzAgu5XZCfDNCA7m+peYEEWIAfADbjx4B1lCQkbSPLV+c/AwMBw//lXhv1n7mNVy4TPAClRIYIuYKI0L1BsAAs+yaOXHhM0AAA31VKGTW05XgAAAABJRU5ErkJggg==", shield: "data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAABAAAAAQCAYAAAAf8/9hAAABIklEQVR42q2SvU4CQRSFv/1niWxiVqJUSkJpTQilL+PzGEsrX8NEaysT7SwMb8Am6/7NzA5YsO6C4A/CqeaenLlz5txrXF3fzPknirzABpg83pJmBQCe6yCkou17ZLlYcJ6DEArf98gr7vziEgCTHWEDlFqjtQZASJBS4ThWwwkQUmGaBkKqlQYmgGPbdPsjuv0RcZwAoJRG6xlaz2pxeDZESoVcamJ/Hl6f7gDwW+63dicvDyhV1nUUTfeUAUAQHNQOikICYNnWivjk+IhpFK9noMrGVttvbeVgqy9kebFbgx8d9AZjeoMxcfy+WWgYhKdDkjQjSbPKUVaFOG/GGB526ku6XCyS5S7eeXu+/30KQdBZS3pZs3ET97IHf4Xxpf4Ax3ZzR3wG7Z0AAAAASUVORK5CYII=", totem_of_undying: "data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAABAAAAAQCAYAAAAf8/9hAAAB4ElEQVR42o2STUhUYRSGn+/OzZJiylDpz6k0Z6agRS7btYiIFIO2tQsqahG0i1oFuXEVEjERZAkRLUQSJ5CCLGyTZSrZ1MiU5JTdGbWm+fHeO99pEY0Yd4Y5y5dznu+c93sVZSq/2CdILTlrjkwySc/NfrofxdT/fYbXcNa6L7V1J5VWv1n4/J0PQ+MUXPF8yPQS17/tQzK9ol700m4pTteY5Rb1BiTMIJOjLxnbGsb9lecbybIAzxOWtcNaFP6UhnwOEUGkyhMKCw8kk54BDFIzCTY21dGws54aR3A6RCKP46riBpl0oiTXt+zGyfkYG5wgdKSZ9r27ONsZkrIA69N1GY085cqlu4gUGbkR5Xn0HYPvY/gDAVoPt3A0uIPzHSuQEiAV75JXt58xHJvjWvcplPKx71iYtoONnGg7wOWL99gc2F7ZxH9mNQavKtA07GnGv2kbqqgxDMPT85IhFzr3i4vNrYG/abPTD2XqdRR3Nst8fIkn018wjHU4slzqWfULPQOTq9zVStMUCpIu/GA+vkTBdbkzNFFdlJ38lJjmFsSxsbEB2LDGrD5ITu4Npv+Qcl0XrTWVyhM7Oz7C9PAZ+fnVQhazuD6F9ilPgKd67nhYjOJKXhxTiPR/9Oz9AycHz8M3VCgwAAAAAElFTkSuQmCC"};
 Object.assign(PACK_ITEMS, {mace: "data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAABAAAAAQCAYAAAAf8/9hAAABZUlEQVR4AYySzStEURTAz8xfgKashpKPoeyUvBLNxk4olN5CaRZS9hZWFrY2spBQQ02JnWj0srPAhsXDDAtv4zE+/oOn3637esx981G3d8995/c75543SWnglx2bClim1LoCwNk5W1bXN4U9kml7MRTWFAAAXxSL8nR/pSRtHb3Bo3sn5ZKLS2IFURjA8zwl2T9y5Of7S15f3AQGoyAKf374Mj45I+l0Wrr7h2RtZUkGrVGhk1gBL26vb6QnkxFreIQwhAmQaomxA+f8OFEuPcj7m0++qk5lAu5eqfiChNgo4AWSs9MTJSkc5jlSg2tqbpFUqlXtmUOsYGJhI7DntwUJFTH8hzkzCoD72gekcHmgps3UkaQilYFZVQLgXNZS8LOzpT4VrSLh/uwB9foj0PDyzq5oWCcCsnSsn6GgFqyTTc8kfxoWdzZVNkHRM9VBZ1dG8nu5qrajiXH7JIPhU8Ul1Dv/BQAA///WZjKXAAAABklEQVQDABOFwln4SxboAAAAAElFTkSuQmCC", heavy_core: "data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAABAAAAAQCAYAAAAf8/9hAAADV0lEQVR4nEWUT2hbdQDHP7/3fnlJmjRp06Zt0rnSogVRazsdW0fZDiIO3RDcydOwB8GLTIQdDQEvnmS0eKwMBKGHgSAoiHjQyw6uisPun5npbOfaJM17L8l7L3m/38+DRb/HD5/r5ysAKpWKBVjVajUGuHnzr7H6453VnUe1DwSCqVL509iKNy6/9WrzyJeArlarWlQqFatarWqA9fUvZpzs8GrbdS8/rN2dOWwdIISFlAlm556pz88/d31kbGTjwisv1QGgYgmAa9euL8mh7HuNxsHbB/t72V7QITdc0JOlaSEQ1P+8bzzv0CpPz5DN5DpgvkxL+dnVq+/+It7/8KNv+oP4tXgwEA/u3caWMn56/nl7auop0e34GAyjhXGCoGt+/+1n5botuXTiDBOTZdXtuN+KysdrptVqkkgk42bziV17cFsE3Q7poSyF8UkQgsPmE6IwpHxsluH8qMGgLGHJXs9DRlGo4ji2+v1IptMZVs6+TqPxhDvbt6jX7uAkU2SGc0wfnyM/Mg5ai51HNZlKpU2362kJwo7CiF9v/UR2OM/8swtYdoLFEyvs7++hVUxmOE8/DKnd3yYMOvi+S6FYEnEU2NIYTRj1EEJQf3gX12sxkh/jhcXT5HIFeh0Pr9Wk9sc2h60GKh4wMVlm0I/AaKTnubhuC200/X7Ewd+7pFJp9g8eM+hHJGSCMAzpdXx8r41t2xSKJbpdH60FltYay7IAEEIgEw5TpRl8v43bbmCMQWkFloUQ4DhJstkcAFEYYPl+WymtTDKVJh4MSDoOE5PT2LaN1gpjNL7vopUCBMZohACtlVEqVpbbbtheuyVGx4rxVPm4UUohpcQSFghBEAQYY5BSYoxmvFgyjpOKex1fDPqRLaUtbsRRcCHoJpylk2dJOk6cTCZtrbWIwpCkk0FgyOZGTOnYrCoUinJvty51POhnMumvra9ubF46+fLikhRqfffR/bbfaUvPc0W34+pBFJl+FJgo7Glh2QKt5O7OvXYc+esrK8tLW1tblwRgAwrgk7W18o/f//BOq9FcVbGeC4IuieQQYdAhIe3aRLG4sbx86vNqtbr3b0zY/JfzuXPyCPLd5mb+4sU3rywsvLhz6vSZnfPn37iyubmZ5//JowvgH3XCsbaXiXBDAAAAAElFTkSuQmCC"});
 Object.assign(PACK_ITEMS, {wheat_seeds: "data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAABAAAAAQCAYAAAAf8/9hAAAAmElEQVR4nOWRvRGAIAyFn56lA1BZWzABAzCO4zABQ1lzlpb2sfEHQ8jRm7sUOcjP9x7wm6Ari+gbGsg7gyVYQBgiDSga0nZgjXv7ufM0knfmc0UNoVMQpH/E6qoGHQAwFFGLQduetgOI7wOvxdO9M7QEezPnCaEuEbji/GzN0hzhSeaI5FAzCl8AQBbxQckEy+2uWV9FUeMEOeJZP0Fh6xEAAAAASUVORK5CYII=", wheat: "data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAABAAAAAQCAYAAAAf8/9hAAAAt0lEQVR4nGNgQAX/kdm/7lX8RxdDU8/AhKYBqyJ88kzY1TL8f7QvhOHFgzsMRxbY4DMUbgC6BgYGBgYGCQUVOBuXgSguQNbAwMDA8OLBHQZ88hgGENKALk/QBUd27CHNBcga5JzWMDAwMDDYJBzBaSA6+M/AwPB/3zST/4TYuFzAiNd4HOpYsKmYdgISlTeQ2AznfmA1DasBl869wRDTYOAhynnEhAEKwJWUiQYUG4AN4Mq+WDMUAJQ9Yn1kZdv0AAAAAElFTkSuQmCC", bread: "data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAABAAAAAQCAYAAAAf8/9hAAAAjklEQVR4nGNgGPKAEYf4f2LVowv8Z2BgYLg3zw2rbqWkXRj6kA34j0sjDoMYGRgYGJhgmvfUmTDce/AOjvmkpDDYMHpPnQnctSzYbLh17x0DA8MVDPaqJYcY1JSEUNQyMWABakpCUI242TCAEgbTYpSICQKGrCX34HqRXcAIlSBaM7oL4C4hYAautDNiAQANzzycs8U3lwAAAABJRU5ErkJggg=="});
+PACK_ITEMS.lava_bucket = "data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAABAAAAAQCAYAAAAf8/9hAAABTUlEQVR4AaSPsUvDQBTGX8XJzQ7Wxa0QBAsZzF8gZugkOBSFLI5FnBwddDezoEI2JxVRcMgaQUgcMrgEsulgB7O4uFV+B3f00tsMfHkv7/vu9y4L8s/HCQiCYOqSa5cF0IfuR0syHm7J2ShUulj+EaT9WZABYHKIYCdck+3dTxnIi9Lq+ab0wp6CACWrIQbAYPD6oIL00/RDACHdA1lJ77CNLEB9cCrXj9/ydfxmAvRAGEzSieQ7R7RGFsD3fVkfn8jT76ICXR2WqgfCLW42huagbiwAQyB7l7eCgCG2sh2/2+1SjOYAOJ7nUSy5thOwAGVZMnNq//3ZObcAeZ47Qwz1DZqm4dPIAIqi6GRZpoyqqlRtv/r9viRJImS1ZwB60P6N9kad09UCQI7jWNqQuq7FtR2IBWCgIVEUCTCuzK9R8cjMag6ASdAlvLb+AAAA//8pIEw+AAAABklEQVQDAECGniFrZeOrAAAAAElFTkSuQmCC";
 Object.keys(PACK_ITEMS).forEach(k => {
   if (__skipNewItem(k)) return;
   const img = new Image();
@@ -2742,11 +2757,11 @@ function blockDropType(t) {
   if (t === 'diamond_ore') return 'diamond';
   if (t === 'redstone_ore') return 'redstone';
   if (t === 'redstone_dust') return 'redstone';
-  if (t === 'fire') return null;
+  if (t === 'fire' || t === 'lava') return null;
   if (t === 'spawner') return null;   // a broken spawner drops nothing (just XP)
   return t;
 }
-function isPlaceable(type) { return (!!BLOCK_TYPES[type] && type !== 'water' && type !== 'fire') || type === 'redstone' || type === 'spawner'; }   // 'redstone' places as dust; spawner placeable after Silk Touch
+function isPlaceable(type) { return (!!BLOCK_TYPES[type] && type !== 'water' && type !== 'lava' && type !== 'fire') || type === 'redstone' || type === 'spawner'; }   // 'redstone' places as dust; spawner placeable after Silk Touch
 
 // ================= Mining time =================
 // Base hardness (seconds with bare hands) comes from BLOCK_TYPES; the right
@@ -3007,6 +3022,7 @@ const MI = {
   dirt:      regMat(TEX.dirt),
   stone:     regMat(TEX.stone),
   cobblestone: regMat(TEX.cobblestone),
+  obsidian: regMat(TEX.obsidian),
   pistonSide: regMat(TEX.pistonSide),
   pistonBottom: regMat(TEX.pistonBottom),
   pistonTop: regMat(TEX.pistonTop),
@@ -3359,6 +3375,44 @@ const WATER_STILL_TEX = _waterAnimTex(WATER_STILL_B64), WATER_FLOW_TEX = _waterA
 MI.waterStill = _waterMat(WATER_STILL_TEX);
 MI.waterFlow = _waterMat(WATER_FLOW_TEX);
 
+// ================= Lava =================
+// Self-lit (MeshBasic) liquid. Source = 0.875 high, flowing lava drops fast: it only runs 3 blocks.
+MI.lava = (() => { const m = new THREE.MeshBasicMaterial({ map: TEX.lava, side: THREE.FrontSide }); MAT_LIST.push(m); return MAT_LIST.length - 1; })();
+function lavaHeightOf(b) { return b.flow ? Math.max(0.2, 0.9 - 0.22 * Math.max(1, b.meta | 0)) : 0.875; }
+function lavaSurfaceY(b) { const a = world.get(key(b.x, b.y + 1, b.z)); return (a && a.type === 'lava') ? b.y + 0.5 : b.y - 0.5 + lavaHeightOf(b); }
+function isInLava(pos) {
+  for (const dy of [0.2, 0.9]) {
+    const b = getBlock(pos.x, pos.y + dy, pos.z);
+    if (b && b.type === 'lava' && pos.y + dy <= lavaSurfaceY(b)) return true;
+  }
+  return false;
+}
+function addLavaBlock(buffers, b, x, y, z, grid, gi, GW, GY) {
+  const at = (dx, dy, dz) => grid[gi + (dx * GW + dz) * GY + dy];
+  const up = at(0, 1, 0), dn = at(0, -1, 0);
+  const upLava = !!(up && up.type === 'lava');
+  const h = upLava ? 1 : lavaHeightOf(b);
+  const X = x, Y = y - 0.5, Z = z, sh = shadeFromLevel(TORCH_LIGHT_LEVEL);
+  if (!upLava) _waterQuad(buffers, MI.lava, [[X - 0.5, Y + h, Z - 0.5], [X - 0.5, Y + h, Z + 0.5], [X + 0.5, Y + h, Z + 0.5], [X + 0.5, Y + h, Z - 0.5]], [0, 1, 0], [[0, 0], [0, 1], [1, 1], [1, 0]], sh);
+  if (!dn || (dn.type !== 'lava' && BLOCK_TYPES[dn.type].transparent)) {
+    const f = FACES[3];
+    _waterQuad(buffers, MI.lava, f.corners.map(c => [X + c[0], Y, Z + c[2]]), [0, -1, 0], f.uvs, sh);
+  }
+  for (const fi of [0, 1, 4, 5]) {
+    const f = FACES[fi], d = f.dir, nb = at(d[0], 0, d[2]);
+    let base = 0;
+    if (nb && nb.type === 'lava') {
+      const nu = at(d[0], 1, d[2]), nh = (nu && nu.type === 'lava') ? 1 : lavaHeightOf(nb);
+      if (nh >= h - 0.001) continue;
+      base = nh;
+    } else if (nb && !BLOCK_TYPES[nb.type].transparent) continue;
+    const px = f.corners.map(c => [X + c[0], c[1] > 0 ? Y + h : Y + base, Z + c[2]]);
+    _waterQuad(buffers, MI.lava, px, f.normal, f.uvs, sh);
+  }
+}
+let _lavaAnimT = 0;
+function updateLavaAnim(dt) { _lavaAnimT += dt; TEX.lava.offset.set((_lavaAnimT * 0.03) % 1, (_lavaAnimT * 0.05) % 1); }
+
 // full-screen blue overlay (water_overlay.png) while the camera is under the surface
 const _waterOverlayEl = document.createElement('div');
 _waterOverlayEl.id = 'waterOverlay';
@@ -3621,10 +3675,104 @@ function shadeFromLevel(level) {
 // on the surface facing the torch but don't pass it on.
 let lightVersion = 0, floodCacheVersion = -1;
 const floodCache = new Map();
+// ---------- Lava light: every lava cell that touches open air emits light level 10 (a torch is 11) ----------
+// One multi-source flood per chunk (cached), instead of one flood per lava block, so big pools stay cheap.
+const LAVA_LIGHT_LEVEL = 10, LAVA_NEAR_CHUNKS = 3;
+const _lvIdx = new Map();          // "cx,cz" -> Set of lava cell keys in that chunk
+const _lvDeferred = new Map();     // "cx,cz" (not generated yet) -> flat [x,y,z,...] of lava that wants to flow into it
+const _lvFar = new Map();          // "cx,cz" (too far from the player) -> flat [x,y,z,...] of lava steps waiting
+const _lvFloodCache = new Map();   // "cx,cz" -> lava light flood for that chunk's mesh
+const _lvRelight = new Set();      // chunks whose lava light changed; re-meshed in one batch (see updateLava)
+const _LV_EMPTY = { n: 0, xs: new Int16Array(0), ys: new Int16Array(0), zs: new Int16Array(0), vs: new Uint8Array(0) };
+function lavaIdxSync(x, y, z, isLava) {
+  const ck = Math.floor(x / CHUNK_SIZE) + ',' + Math.floor(z / CHUNK_SIZE), k = key(x, y, z);
+  let set = _lvIdx.get(ck);
+  if (isLava) { if (!set) _lvIdx.set(ck, set = new Set()); if (set.has(k)) return false; set.add(k); return true; }
+  return !!(set && set.delete(k));
+}
+function lavaExposed(b) {
+  for (let i = 0; i < 6; i++) {
+    const d = FACES[i].dir;
+    const nb = world.get(key(b.x + d[0], b.y + d[1], b.z + d[2]));
+    if (!nb || (nb.type !== 'lava' && BLOCK_TYPES[nb.type].transparent)) return true;
+  }
+  return false;
+}
+function computeLavaFlood(cx, cz) {
+  const R = LAVA_LIGHT_LEVEL, cs = CHUNK_SIZE;
+  const bx0 = cx * cs, bz0 = cz * cs, gx0 = bx0 - R, gz0 = bz0 - R, GWl = cs + 2 * R;
+  const seeds = []; let ymin = 1e9, ymax = -1e9;
+  for (let dx = -1; dx <= 1; dx++) for (let dz = -1; dz <= 1; dz++) {
+    const set = _lvIdx.get((cx + dx) + ',' + (cz + dz));
+    if (!set) continue;
+    for (const k of set) {
+      const b = world.get(k);
+      if (!b || b.type !== 'lava') { set.delete(k); continue; }
+      if (b.x < gx0 || b.x >= gx0 + GWl || b.z < gz0 || b.z >= gz0 + GWl) continue;
+      if (!lavaExposed(b)) continue;
+      seeds.push(b);
+      if (b.y < ymin) ymin = b.y;
+      if (b.y > ymax) ymax = b.y;
+    }
+  }
+  if (!seeds.length) return _LV_EMPTY;
+  const ylo = Math.max(Y_MIN, ymin - R), yhi = Math.min(Y_MAX, ymax + R), GH = yhi - ylo + 1;
+  const seen = new Uint8Array(GWl * GWl * GH);
+  const idx = (x, y, z) => ((x - gx0) * GWl + (z - gz0)) * GH + (y - ylo);
+  const inMesh = (x, z) => x >= bx0 - 2 && x < bx0 + cs + 2 && z >= bz0 - 2 && z < bz0 + cs + 2;
+  const xs = [], ys = [], zs = [], vs = [];
+  let qx = [], qy = [], qz = [];
+  for (const b of seeds) { const i = idx(b.x, b.y, b.z); if (seen[i]) continue; seen[i] = 1; qx.push(b.x); qy.push(b.y); qz.push(b.z); }
+  for (let level = LAVA_LIGHT_LEVEL; level > 0 && qx.length; level--) {
+    const nx2 = [], ny2 = [], nz2 = [];
+    for (let i = 0; i < qx.length; i++) {
+      const x = qx[i], y = qy[i], z = qz[i];
+      if (inMesh(x, z)) { xs.push(x); ys.push(y); zs.push(z); vs.push(level); }
+      if (level === 1) continue;
+      for (let f = 0; f < 6; f++) {
+        const d = FACES[f].dir;
+        const nx = x + d[0], ny = y + d[1], nz = z + d[2];
+        if (ny < ylo || ny > yhi || nx < gx0 || nx >= gx0 + GWl || nz < gz0 || nz >= gz0 + GWl) continue;
+        const si = idx(nx, ny, nz);
+        if (seen[si]) continue;
+        seen[si] = 1;
+        const nb = world.get(key(nx, ny, nz));
+        if (nb && !BLOCK_TYPES[nb.type].transparent) {          // opaque: lit on its face, blocks further spread
+          if (inMesh(nx, nz)) { xs.push(nx); ys.push(ny); zs.push(nz); vs.push(level - 1); }
+        } else { nx2.push(nx); ny2.push(ny); nz2.push(nz); }
+      }
+    }
+    qx = nx2; qy = ny2; qz = nz2;
+  }
+  return { n: vs.length, xs: Int16Array.from(xs), ys: Int16Array.from(ys), zs: Int16Array.from(zs), vs: Uint8Array.from(vs) };
+}
+function lavaFloodFor(cx, cz) {
+  const ck = cx + ',' + cz;
+  let f = _lvFloodCache.get(ck);
+  if (f) return f;
+  f = computeLavaFlood(cx, cz);
+  if (_lvFloodCache.size > 500) _lvFloodCache.delete(_lvFloodCache.keys().next().value);
+  _lvFloodCache.set(ck, f);
+  return f;
+}
+// A block / lava cell changed at (x,y,z): drop the cached lava light of every chunk it can reach and queue those chunks for a re-mesh.
+function lavaFloodInvalidate(x, y, z, force) {
+  if (!_lvFloodCache.size) return;
+  const R = LAVA_LIGHT_LEVEL;
+  const cx0 = Math.floor((x - R) / CHUNK_SIZE), cx1 = Math.floor((x + R) / CHUNK_SIZE);
+  const cz0 = Math.floor((z - R) / CHUNK_SIZE), cz1 = Math.floor((z + R) / CHUNK_SIZE);
+  for (let cx = cx0; cx <= cx1; cx++) for (let cz = cz0; cz <= cz1; cz++) {
+    const ck = cx + ',' + cz, f = _lvFloodCache.get(ck);
+    if (f === undefined) continue;
+    _lvFloodCache.delete(ck);
+    if (force || f.n > 0) _lvRelight.add(ck);
+  }
+}
 // A block change only matters to torches whose light could reach it (within TORCH_LIGHT_RADIUS),
 // so drop just those cached floods instead of wiping every torch's flood on every edit
 // (which made each mine / place near a base re-flood every torch from scratch).
 function lightInvalidateNear(x, y, z) {
+  try { lavaFloodInvalidate(x, y, z, false); } catch (e) {}
   if (!floodCache.size) return;
   const R = TORCH_LIGHT_RADIUS;
   floodCache.forEach((f, k) => {
@@ -3994,7 +4142,9 @@ function lightLevelAtWorld(x, y, z) {
     const [tx, ty, tz] = k.split(',').map(Number);
     if (Math.abs(tx-x) <= TORCH_LIGHT_RADIUS && Math.abs(ty-y) <= TORCH_LIGHT_RADIUS && Math.abs(tz-z) <= TORCH_LIGHT_RADIUS) floodTorchLight(tx, ty, tz, field);
   });
-  return Math.min(LIGHT_MAX, Math.max(sky, 0) + (field.get(key(x, y, z)) || 0));
+  let lavaL = 0;
+  try { const lf = lavaFloodFor(Math.floor(x / CHUNK_SIZE), Math.floor(z / CHUNK_SIZE)); for (let i = 0; i < lf.n; i++) if (lf.xs[i] === x && lf.ys[i] === y && lf.zs[i] === z) { lavaL = lf.vs[i]; break; } } catch (e) {}
+  return Math.min(LIGHT_MAX, Math.max(sky, 0) + Math.max(field.get(key(x, y, z)) || 0, lavaL));
 }
 function rebuildChunk(cx, cz) {
   const ck = cx+','+cz;
@@ -4030,6 +4180,7 @@ function rebuildChunk(cx, cz) {
       torchFloods.push(floodTorchCachedFast(k, tx, ty, tz));
     }
   });
+  try { const lf = lavaFloodFor(cx, cz); if (lf.n) torchFloods.push(lf); } catch (e) {}   // lava glows at level 10
   function slowTorchAt(x, y, z) {                       // only for cells outside the local grid (rare)
     let best = 0;
     for (const f of torchFloods) for (let i = 0; i < f.n; i++) if (f.xs[i] === x && f.ys[i] === y && f.zs[i] === z && f.vs[i] > best) best = f.vs[i];
@@ -4112,6 +4263,7 @@ function rebuildChunk(cx, cz) {
           continue;
         }
         if (b.type === 'water') { addWaterBlock(buffers, b, x, y, z, grid, gi, GW, GY, cellShade); continue; }
+        if (b.type === 'lava') { addLavaBlock(buffers, b, x, y, z, grid, gi, GW, GY); continue; }
         // Figure out which faces are visible in a single pass over the 6
         // neighbors (each world.get is a Map lookup keyed off a freshly
         // built string, so doing this scan twice — once just to ask "is
@@ -4330,6 +4482,7 @@ for (let i = 0; i < MAX_ACTIVE_TORCH_LIGHTS; i++) {
 }
 function syncBlockLight(x,y,z,type,deferRerank) {
   const k = key(x,y,z);
+  try { if (lavaIdxSync(x, y, z, type === 'lava')) lavaFloodInvalidate(x, y, z, true); } catch (e) {}
   if (type === 'torch' || type === 'campfire' || type === 'fire') {
     if (!blockLights.has(k)) {
       const yOff = type === 'campfire' ? 0.85 : 0.6;
@@ -4534,6 +4687,7 @@ function removeBlock(x,y,z,skipMark) {
     if (typeof pushBlockDiff === 'function') pushBlockDiff(x, y + 1, z, 'air');
   }
   if (removedType !== 'water') waterOnRemoved(x, y, z);   // a hole next to water gets flooded
+  if (removedType !== 'lava') lavaOnRemoved(x, y, z);       // ... and next to lava the lava runs in
   return true;
 }
 // ---------- Water flow ----------
@@ -4579,6 +4733,7 @@ function waterPut(x, y, z, d) {
   if (waterSrcCount(x, y, z) >= 2 && world.has(key(x, y - 1, z)) && generatedChunks.has(Math.floor(x / CHUNK_SIZE) + ',' + Math.floor(z / CHUNK_SIZE))) {
     // a gap between two water sources fills up as a SOURCE (not flowing water)
     world.set(k, { type: 'water', x, y, z, meta: 0 });
+    lavaWaterNear(x, y, z);
     lightInvalidateNear(x, y, z); syncBlockLight(x, y, z, 'water');
     markChunkDirty(x, z); markLightArea(x, y, z, false);
     waterEnq(x, y, z);
@@ -4586,6 +4741,7 @@ function waterPut(x, y, z, d) {
   }
   if (_wfCells.size >= WATER_FLOW_CAP) return false;
   if (!generatedChunks.has(Math.floor(x / CHUNK_SIZE) + ',' + Math.floor(z / CHUNK_SIZE))) return false;
+  lavaWaterNear(x, y, z);
   world.set(k, { type: 'water', x, y, z, meta: d, flow: true });   // set directly: flowing water is never saved, so a mined spot stays "mined" on disk
   _wfCells.add(k);
   lightInvalidateNear(x, y, z); syncBlockLight(x, y, z, 'water');
@@ -4596,6 +4752,7 @@ function waterPut(x, y, z, d) {
 function waterStep(x, y, z) {
   const b = world.get(key(x, y, z));
   if (!b || b.type !== 'water') return;
+  lavaWaterNear(x, y, z);
   if (b.flow && waterSrcCount(x, y, z) >= 2 && world.has(key(x, y - 1, z))) { b.flow = false; b.meta = 0; _wfCells.delete(key(x, y, z)); }   // flowing water between two sources becomes a source
   const d = b.flow ? (b.meta | 0) : 0;
   if (!world.has(key(x, y - 1, z))) { if (y > -60) waterPut(x, y - 1, z, 1); return; }   // falls first (and spreads again on landing)
@@ -4612,6 +4769,174 @@ function updateWaterFlow(dt) {
   }
   if (_wfHead > 300) { _wfQ.splice(0, _wfHead); _wfHead = 0; }
   if (++_wfPrune > 40) { _wfPrune = 0; for (const k of _wfCells) { const b = world.get(k); if (!b || b.type !== 'water') _wfCells.delete(k); } }
+}
+// ---------- Lava flow ----------
+// Like water, but slower (a step every 0.8s instead of 0.2s), it only runs 3 blocks, and flowing lava can never turn into a source.
+// Water + lava: water touching a lava SOURCE makes obsidian; water touching FLOWING lava makes cobblestone.
+const LAVA_FLOW_MAX = 3, LAVA_FLOW_CAP = 20000, LAVA_TICK = 0.8, LAVA_BUDGET = 8, LAVA_SETTLE_CAP = 160;
+const _lvQ = [], _lvIn = new Set(), _lvCells = new Set(); let _lvHead = 0, _lvT = 0, _lvPrune = 0;
+const _NB6 = [[1,0,0],[-1,0,0],[0,0,1],[0,0,-1],[0,1,0],[0,-1,0]];
+function lavaEnq(x, y, z) {
+  const k = key(x, y, z);
+  if (_lvIn.has(k) || _lvQ.length - _lvHead > 600) return;
+  _lvIn.add(k); _lvQ.push(x, y, z);
+}
+function lavaOnRemoved(x, y, z) {
+  for (const [dx, dy, dz] of _NB6) { const b = world.get(key(x + dx, y + dy, z + dz)); if (b && b.type === 'lava') lavaEnq(x + dx, y + dy, z + dz); }
+}
+function lavaSolidify(x, y, z, type) {
+  const k = key(x, y, z);
+  world.set(k, { type, x, y, z, meta: 0 });
+  _lvCells.delete(k);
+  try { lightInvalidateNear(x, y, z); syncBlockLight(x, y, z, type); } catch (e) {}
+  markChunkDirty(x, z); try { markLightArea(x, y, z, false); } catch (e) {}
+  try { pushBlockDiff(x, y, z, type); } catch (e) {}
+  try { markPlaced(x, y, z); } catch (e) {}
+}
+// a lava cell next to water turns to stone: source -> obsidian, flowing -> cobblestone
+function lavaReact(x, y, z) {
+  const b = world.get(key(x, y, z));
+  if (!b || b.type !== 'lava') return false;
+  for (const [dx, dy, dz] of _NB6) {
+    const n = world.get(key(x + dx, y + dy, z + dz));
+    if (n && n.type === 'water') { lavaSolidify(x, y, z, b.flow ? 'cobblestone' : 'obsidian'); return true; }
+  }
+  return false;
+}
+// called when a water cell appears / steps: any lava touching it solidifies
+function lavaWaterNear(x, y, z) {
+  for (const [dx, dy, dz] of _NB6) {
+    const n = world.get(key(x + dx, y + dy, z + dz));
+    if (n && n.type === 'lava') lavaSolidify(x + dx, y + dy, z + dz, n.flow ? 'cobblestone' : 'obsidian');
+  }
+}
+function lavaDefer(ck, x, y, z) {
+  let a = _lvDeferred.get(ck);
+  if (!a) _lvDeferred.set(ck, a = []);
+  if (a.length < 600) a.push(x, y, z);
+}
+function lavaPut(x, y, z, d, sx, sy, sz) {
+  const k = key(x, y, z);
+  if (world.has(k)) return false;
+  if (_lvCells.size >= LAVA_FLOW_CAP) return false;
+  const tck = Math.floor(x / CHUNK_SIZE) + ',' + Math.floor(z / CHUNK_SIZE);
+  if (!generatedChunks.has(tck)) { if (sx !== undefined) lavaDefer(tck, sx, sy, sz); return false; }   // runs in when that chunk is generated
+  world.set(k, { type: 'lava', x, y, z, meta: d, flow: true });   // flowing lava is never saved
+  _lvCells.add(k);
+  lightInvalidateNear(x, y, z); syncBlockLight(x, y, z, 'lava');
+  markChunkDirty(x, z); markLightArea(x, y, z, false);
+  if (lavaReact(x, y, z)) return true;
+  lavaEnq(x, y, z);
+  return true;
+}
+function lavaStep(x, y, z) {
+  const b = world.get(key(x, y, z));
+  if (!b || b.type !== 'lava') return;
+  if (lavaReact(x, y, z)) return;
+  const d = b.flow ? (b.meta | 0) : 0;
+  if (!world.has(key(x, y - 1, z))) { if (y > -60) lavaPut(x, y - 1, z, 1, x, y, z); return; }   // falls first
+  if (d >= LAVA_FLOW_MAX) return;
+  for (const [dx, dz] of [[1,0],[-1,0],[0,1],[0,-1]]) if (!world.has(key(x + dx, y, z + dz))) lavaPut(x + dx, y, z + dz, d + 1, x, y, z);
+}
+// Instant flow: runs the whole spread in one go (no 0.8 s steps, no per-cell mesh work). Used when a chunk is generated,
+// so lava is already running down slopes the first time the chunk is drawn.
+function lavaSettle(seedList, curCx, curCz) {
+  const q = seedList.slice(); let head = 0, made = 0;
+  const genOk = (x, z) => { const cx = Math.floor(x / CHUNK_SIZE), cz = Math.floor(z / CHUNK_SIZE); return (cx === curCx && cz === curCz) || generatedChunks.has(cx + ',' + cz); };
+  const waterNear = (x, y, z) => { for (const [dx, dy, dz] of _NB6) { const n = world.get(key(x + dx, y + dy, z + dz)); if (n && n.type === 'water') return true; } return false; };
+  const put = (x, y, z, d, sx, sy, sz) => {
+    const k = key(x, y, z);
+    if (world.has(k)) return;
+    if (!genOk(x, z)) { lavaDefer(Math.floor(x / CHUNK_SIZE) + ',' + Math.floor(z / CHUNK_SIZE), sx, sy, sz); return; }
+    if (waterNear(x, y, z)) return;
+    world.set(k, { type: 'lava', x, y, z, meta: d, flow: true });
+    _lvCells.add(k); lavaIdxSync(x, y, z, true); lavaFloodInvalidate(x, y, z, true);
+    made++; q.push(x, y, z);
+  };
+  while (head < q.length && made < LAVA_SETTLE_CAP) {
+    const x = q[head++], y = q[head++], z = q[head++];
+    const b = world.get(key(x, y, z));
+    if (!b || b.type !== 'lava') continue;
+    const d = b.flow ? (b.meta | 0) : 0;
+    if (!world.has(key(x, y - 1, z))) { if (y > -60) put(x, y - 1, z, 1, x, y, z); continue; }
+    if (d >= LAVA_FLOW_MAX) continue;
+    put(x + 1, y, z, d + 1, x, y, z); put(x - 1, y, z, d + 1, x, y, z);
+    put(x, y, z + 1, d + 1, x, y, z); put(x, y, z - 1, d + 1, x, y, z);
+  }
+  for (; head < q.length; head += 3) lavaEnq(q[head], q[head + 1], q[head + 2]);   // hit the cap: the rest keeps flowing live (near the player)
+}
+function lavaChunkSettle(cx, cz) {
+  const ck = cx + ',' + cz, seeds = [];
+  const set = _lvIdx.get(ck);
+  if (set) for (const k of set) {
+    const b = world.get(k);
+    if (!b || b.type !== 'lava') { set.delete(k); continue; }
+    if (b.flow) continue;
+    if (!world.has(key(b.x, b.y - 1, b.z)) || !world.has(key(b.x + 1, b.y, b.z)) || !world.has(key(b.x - 1, b.y, b.z)) ||
+        !world.has(key(b.x, b.y, b.z + 1)) || !world.has(key(b.x, b.y, b.z - 1))) seeds.push(b.x, b.y, b.z);
+  }
+  const def = _lvDeferred.get(ck);
+  if (def) { for (const v of def) seeds.push(v); _lvDeferred.delete(ck); }   // lava from neighbour chunks that was waiting for this one
+  if (seeds.length) lavaSettle(seeds, cx, cz);
+}
+// Live flow only runs near the player (LAVA_NEAR_CHUNKS); steps further away wait and resume once the player comes close.
+let _lavaHurtT = 0, _lvFarT = 0, _lvRelightT = 0;
+function lavaNearPlayer(x, z, pcx, pcz) {
+  return Math.abs(Math.floor(x / CHUNK_SIZE) - pcx) <= LAVA_NEAR_CHUNKS && Math.abs(Math.floor(z / CHUNK_SIZE) - pcz) <= LAVA_NEAR_CHUNKS;
+}
+function updateLava(dt) {
+  const pcx = Math.floor(player.pos.x / CHUNK_SIZE), pcz = Math.floor(player.pos.z / CHUNK_SIZE);
+  if (_lvHead >= _lvQ.length) { _lvHead = _lvQ.length = 0; }
+  else {
+    _lvT += dt;
+    if (_lvT >= LAVA_TICK) {
+      _lvT = 0;
+      let done = 0, scanned = 0;
+      while (done < LAVA_BUDGET && scanned < 200 && _lvHead < _lvQ.length) {
+        const x = _lvQ[_lvHead++], y = _lvQ[_lvHead++], z = _lvQ[_lvHead++];
+        scanned++;
+        _lvIn.delete(key(x, y, z));
+        if (!lavaNearPlayer(x, z, pcx, pcz)) {
+          const fck = Math.floor(x / CHUNK_SIZE) + ',' + Math.floor(z / CHUNK_SIZE);
+          let a = _lvFar.get(fck); if (!a) _lvFar.set(fck, a = []);
+          if (a.length < 300) a.push(x, y, z);
+          continue;
+        }
+        lavaStep(x, y, z); done++;
+      }
+      if (_lvHead > 300) { _lvQ.splice(0, _lvHead); _lvHead = 0; }
+      if (++_lvPrune > 20) { _lvPrune = 0; for (const k of _lvCells) { const b = world.get(k); if (!b || b.type !== 'lava') _lvCells.delete(k); } }
+    }
+  }
+  _lvFarT += dt;
+  if (_lvFarT >= 1 && _lvFar.size) {
+    _lvFarT = 0;
+    for (const [ck, a] of _lvFar) {
+      const p = ck.split(',');
+      if (Math.abs(+p[0] - pcx) <= LAVA_NEAR_CHUNKS && Math.abs(+p[1] - pcz) <= LAVA_NEAR_CHUNKS) {
+        for (let i = 0; i < a.length; i += 3) lavaEnq(a[i], a[i + 1], a[i + 2]);
+        _lvFar.delete(ck);
+      }
+    }
+  }
+  _lvRelightT += dt;
+  if (_lvRelight.size && _lvRelightT >= 0.25) {      // lava light changed: re-mesh the affected chunks once, not per lava cell
+    _lvRelightT = 0;
+    for (const ck of _lvRelight) { const c = chunks.get(ck); if (c && c.mesh) { const p = ck.split(','); markOne(+p[0], +p[1]); } }
+    _lvRelight.clear();
+  }
+  updateLavaAnim(dt);
+  _lavaHurtT -= dt;
+  if (player.hp > 0 && isInLava(player.pos) && !hasFireRes()) {
+    player.burnT = Math.max(player.burnT || 0, 8);
+    if (_lavaHurtT <= 0) { _lavaHurtT = 0.5; damagePlayer(3, null, 0); }
+  }
+  for (const a of animals) {
+    if (!a.alive || a.remote) continue;
+    const adx = a.pos.x - player.pos.x, adz = a.pos.z - player.pos.z;
+    if (adx * adx + adz * adz > 6400) continue;      // only check mobs within 80 blocks
+    if (isInLava(a.pos)) { a.burnT = Math.max(a.burnT || 0, 4); a.lavaT = (a.lavaT || 0) - dt; if (a.lavaT <= 0) { a.lavaT = 0.5; a.hp -= 2; try { flashRed(a.group); } catch (e) {} if (a.hp <= 0) { try { killAnimal(a, MY_ID); } catch (e) {} } } }
+  }
 }
 function torchSupported(x,y,z) {
   const below = world.get(key(x,y-1,z));
@@ -4922,6 +5247,7 @@ function dgPut(x, y, z, type, onlyIfSolid, flags) {
   if (onlyIfSolid && (!b || b.type === 'water')) return false;
   if (b) { b.type = type; b.meta = 0; delete b.placed; delete b.natural; if (flags) Object.assign(b, flags); }
   else world.set(k, Object.assign({ type, x, y, z, meta: 0 }, flags || null));
+  if (type === 'lava') lavaIdxSync(x, y, z, true);
   return true;
 }
 function dgClear(x, y, z) {
@@ -4985,6 +5311,67 @@ function dungeonLootFor(k, b) {
   return slots;
 }
 
+// ================= Lava pools =================
+// Pools of lava source blocks: sunk 2 deep into a cave floor underground (with extra diamond ore around them) or into flat ground
+// on the surface. Pure functions of the chunk, so every client generates the same pools.
+const LAVA_CAVE_CHANCE = 0.30, LAVA_SURFACE_CHANCE = 0.05;
+function genLavaPools(cx, cz) {
+  if (Math.abs(cx) <= 2 && Math.abs(cz) <= 2) return;                 // never around the spawn point
+  const x0 = cx * CHUNK_SIZE, z0 = cz * CHUNK_SIZE;
+  const inChunk = (x, z) => x >= x0 && x < x0 + CHUNK_SIZE && z >= z0 && z < z0 + CHUNK_SIZE;
+  // ---- underground pool (in a cave) ----
+  if (hashRandom(cx, cz, 0, 9301) < LAVA_CAVE_CHANCE) {
+    for (let t = 0; t < 8; t++) {
+      const lx = 3 + Math.floor(hashRandom(cx, cz, t, 9302) * (CHUNK_SIZE - 6)), lz = 3 + Math.floor(hashRandom(cx, cz, t, 9303) * (CHUNK_SIZE - 6));
+      const x = x0 + lx, z = z0 + lz, h = columnInfo(x, z).h;
+      const top = h - 8, bot = WORLD_BOTTOM + 4;
+      if (top <= bot + 2) continue;
+      let fy = null;                                                   // find a cave floor: open cell with solid stone below, searching down from a random height
+      for (let y = bot + Math.floor(hashRandom(cx, cz, t, 9304) * (top - bot)); y > bot; y--) {
+        const here = world.get(key(x, y, z)), below = world.get(key(x, y - 1, z)), below2 = world.get(key(x, y - 2, z));
+        if (!here && below && below.type === 'stone' && below2 && below2.type === 'stone' && !world.has(key(x, y + 1, z))) { fy = y; break; }
+      }
+      if (fy == null) continue;
+      const r = 2 + Math.floor(hashRandom(cx, cz, t, 9305) * 3);        // radius 2..4
+      const cells = [];
+      for (let dx = -r; dx <= r; dx++) for (let dz = -r; dz <= r; dz++) {
+        const px = x + dx, pz = z + dz;
+        if (!inChunk(px, pz)) continue;
+        if (Math.hypot(dx, dz) > r + (hashRandom(px, pz, fy, 9306) - 0.5)) continue;   // ragged edge
+        const fl = world.get(key(px, fy - 1, pz)), fl2 = world.get(key(px, fy - 2, pz));
+        if (world.has(key(px, fy, pz)) || !fl || fl.type !== 'stone' || !fl2 || fl2.type !== 'stone') continue;   // only where the cave floor is flat and open
+        cells.push([px, pz]);
+      }
+      if (cells.length < 4) continue;
+      for (const [px, pz] of cells) { dgPut(px, fy - 1, pz, 'lava', true); dgPut(px, fy - 2, pz, 'lava', true); }
+      // diamonds like to sit around underground lava
+      for (let dx = -r - 2; dx <= r + 2; dx++) for (let dz = -r - 2; dz <= r + 2; dz++) for (let dy = -4; dy <= 3; dy++) {
+        const px = x + dx, py = fy + dy, pz = z + dz;
+        if (!inChunk(px, pz)) continue;
+        const b = world.get(key(px, py, pz));
+        if (!b || b.type !== 'stone' || diffTouched.has(key(px, py, pz))) continue;
+        let near = false;
+        for (const [ax, ay, az] of _NB6) { const n = world.get(key(px + ax, py + ay, pz + az)); if (n && n.type === 'lava') { near = true; break; } }
+        if (near && hashRandom(px, py, pz, 9307) < 0.22) { b.type = 'diamond_ore'; b.natural = true; }
+      }
+      break;
+    }
+  }
+  // ---- surface pool (flat ground) ----
+  if (hashRandom(cx, cz, 1, 9311) < LAVA_SURFACE_CHANCE) {
+    const lx = 4 + Math.floor(hashRandom(cx, cz, 2, 9312) * (CHUNK_SIZE - 8)), lz = 4 + Math.floor(hashRandom(cx, cz, 3, 9313) * (CHUNK_SIZE - 8));
+    const x = x0 + lx, z = z0 + lz, hc = columnInfo(x, z).h;
+    if (hc > WATER_LEVEL + 2) {
+      const r = 2 + Math.floor(hashRandom(cx, cz, 4, 9314) * 2);       // radius 2..3
+      for (let dx = -r; dx <= r; dx++) for (let dz = -r; dz <= r; dz++) {
+        const px = x + dx, pz = z + dz;
+        if (!inChunk(px, pz) || Math.hypot(dx, dz) > r + (hashRandom(px, pz, hc, 9315) - 0.5)) continue;
+        if (columnInfo(px, pz).h !== hc) continue;                      // only where the ground is level with the middle
+        dgPut(px, hc, pz, 'lava', true); dgPut(px, hc - 1, pz, 'lava', true);
+      }
+    }
+  }
+}
 function* generateChunkColumnsGen(cx, cz) {
   const x0 = cx*CHUNK_SIZE, x1 = x0+CHUNK_SIZE-1;
   const z0 = cz*CHUNK_SIZE, z1 = z0+CHUNK_SIZE-1;
@@ -5018,6 +5405,8 @@ function* generateChunkColumnsGen(cx, cz) {
   yield;
   genSpawnerRooms(cx, cz);
   yield;
+  try { genLavaPools(cx, cz); } catch (e) { console.warn('lava pools', e); }
+  yield;
   // Trees whose base sits just outside this chunk can still canopy into it,
   // so scan a small padded border too — idempotent (addBlock no-ops on an
   // already-placed block), so overlap with neighboring chunks is harmless.
@@ -5050,6 +5439,7 @@ function* generateChunkColumnsGen(cx, cz) {
     for (let j = 1; j <= ht; j++) addBlock(sx, sh + j, sz, 'sugar_cane', true);
     if ((i % 96) === 0) yield;
   }
+  try { lavaChunkSettle(cx, cz); } catch (e) { console.warn('lava settle', e); }   // lava already flowing when the chunk appears
 }
 // Synchronous version (initial load, teleports, remote players): runs every step at once.
 function generateChunkColumns(cx, cz) {
@@ -7154,7 +7544,7 @@ function entityCoveredInWeb(pos, h) {
 }
 function solidAt(x,y,z) {
   const b = getBlock(x,y,z);
-  if (!b || b.type === 'water') return false;
+  if (!b || b.type === 'water' || b.type === 'lava') return false;
   // Cross-model blocks (torch, sapling, cobweb) are thin decorative sprites with no
   // volume to collide with — like Minecraft, you can walk straight through
   // a torch or a sapling instead of it acting like a solid cube.
@@ -18101,7 +18491,7 @@ function castVoxelRay(origin, dir, maxDist) {
   let t = 0;
   for (let n = 0; n < 512; n++) {
     const b = world.get(bx + ',' + by + ',' + bz);
-    if (b && b.type !== 'water') {
+    if (b && b.type !== 'water' && b.type !== 'lava') {
       if (!BLOCK_TYPES[b.type].shape) return { x:bx, y:by, z:bz, px, py, pz, hx:ox + dx*t, hy:oy + dy*t, hz:oz + dz*t };
       // partial-volume block (stairs, slab, door...): only a hit if the ray actually passes through its boxes
       const tEnd = Math.min(tmx, tmy, tmz, maxDist);
@@ -18231,6 +18621,7 @@ function updateMining(dt) {
       if (canDrop && b.type === 'iron_ore') {
         canDrop = toolKind === 'pickaxe' && (heldType.startsWith('stone_') || heldType.startsWith('iron_') || heldType.startsWith('gold_') || heldType.startsWith('diamond_'));
       }
+      if (canDrop && b.type === 'obsidian') canDrop = toolKind === 'pickaxe' && heldType.startsWith('diamond_');   // obsidian: diamond pickaxe only
       // Gold / diamond ore need at least an iron pickaxe (or better: gold/diamond).
       if (canDrop && (b.type === 'gold_ore' || b.type === 'diamond_ore' || b.type === 'redstone_ore')) {
         canDrop = toolKind === 'pickaxe' && (heldType.startsWith('iron_') || heldType.startsWith('gold_') || heldType.startsWith('diamond_'));
@@ -18712,7 +19103,7 @@ let _shopAllTypes = null;
 
 function shopEsc(s) { return String(s == null ? '' : s).replace(/[&<>"']/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c])); }
 function shopTradableType(t) {   // anything that can be asked for in return
-  if (!t || /^(water|fire|air|spawner|bedrock)$/.test(t)) return false;
+  if (!t || /^(water|lava|fire|air|spawner|bedrock)$/.test(t)) return false;
   return !!(ITEM_INFO[t] || BLOCK_TYPES[t]);
 }
 function shopKindOf(o) {   // 'zombie' | 'skeleton' | 'breeze' for a spawner item/slot
@@ -19419,10 +19810,35 @@ function bucketSwap(toType) {
 }
 function tryUseBucket() {
   const held = currentItem();
-  if (!held || (held.type !== 'bucket' && held.type !== 'water_bucket')) return false;
+  if (!held || (held.type !== 'bucket' && held.type !== 'water_bucket' && held.type !== 'lava_bucket')) return false;
   startSwing();
   const r = bucketRay();
   if (!r) return true;
+  if (held.type === 'bucket' && r.b.type === 'lava') {   // take a lava SOURCE
+    if (r.b.flow) return true;
+    const { x, y, z } = r.cell;
+    removeBlock(x, y, z);
+    pushBlockDiff(x, y, z, 'air');
+    bucketSwap('lava_bucket');
+    return true;
+  }
+  if (held.type === 'lava_bucket') {   // pour a lava SOURCE into the open cell in front of the face you clicked
+    let c = null;
+    if (r.b.type === 'lava' && r.b.flow) c = r.cell; else if (r.prev) c = r.prev;
+    if (!c) return true;
+    const k = key(c.x, c.y, c.z), ex = world.get(k);
+    if (ex && !(ex.type === 'lava' && ex.flow)) return true;
+    const px = Math.round(player.pos.x), pz = Math.round(player.pos.z), py = Math.round(player.pos.y);
+    if (c.x === px && c.z === pz && (c.y === py || c.y === py + 1)) return true;   // not inside yourself
+    if (ex) { world.delete(k); _lvCells.delete(k); }
+    world.set(k, { type: 'lava', x: c.x, y: c.y, z: c.z, meta: 0 });
+    lightInvalidateNear(c.x, c.y, c.z); markChunkDirty(c.x, c.z); try { markLightArea(c.x, c.y, c.z, false); } catch (e) {}
+    pushBlockDiff(c.x, c.y, c.z, 'lava');
+    markPlaced(c.x, c.y, c.z);
+    if (!lavaReact(c.x, c.y, c.z)) lavaEnq(c.x, c.y, c.z);
+    bucketSwap('bucket');
+    return true;
+  }
   if (held.type === 'bucket') {   // take a water SOURCE
     if (!r.water || r.b.flow) return true;
     const { x, y, z } = r.cell;
@@ -20310,6 +20726,7 @@ function animate() {
   updateSpokeHud(dt);
   updateFogPhantoms(dt);
   updateWaterFlow(dt);
+  try { updateLava(dt); } catch (e) { console.warn('lava', e); }
   updateWaterAnim();
   updateWaterPush(dt);
   updateDroppedItems(dt);
@@ -20328,7 +20745,8 @@ function animate() {
 
   let isMoving = false;
   let swimMoveDir = null;
-  const inWater = isInWater(player.pos);
+  const _inLava = isInLava(player.pos);
+  const inWater = isInWater(player.pos) || _inLava;
   // Sprint (from double-tapping W, or holding Shift as a fallback) only
   // applies while actually holding forward and not also backpedaling —
   // matches vanilla Minecraft, where sprint cancels out of those states.
@@ -20348,7 +20766,7 @@ function animate() {
   jcSprinting = sprinting;
   if (!canSprint) { isSprinting = false; mobile.sprint = false; }
   const baseSpeed = sprinting ? 6 : 4.2;   // was 8 / 5 -- tweak these two numbers to taste
-  let speed = inWater ? baseSpeed*0.5 : baseSpeed;
+  let speed = _inLava ? baseSpeed*0.3 : (inWater ? baseSpeed*0.5 : baseSpeed);
   if (player.crouched) speed *= 0.3;   // sneaking is slow
   if (isBlocking) speed *= 0.35; // raising a shield plants your feet
   if (inCobweb(player.pos, player.height)) speed *= 0.08;   // cobweb: crawl (very slow)
