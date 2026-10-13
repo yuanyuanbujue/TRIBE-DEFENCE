@@ -318,6 +318,10 @@
     color: #fff; font-size: 15px; cursor: pointer; display: flex; align-items: center; justify-content: center;
   }
   #settingsBtn:hover { background: rgba(0,0,0,0.6); }
+  #fireOverlay { display: none; position: fixed; left: 0; right: 0; bottom: 0; height: 38vh; z-index: 53; pointer-events: none;
+    background: radial-gradient(ellipse at 50% 100%, rgba(255,200,40,0.75) 0%, rgba(255,110,0,0.6) 35%, rgba(255,60,0,0.25) 65%, rgba(255,60,0,0) 100%);
+    animation: fireFlicker 0.35s infinite alternate ease-in-out; mix-blend-mode: screen; }
+  @keyframes fireFlicker { from { opacity: 0.65; transform: scaleY(0.92); transform-origin: bottom; } to { opacity: 1; transform: scaleY(1.08); transform-origin: bottom; } }
   #effectsHud { position: fixed; top: 12px; right: 50px; z-index: 54; display: flex; flex-direction: row-reverse; gap: 6px; pointer-events: none; }
   #effectsHud:empty { display: none; }
   #effectsHud .fx { display: flex; align-items: center; gap: 4px; height: 30px; padding: 0 8px 0 4px; border-radius: 6px;
@@ -1132,7 +1136,7 @@
     <div id="enchantTop">
       <div id="enchantSlotWrap"></div>
       <div id="enchantChoices">
-        <div id="enchTypeRow"><button class="enchBtn enchType" id="enchType0"><span class="eb-t">Efficiency</span><span class="eb-s">faster mining</span></button><button class="enchBtn enchType" id="enchType1"><span class="eb-t">Fortune</span><span class="eb-s">more ore / wood</span></button><button class="enchBtn enchType" id="enchType2"><span class="eb-t">Sharpness</span><span class="eb-s">more damage</span></button><button class="enchBtn enchType" id="enchType3"><span class="eb-t">Protection</span><span class="eb-s">less damage</span></button><button class="enchBtn enchType" id="enchType4"><span class="eb-t">Unbreaking</span><span class="eb-s">lasts longer</span></button><button class="enchBtn enchType" id="enchType5"><span class="eb-t">Mending</span><span class="eb-s">repairs with XP</span></button><button class="enchBtn enchType" id="enchType6"><span class="eb-t">Looting</span><span class="eb-s">more XP &amp; drops</span></button><button class="enchBtn enchType" id="enchType7"><span class="eb-t">Power</span><span class="eb-s">arrow damage</span></button><button class="enchBtn enchType" id="enchType8"><span class="eb-t">Charge</span><span class="eb-s">arrow knockback</span></button><button class="enchBtn enchType" id="enchType9"><span class="eb-t">Infinity</span><span class="eb-s">infinite arrows</span></button><button class="enchBtn enchType" id="enchType10"><span class="eb-t">Lunge</span><span class="eb-s">dash when attacking</span></button><button class="enchBtn enchType" id="enchType11"><span class="eb-t">Loyalty</span><span class="eb-s">trident returns</span></button><button class="enchBtn enchType" id="enchType12"><span class="eb-t">Riptide</span><span class="eb-s">dash in water / rain</span></button><button class="enchBtn enchType" id="enchType13"><span class="eb-t">Silk Touch</span><span class="eb-s">mine blocks intact</span></button><button class="enchBtn enchType" id="enchType14"><span class="eb-t">Density</span><span class="eb-s">more smash damage</span></button><button class="enchBtn enchType" id="enchType15"><span class="eb-t">Breach</span><span class="eb-s">armor pierce</span></button><button class="enchBtn enchType" id="enchType16"><span class="eb-t">Wind Burst</span><span class="eb-s">launch on smash</span></button><button class="enchBtn enchType" id="enchType17"><span class="eb-t">Sweeping Edge</span><span class="eb-s">bigger sweep AOE</span></button></div>
+        <div id="enchTypeRow"><button class="enchBtn enchType" id="enchType0"><span class="eb-t">Efficiency</span><span class="eb-s">faster mining</span></button><button class="enchBtn enchType" id="enchType1"><span class="eb-t">Fortune</span><span class="eb-s">more ore / wood</span></button><button class="enchBtn enchType" id="enchType2"><span class="eb-t">Sharpness</span><span class="eb-s">more damage</span></button><button class="enchBtn enchType" id="enchType3"><span class="eb-t">Protection</span><span class="eb-s">less damage</span></button><button class="enchBtn enchType" id="enchType4"><span class="eb-t">Unbreaking</span><span class="eb-s">lasts longer</span></button><button class="enchBtn enchType" id="enchType5"><span class="eb-t">Mending</span><span class="eb-s">repairs with XP</span></button><button class="enchBtn enchType" id="enchType6"><span class="eb-t">Looting</span><span class="eb-s">more XP &amp; drops</span></button><button class="enchBtn enchType" id="enchType7"><span class="eb-t">Power</span><span class="eb-s">arrow damage</span></button><button class="enchBtn enchType" id="enchType8"><span class="eb-t">Charge</span><span class="eb-s">arrow knockback</span></button><button class="enchBtn enchType" id="enchType9"><span class="eb-t">Infinity</span><span class="eb-s">infinite arrows</span></button><button class="enchBtn enchType" id="enchType10"><span class="eb-t">Lunge</span><span class="eb-s">dash when attacking</span></button><button class="enchBtn enchType" id="enchType11"><span class="eb-t">Loyalty</span><span class="eb-s">trident returns</span></button><button class="enchBtn enchType" id="enchType12"><span class="eb-t">Riptide</span><span class="eb-s">dash in water / rain</span></button><button class="enchBtn enchType" id="enchType13"><span class="eb-t">Silk Touch</span><span class="eb-s">mine blocks intact</span></button><button class="enchBtn enchType" id="enchType14"><span class="eb-t">Density</span><span class="eb-s">more smash damage</span></button><button class="enchBtn enchType" id="enchType15"><span class="eb-t">Breach</span><span class="eb-s">armor pierce</span></button><button class="enchBtn enchType" id="enchType16"><span class="eb-t">Wind Burst</span><span class="eb-s">launch on smash</span></button><button class="enchBtn enchType" id="enchType17"><span class="eb-t">Sweeping Edge</span><span class="eb-s">bigger sweep AOE</span></button><button class="enchBtn enchType" id="enchType18"><span class="eb-t">Flame</span><span class="eb-s">arrows set targets on fire</span></button></div>
         <button class="enchBtn" id="enchBtn0"><span class="eb-t"></span><span class="eb-s"></span></button>
         <button class="enchBtn" id="enchBtn1"><span class="eb-t"></span><span class="eb-s"></span></button>
         <button class="enchBtn" id="enchBtn2"><span class="eb-t"></span><span class="eb-s"></span></button>
@@ -1974,6 +1978,7 @@ const BLOCK_TYPES = {
   // ---- farming ----
   brewing_stand: { transparent: true, hardness: 0.5, tool: 'pickaxe', cross: true },
   cobweb:     { transparent: true, hardness: 0.4, tool: 'sword', cross: true },   // slows a lot; swords mine it fast; craft with 4 string
+  sugar_cane: { transparent: true, hardness: 0, tool: null, cross: true },          // grows on sand next to water
   tall_grass: { transparent: true, hardness: 0, tool: null, cross: true },        // wild grass tuft: break it for wheat seeds
   farmland:   { transparent: false, hardness: 0.6, tool: 'shovel' },              // made with a hoe, must be within 4 blocks of water
   wheat_0:    { transparent: true, hardness: 0, tool: null, cross: true },        // wheat crop, growth stage 0..3 (3 = ripe)
@@ -2074,16 +2079,23 @@ const ITEM_INFO = {
   potion_turtle_master: { maxStack: 1, potion: 'turtle_master', potionLvl: 1, potionSecs: 20 },
   potion_slow_falling:  { maxStack: 1, potion: 'slow_falling', potionLvl: 1, potionSecs: 90 },
   potion_invisibility:  { maxStack: 1, potion: 'invisibility', potionLvl: 1, potionSecs: 180 },
+  potion_invisibility_long: { maxStack: 1, potion: 'invisibility', potionLvl: 1, potionSecs: 480 },
+  potion_fire_resistance: { maxStack: 1, potion: 'fire_resistance', potionLvl: 1, potionSecs: 480 },
   // splash (throwable) potions — same effects, apply on impact in a small radius
   splash_strength:       { maxStack: 1, potion: 'strength', potionLvl: 1, potionSecs: 480, splash: true },
   splash_strength_2:     { maxStack: 1, potion: 'strength', potionLvl: 2, potionSecs: 90, splash: true },
   splash_turtle_master:  { maxStack: 1, potion: 'turtle_master', potionLvl: 1, potionSecs: 20, splash: true },
   splash_slow_falling:   { maxStack: 1, potion: 'slow_falling', potionLvl: 1, potionSecs: 90, splash: true },
   splash_invisibility:   { maxStack: 1, potion: 'invisibility', potionLvl: 1, potionSecs: 180, splash: true },
+  splash_invisibility_long: { maxStack: 1, potion: 'invisibility', potionLvl: 1, potionSecs: 480, splash: true },
+  splash_fire_resistance: { maxStack: 1, potion: 'fire_resistance', potionLvl: 1, potionSecs: 480, splash: true },
   brewing_stand:  { maxStack: 64 },
   // ---- elytra + fireworks ----
   compressed_wool: { maxStack: 64 },
   paper:          { maxStack: 64 },
+  gunpowder:      {},
+  sugar:          {},
+  sugar_cane:     {},
   elytra:         { maxStack: 1, armor: 0, slot: 1, elytra: true, durability: 432 },
   firework:       { maxStack: 64, firework: 1 },
   firework_2:     { maxStack: 64, firework: 2 },
@@ -2207,7 +2219,7 @@ function isPotion(type) { return !!(ITEM_INFO[type] && ITEM_INFO[type].potion); 
 function isSplashPotionType(type) { return !!(ITEM_INFO[type] && ITEM_INFO[type].potion && ITEM_INFO[type].splash); }
 function isDrinkablePotion(type) { return isPotion(type) && !isSplashPotionType(type); }
 const POTION_SPRITE_COLORS = {
-  strength: '#c8402e', turtle_master: '#5a8a5a', slow_falling: '#f0e8c8', invisibility: '#c8c8e8'
+  strength: '#c8402e', turtle_master: '#5a8a5a', slow_falling: '#f0e8c8', invisibility: '#c8c8e8', fire_resistance: '#e8821e'
 };
 // 16x16 bottle: c/C cork, g glass rim, w glass (see-through), B glass base, L/l/d liquid (light / mid / dark)
 const POTION_BOTTLE_ROWS = [
@@ -2228,6 +2240,19 @@ const POTION_BOTTLE_ROWS = [
   '................',
   '................'
 ];
+const CUSTOM_PX = {"sugar_cane_block": "00000000e5efdaff96c166ff0000000000000000aadb74ff82a859ff0000000000000000aadb74ff82a859ff0000000000000000aadb74ff82a859ff000000000000000082a859ff698747ff0000000000000000aadb74ff82a859ff0000000000000000aadb74ff82a859ff0000000000000000e5efdaff96c166ff0000000000000000aadb74ff82a859ff91ef32ff00000000aadb74ff82a859ff0000000000000000aadb74ff82a859ff75c128ff0000000082a859ff698747ff0000000000000000aadb74ff82a859ff75c128ff00000000aadb74ff82a859ff91ef32ff00000000aadb74ff82a859ff0000000000000000aadb74ff82a859ff0000000000000000aadb74ff82a859ff0000000000000000e5efdaff96c166ff75c128ff00000000aadb74ff82a859ff0000000000000000aadb74ff82a859ff0000000000000000aadb74ff82a859ff000000000000000082a859ff698747ff0000000000000000e5efdaff96c166ff0000000000000000aadb74ff82a859ff0000000000000000aadb74ff82a859ff0000000000000000aadb74ff82a859ff000000000000000082a859ff698747ff0000000000000000aadb74ff82a859ff91ef32ff00000000aadb74ff82a859ff0000000000000000aadb74ff82a859ff0000000000000000aadb74ff82a859ff0000000000000000aadb74ff82a859ff75c128ff91ef32ffe5efdaff96c166ff0000000000000000aadb74ff82a859ff0000000000000000aadb74ff82a859ff0000000000000000aadb74ff82a859ff0000000075c128ff82a859ff698747ff0000000000000000aadb74ff82a859ff0000000000000000aadb74ff82a859ff0000000000000000e5efdaff96c166ff0000000000000000aadb74ff82a859ff0000000075c128ffe5efdaff96c166ff0000000091ef32ffaadb74ff82a859ff000000000000000082a859ff698747ff0000000000000000aadb74ff82a859ff000000000000000082a859ff698747ff0000000075c128ffaadb74ff82a859ff0000000000000000aadb74ff82a859ff0000000000000000aadb74ff82a859ff0000000000000000aadb74ff82a859ff0000000000000000aadb74ff82a859ff0000000000000000aadb74ff82a859ff0000000000000000aadb74ff82a859ff0000000000000000aadb74ff82a859ff0000000000000000e5efdaff96c166ff0000000075c128ffaadb74ff82a859ff0000000000000000aadb74ff82a859ff0000000000000000aadb74ff82a859ff000000000000000082a859ff698747ff0000000000000000aadb74ff82a859ff0000000000000000aadb74ff82a859ff0000000000000000aadb74ff82a859ff0000000000000000aadb74ff82a859ff0000000000000000aadb74ff82a859ff00000000", "sugar_cane": "000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000097f544ff7ccc35ff2a4c0dff000000000000000000000000000000000000000000000000000000000000000000000000000000007ccc35ff2a4c0dff7ccc35ff97f544ff2a4c0dff000000000000000000000000000000000000000000000000000000000000000000000000000000007ccc35ff60a028ff47821eff97f544ff47821eff7ccc35ff000000007ccc35ff97f544ff0000000000000000000000000000000000000000000000000000000060a028ff47821eff7ccc35ff97f544ff60a028ff2a4c0dff7ccc35ff97f544ff7ccc35ff2a4c0dff000000000000000000000000000000000000000000000000000000007ccc35ff97f544ff60a028ff3b6318ff7ccc35ff97f544ff60a028ff2a4c0dff0000000000000000000000000000000000000000000000000000000060a028ff97f544ff60a028ff3b6318ff60a028ff47821eff2a4c0dff2a4c0dff0000000000000000000000000000000000000000000000000000000060a028ff60a028ff60a028ff3b6318ff7ccc35ff7ccc35ff2a4c0dff3b6318ff60a028ff7ccc35ff0000000000000000000000000000000047821eff47821eff60a028ff47821eff3b6318ff60a028ff7ccc35ff60a028ff47821eff60a028ff2a4c0dff2a4c0dff000000000000000000000000000000002a4c0dff47821eff47821eff2a4c0dff60a028ff7ccc35ff60a028ff2a4c0dff2a4c0dff2a4c0dff0000000000000000000000000000000000000000000000000000000047821eff2a4c0dff47821eff60a028ff47821eff2a4c0dff000000000000000000000000000000000000000000000000000000000000000000000000000000002a4c0dff2a4c0dff47821eff47821eff2a4c0dff0000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000047821eff2a4c0dff00000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000002a4c0dff0000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000", "sugar": "00000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000b9b9cbffb9b9cbff00000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000b9b9cbffeaeaeaffffffffffb9b9cbff0000000000000000000000000000000000000000000000000000000000000000000000000000000000000000b9b9cbffffffffffffffffffffffffffd5d5dfff545468ff000000000000000000000000000000000000000000000000000000000000000000000000b9b9cbffffffffffffffffffffffffffeaeaeaffffffffffd5d5dfff545468ff00000000000000000000000000000000000000000000000000000000b9b9cbffffffffffffffffffffffffffffffffffffffffffd5d5dfffb9b9cbffd5d5dfff545468ff0000000000000000000000000000000000000000b9b9cbffeaeaeaffffffffffffffffffeaeaeaffd5d5dfffffffffffeaeaeaffd5d5dfffffffffffb9b9cbff545468ff00000000000000000000000000000000b9b9cbffffffffffeaeaeaffffffffffffffffffffffffffeaeaeaffd5d5dfffd5d5dfffb9b9cbffd5d5dfff545468ff00000000000000000000000000000000545468ffd5d5dfffffffffffffffffffffffffffeaeaeaffd5d5dfffffffffffd5d5dfffd5d5dfffb9b9cbff545468ff0000000000000000000000000000000000000000545468ffd5d5dfffffffffffeaeaeaffd5d5dfffb9b9cbffd5d5dfffd5d5dfffb9b9cbff545468ff00000000000000000000000000000000000000000000000000000000545468ff545468ffb9b9cbffd5d5dfffd5d5dfffb9b9cbff545468ff545468ff00000000000000000000000000000000000000000000000000000000000000000000000000000000545468ff545468ff545468ff545468ff0000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000", "gunpowder": "00000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000505050ff505050ff00000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000505050ff545454ff727272ff505050ff0000000000000000000000000000000000000000000000000000000000000000000000000000000000000000505050ff727272ff8a8a8aff727272ff494949ff2d2d2dff000000000000000000000000000000000000000000000000000000000000000000000000505050ff727272ff8a8a8aff727272ff545454ff8a8a8aff494949ff2d2d2dff00000000000000000000000000000000000000000000000000000000505050ff727272ff727272ff727272ff8a8a8aff727272ff494949ff505050ff494949ff2d2d2dff0000000000000000000000000000000000000000505050ff545454ff8a8a8aff727272ff545454ff494949ff8a8a8aff545454ff494949ff727272ff3e3e3eff2d2d2dff00000000000000000000000000000000505050ff727272ff545454ff727272ff8a8a8aff727272ff545454ff494949ff494949ff505050ff494949ff2d2d2dff000000000000000000000000000000002d2d2dff494949ff727272ff8a8a8aff727272ff545454ff494949ff727272ff494949ff494949ff3e3e3eff2d2d2dff00000000000000000000000000000000000000002d2d2dff494949ff727272ff545454ff494949ff505050ff494949ff494949ff3e3e3eff2d2d2dff000000000000000000000000000000000000000000000000000000002d2d2dff2d2d2dff3e3e3eff494949ff494949ff3e3e3eff2d2d2dff2d2d2dff000000000000000000000000000000000000000000000000000000000000000000000000000000002d2d2dff2d2d2dff2d2d2dff2d2d2dff0000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000"};
+function _drawPx(ctx, hex) {
+  for (let i = 0; i < 256; i++) {
+    const o = i * 8, a = parseInt(hex.substr(o + 6, 2), 16);
+    if (!a) continue;
+    ctx.fillStyle = 'rgba(' + parseInt(hex.substr(o, 2), 16) + ',' + parseInt(hex.substr(o + 2, 2), 16) + ',' + parseInt(hex.substr(o + 4, 2), 16) + ',' + (a / 255) + ')';
+    ctx.fillRect(i % 16, (i / 16) | 0, 1, 1);
+  }
+}
+function customItemSprite(type) {
+  const hex = CUSTOM_PX[type]; if (!hex || type === 'sugar_cane_block') return null;
+  const c = _mk16(); _drawPx(c.getContext('2d'), hex); return c;
+}
 function _mixCol(hex, to, k) {   // blend '#rrggbb' toward white (to=255) or black (to=0) by k
   const n = parseInt(hex.slice(1), 16), ch = [(n >> 16) & 255, (n >> 8) & 255, n & 255];
   return 'rgb(' + ch.map(v => Math.round(v + (to - v) * k)).join(',') + ')';
@@ -2557,6 +2582,7 @@ const _sprite16Cache = {};
 function sprite16(type) {                       // -> 16x16 canvas (no outline) or null
   if (type in _sprite16Cache) return _sprite16Cache[type];
   let c = null;
+  { const cs = customItemSprite(type); if (cs) return (_sprite16Cache[type] = cs); }
   if (isPotion(type) || type === 'glass_bottle') return (_sprite16Cache[type] = makePotionSprite(type));
   { const rsc = rsSprite(type); if (rsc) return (_sprite16Cache[type] = rsc); }
   const sg = _spriteGridFor(type);
@@ -2814,8 +2840,8 @@ const RECIPES = [
   { shape: [[null,'iron_ingot',null],['diamond','planks','diamond'],['planks','planks','planks']], out: 'enchanting_table', outCount: 1, needsTable: true },
   // Bed: 3 wool (dropped by sheep) on top of 3 planks, like Minecraft.
   { shape: [['wool','wool','wool'],['planks','planks','planks']], out: 'bed', outCount: 1, needsTable: true },
-  // TNT: coal (stands in for gunpowder) + sand, checkerboard like Minecraft's 5+4.
-  { shape: [['coal','sand','coal'],['sand','coal','sand'],['coal','sand','coal']], out: 'tnt', outCount: 3, needsTable: true },
+  // TNT: gunpowder (from Creepers) + sand, checkerboard like Minecraft's 5+4.
+  { shape: [['gunpowder','sand','gunpowder'],['sand','gunpowder','sand'],['gunpowder','sand','gunpowder']], out: 'tnt', outCount: 3, needsTable: true },
   // Stairs (both mirror images), door, trapdoor — same shapes as Minecraft.
   { shape: [['planks',null,null],['planks','planks',null],['planks','planks','planks']], out: 'stairs', outCount: 4, needsTable: true },
   { shape: [[null,null,'planks'],[null,'planks','planks'],['planks','planks','planks']], out: 'stairs', outCount: 4, needsTable: true },
@@ -2882,10 +2908,11 @@ RECIPES.push({ shape: [['breeze_rod']], out: 'wind_charge', outCount: 4, needsTa
 // ---- Elytra / fireworks ----
 RECIPES.push({ shape: [['wool','wool','wool'],['wool','wool','wool'],['wool','wool','wool']], out: 'compressed_wool', outCount: 1, needsTable: true });   // 9 wool -> 1 compressed wool
 RECIPES.push({ shape: [['compressed_wool','compressed_wool'],['compressed_wool','compressed_wool']], out: 'elytra', outCount: 1, needsTable: false });   // 4 compressed wool -> elytra
-RECIPES.push({ shape: [['string','string','string'],['string','string','string']], out: 'paper', outCount: 1, needsTable: true });   // 6 string -> 1 paper
-RECIPES.push({ shape: [['paper','coal']], out: 'firework', outCount: 1, needsTable: false });                          // paper + 1 coal: short boost
-RECIPES.push({ shape: [['paper','coal'],['coal',null]], out: 'firework_2', outCount: 1, needsTable: false });          // paper + 2 coal: medium boost
-RECIPES.push({ shape: [['paper','coal'],['coal','coal']], out: 'firework_3', outCount: 1, needsTable: false });        // paper + 3 coal: long boost
+RECIPES.push({ shape: [['sugar_cane','sugar_cane','sugar_cane']], out: 'paper', outCount: 3, needsTable: true });   // 3 sugar cane -> 3 paper
+RECIPES.push({ shape: [['sugar_cane']], out: 'sugar', outCount: 1, needsTable: false });   // sugar (placeholder item)
+RECIPES.push({ shape: [['paper','gunpowder']], out: 'firework', outCount: 1, needsTable: false });                          // paper + 1 coal: short boost
+RECIPES.push({ shape: [['paper','gunpowder'],['gunpowder',null]], out: 'firework_2', outCount: 1, needsTable: false });          // paper + 2 coal: medium boost
+RECIPES.push({ shape: [['paper','gunpowder'],['gunpowder','gunpowder']], out: 'firework_3', outCount: 1, needsTable: false });        // paper + 3 coal: long boost
 // Heavy Core: 1 diamond + 4 iron + 4 gold (diamond center, iron corners, gold edges)
 RECIPES.push({ shape: [
   ['iron_ingot','gold_ingot','iron_ingot'],
@@ -3026,13 +3053,15 @@ MI.birchDoorLower = regMat(TEX.birchDoorLower);
 MI.birchDoorUpper = regMat(TEX.birchDoorUpper);
 MI.birchTrapdoor  = regMat(TEX.birchTrapdoor);
 // ---- farming materials: tall grass + wheat stages are crossed sprites (alpha cutout), farmland is a cube ----
+TEX.sugar_cane = makeTexture(ctx => _drawPx(ctx, CUSTOM_PX.sugar_cane_block));
+MI.sugar_cane = regMat(TEX.sugar_cane, true);
 MI.tall_grass = regMat(TEX.tall_grass, true);
 MI.cobweb     = regMat(TEX.cobweb, true);
 MI.farmland   = regMat(TEX.farmland);
 for (let i = 0; i < 4; i++) MI['wheat_' + i] = regMat(TEX['wheat_' + i], true);
 MI.brewing_stand = regMat(TEX.brewing_stand, true);
 MI.cobweb = MI.cobweb || regMat(TEX.cobweb, true);
-['tall_grass', 'cobweb', 'wheat_0', 'wheat_1', 'wheat_2', 'wheat_3', 'brewing_stand'].forEach(n => {
+['sugar_cane', 'tall_grass', 'cobweb', 'wheat_0', 'wheat_1', 'wheat_2', 'wheat_3', 'brewing_stand'].forEach(n => {
   const m = MAT_LIST[MI[n]];
   if (!m) return;
   m.side = THREE.DoubleSide; m.transparent = false; m.opacity = 1; m.alphaTest = 0.5;
@@ -4959,6 +4988,7 @@ function dungeonLootFor(k, b) {
 function* generateChunkColumnsGen(cx, cz) {
   const x0 = cx*CHUNK_SIZE, x1 = x0+CHUNK_SIZE-1;
   const z0 = cz*CHUNK_SIZE, z1 = z0+CHUNK_SIZE-1;
+  const caneTops = [];   // sand columns right at water level (sugar cane candidates)
   const grassTops = [];   // [x, z, h, x, z, h, ...] grass-topped columns, for scattering tall grass after the trees
   for (let x=x0; x<=x1; x++) {
     for (let z=z0; z<=z1; z++) {
@@ -4979,6 +5009,7 @@ function* generateChunkColumnsGen(cx, cz) {
         addBlock(x,y,z,'water',true);
       }
       if (biomeTop === 'grass' && h > WATER_LEVEL) grassTops.push(x, z, h);
+      else if (h === WATER_LEVEL) caneTops.push(x, z, h);
     }
     yield;   // one column row per step so the work can be spread over several frames
   }
@@ -5006,6 +5037,17 @@ function* generateChunkColumnsGen(cx, cz) {
     const under = world.get(key(gx, gh, gz));
     if (!under || under.type !== 'grass' || world.has(key(gx, gh + 1, gz))) continue;
     if (hashRandom(gx, gz, WORLD_SEED, 7311) < TALL_GRASS_DENSITY) addBlock(gx, gh + 1, gz, 'tall_grass', true);
+    if ((i % 96) === 0) yield;
+  }
+  // Sugar cane: 1-3 tall stalks on shore sand that touches water
+  for (let i = 0; i < caneTops.length; i += 3) {
+    const sx = caneTops[i], sz = caneTops[i + 1], sh = caneTops[i + 2];
+    if (hashRandom(sx, sz, WORLD_SEED, 9127) >= 0.22 || world.has(key(sx, sh + 1, sz))) continue;
+    let wet = false;
+    for (const d of [[1, 0], [-1, 0], [0, 1], [0, -1]]) { if (columnInfo(sx + d[0], sz + d[1]).h < WATER_LEVEL) { wet = true; break; } }
+    if (!wet) continue;
+    const ht = 1 + Math.floor(hashRandom(sx, sz, WORLD_SEED, 9128) * 3);
+    for (let j = 1; j <= ht; j++) addBlock(sx, sh + j, sz, 'sugar_cane', true);
     if ((i % 96) === 0) yield;
   }
 }
@@ -6517,6 +6559,8 @@ const BREW_RECIPES = {
   turtle_master: { drinkOut: 'potion_turtle_master', splashOut: 'splash_turtle_master', cost: 5, throwExtra: 0, label: 'Turtle Master', desc: '-75% speed · +75% defence · 0:20', color: '#5a8a5a', btn: 'brewTurtle', key: '3', secs: 20 },
   slow_falling:  { drinkOut: 'potion_slow_falling',  splashOut: 'splash_slow_falling',  cost: 5, throwExtra: 0, label: 'Slow Falling',  desc: 'Soft fall · no mace/crit · 1:30', color: '#f0e8c8', btn: 'brewSlowFall', key: '4', secs: 90 },
   invisibility:  { drinkOut: 'potion_invisibility',  splashOut: 'splash_invisibility',  cost: 5, throwExtra: 0, label: 'Invisibility',  desc: 'Body invisible · armor shows · 3:00', color: '#c8c8e8', btn: 'brewInvis', key: '5', secs: 180 },
+  invisibility_long: { drinkOut: 'potion_invisibility_long', splashOut: 'splash_invisibility_long', cost: 5, throwExtra: 0, label: 'Invisibility (Long)', desc: 'Body invisible · armor shows · 8:00', color: '#c8c8e8', btn: 'brewInvis8', key: '7', secs: 480 },
+  fire_resistance: { drinkOut: 'potion_fire_resistance', splashOut: 'splash_fire_resistance', cost: 5, throwExtra: 0, label: 'Fire Resistance', desc: 'Immune to fire · 8:00', color: '#e8821e', btn: 'brewFireRes', key: '6', secs: 480 },
 };
 function brewRecipeCost(r) {
   return r.cost + (brewMode === 'throw' ? (r.throwExtra || 0) : 0);
@@ -6708,6 +6752,8 @@ function brewRefreshStatus(quiet) {
       bits.push('<b>Slow Falling</b> · ' + brewFmtTime(slowFallingEffect.t));
     if (typeof invisibilityEffect !== 'undefined' && invisibilityEffect.t > 0)
       bits.push('<b>Invisibility</b> · ' + brewFmtTime(invisibilityEffect.t));
+    if (typeof fireResEffect !== 'undefined' && fireResEffect.t > 0)
+      bits.push('<b>Fire Resistance</b> · ' + brewFmtTime(fireResEffect.t));
     const html = bits.length ? bits.join(' · ') : '';
     if (html) {
       if (act.style.display !== 'block') act.style.display = 'block';
@@ -6746,6 +6792,7 @@ let strengthEffect = { t: 0, lvl: 0 };   // t seconds remaining, lvl 1 or 2
 let turtleMasterEffect = { t: 0 };       // -75% move speed, +75% defence
 let slowFallingEffect = { t: 0 };        // reduce fall speed; disables mace smash / fall crits
 let invisibilityEffect = { t: 0 };       // hide body mesh; armor still visible
+let fireResEffect = { t: 0 };            // immune to fire (fire blocks / burning / Flame arrows)
 
 function applyStrengthPotion(lvl, secs) {
   strengthEffect.t = Math.max(strengthEffect.t, secs);
@@ -6760,7 +6807,13 @@ function applySlowFallingPotion(secs) {
 function applyInvisibilityPotion(secs) {
   invisibilityEffect.t = Math.max(invisibilityEffect.t, secs);
 }
+function applyFireResPotion(secs) {
+  fireResEffect.t = Math.max(fireResEffect.t, secs);
+  player.burnT = 0;
+}
+function hasFireRes() { return fireResEffect.t > 0; }
 function applyPotionEffect(kind, lvl, secs) {
+  if (kind === 'fire_resistance') { applyFireResPotion(secs); return; }
   if (kind === 'strength') applyStrengthPotion(lvl || 1, secs);
   else if (kind === 'turtle_master') applyTurtleMasterPotion(secs);
   else if (kind === 'slow_falling') applySlowFallingPotion(secs);
@@ -6786,6 +6839,7 @@ function updateStrengthEffect(dt) {
   if (turtleMasterEffect.t > 0) turtleMasterEffect.t = Math.max(0, turtleMasterEffect.t - dt);
   if (slowFallingEffect.t > 0) slowFallingEffect.t = Math.max(0, slowFallingEffect.t - dt);
   if (invisibilityEffect.t > 0) invisibilityEffect.t = Math.max(0, invisibilityEffect.t - dt);
+  if (fireResEffect.t > 0) { fireResEffect.t = Math.max(0, fireResEffect.t - dt); player.burnT = 0; }
   // body visibility (armor + held items stay visible)
   try { if (typeof myModel !== 'undefined' && myModel) setBodyHidden(myModel, hasInvisibility()); } catch (e) {}
   try { updateEffectsHud(); } catch (e) {}
@@ -6810,6 +6864,7 @@ function updateEffectsHud() {
   if (turtleMasterEffect.t > 0) list.push(['potion_turtle_master', 'Turtle Master', turtleMasterEffect.t]);
   if (slowFallingEffect.t > 0) list.push(['potion_slow_falling', 'Slow Falling', slowFallingEffect.t]);
   if (invisibilityEffect.t > 0) list.push(['potion_invisibility', 'Invisibility', invisibilityEffect.t]);
+  if (fireResEffect.t > 0) list.push(['potion_fire_resistance', 'Fire Resistance', fireResEffect.t]);
   const sig = list.map(x => x[0] + (x[2] <= 10 ? '!' : '')).join('|');
   if (el._sig !== sig) {
     el._sig = sig;
@@ -7419,6 +7474,15 @@ function _fogLookingAt(pos, maxDist) {
   } catch (e) { return false; }
 }
 
+function _fogOnScreen(pos) {   // is any part of the figure inside the camera view (with a small margin)?
+  try {
+    for (const h of [0.3, 1.0, 1.9]) {
+      const v = new THREE.Vector3(pos.x, pos.y + h, pos.z).project(camera);
+      if (v.z > -1 && v.z < 1 && Math.abs(v.x) < 1.1 && Math.abs(v.y) < 1.1) return true;
+    }
+  } catch (e) {}
+  return false;
+}
 function _spawnFogPhantom(kind) {
   const ang = Math.random() * Math.PI * 2;
   // Watcher stands farther (edge of fog); Corrupted can be closer in the mist
@@ -7565,6 +7629,7 @@ function updateFogPhantoms(dt) {
     if (p.kind === 'watcher') {
       // Main rule: vanish when the player looks at them
       if (_fogLookingAt(p.pos, 40)) go = true;
+      if (_fogOnScreen(p.pos)) go = true;   // gone the moment it shows up anywhere on your screen
       // Also vanish if you walk right up to them
       if (dist < 4) go = true;
     } else {
@@ -7796,7 +7861,7 @@ function announceMyDeath() {
   else {
     let bd = 1e9;
     for (const a of animals) {
-      if (!a.alive || !(a.kind === 'zombie' || a.kind === 'skeleton' || a.kind === 'breeze' || isSpk(a.kind))) continue;
+      if (!a.alive || !(a.kind === 'zombie' || a.kind === 'skeleton' || a.kind === 'breeze' || a.kind === 'creeper' || isSpk(a.kind))) continue;
       const d = Math.hypot(a.pos.x - player.pos.x, a.pos.z - player.pos.z), lim = a.kind === 'breeze' ? 20 : 6;
       if (d < lim && Math.abs(a.pos.y - player.pos.y) < 6 && d < bd) { bd = d; by = isSpk(a.kind) ? spokeName(a) : ('a ' + a.kind.charAt(0).toUpperCase() + a.kind.slice(1)); }
     }
@@ -8008,7 +8073,7 @@ function useBed(x, y, z) {
       timeOffset += ((k + 0.02) - f) * DAY_LENGTH;
       try { playersChannel.send({ type: 'broadcast', event: 'time_sync', payload: { from: MY_ID, t: sharedClock() } }); } catch (e) {} }
     updateDayNight(0);
-    if (isMobHost()) for (const a of animals) if (a.alive && !a.fromSpawner && (a.kind === 'zombie' || a.kind === 'skeleton')) { a.alive = false; scene.remove(a.group); }   // night mobs vanish with the dawn
+    if (isMobHost()) for (const a of animals) if (a.alive && !a.fromSpawner && (a.kind === 'zombie' || a.kind === 'skeleton' || a.kind === 'creeper')) { a.alive = false; scene.remove(a.group); }   // night mobs vanish with the dawn
     addChatLine('System', 'Good morning! The night has passed.', true);
     fade.style.opacity = '0';
     setTimeout(() => { sleeping = false; }, 800);
@@ -8042,7 +8107,7 @@ function eatCurrentFood() {
     addItemToInventory('glass_bottle', 1);
     renderHotbar();
     if (typeof inventoryOpen !== 'undefined' && inventoryOpen) renderInventoryPanel();
-    const labels = { strength: 'Strength ' + (lvl >= 2 ? 'II' : 'I'), turtle_master: 'Turtle Master', slow_falling: 'Slow Falling', invisibility: 'Invisibility' };
+    const labels = { strength: 'Strength ' + (lvl >= 2 ? 'II' : 'I'), turtle_master: 'Turtle Master', slow_falling: 'Slow Falling', invisibility: 'Invisibility', fire_resistance: 'Fire Resistance' };
     const lab = labels[kind] || kind;
     addChatLine('System', lab + ' (' + (secs >= 60 ? Math.floor(secs/60) + ':' + String(secs%60).padStart(2,'0') : secs + 's') + ')', true);
     saveLocalPlayer();
@@ -9984,6 +10049,7 @@ function skShoot(a, tgt) {
 // ================= Breeze model (breeze.png + breeze_eyes.png + breeze_wind.png) =================
 const BREEZE_TEX = { skin: "data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAACAAAAAgCAYAAABzenr0AAADpUlEQVR4AcTWS4hcVRAG4OoLPtLRCRgzGAWJTsjK5yJCUMeFunOnkI0E3KnoWuNKdCG6EHThA3QT0I1RcSEqQdSgBDMLNQYfIROjqBMnJpCZZOIDbPs7TDW3ezJz4+Kahr+rzl//qap7zj2nu4qGzxuvTPU+evvzgndf29urQ+yxJz7tbX3o1d7ktqcGlp9oSB+NDVy69p9YWOjE78eqWDjdGUJ3Va/kn7zqprhl463Bbr3+ruIbl2DDV2MDiissj4IaAn7yYu988Gw89/K9Be9//GJcsXpNrB8bF1oRzQ30nzozKFhWor8iOE2wv5w6EccPTXELTv68P3Bl0PDV2ID5Cnlq4OM00+32Yu7kTHlaXB1WoD5ezm9sQEGFbEV5+v6KlOKL+z920frYcNnpuOTqzTE/f7zgvHUTy9Vbwjc2YEYW5muorET/6TVlBTT4+H3b4/UXdsbzT74Vzzz4aIyv+SPWdcdMWRGNDXhaGUYLKy52dGEu3tzzU+z8cl+89OH++OTA4Xjvqx/ji1//DKtj7kqonGVnu37WcYl6YYkULra/Few9N1wXt23aEOy2LdfG3VuuLLh54vy48fILIvOkHa1VzZ64MA4fWRXfHOoOzrqioMBQLN/+/vKXbVh8D2jBitguucyTmw7EjfHidPRlC+wXEBVxv4CgCZoQS97YZEkko6H1HhRNvyl6oKWjp8EB3jyovv3tu7Jv9uyz6b9i19d/l9UQzLMslryixhljaRWikcN7AHIDPdCBBsDcsgJepOnZ7wO81SaB8e4f9hY+fTwNZAwHODr5QBEWJ0YD5gG+IiCEPDa4fUcOxszc7ADikLGMJ4fnZw5+cvLQ5zg1+MoX5IQUucd3PTIdcGx6atBIanFiOx7YM4gpAqmRM335jOWva8oWCBCO4s6nJwLWTmwmGQJODIYCi4PMtTgcNIlPjq1279jeOZcYrICLyGXhj4Q/GLr7PzBowFl1ju3V6DK12UjlyUFxhe6//Zp4ePKOwAGuTQytgEJWgoW6b9wGKkXcYm4oPgv8NgqO5iw/Rq5EAYVZ4AO/TVRZnK1DUWO2TVTuY/c08IHvzmbbLC53eQldj4AAfsK4TQx+C5z9M6HN4nI3XsVEbaJsQb3AgYOzvflTvYI6fzZ+zpPjbPQ0SxrYtHG8c/HqTmdm5mhIKBkLJtSBg9SYY64cdd1K/pIGUixJJpMYrxgL6YvVtWL/Bcs2UE+SBTSUPB/EkjuTbeL+BQAA//8zYT9WAAAABklEQVQDAKjUfW6EpoyMAAAAAElFTkSuQmCC", eyes: "data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAACAAAAAgCAYAAABzenr0AAAAy0lEQVR4AeyVMQrCQBBFszYWYusJxCZH8BaewWN5Bm/hEdKIfUBLsbBaecJAmJiYSZMUP/DZ3f9n/g6/yC6KiT8NoASUgBJQAkpg3gm8q2MG5f6Q/aMJhwa8Fjn3JrAsTwlUl3PypnBowGuRc+8AEaOxtRpACSgBJaAE5pfA9XbPz1f+Ivp/tz48hva2EthtN2m9SqmuHwWGmLECbwoHrIYeevHwtV3n1gBWiImZYQzPZazA9mjNWrQIOgdomtgFDGQ8e4Bm3K/1H/cBAAD//whipMoAAAAGSURBVAMAi1VkQeYHaaoAAAAASUVORK5CYII=", wind: "data:image/png;base64,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" };
 const _brImg = {};
+BREEZE_TEX.creeper = "data:image/png;base64,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";
 function brTex(name, rx, ry, ox, oy, repeat) {
   let im = _brImg[name];
   if (!im) { im = _brImg[name] = new Image(); im.src = BREEZE_TEX[name]; }
@@ -10095,6 +10161,64 @@ function breezeAI(a, dt) {
       a.facing = Math.random() * Math.PI * 2;
       a.vel.x = Math.sin(a.facing) * 0.5;
       a.vel.z = Math.cos(a.facing) * 0.5;
+    }
+  }
+}
+// ================= Creeper (creeper.png, 64x32) =================
+const CREEPER_FUSE = 1.5;
+function buildCreeper() {
+  const root = new THREE.Group(), ud = root.userData;
+  const mat = new THREE.MeshLambertMaterial({ map: brTex('creeper'), transparent: true, alphaTest: 0.05 });
+  const head = new THREE.Mesh(brBox(8, 8, 8, 0, 0, 64, 32, 0), mat); head.position.set(0, 22 / 16, 0); root.add(head);
+  const body = new THREE.Mesh(brBox(8, 12, 4, 16, 16, 64, 32, 0), mat); body.position.set(0, 12 / 16, 0); root.add(body);
+  const legs = [];
+  for (const p of [[-2, -4], [2, -4], [-2, 4], [2, 4]]) {
+    const pv = new THREE.Group(); pv.position.set(p[0] / 16, 6 / 16, p[1] / 16);
+    const l = new THREE.Mesh(brBox(4, 6, 4, 0, 16, 64, 32, 0), mat); l.position.y = -3 / 16; pv.add(l);
+    root.add(pv); legs.push(pv);
+  }
+  ud.head = head; ud.legs4 = legs; ud.creeper = { mat };
+  return root;
+}
+function crPose(a, ud, dt) {   // swell + white flashing while the fuse burns (a.eq === 1 means "fusing", streamed to everyone)
+  const f = (a.eq | 0) === 1;
+  a.fT = f ? (a.fT || 0) + dt : Math.max(0, (a.fT || 0) - dt * 3);
+  const k = Math.min(1, a.fT / CREEPER_FUSE);
+  const s = 1 + k * k * 0.25 + Math.sin(a.fT * 40) * 0.02 * k;
+  a.group.scale.set(s, 1 + k * 0.12, s);
+  const blink = k > 0 && Math.floor(a.fT * 7) % 2 === 0, m = ud.creeper.mat;
+  m.emissive.setHex(blink ? 0xffffff : 0x000000); m.emissiveIntensity = blink ? 0.85 : 0;
+}
+function creeperExplode(a) {
+  const p = new THREE.Vector3(a.pos.x, a.pos.y + 0.2, a.pos.z);
+  a.alive = false; try { scene.remove(a.group); } catch (e) {}
+  try { playersChannel.send({ type: 'broadcast', event: 'creeper_boom', payload: { from: MY_ID, x: p.x, y: p.y, z: p.z } }); } catch (e) {}
+  explodeTnt({ pos: p, owner: true });   // same blast as TNT: damages players/mobs in range and blows a crater
+}
+function creeperAI(a, dt) {
+  if (a.kbT > 0) a.kbT -= dt;
+  const tgt = nearestPlayerTargetForMob(a, a.pos);
+  const dx = tgt.x - a.pos.x, dz = tgt.z - a.pos.z;
+  const dist = Math.hypot(dx, dz) || 0.001, nx = dx / dist, nz = dz / dist;
+  const dy = Math.abs((tgt.y || 0) - a.pos.y);
+  const aware = mobSense(a, tgt, dt, 1.3);
+  if (tgt.alive && dist < 3.2 && dy < 3) a.fusing = true;          // close to a player: light the fuse
+  else if (dist > 7 || !tgt.alive) a.fusing = false;               // got away: the fuse fizzles out
+  a.fuse = a.fusing ? (a.fuse || 0) + dt : Math.max(0, (a.fuse || 0) - dt * 2);
+  a.eq = a.fusing ? 1 : 0;
+  if (a.fuse >= CREEPER_FUSE) { creeperExplode(a); return; }
+  if (a.fusing) { a.vel.x *= 0.2; a.vel.z *= 0.2; a.facing = Math.atan2(dx, dz); return; }
+  if (a.kbT > 0) return;
+  if (tgt.alive && dist < 24 && aware) {
+    a.facing = Math.atan2(nx, nz);
+    a.vel.x = nx * 3.4; a.vel.z = nz * 3.4;
+    if (Math.abs(a.vel.y) < 0.5 && checkCollision(a.pos.x + nx * 0.6, a.pos.y + 0.2, a.pos.z + nz * 0.6, a.radius, a.height - 0.4)) a.vel.y = 7.5;   // hop over a ledge
+  } else {
+    a.wanderTimer = (a.wanderTimer || 0) - dt;
+    if (a.wanderTimer <= 0) {
+      a.wanderTimer = 2 + Math.random() * 3;
+      if (Math.random() < 0.4) { a.vel.x = 0; a.vel.z = 0; }
+      else { a.facing = Math.random() * Math.PI * 2; a.vel.x = Math.sin(a.facing) * 0.6; a.vel.z = Math.cos(a.facing) * 0.6; }
     }
   }
 }
@@ -10390,6 +10514,7 @@ function createMob(kind, px, py, pz, id, remote, eq) {
   const def = ANIMAL_DEFS[kind] || ANIMAL_DEFS.pig;
   const isS = kind === 'skeleton';
   const isBr = kind === 'breeze';
+  const isCr = kind === 'creeper';
   const isB = isSpk(kind);
   const group = isB ? buildZombie(
     kind === 'flamefrags' ? FLAME_SKIN
@@ -10398,7 +10523,7 @@ function createMob(kind, px, py, pz, id, remote, eq) {
     : (kind === 'law_normal' || kind === 'law_elite' || kind === 'law_commander')
         ? (LAW_SKINS.length ? LAW_SKINS[Math.floor(Math.random() * LAW_SKINS.length)] : SPOKE_SKIN)
         : SPOKE_SKIN
-  ) : isZ ? buildZombie((eq >> 12) & 31) : isBr ? buildBreeze() : (isS ? buildSkeleton((eq >> 12) & 31) : def.build());
+  ) : isZ ? buildZombie((eq >> 12) & 31) : isCr ? buildCreeper() : isBr ? buildBreeze() : (isS ? buildSkeleton((eq >> 12) & 31) : def.build());
   if (kind === 'wemmbu' || kind === 'law_commander' || kind === 'law_leader') {
     const tag = kind === 'law_leader' ? 'LettuceK' : (kind === 'law_commander' ? 'Law Commander' : 'Wemmbu');
     wemmbuSetupModel(group, tag);
@@ -10411,8 +10536,8 @@ function createMob(kind, px, py, pz, id, remote, eq) {
     id: id || (MY_ID + '_m' + (mobSeq++)), remote: !!remote,
     kind,
     group, pos, vel: new THREE.Vector3(0,0,0),
-    hp: isB ? (kind === 'flamefrags' ? FLAME_HP : kind === 'law_elite' ? 20 : kind === 'wemmbu' || kind === 'law_commander' ? WEMMBU_HP : kind === 'law_leader' ? 50 : kind === 'null_commander' ? 32 : kind === 'law_normal' ? 20 : SPOKE_HP) : (isZ || isS || isBr) ? 20 : def.hp, maxHp: isB ? (kind === 'flamefrags' ? FLAME_HP : kind === 'law_elite' ? 20 : kind === 'wemmbu' || kind === 'law_commander' ? WEMMBU_HP : kind === 'law_leader' ? 50 : kind === 'null_commander' ? 32 : kind === 'law_normal' ? 20 : SPOKE_HP) : (isZ || isS || isBr) ? 20 : def.hp, alive: true,
-    radius: (isZ || isS || isB || isBr) ? 0.42 : def.radius, height: isZ ? 1.7 : ((isS || isB || isBr) ? 1.8 : def.height),
+    hp: isB ? (kind === 'flamefrags' ? FLAME_HP : kind === 'law_elite' ? 20 : kind === 'wemmbu' || kind === 'law_commander' ? WEMMBU_HP : kind === 'law_leader' ? 50 : kind === 'null_commander' ? 32 : kind === 'law_normal' ? 20 : SPOKE_HP) : (isZ || isS || isBr || isCr) ? 20 : def.hp, maxHp: isB ? (kind === 'flamefrags' ? FLAME_HP : kind === 'law_elite' ? 20 : kind === 'wemmbu' || kind === 'law_commander' ? WEMMBU_HP : kind === 'law_leader' ? 50 : kind === 'null_commander' ? 32 : kind === 'law_normal' ? 20 : SPOKE_HP) : (isZ || isS || isBr || isCr) ? 20 : def.hp, alive: true,
+    radius: (isZ || isS || isB || isBr || isCr) ? 0.42 : def.radius, height: (isZ || isCr) ? 1.7 : ((isS || isB || isBr) ? 1.8 : def.height),
     wanderTimer: Math.random()*2, facing: 0,
     attackCd: 0,
     eq: (isZ || isS || isB) ? (eq | 0) : 0, atkDmg: isBr ? 4 : 3, atkReach: isBr ? 2.2 : 1.35, atkCd: isBr ? 1.4 : 1.1, axe: false, armorPts: 0,
@@ -10432,7 +10557,7 @@ function spawnAnimal(x, z, surfaceY, kind) {
   const isZ = kind === 'zombie';
   const def = ANIMAL_DEFS[kind] || ANIMAL_DEFS.pig;
   const isSk = kind === 'skeleton';
-  createMob(kind, x + 0.5, h + ((isZ || isSk) ? 1.1 : def.drop), z + 0.5, null, false, isZ ? rollZombieGear() : (isSk ? rollSkeletonGear(x, z) : 0));
+  createMob(kind, x + 0.5, h + ((isZ || isSk || kind === 'creeper') ? 1.1 : def.drop), z + 0.5, null, false, isZ ? rollZombieGear() : (isSk ? rollSkeletonGear(x, z) : 0));
   return true;
 }
 function spawnAnimals(count, centerX, centerZ, radius) {
@@ -10487,6 +10612,7 @@ function nearestPlayerTarget(p) {
   return best;
 }
 function nearestPlayerTargetForMob(a, p) {
+  if (a && a.kind === 'law_leader') return nearestPlayerTarget(p || a.pos);   // LettuceK goes for the nearest player (not only the wanted one)
   // Law units only hunt the wanted criminal — never random bystanders.
   if (a && typeof isLawKind === 'function' && isLawKind(a.kind)) {
     const t = typeof lawHuntTarget === 'function' ? lawHuntTarget(a) : null;
@@ -10516,13 +10642,14 @@ function applyMobSnapshot(fromId, list) {
   const seen = new Set();
   for (const m of list) {
     const id = m[0], kind = m[1];
-    if (!ANIMAL_DEFS[kind] && kind !== 'zombie' && kind !== 'skeleton' && kind !== 'breeze' && !isSpk(kind)) continue;
+    if (!ANIMAL_DEFS[kind] && kind !== 'zombie' && kind !== 'skeleton' && kind !== 'breeze' && kind !== 'creeper' && !isSpk(kind)) continue;
     seen.add(id);
     let a = byId.get(id);
     if (!a) a = createMob(kind, m[2], m[3], m[4], id, true, m[7] | 0);
     else if (kind === 'zombie' && (m[7] | 0) !== (a.eq | 0)) { a.eq = m[7] | 0; applyZombieGear(a); }
     else if (kind === 'skeleton' && (m[7] | 0) !== (a.eq | 0)) { a.eq = m[7] | 0; applySkeletonGear(a); }
     else if (isSpk(kind) && (m[7] | 0) !== (a.eq | 0)) { const oldEq = a.eq | 0; a.eq = m[7] | 0; spokeSync(a, oldEq); }
+    if (kind === 'creeper') a.eq = m[7] | 0;   // fuse state
     if (!a.remote) { a.remote = true; a.target = { x: a.pos.x, y: a.pos.y, z: a.pos.z, f: a.facing }; }
     if (m[6] < a.hp) flashRed(a.group);
     a.hp = m[6];
@@ -10549,6 +10676,15 @@ function giveMobLoot(kind, eq) {
   if (kind === 'zombie') for (let i = 0; i < 4; i++) { const t = ((eq | 0) >> (4 + 2 * i)) & 3; _armXp += t === 1 ? 2 : (t === 2 ? 3 : (t === 3 ? 5 : 0)); }
   jcAddXp(Math.max(1, Math.round(((JC_XP[kind] || 2) + _armXp) * (1 + 0.25 * L))));
   const extra = () => L > 0 ? Math.floor(Math.random() * (L + 1)) : 0;
+  // Law members and bosses drop NO items - only XP (bonus on top of the base JC_XP value; bosses give far more)
+  const XP_ONLY = { spoke: 5000, wemmbu: 5000, flamefrags: 5000, law_leader: 10000, law_commander: 2500, law_elite: 300, law_normal: 40, null: 0, null_commander: 110 };
+  if (XP_ONLY[kind] != null) {
+    jcAddXp(Math.round(XP_ONLY[kind] * (1 + 0.25 * L)));
+    const _nm = { spoke: 'Spoke', wemmbu: 'Wemmbu', flamefrags: 'FlameFrags', law_leader: 'LettuceK', law_commander: 'Law Commander', law_elite: 'Law Elite', law_normal: 'Law Enforcer' }[kind];
+    if (_nm) addChatLine('System', _nm + ' was defeated!', true);
+    saveLocalPlayer();
+    return;
+  }
   if (kind === 'wemmbu') {   // Wemmbu: big XP + totem, diamonds, golden apples, wind charges, firework rockets, sometimes an Elytra
     jcAddXp(1400);
     const _wAt = () => new THREE.Vector3(player.pos.x, player.pos.y + 1, player.pos.z);
@@ -10634,6 +10770,9 @@ function giveMobLoot(kind, eq) {
     const n = Math.floor(Math.random() * 3) + extra();                        // 0-2 arrows (+ Looting)
     if (n > 0) addItemToInventory('arrow', n);
     if (Math.random() < 0.04 + 0.01 * L) addItemToInventory('bow', 1, skBowEnch(eq | 0));   // it can drop its enchanted bow
+  } else if (kind === 'creeper') {
+    const n = 1 + Math.floor(Math.random() * 2) + extra();   // 1-2 gunpowder (+ Looting)
+    addItemToInventory('gunpowder', n);
   } else if (kind === 'breeze') {
     const n = 1 + extra();   // 1 breeze rod (+ Looting extra chance)
     addItemToInventory('breeze_rod', n);
@@ -10686,6 +10825,7 @@ function animateMob(a, dt, spd, grounded) {
   if (ud.head) ud.head.rotation.x = Math.sin((a.walk || 0) * 2) * 0.03 * a.amp;
   if (ud.sk) skPose(a, ud, dt, swing);
   if (ud.breeze) brPose(a, ud, dt);
+  if (ud.creeper) crPose(a, ud, dt);
   a.bob = Math.abs(Math.sin(a.walk || 0)) * (isZ ? 0.04 : 0.025) * a.amp;   // little step bounce
 }
 
@@ -10728,6 +10868,12 @@ function spokePlayerArmor(a) {
     m.position.set(x * S, y * S, 0); m.rotation.y = Math.PI;   // the sheet's front is -z, this model faces +z
     m.userData.mat = mat; m.userData.noFlash = true;
     node.add(m); a.gear.push(m);
+    if (a.kind === 'law_elite') {   // max-enchanted armor: the scrolling enchant glint over every piece
+      const gm = new THREE.Mesh(_glintGeoFrom(geo), _makeEnchGlintMat());
+      gm.position.copy(m.position); gm.rotation.copy(m.rotation); gm.scale.setScalar(1.02);
+      gm.userData.mat = gm.material; gm.userData.noFlash = true;
+      node.add(gm); a.gear.push(gm);
+    }
   };
   piece(P.head.n, 9.3, 9.3, 9.3, 0, 4, [0, 0, 8, 8, 8, 0, 8]);
   piece(P.body.n, 9, 13, 5, 0, -6, [16, 16, 8, 12, 4, 0, 12]);
@@ -11467,7 +11613,11 @@ function wemmbuAI(a, dt) {
   if (mode === 'ground') {
     if (a.fly) wemmbuFly(a, false, false);
     if (bossSmartHeal(a, dt, tgt, dist, nx, nz, { safeDist: 10, eatT: 1.5, eatCd: 2.5, regenT: 5 })) return;
-    if (!tgt.alive || dist > 60) { a.vel.x *= 0.5; a.vel.z *= 0.5; return; }
+    if (a.kind === 'law_leader' && tgt.alive && dist > 70) {   // too far away: LettuceK jumps back in near his target instead of standing still
+      const _sp = lawPickSpawnNear(tgt.x, tgt.y, tgt.z); a.pos.set(_sp.x, _sp.y, _sp.z); a.vel.set(0, 0, 0); a.wmCd = Math.min(a.wmCd, 1);
+      return;
+    }
+    if (!tgt.alive || (dist > 60 && a.kind !== 'law_leader')) { a.vel.x *= 0.5; a.vel.z *= 0.5; return; }
     // LettuceK / commanders: don't freeze the whole AI on knockback — still fight
     if (a.kbT > 0) {
       a.kbT -= dt;
@@ -11475,7 +11625,7 @@ function wemmbuAI(a, dt) {
     }
     a.facing = Math.atan2(dx, dz);
     const grounded = Math.abs(a.vel.y) < 0.35;
-    const sp = dist < 2.0 ? 1.6 : 6.4;
+    const sp = dist < 2.0 ? 1.6 : ((a.kind === 'law_leader' && dist > 14) ? 9 : 6.4);   // LettuceK sprints after you
     a.vel.x = nx * sp; a.vel.z = nz * sp;
     // weapon mix: mace default, sword up close, axe to break shields (LettuceK)
     const isLettuce = (a.kind === 'law_leader' || a.kind === 'law_commander');
@@ -11637,6 +11787,7 @@ const FLAME_TOTEMS = 3, FLAME_GAPPLES = 40, FLAME_REDUCE = 0.35;   // tougher: m
 const FLAME_HP = 40;
 // Max-enchanted mace for FlameFrags + Null Commander (Density V + Wind Burst II)
 const BOSS_MACE_ENCH = { density: 5, windburst: 2 };
+const LAW_ELITE_ENCH = { sharpness: 5, fire_aspect: 2, looting: 3, sweeping: 3, unbreaking: 3, mending: 1 };   // Law Elite's maxed gear (shows the enchant glint)
 function flameInitEq() { return (100 << 12) | (FLAME_GAPPLES << 19) | FLAME_TOTEMS; }   // full diamond armor durability like Spoke
 function flameSet(a, o) {
   let e = a.eq | 0;
@@ -11806,10 +11957,12 @@ function lawHuntTarget(a) {
   return { x: player.pos.x, y: player.pos.y, z: player.pos.z, local: true, id: MY_ID, alive: true };
 }
 function lawShouldAggro(a) {
+  if (a.kind === 'law_leader') { a.lawAggro = true; return true; }   // LettuceK always hunts
   // Always fight back if the player already hit them (works even with Law off / wanted 0).
   if (a.lawAggroForced) { a.lawAggro = true; return true; }
-  // Manual /lettuce LettuceK: wander; attack if player has any wanted level
-  if (a.lettuceManual) {
+  // Manual /lettuce LettuceK: always hunts (kept for safety)
+  if (a.lettuceManual) { a.lawAggro = true; return true; }
+  if (false) {
     if (typeof lawEnabled !== 'undefined' && !lawEnabled) return false;
     const lv = typeof getWantedLevel === 'function' ? getWantedLevel() : 0;
     if (lv > 0) { a.lawAggro = true; return true; }
@@ -11907,7 +12060,7 @@ function summonLettuceManual(x, y, z) {
   e.hasElytra = true; e.sword = false;
   e.atkDmg = 11; e.atkReach = 2.6; e.atkCd = 0.7;
   e.lettuceManual = true;
-  e.lawAggro = false;
+  e.lawAggro = true;   // always hunts the nearest player
   e.lawAggroForced = false;
   applySpokeGear(e);
   spokeSet(e, { melee: 1, axe: 0, draw: 0 });
@@ -11920,7 +12073,7 @@ function summonLettuceManual(x, y, z) {
       e.heldKey = 'mace';
     }
   } catch (err) {}
-  addChatLine('System', 'LettuceK is wandering the area.', true);
+  addChatLine('System', 'LettuceK is hunting the nearest player!', true);
   return e;
 }
 function updateLawHunters(dt) {
@@ -11962,14 +12115,14 @@ function updateLawHunters(dt) {
     needCmd = lv === 8 ? 1 : 2;         // commanders appear
     timerBase = 7;
   } else {
-    needNormal = 4;
+    needNormal = 30;                    // wanted 10: a whole army of Law Enforcers
     needElite = 1;
     needCmd = LAW_COMMANDER_MAX;        // all commanders
     needLeader = 1;                     // LettuceK
-    timerBase = 5;
+    timerBase = 1.2;
   }
 
-  lawSpawnTimer = timerBase + Math.random() * 4;
+  lawSpawnTimer = timerBase + Math.random() * (lv >= 10 ? 1 : 4);
 
   const haveN = countLaw('law_normal');
   const haveE = countLaw('law_elite');
@@ -11988,7 +12141,11 @@ function updateLawHunters(dt) {
   if (needLeader > haveL) { spawnOne('law_leader'); return; }
   if (needCmd > haveC) { spawnOne('law_commander'); return; }
   if (needElite > haveE) { spawnOne('law_elite'); return; }
-  if (needNormal > haveN) { spawnOne('law_normal'); return; }
+  if (needNormal > haveN) {
+    const burst = lv >= 10 ? Math.min(5, needNormal - haveN) : 1;   // wanted 10 spawns them in groups
+    for (let i = 0; i < burst; i++) spawnOne('law_normal');
+    return;
+  }
 }
 
 function flameHurt(a, dmg, fromPos, kbMul, by) {
@@ -12009,7 +12166,7 @@ function flameHurt(a, dmg, fromPos, kbMul, by) {
   else {
     if (a.durF == null) a.durF = g.dur;
     const armorRed = a.durF > 0 ? Math.min(0.8, 0.04 * 20) : 0;   // full diamond: 80% like Spoke / player
-    a.hp -= dmg * (1 - armorRed) * (1 - FLAME_REDUCE * 0.75);     // armor + slight natural toughness
+    a.hp -= dmg * (1 - armorRed) * (1 - FLAME_REDUCE * 0.75) * (a.kind === 'law_elite' ? 0.8 : 1);     // armor + slight natural toughness (Law Elite: Protection IV on every piece)
     if (a.durF > 0) a.durF = Math.max(0, a.durF - (0.05 + dmg * 0.01) * 0.25);
     spokeSet(a, { dur: a.durF > 0 ? Math.max(1, Math.round(a.durF)) : 0 });
   }
@@ -12061,13 +12218,19 @@ function flameAI(a, dt) {
     if (a.wpnT <= 0 || (ranged0 && dist < 5) || wpn > 5) {
       const melee = [0, 1]; if (pops >= 1) melee.push(2); if (pops >= 1) melee.push(3);   // spear from 1st pop
       let w;
-      if (a.wantEat || a.eatT > 0) w = 3;   // spear to lunge away for heal
+      if (a.kind === 'law_elite') {   // Law Elite: the (Sharpness V) sword most of the time
+        const r0 = Math.random();
+        if (a.wantEat || a.eatT > 0) w = 3;
+        else if (dist > 12 && r0 < 0.3) w = 4;
+        else w = r0 < 0.8 ? 0 : (r0 < 0.9 ? 1 : (r0 < 0.95 ? 2 : 3));
+      }
+      else if (a.wantEat || a.eatT > 0) w = 3;   // spear to lunge away for heal
       else if (pops >= 2 && dist > 9 && Math.random() < 0.55) w = 4;   // bow more often mid-range
       else if (pops >= 3 && dist > 11) w = Math.random() < 0.55 ? 4 : 5;
       else if (pops >= 1 && dist > 3.5 && dist < 9 && Math.random() < 0.4) w = 2;   // mace smash range
       else if (pops >= 1 && dist > 4 && Math.random() < 0.35) w = 3;   // spear poke / lunge
       else w = melee[Math.floor(Math.random() * melee.length)];
-      a.wpnT = 1.5 + Math.random() * 1.5;
+      a.wpnT = (a.kind === 'law_elite' ? 3 : 1.5) + Math.random() * 1.5;
       if (w !== wpn) { wpn = w; flameSet(a, { wpn: w }); a.bowT = 0; a.tWind = 0; spokeSet(a, { draw: 0 }); a.heldKey = ''; }
     }
   }
@@ -12138,8 +12301,13 @@ function flameAI(a, dt) {
     }
     if (a.lungeT > 0 && !a.lungeHit && !a.lungeAway && dist < 3.9 && tgt.alive) { a.lungeHit = true; a.attackCd = 1.1; flameHit(tgt, 9, kdir, 12, false); }
     // normal melee swing (mace hits harder)
-    if (dist < reach && dyP > -1.6 && dyP < 1.6 && a.swCd <= 0 && tgt.alive && !a.smashArm && skLos(eyeP, tgtP)) {
+    const _elite = a.kind === 'law_elite', _critFall = _elite && !grounded && a.vel.y < -0.4;   // Law Elite: runs in, jumps, and hits on the way down = critical hit
+    if (dist < reach + (_critFall ? 0.6 : 0) && dyP > -1.6 && dyP < 1.6 && a.swCd <= 0 && tgt.alive && !a.smashArm && skLos(eyeP, tgtP) && (!_elite || _critFall || a.swCd < -0.9)) {
       let dmg = [9, 11, 13, 8][wpn], cd = [0.45, 0.75, 1.0, 0.6][wpn];   // buffed; mace = 11
+      if (_elite) {
+        dmg *= 1.2;   // Sharpness V
+        if (_critFall) { dmg *= 1.5; try { for (let i = 0; i < 9; i++) jcSpawn('crit', tgt.x, tgt.y + 1.1, tgt.z, (Math.random() - 0.5) * 6, Math.random() * 4, (Math.random() - 0.5) * 6, 0.3, 0.6); } catch (e) {} }
+      }
       a.swCd = cd; a.attackCd = 1.1; a.blockOff = 0.5;
       if (wpn === 2 && a.vel.y < -0.5) {
         const fall = Math.max(0, (a.peakY != null ? a.peakY : a.pos.y) - a.pos.y);
@@ -12147,7 +12315,7 @@ function flameAI(a, dt) {
       }
       if (Math.random() < 0.98) flameHit(tgt, dmg, kdir, 9 + (wpn === 2 ? 3 : 0), wpn === 1, wpn === 2);
     }
-    if (!a.smashArm && a.hopCd <= 0 && dist < 4 && grounded) { a.hopCd = 1.0 + Math.random() * 1.2; a.vel.y = 7.0; }
+    if (!a.smashArm && a.hopCd <= 0 && dist < (a.kind === 'law_elite' ? 5.2 : 4) && grounded) { a.hopCd = a.kind === 'law_elite' ? 0.6 + Math.random() * 0.5 : 1.0 + Math.random() * 1.2; a.vel.y = 7.0; }   // Law Elite: jump in for a crit
   } else {
     // ---------------- ranged: bow / trident (only after the 3rd pop) ----------------
     if (dist > 22) chase(6.8);
@@ -12191,14 +12359,14 @@ function flameVisualTick(a, dt) {
       else an.quaternion.identity();
     } else {
       an.position.set(0, -0.5, 0.02); an.scale.setScalar(1.25);
-      setHeldVisual(a.heldState, an, want);
+      setHeldVisual(a.heldState, an, want, a.kind === 'law_elite' ? LAW_ELITE_ENCH : undefined);   // Law Elite: enchanted sword / axe / spear glow
       if (a.heldState.heldMesh) an.quaternion.copy(zombieHoldQuat(a.heldState.heldMesh));
     }
   }
   if (a.offKey !== 'shield') {
     a.offKey = 'shield'; const o = a.offAnchor;
     o.position.set(0, -0.5, 0.02); o.scale.setScalar(1.25);
-    setHeldVisual(a.offState, o, 'shield'); o.rotation.set(-0.15, -Math.PI * 0.5, -0.05);
+    setHeldVisual(a.offState, o, 'shield', a.kind === 'law_elite' ? { unbreaking: 3, mending: 1 } : undefined); o.rotation.set(-0.15, -Math.PI * 0.5, -0.05);
   }
   a.offAnchor.visible = want !== 'bow';
   if (a.totemFx > 0) a.totemFx -= dt;
@@ -12328,7 +12496,7 @@ function updateAnimals(dt) {
       return;
     }
     // no ground generated under this mob yet (far from the host): freeze instead of falling
-    if (!generatedChunks.has(Math.floor(a.pos.x / CHUNK_SIZE) + ',' + Math.floor(a.pos.z / CHUNK_SIZE))) return;
+    if (!generatedChunks.has(Math.floor(a.pos.x / CHUNK_SIZE) + ',' + Math.floor(a.pos.z / CHUNK_SIZE))) { a.group.position.copy(a.pos); a.group.rotation.y = a.facing; return; }   // (keep the model with its position, e.g. a mob pulled into a Domain arena)
     if (a.kind === 'zombie' && a.kbT > 0) {
       a.kbT -= dt;   // being knocked back: let the shove play out
     } else if (a.kind === 'zombie') {
@@ -12395,6 +12563,8 @@ function updateAnimals(dt) {
       skeletonAI(a, dt);
     } else if (a.kind === 'breeze') {
       breezeAI(a, dt);
+    } else if (a.kind === 'creeper') {
+      creeperAI(a, dt);
     } else {
       if (a.kbT > 0) a.kbT -= dt;
       a.wanderTimer -= dt;
@@ -12575,7 +12745,7 @@ function updateAnimalSpawning(dt) {
     zombieDawnTimer -= dt;
     if (zombieDawnTimer <= 0) {
       zombieDawnTimer = 0.25;
-      for (let i = 0; i < animals.length; i++) { const a = animals[i]; if (a.alive && !a.fromSpawner && (a.kind === 'zombie' || a.kind === 'skeleton')) { a.alive = false; scene.remove(a.group); animals.splice(i, 1); break; } }
+      for (let i = 0; i < animals.length; i++) { const a = animals[i]; if (a.alive && !a.fromSpawner && (a.kind === 'zombie' || a.kind === 'skeleton' || a.kind === 'creeper')) { a.alive = false; scene.remove(a.group); animals.splice(i, 1); break; } }
     }
   }
   animalSpawnTimer -= dt;
@@ -12588,7 +12758,7 @@ function updateAnimalSpawning(dt) {
   for (const a of animals) {
     const dx = a.pos.x - P.x, dz = a.pos.z - P.z;
     if (dx*dx + dz*dz < ANIMAL_NEAR * ANIMAL_NEAR) {
-      if (a.fromSpawner) { /* spawner mobs have their own cap */ } else if (a.kind === 'zombie' || a.kind === 'skeleton') nearZ++; else near++;
+      if (a.fromSpawner) { /* spawner mobs have their own cap */ } else if (a.kind === 'zombie' || a.kind === 'skeleton' || a.kind === 'creeper') nearZ++; else near++;
     }
   }
   const camDir = new THREE.Vector3(); camera.getWorldDirection(camDir);
@@ -12613,7 +12783,7 @@ function updateAnimalSpawning(dt) {
         for (let i = 0; i < n; i++) {
           const hx = spot.x + Math.floor((Math.random() - 0.5) * 8), hz = spot.z + Math.floor((Math.random() - 0.5) * 8);
           const hy = findGrassSurface(hx, hz);
-          if (hy != null) spawnAnimal(hx, hz, hy, Math.random() < 0.1 ? 'skeleton' : 'zombie');
+          if (hy != null) { const r = Math.random(); spawnAnimal(hx, hz, hy, r < 0.1 ? 'skeleton' : (r < 0.3 ? 'creeper' : 'zombie')); }
         }
       }
     }
@@ -12831,6 +13001,15 @@ function spawnArrow(pos, vel, opts) {
   const a = { mesh, pos: pos.clone(), vel: vel.clone(), remote: !!opts.remote, power: opts.power || 1, powerLvl: opts.powerLvl || 0, charge: opts.charge || 0, noPickup: !!opts.noPickup, hostile: !!opts.hostile, hDmg: opts.hDmg, hKb: opts.hKb, stuck: false, stuckAt: 0, age: 0 };
   mesh.position.copy(a.pos);
   if (a.vel.lengthSq() > 1e-6) mesh.quaternion.setFromUnitVectors(_arrowUp, a.vel.clone().normalize());
+  if (opts.flame) {   // Flame arrow: glowing orange head
+    a.flame = true;
+    try {
+      const gl = new THREE.Mesh(new THREE.SphereGeometry(0.16, 8, 8), new THREE.MeshBasicMaterial({ color: 0xff7a1a, transparent: true, opacity: 0.85 }));
+      gl.position.set(0, 0.35, 0); mesh.add(gl);
+      const gl2 = new THREE.Mesh(new THREE.SphereGeometry(0.28, 8, 8), new THREE.MeshBasicMaterial({ color: 0xffc400, transparent: true, opacity: 0.3, depthWrite: false }));
+      gl2.position.set(0, 0.3, 0); mesh.add(gl2);
+    } catch (e) {}
+  }
   arrows.push(a);
   return a;
 }
@@ -12851,8 +13030,9 @@ function releaseBow() {
   const dir = ray.dir.clone().normalize();
   const origin = ray.origin.clone().add(dir.clone().multiplyScalar(0.6)); origin.y -= 0.1;
   const vel = dir.clone().multiplyScalar(8 + 30 * power);
-  spawnArrow(origin, vel, { power, powerLvl: Number(be.power) || 0, charge: Number(be.charge) || 0, noPickup: infinite });
-  playersChannel.send({ type: 'broadcast', event: 'arrow', payload: { from: MY_ID, x: origin.x, y: origin.y, z: origin.z, vx: vel.x, vy: vel.y, vz: vel.z } });
+  const _flame = (Number(be.flame) || 0) > 0;
+  spawnArrow(origin, vel, { power, powerLvl: Number(be.power) || 0, charge: Number(be.charge) || 0, noPickup: infinite, flame: _flame });
+  playersChannel.send({ type: 'broadcast', event: 'arrow', payload: { from: MY_ID, x: origin.x, y: origin.y, z: origin.z, vx: vel.x, vy: vel.y, vz: vel.z, fl: _flame ? 1 : 0 } });
   startSwing();
   damageHeldTool(1);                 // bow wear (Unbreaking applies)
   renderHotbar();
@@ -12881,10 +13061,12 @@ function arrowHit(a, found, dir, pt) {
   const kbBonus = Math.max(0, a.charge);
   if (found.mob) {
     jcNoLootUntil = performance.now() + 1500;   // bow kills: no Looting
+    if (a.flame) found.mob.burnT = 6;            // Flame: set the mob on fire
     const d = jcIframe(found.mob, dmg);
     if (d > 0) damageAnimal(found.mob, d, new THREE.Vector3(pt.x - dir.x * 2, pt.y, pt.z - dir.z * 2), 0.7 + 0.9 * kbBonus);   // Charge: more knockback
   } else {
     const g = found.entry.group.position;
+    if (a.flame) { try { playersChannel.send({ type: 'broadcast', event: 'ignite', payload: { to: found.id, secs: 6 } }); } catch (e) {} }
     const d = jcIframe(found.entry, dmg);
     if (d > 0) {
       playersChannel.send({ type: 'broadcast', event: 'hit', payload: { targetId: found.id, amount: d, attackerId: MY_ID, kx: dir.x, kz: dir.z, knock: 5 + 4 * kbBonus } });
@@ -13080,7 +13262,7 @@ function throwWindCharge() {
 let splashPotionCdUntil = 0;
 const splashPotions = [];
 const SPLASH_COLORS = {
-  strength: 0xc8402e, turtle_master: 0x5a8a5a, slow_falling: 0xf0e8c8, invisibility: 0xc8c8e8
+  strength: 0xc8402e, turtle_master: 0x5a8a5a, slow_falling: 0xf0e8c8, invisibility: 0xc8c8e8, fire_resistance: 0xe8821e
 };
 function isSplashPotion(type) {
   const info = ITEM_INFO[type];
@@ -13135,6 +13317,7 @@ function spawnSplashPotion(pos, vel, opts) {
 }
 function splashApplyAt(pt, kind, lvl, secs, owner) {
   const R = 3.2;
+  try { playersChannel.send({ type: 'broadcast', event: 'splash_hit', payload: { from: MY_ID, x: pt.x, y: pt.y, z: pt.z, kind, lvl, secs } }); } catch (e) {}   // other players in range get the effect too
   // Self
   if (Math.hypot(player.pos.x - pt.x, player.pos.y + 0.9 - pt.y, player.pos.z - pt.z) < R) {
     if (typeof applyPotionEffect === 'function') applyPotionEffect(kind, lvl, secs);
@@ -14053,7 +14236,7 @@ function jcPickTarget(ray, reach, pad, minReach) {
 }
 
 // ================= XP & enchanting =================
-const JC_XP = { wemmbu: 900, flamefrags: 800, spoke: 150, null: 40, skeleton: 8, zombie: 8, breeze: 10, cow: 4, sheep: 3, pig: 3, law_normal: 60, law_elite: 200, law_commander: 400, law_leader: 1200 };           // XP per kill
+const JC_XP = { wemmbu: 900, flamefrags: 800, spoke: 150, null: 40, skeleton: 8, zombie: 8, breeze: 10, creeper: 12, cow: 4, sheep: 3, pig: 3, law_normal: 60, law_elite: 200, law_commander: 400, law_leader: 1200 };           // XP per kill
 function xpNeed(level) { return 7 + level * 2; }                  // XP points to climb from `level` to level+1
 const xpLvlEl = document.getElementById('xpLvl'), xpFillEl = document.getElementById('xpFill');
 function jcXpUI() {
@@ -14126,11 +14309,11 @@ const JC_ENCH_TIERS = [
   { name: 'Level V',   cost: 25, level: 5 },
 ];
 // Highest level the table offers per enchant (default 4)
-const JC_ENCH_MAX = { lunge: 3, unbreaking: 3, mending: 1, sharpness: 5, looting: 5, power: 5, charge: 2, infinity: 1, loyalty: 3, riptide: 3, silktouch: 1, density: 5, breach: 5, windburst: 3, sweepingedge: 3 };
+const JC_ENCH_MAX = { lunge: 3, unbreaking: 3, mending: 1, sharpness: 5, looting: 5, power: 5, charge: 2, infinity: 1, loyalty: 3, riptide: 3, silktouch: 1, density: 5, breach: 5, windburst: 3, sweepingedge: 3, flame: 1 };
 // Per-enchant cost override (XP levels) for a given tier; others use the tier's normal cost
-const JC_ENCH_COST = { mending: 25, infinity: 25, silktouch: 15 };
+const JC_ENCH_COST = { mending: 25, infinity: 25, silktouch: 15, flame: 25 };
 function jcEnchCost(id, t) { return JC_ENCH_COST[id] != null ? JC_ENCH_COST[id] : t.cost; }
-const JC_ENCH_TYPE_IDS = ['efficiency', 'fortune', 'sharpness', 'protection', 'unbreaking', 'mending', 'looting', 'power', 'charge', 'infinity', 'lunge', 'loyalty', 'riptide', 'silktouch', 'density', 'breach', 'windburst', 'sweepingedge'];
+const JC_ENCH_TYPE_IDS = ['efficiency', 'fortune', 'sharpness', 'protection', 'unbreaking', 'mending', 'looting', 'power', 'charge', 'infinity', 'lunge', 'loyalty', 'riptide', 'silktouch', 'density', 'breach', 'windburst', 'sweepingedge', 'flame'];
 const _fr = (a, b) => Array.from({ length: b - a + 1 }, (_, i) => a + i);
 // Total items dropped per Fortune level [I, II, III] (each list is picked from uniformly, so repeats weight the odds)
 const JC_FORTUNE = {
@@ -14142,7 +14325,7 @@ const JC_FORTUNE = {
   wood:        [[1, 1, 2], [1, 2, 2], [1, 2, 3], _fr(1, 4)],
   birch_wood:  [[1, 1, 2], [1, 2, 2], [1, 2, 3], _fr(1, 4)],
 };
-const JC_ENCH_NAMES = { swap: 'Swap', lunge: 'Lunge', sharpness: 'Sharpness', protection: 'Protection', efficiency: 'Efficiency', fortune: 'Fortune', unbreaking: 'Unbreaking', mending: 'Mending', looting: 'Looting', power: 'Power', charge: 'Charge', infinity: 'Infinity', loyalty: 'Loyalty', riptide: 'Riptide', silktouch: 'Silk Touch', density: 'Density', breach: 'Breach', windburst: 'Wind Burst', sweepingedge: 'Sweeping Edge' };
+const JC_ENCH_NAMES = { swap: 'Swap', lunge: 'Lunge', sharpness: 'Sharpness', protection: 'Protection', efficiency: 'Efficiency', fortune: 'Fortune', unbreaking: 'Unbreaking', mending: 'Mending', looting: 'Looting', power: 'Power', charge: 'Charge', infinity: 'Infinity', loyalty: 'Loyalty', riptide: 'Riptide', silktouch: 'Silk Touch', density: 'Density', breach: 'Breach', windburst: 'Wind Burst', sweepingedge: 'Sweeping Edge', flame: 'Flame' };
 let enchPick = 'efficiency';   // which tool enchant the table will apply (Efficiency / Fortune)
 function jcToolKind(type) { const m = /_(pickaxe|axe|shovel)$/.exec(type || ''); return m ? m[1] : null; }
 function jcEnchInfo(type) {
@@ -14157,7 +14340,7 @@ function jcEnchInfo(type) {
     if (tk === 'axe') opts = ['sharpness', 'efficiency', 'fortune', 'silktouch'];
     else if (tk === 'shovel') opts = ['efficiency', 'silktouch'];
     else if (tk) opts = ['efficiency', 'fortune', 'silktouch'];
-    else if (type === 'bow') opts = ['power', 'charge', 'infinity'];   // bow-only enchants (+ Unbreaking / Mending below)
+    else if (type === 'bow') opts = ['power', 'charge', 'infinity', 'flame'];   // bow-only enchants (+ Unbreaking / Mending below)
     else if (type === 'trident') opts = ['loyalty', 'sharpness', 'looting', 'riptide'];   // Loyalty I-III: flies back; Riptide I-III: dash in water / rain (instead of throwing)
     else if (type === 'shield') opts = [];   // shield: Unbreaking / Mending only (added below)
   }
@@ -14170,7 +14353,7 @@ function jcCleanEnch(e) {
   if (!e || typeof e !== 'object') return null;
   const out = {}; let any = false;
   // Admin levels from cloud: -9999 … 9999 (0 ignored). Also accept alias keys.
-  const map = { sharpness:1, sharp:1, protection:1, prot:1, efficiency:1, eff:1, fortune:1, fort:1, unbreaking:1, unb:1, mending:1, mend:1, looting:1, loot:1, power:1, charge:1, infinity:1, lunge:1, loyalty:1, loy:1, riptide:1, rip:1, silktouch:1, silk:1, density:1, dens:1, breach:1, windburst:1, wind_burst:1, wb:1, sweepingedge:1, sweeping_edge:1, sweeping:1, se:1, null:1, swap:1 };
+  const map = { sharpness:1, sharp:1, protection:1, prot:1, efficiency:1, eff:1, fortune:1, fort:1, unbreaking:1, unb:1, mending:1, mend:1, looting:1, loot:1, power:1, charge:1, infinity:1, lunge:1, loyalty:1, loy:1, riptide:1, rip:1, silktouch:1, silk:1, density:1, dens:1, breach:1, windburst:1, wind_burst:1, wb:1, sweepingedge:1, sweeping_edge:1, sweeping:1, se:1, flame:1, null:1, swap:1 };
   const canon = { silk: 'silktouch', rip: 'riptide', sharp: 'sharpness', prot: 'protection', eff: 'efficiency', fort: 'fortune', unb: 'unbreaking', mend: 'mending', loot: 'looting', loy: 'loyalty', dens: 'density', wind_burst: 'windburst', wb: 'windburst', sweeping_edge: 'sweepingedge', sweeping: 'sweepingedge', se: 'sweepingedge' };
   for (const k of Object.keys(e)) {
     const lk = String(k).toLowerCase();
@@ -14540,7 +14723,7 @@ playersChannel
     if (!payload || payload.from === MY_ID) return;
     const v = [payload.x, payload.y, payload.z, payload.R, payload.life].map(Number);
     if (!v.every(Number.isFinite)) return;
-    gojoDomainMake({ from: payload.from, x: v[0], y: v[1], z: v[2], R: Math.min(8, v[3]), life: Math.min(30, v[4]) });
+    try { gojoDomainMake({ from: payload.from, x: v[0], y: v[1], z: v[2], R: Math.min(8, v[3]), life: Math.min(30, v[4]), victims: Array.isArray(payload.victims) ? payload.victims.slice(0, 50) : [] }); } catch (e) { console.error('domain', e); }
   })
   .on('broadcast', { event: 'gojo_domain_hit' }, ({ payload }) => {
     if (!payload || payload.from === MY_ID) return;
@@ -14658,6 +14841,30 @@ playersChannel
     const x = Number(payload.x), y = Number(payload.y), z = Number(payload.z);
     if ([x, y, z].every(Number.isFinite)) summonLettuceManual(x, y, z);
   })
+  .on('broadcast', { event: 'splash_hit' }, ({ payload }) => {
+    if (!payload || payload.from === MY_ID || player.hp <= 0) return;
+    if (Math.hypot(player.pos.x - payload.x, player.pos.y + 0.9 - payload.y, player.pos.z - payload.z) < 3.2) {
+      if (typeof applyPotionEffect === 'function') applyPotionEffect(payload.kind, Math.min(2, Number(payload.lvl) || 1), Math.min(600, Number(payload.secs) || 60));
+    }
+  })
+  .on('broadcast', { event: 'splash_potion' }, ({ payload }) => {
+    if (!payload || payload.from === MY_ID) return;
+    spawnSplashPotion(new THREE.Vector3(payload.x, payload.y, payload.z), new THREE.Vector3(payload.vx, payload.vy, payload.vz), { kind: payload.kind, lvl: payload.lvl, secs: payload.secs, remote: true, owner: payload.from });
+  })
+  .on('broadcast', { event: 'creeper_boom' }, ({ payload }) => {
+    if (!payload || payload.from === MY_ID) return;
+    explodeTnt({ pos: new THREE.Vector3(payload.x, payload.y, payload.z), owner: false });   // everyone sees it and takes their own damage; terrain arrives from the host
+  })
+  .on('broadcast', { event: 'ignite' }, ({ payload }) => {
+    if (!payload || payload.to !== MY_ID || player.hp <= 0) return;
+    if (typeof hasFireRes === 'function' && hasFireRes()) return;
+    player.burnT = Math.max(player.burnT || 0, Math.min(10, Number(payload.secs) || 5));
+  })
+  .on('broadcast', { event: 'burn' }, ({ payload }) => {
+    if (!payload || payload.from === MY_ID) return;
+    const e = otherPlayers.get(payload.from);
+    if (e) e.burnUntil = payload.on ? performance.now() + 1500 : 0;
+  })
   .on('broadcast', { event: 'mob_dmg' }, ({ payload }) => {
     if (!payload || payload.to !== MY_ID || player.hp <= 0) return;
     damagePlayer(Math.max(0, Math.min(40, Number(payload.dmg) || 0)), new THREE.Vector3(payload.kx, 0, payload.kz), payload.kb || 8.5, payload.ax === 2 ? { maceHit: true } : (payload.ax ? { axeHit: true } : undefined));   // ax: 1 axe, 2 mace (goes through shields)
@@ -14668,7 +14875,7 @@ playersChannel
   .on('broadcast', { event: 'time_sync' }, ({ payload }) => {
     if (!payload || payload.from === MY_ID) return;
     adoptSharedClock(payload.t);
-    if (isMobHost()) for (const a of animals) if (a.alive && !a.fromSpawner && (a.kind === 'zombie' || a.kind === 'skeleton')) { a.alive = false; scene.remove(a.group); }
+    if (isMobHost()) for (const a of animals) if (a.alive && !a.fromSpawner && (a.kind === 'zombie' || a.kind === 'skeleton' || a.kind === 'creeper')) { a.alive = false; scene.remove(a.group); }
   })
   .on('broadcast', { event: 'chat' }, ({ payload }) => {
     if (!payload || payload.id === MY_ID) return;
@@ -14727,7 +14934,7 @@ playersChannel
   })
   .on('broadcast', { event: 'arrow' }, ({ payload }) => {
     if (!payload || payload.from === MY_ID) return;
-    spawnArrow(new THREE.Vector3(payload.x, payload.y, payload.z), new THREE.Vector3(payload.vx, payload.vy, payload.vz), { remote: true });
+    spawnArrow(new THREE.Vector3(payload.x, payload.y, payload.z), new THREE.Vector3(payload.vx, payload.vy, payload.vz), { remote: true, flame: !!payload.fl });
   })
   .on('broadcast', { event: 'wind_charge' }, ({ payload }) => {
     if (!payload || payload.from === MY_ID) return;
@@ -15693,7 +15900,7 @@ function gojoDomainMake(p) {
   const fr = Math.sqrt(1 - fu * fu) * 0.998;
   const floor = new THREE.Mesh(new THREE.CircleGeometry(fr, 64), new THREE.MeshBasicMaterial({ map: gojoFloorTex(), fog: false, polygonOffset: true, polygonOffsetFactor: -1, polygonOffsetUnits: -1 }));
   floor.rotation.x = -Math.PI / 2; floor.position.y = fu + 0.0005; g.add(floor);
-  const inMe = p.from === MY_ID || Math.hypot(player.pos.x - p.x, player.pos.y + 0.9 - p.y, player.pos.z - p.z) <= p.R;   // inside when it forms = pulled into the domain; outside = locked out
+  const inMe = p.from === MY_ID || (Array.isArray(p.victims) && p.victims.some(v => String(v) === String(MY_ID))) || Math.hypot(player.pos.x - p.x, player.pos.y + 0.9 - p.y, player.pos.z - p.z) <= p.R;   // inside when it forms = pulled into the domain; outside = locked out
   // What everybody outside sees at the original spot: a solid dark orb (it can be hit to break the domain). NO blocks are removed.
   const outer = new THREE.Mesh(new THREE.SphereGeometry(1, 32, 24), new THREE.MeshBasicMaterial({ map: gojoSpaceTex(), side: THREE.DoubleSide, fog: false }));
   outer.position.set(p.x, p.y, p.z); outer.scale.setScalar(0.01); scene.add(outer);
@@ -15711,6 +15918,15 @@ function gojoDomainMake(p) {
     if (p.from === MY_ID) { ox = 0; oz = 0; }
     player.pos.set(A.x + ox, d.floorY, A.z + oz); player.vel.set(0, 0, 0); knockV.x = 0; knockV.z = 0; player.fallDist = 0; player.onGround = true;
   }
+  animals.forEach(a => {   // mobs (LettuceK, zombies, ...) inside the orb are pulled into the arena too, by the client that owns them
+    if (!a.alive || a.remote) return;
+    const hh = (a.height || 1) * 0.5;
+    if (Math.hypot(a.pos.x - p.x, a.pos.y + hh - p.y, a.pos.z - p.z) > p.R + 0.5) return;
+    let ox = a.pos.x - p.x, oz = a.pos.z - p.z; const ol = Math.hypot(ox, oz), lim = Math.max(0, R - 1.6);
+    if (ol > lim) { ox *= lim / ol; oz *= lim / ol; }
+    a.domHome = { x: a.pos.x, y: a.pos.y, z: a.pos.z }; a.domId = p.from; a.domPos = { x: A.x + ox, z: A.z + oz };
+    a.pos.set(a.domPos.x, d.floorY, a.domPos.z); a.vel.set(0, 0, 0); a.kbT = 0.3; a.group.position.copy(a.pos);
+  });
   gojoDomains.push(d); return d;
 }
 function gojoDomainRemove(i) {
@@ -15718,6 +15934,9 @@ function gojoDomainRemove(i) {
   if (d.inMe && d.home && player.hp > 0) {   // everyone who was inside goes back to where they stood
     player.pos.set(d.home.x, d.home.y, d.home.z); player.vel.set(0, 0, 0); knockV.x = 0; knockV.z = 0; player.fallDist = 0;
   }
+  animals.forEach(a => {   // mobs that were pulled in go back where they stood
+    if (a.domId === d.from && a.domHome) { a.pos.set(a.domHome.x, a.domHome.y, a.domHome.z); a.group.position.copy(a.pos); a.vel.set(0, 0, 0); a.kbT = 0.3; a.domHome = null; a.domId = null; a.domPos = null; }
+  });
   if (d.saved) gojoDomainRestore(d);
   if (d.g) { scene.remove(d.g); d.g.traverse(o => { if (o.geometry) o.geometry.dispose(); if (o.material) o.material.dispose(); }); }
   scene.remove(d.outer); d.outer.geometry.dispose(); d.outer.material.dispose();
@@ -15770,7 +15989,8 @@ function gojoDomainCast() {
   try { startSwing(); } catch (e) {}
   let fy = player.pos.y;   // the domain floor is the ground you stand on (if you cast in mid-air: the ground below you)
   if (!player.onGround) for (let i = 0; i < 14; i++) { const b = getBlock(player.pos.x, Math.round(player.pos.y) - i, player.pos.z); if (b && !/water|lava/.test(b.type)) { fy = Math.round(player.pos.y) - i + 0.5; break; } }
-  const p = { from: MY_ID, x: player.pos.x, y: fy + 0.9, z: player.pos.z, R: GOJO_DOMAIN_R, life: GOJO_DOMAIN_TIME };
+  const p = { from: MY_ID, x: player.pos.x, y: fy + 0.9, z: player.pos.z, R: GOJO_DOMAIN_R, life: GOJO_DOMAIN_TIME, victims: [] };
+  otherPlayers.forEach((e, id) => { const t = e.target; if (t && Math.hypot(t.x - p.x, t.y + 0.9 - p.y, t.z - p.z) <= p.R + 1.5) p.victims.push(id); });   // the caster says who is inside, so nobody is missed by latency
   const d = gojoDomainMake(p);   // (nothing in the world is removed any more: the inside is a separate far-away arena)
   try { playersChannel.send({ type: 'broadcast', event: 'gojo_domain', payload: p }); } catch (e) {}
   addChatLine('System', 'Domain Expansion!', true, true);
@@ -15876,6 +16096,7 @@ function updateGojoDomain(dt) {
     }
     animals.forEach(a => {
       if (!a.alive || a.remote) return;
+      if (a.domId === d.from && a.domPos) { a.pos.set(a.domPos.x, d.floorY, a.domPos.z); a.vel.set(0, 0, 0); a.kbT = 0.3; a.group.position.copy(a.pos); return; }   // pulled into the arena: frozen on the floor
       const h = (a.height || 1) * 0.5;
       const ax = a.pos.x - d.x, ay = a.pos.y + h - d.y, az = a.pos.z - d.z, ad = Math.hypot(ax, ay, az) || 0.001;
       if (ad < d.R + 0.5) {   // mobs are kept out of the orb
@@ -18480,7 +18701,7 @@ function shopName(t, kind) {   // t may be a want key like 'spawner:zombie'
 // "Plain" = an ordinary stackable item. Leftover empty fields (ench {}, dur null, meta 0...) must not make a stack special,
 // otherwise stacks of the same item get split into separate entries and only one slot is counted.
 function shopHasEnch(s) { return !!(s && s.ench && typeof s.ench === 'object' && Object.keys(s.ench).length); }
-function shopIsPlain(s) { return !!(s && s.type !== 'spawner' && !shopHasEnch(s) && s.uses == null && maxStackFor(s.type) !== 1); }
+function shopIsPlain(s) { return !!(s && s.type !== 'spawner' && !shopHasEnch(s) && s.uses == null && (maxStackFor(s.type) !== 1 || isPotion(s.type))); }   // potions count as plain: sell e.g. 20 of the same potion at once
 function shopSer(s) {   // slot -> plain JSON object (keeps enchants, durability, spawner kind...)
   const o = { type: s.type, count: s.count };
   if (s.type === 'spawner') { o.spawnKind = shopKindOf(s); o.meta = s.meta != null ? s.meta : spawnerMetaForKind(o.spawnKind); }
@@ -18563,7 +18784,7 @@ function shopDropAt(o) {
 function shopGiveObjs(list) {
   (list || []).forEach(o => {
     if (!o || !o.type || !(o.count > 0)) return;
-    const special = !!(o.type === 'spawner' || shopHasEnch(o) || o.uses != null || maxStackFor(o.type) === 1);
+    const special = !!(o.type === 'spawner' || shopHasEnch(o) || o.uses != null || (maxStackFor(o.type) === 1 && !isPotion(o.type)));   // bulk potions go into the inventory one per slot
     if (!special) {
       let left = addItemToInventory(o.type, o.count);
       const ms = maxStackFor(o.type);
@@ -19214,6 +19435,48 @@ function tryUseFlintAndSteel() {
   if (used) { tntSound('ignite'); damageHeldTool(1); }
   return true;
 }
+// ===== Fire visuals: flames on anything that burns (you, other players, mobs) + a screen-edge fire overlay =====
+function _makeFireFx(h) {
+  const g = new THREE.Group(); g.userData.parts = []; g.userData.h = h;
+  const cols = [0xff4a00, 0xff8a00, 0xffc400, 0xff6a00];
+  for (let i = 0; i < 16; i++) {
+    const m = new THREE.Mesh(new THREE.BoxGeometry(0.2, 0.2, 0.2), new THREE.MeshBasicMaterial({ color: cols[i % 4], transparent: true, opacity: 0.9, depthWrite: false }));
+    m.userData = { ph: Math.random(), ox: (Math.random() - 0.5) * 0.8, oz: (Math.random() - 0.5) * 0.8, sp: 0.9 + Math.random() * 1.3 };
+    g.add(m); g.userData.parts.push(m);
+  }
+  return g;
+}
+function setFireFx(group, on, h, t) {
+  if (!group) return;
+  let fx = group.userData.fireFx;
+  if (!on) { if (fx) fx.visible = false; return; }
+  if (!fx) { fx = _makeFireFx(h || 1.8); group.add(fx); group.userData.fireFx = fx; }
+  fx.visible = true;
+  const H = fx.userData.h;
+  for (const m of fx.userData.parts) {
+    const u = m.userData, k = (((t * u.sp + u.ph) % 1) + 1) % 1;
+    m.position.set(u.ox * (1 - k * 0.5), 0.1 + k * H, u.oz * (1 - k * 0.5));
+    m.scale.setScalar(1.15 - k * 0.9);
+    m.material.opacity = 0.95 - k * 0.6;
+  }
+}
+let _fireOverlayEl = null, _burnSentAt = 0, _burnWas = false;
+function updateFireFx(dt) {
+  const t = performance.now() / 1000;
+  const burning = player.burnT > 0 && player.hp > 0;
+  try { setFireFx(myModel.group, burning, player.height || 1.8, t); } catch (e) {}
+  if (!_fireOverlayEl) {
+    _fireOverlayEl = document.createElement('div'); _fireOverlayEl.id = 'fireOverlay';
+    document.body.appendChild(_fireOverlayEl);
+  }
+  _fireOverlayEl.style.display = burning ? 'block' : 'none';
+  const now = performance.now();   // tell other players when I'm burning (refreshed while it lasts)
+  if (burning && now - _burnSentAt > 700) { _burnSentAt = now; try { playersChannel.send({ type: 'broadcast', event: 'burn', payload: { from: MY_ID, on: 1 } }); } catch (e) {} }
+  else if (!burning && _burnWas) { try { playersChannel.send({ type: 'broadcast', event: 'burn', payload: { from: MY_ID, on: 0 } }); } catch (e) {} }
+  _burnWas = burning;
+  otherPlayers.forEach(e => { try { setFireFx(e.group, !!(e.burnUntil && now < e.burnUntil), 1.8, t); } catch (err) {} });
+  for (const a of animals) { if (a.alive && a.group) { try { setFireFx(a.group, a.burnT > 0, a.height || 1.6, t); } catch (err) {} } }
+}
 function updateFires(dt) {
   let changed = false;
   for (const [k, f] of fires) {
@@ -19255,7 +19518,7 @@ function updateFires(dt) {
       }
       return false;
     };
-    if (inFire(player.pos.x, player.pos.y, player.pos.z, player.height)) player.burnT = 3.5;
+    if (!hasFireRes() && inFire(player.pos.x, player.pos.y, player.pos.z, player.height)) player.burnT = 3.5;
     for (let i = droppedItems.length - 1; i >= 0; i--) {      // dropped items burn up in flames
       const it = droppedItems[i];
       const b = world.get(key(Math.round(it.pos.x), Math.round(it.pos.y + 0.15), Math.round(it.pos.z)));
@@ -19271,8 +19534,9 @@ function updateFires(dt) {
       if (inFire(a.pos.x, a.pos.y, a.pos.z, a.height)) a.burnT = 4;
     }
   }
+  updateFireFx(dt);
   if (player.burnT > 0) {                                      // you: burning damage until it wears off / you hit water
-    if (isInWater(player.pos)) player.burnT = 0;
+    if (isInWater(player.pos) || hasFireRes()) player.burnT = 0;
     else {
       player.burnT -= dt; player.burnTick = (player.burnTick || 0) - dt;
       if (player.burnTick <= 0) { player.burnTick = 0.9; damagePlayer(1, null, 0); }
