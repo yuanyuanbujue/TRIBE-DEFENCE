@@ -1,4 +1,4 @@
-a<!DOCTYPE html>
+<!DOCTYPE html>
 <html lang="en">
 <head>
 <meta charset="UTF-8">
@@ -2088,6 +2088,7 @@ const BLOCK_TYPES = {
   repeater:       { transparent: true, hardness: 0.1, tool: null, shape: 'repeater' },
   comparator:     { transparent: true, hardness: 0.1, tool: null, shape: 'comparator' },
   pressure_plate: { transparent: true, hardness: 0.5, tool: 'axe', shape: 'plate', noCollide: true },
+  rail:           { transparent: true, hardness: 0.7, tool: null, shape: 'rail', noCollide: true },   // flat track; minecarts only sit on it
   piston:        { transparent: false, hardness: 1.5, tool: 'pickaxe' },
   sticky_piston: { transparent: false, hardness: 1.5, tool: 'pickaxe' },
   campfire: { transparent: true, hardness: 0.5, tool: 'axe', shape: 'campfire' },
@@ -2178,6 +2179,7 @@ const ITEM_INFO = {
   bucket: { maxStack: 16 },
   water_bucket: { maxStack: 1 },
   boat: { maxStack: 1 },
+  minecart: { maxStack: 1 },
   lava_bucket: { maxStack: 1 },
   flint_and_steel: { maxStack: 1, durability: 65 },
   // ---- farming ----
@@ -2813,6 +2815,7 @@ Object.assign(PACK_ITEMS, {mace: "data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAA
 Object.assign(PACK_ITEMS, {wheat_seeds: "data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAABAAAAAQCAYAAAAf8/9hAAAAmElEQVR4nOWRvRGAIAyFn56lA1BZWzABAzCO4zABQ1lzlpb2sfEHQ8jRm7sUOcjP9x7wm6Ari+gbGsg7gyVYQBgiDSga0nZgjXv7ufM0knfmc0UNoVMQpH/E6qoGHQAwFFGLQduetgOI7wOvxdO9M7QEezPnCaEuEbji/GzN0hzhSeaI5FAzCl8AQBbxQckEy+2uWV9FUeMEOeJZP0Fh6xEAAAAASUVORK5CYII=", wheat: "data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAABAAAAAQCAYAAAAf8/9hAAAAt0lEQVR4nGNgQAX/kdm/7lX8RxdDU8/AhKYBqyJ88kzY1TL8f7QvhOHFgzsMRxbY4DMUbgC6BgYGBgYGCQUVOBuXgSguQNbAwMDA8OLBHQZ88hgGENKALk/QBUd27CHNBcga5JzWMDAwMDDYJBzBaSA6+M/AwPB/3zST/4TYuFzAiNd4HOpYsKmYdgISlTeQ2AznfmA1DasBl869wRDTYOAhynnEhAEKwJWUiQYUG4AN4Mq+WDMUAJQ9Yn1kZdv0AAAAAElFTkSuQmCC", bread: "data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAABAAAAAQCAYAAAAf8/9hAAAAjklEQVR4nGNgGPKAEYf4f2LVowv8Z2BgYLg3zw2rbqWkXRj6kA34j0sjDoMYGRgYGJhgmvfUmTDce/AOjvmkpDDYMHpPnQnctSzYbLh17x0DA8MVDPaqJYcY1JSEUNQyMWABakpCUI242TCAEgbTYpSICQKGrCX34HqRXcAIlSBaM7oL4C4hYAautDNiAQANzzycs8U3lwAAAABJRU5ErkJggg=="});
 PACK_ITEMS.lava_bucket = "data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAABAAAAAQCAYAAAAf8/9hAAABTUlEQVR4AaSPsUvDQBTGX8XJzQ7Wxa0QBAsZzF8gZugkOBSFLI5FnBwddDezoEI2JxVRcMgaQUgcMrgEsulgB7O4uFV+B3f00tsMfHkv7/vu9y4L8s/HCQiCYOqSa5cF0IfuR0syHm7J2ShUulj+EaT9WZABYHKIYCdck+3dTxnIi9Lq+ab0wp6CACWrIQbAYPD6oIL00/RDACHdA1lJ77CNLEB9cCrXj9/ydfxmAvRAGEzSieQ7R7RGFsD3fVkfn8jT76ICXR2WqgfCLW42huagbiwAQyB7l7eCgCG2sh2/2+1SjOYAOJ7nUSy5thOwAGVZMnNq//3ZObcAeZ47Qwz1DZqm4dPIAIqi6GRZpoyqqlRtv/r9viRJImS1ZwB60P6N9kad09UCQI7jWNqQuq7FtR2IBWCgIVEUCTCuzK9R8cjMag6ASdAlvLb+AAAA//8pIEw+AAAABklEQVQDAECGniFrZeOrAAAAAElFTkSuQmCC";
 PACK_ITEMS.boat = "data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAABAAAAAQCAYAAAAf8/9hAAABrUlEQVR4AaSSzSvDcRzHP3Zxk6dCJMqiaDcty5aTh4tduCzlsCInubHSbuOyG8VKTnYZh7mhJFyklDWapsjjhKntD5i9PvWb37aU8qv39/Hzfn3f328/i/zzKwOEgpM55HHbc39hlwEwDY+46MQ/O5orlW6YmiIAJzv6e2RjPSrWtgYZGuxWjXucgppbaxRq8ksBgPn54Usi4RM1YV4JHQoKBLYFAS+FWDASEzMmhAlZ8ynQgKtLEHAgRQl+M1LknXbTSV11pYrTWUjev9GpLExa2js0Kqch3ck38wshvXsslsrPRCE6MDX6Bk93t7K8NKXLnGKzNWpkYnN3HhBIU2OdvtH7Y1ZraRTAIJNNC5GJy9zozZC9/StN5HB2UKIqAJgB6e2zM1TxP/BoBoRkmY+0Qnh4iizh6FmFfzHKWGVAAHE1DEfHCfH5xoQrvKY+hTWuBUQTHFxcV8zNbCrAaDAzjidehDvzFlX1tQUIe0gBDAwIdOacRLLI1rmwR1ID0tljlZt4krKfP5EZhZi8E0FZWz1VI2vsIQMCaGf3UvgFCgkoQBgMMS8VELO+AQAA///BXUezAAAABklEQVQDAPej6yGHDpwwAAAAAElFTkSuQmCC";
+PACK_ITEMS.minecart = "data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAABAAAAAQCAYAAAAf8/9hAAAAkElEQVR4nGNgGAWMDAwMDGpaev/J0Xzr2iVGFhinqamJ4d37D0RpFBIUYKirq2NgYGBggBtw5eo1BgEBAaIMePbsGZzNgizx4QNxLkAGcAPu3LlDsmYGBgYGJnSBB/fvEWTjNUBBUYkgG68BpAJGGIPUtHDr2iVGDEE1Lb3/TW1d/7EZhkuOEV0RLhvwyVEEAFsZNPXBChl3AAAAAElFTkSuQmCC";
 Object.assign(PACK_ITEMS, {redstone: "data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAABAAAAAQCAYAAAAf8/9hAAABFklEQVR4AcyQMYrCQBSG/xFcl4Vlm2WbPYOFnbUHsLPzAtYewdraQ9h5AAsrOxHPYGcjghgFx/fJTEhiYmNjyGPy/nn/N/OnphefNwf0G/LUs5SVETD+JVL304nvKkgpAAPGcXBtr1JT8qHNLQ+AaO7tvaY/Tktb5xfpt14OyQGimSMwA2kbpGPmf5ssg5jMuO45yYwJhZMx0rfsBsQYfDk1Puq5ODWGY3HaMDTkx0C/shsgz05e395oNKFSwDqRJkcvIJxKBG6BGRDz3OLgAg3BKgVsJLczOJCsmexosgdzcr6IWWvvbwqgYwPIyP78wrKixVPRi2b2cwAEIBTDmCi+0ShmsvUAiJsMZyvqxbUSUBys6m8AAAD//zAunpIAAAAGSURBVAMAN1JyIeXGWoIAAAAASUVORK5CYII=",wood_sword: "data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAABAAAAAQCAYAAAAf8/9hAAABKUlEQVR4AZySzUrDQBSFT4KKFaKNUC0iKAUXIiLdKIKIW1c+og/gA+iyO9GVIKLdFClFLP60EqyiQvQbnJBU06QNnMzPne/MvTPjaoRva7UYWg1tALi74etgZ07tzoeGMrCw742rE3ya3HMb9MNHtbZu73tOLoM0mBQyDQbBCQMWIiatGFcWCrI127RtnDaRQdEbExABWuD1iqfLRqD/YNZFBmfXXacbfAlouTwV0i6WJg18evViDgygX5FBPLC9NqPnn2tqPbxrEAyTMCCLxt2bgckmC/5jsL9ZCqsr06o3e8Q070+Icswg5RdlALxXnVXt4snUyzNFWSYup42WygUdHrd003x12IxXhjBhnCaTAdd3cv4YwfHFmKD4XLzvskP9t+Z4IG//GwAA///+MCFKAAAABklEQVQDAKrspORZQORHAAAAAElFTkSuQmCC",stone_sword: "data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAABAAAAAQCAYAAAAf8/9hAAABKklEQVR4AZySv2vCQBzFX1I6dEyhpRRam06ZLF1KaZcOHRrobP+DUvq3ODi4O+s/ENxcNI7+QMhkJBEHQTI5R97BhYsaEw28XO6+93n37nI6Tnhs246ljjYg+P31if+/X3ieh6MMJHz/8IhgNhXZCxtsw9VaHb7va4UMsmBGyDU4BKcMOJHioBT7T+Uy5J5lbFlnm0pgGAYIscCW8PvbK7q9PvbBnJcYOI6jRVEEQqZpxmzvbq8F3Gy1xIER2FZioBZ+KhUEYYhwscQhmEzKgCmGo5GAmSYP3jGwX67i0vkEruuyBsuywO2ITsYrSUD44/kSncFK7JfXlMoz0XnaVOnmAg1nDi9Ya1yMt4yiCftZEgn4+9rjswRWJ9OEUsfUb50ryD2rhaLfGwAAAP//A3iTuQAAAAZJREFUAwCsfqVH1HgUFgAAAABJRU5ErkJggg==",iron_sword: "data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAABAAAAAQCAYAAAAf8/9hAAABIElEQVR4AZySsU6FQBBFBzotTUyAxsaEhsbGGgiNLR/ET0DvF0DsLCBgbWUBiVgaQ2gsbWwwh4TNvhcRniQXdnbn3Jll15R/PFEUTYtONgAsy1JQ27ZyksECN02j+t5toMNBEIht2zKOo7HLQIcdx1EwbWwaHMO+78+VgZEyIBExuYg4yzJhz1Q+hslTBgSu6woQY77AwzDIGkyeMqiqyuj7XuI4FsuyJuC6rv+EDwwIFiVJImmaShiG8lvbSx5f1QEBXRRFIV3XCd1swTAHBne3l9P1+Zvkec6aeJ43b2cOVl7KANi/uZCnl8/5mLimaMvE5G+jK+tM7h8/5PX9y6AYtwxhQrymuQOO7+H5W8F6MiZIn9PHJhWWPesLe8c/AAAA//9EKgVoAAAABklEQVQDACdNovY7Kms4AAAAAElFTkSuQmCC",gold_sword: "data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAABAAAAAQCAYAAAAf8/9hAAABOklEQVR4AZySu0oDQRSG/10LY6NEjdjlDVxsBCuDVjZWFiIIioUPIVroQxgLCUQQESsbK0ErW7XRzgsqeAnxgiCIrnwLM0xCNrvJwr87Z+Z8/zmzM77aeNbmBkKjlg0AV8pPQkfn32rJwMAv1Rnbd2oDF85ld1UIenRy8eGlMnDhvmzewrSRaFAPjwfFqDIwsgYkIiaNiJfL82LPVK6HybMGBLOjvwJizBe4Ur1VHEyeNVjdfvZ2Tju0NB1qbKg7BH49KDWFawwIjPbWO3W9saX+qQU1atvk8bUdENDF5r6nz4c/0U0SDFNjMDmSCx/fM1os/rCmiSATbScKYl7WALgw3Kvjs0p0TFxTlGTi87dRfrBLpcN7Xd19eRTjliFMiOMUdcDxXd68WdhNxgS5c+7Yp4LZs7uQdvwPAAD//wjk07kAAAAGSURBVAMAMe2kj+ijUAUAAAAASUVORK5CYII=",diamond_sword: "data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAABAAAAAQCAYAAAAf8/9hAAABOUlEQVR4AZySvUoDQRSFz26hsVEREsQmFgYstdnCRgUbsVUEO0HfQZ9AsNc2PkBaEUT8K2NjIyqKaBARRRBFjDabfAszTEI2u8nC2Z07c79z7+yMry6e/ukgNOrYAHD3+FDo/+VNHRkYeKt8ZPtObeDCm8Gc1sYnVL179FIZuHBmLG9h2kg0aIavppaiysDIGpCImDQiLpR2xJ6p3AyTZw0IeuvtATHmC1y9f1IcTJ41+Dore3/15MGFWWUKoyHwe7GkdnCDAYFRbn1ZlY1tZVcX1aptk8fXdkBAF5/7J/q9fRDdJMEwDQbzQTZcGXjV9/kFa+oZyYntREHMyxoAz0wO6fTyIzomrilKMvH52yg/3KfiwbNuKj8exbhlCBPiOEUdcHx7176F3WRMkDvnjn0qmD27C2nHNQAAAP//CgQLPAAAAAZJREFUAwC+naIFUl9TgAAAAABJRU5ErkJggg==",gold_pickaxe: "data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAABAAAAAQCAYAAAAf8/9hAAABHElEQVR4AbSRu2oCQRSG/02qNCEXcqniG+TSpEti7EyRKrFTttN3EC0EH8DOTtHSVrATxRcQKztBLETQQlCwGv0HzuJldkTEZc/OZef7zpmZMxz5nE6Qid6r7TAVa6yAYLLkIpH7RvxP6WCf8+H3O5X4fVIiMwrS5ZGTjRXxH6whklroUK26FgXfbtBoj4WHUcC/lDQ7U0fCzQLORwjuzwQPV+eQx1cgC9iy7MDjBT5fqxyi0gjj6/lSb2OvgLCU3e3PHG6J29Gm1ccqIMzMhdoAhFfrd15fAeH1zOskz0LGRgFhW+bb64Dwu7dA2C8zKd5K6CUPthxvVEDYlpkAQ2D2PQFhW2YuNoUn6A3nsJ22CeacJ+A1MTh5SCwBAAD//wfvYI4AAAAGSURBVAMAIbWHIVXSgRwAAAAASUVORK5CYII=",diamond_pickaxe: "data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAABAAAAAQCAYAAAAf8/9hAAABIElEQVR4AbSRq4tCQRTGz10W1i0bhAu7YVV8/AEWg0WrCCbFpsUgGK9YrCIGq1XBbLdqNVkEQcQHBkE0CIpBufoNzsXH3BERL/ebx5n5fefMzAe9+L3P4Cfg028lKlZYAUBPo0L/pRz9aSkmjBEP+VQ9HbHp3ExosG53lEE0Q8NEliZakWm/WDGjoNdKre6S8yQ0wCpMdoOxwuUs5OlTtVI1rNH4S8UWJlMDtnpuULb995sO8SSLuOplsngc7BgPDQDzsvvTjYIj4TjM6dRIDQAjc605I8Cn/Xe/qQHgy8yXJO6Cz4UGgGWZLW475+9fAbBZZlB4lZ4/Rugxv6oAsCwzAIjDGBsGgGWZsVkkw2A035LstkUwYoYBnglC8BkdAQAA///rOwBRAAAABklEQVQDAIeEhSEqTSrgAAAAAElFTkSuQmCC"});
 Object.keys(PACK_ITEMS).forEach(k => {
   if (__skipNewItem(k)) return;
@@ -3009,6 +3012,9 @@ const RECIPES = [
   // Boat: 5 wood (logs, oak or birch) in a U, or 5 planks in a U
   { shape: [['wood',null,'wood'],['wood','wood','wood']], out: 'boat', outCount: 1, needsTable: true },
   { shape: [['planks',null,'planks'],['planks','planks','planks']], out: 'boat', outCount: 1, needsTable: true },
+  // Rail: 6 iron + 2 sticks -> 16 rails.  Minecart: 5 iron in a U.
+  { shape: [['iron_ingot',null,'iron_ingot'],['iron_ingot','stick','iron_ingot'],['iron_ingot','stick','iron_ingot']], out: 'rail', outCount: 16, needsTable: true },
+  { shape: [['iron_ingot',null,'iron_ingot'],['iron_ingot','iron_ingot','iron_ingot']], out: 'minecart', outCount: 1, needsTable: true },
   // Totem of Undying: middle row of gold + one gold below the center
   { shape: [[null,null,null],['gold_ingot','gold_ingot','gold_ingot'],[null,'gold_ingot',null]], out: 'totem_of_undying', outCount: 1, needsTable: true },
   // Flint and steel: iron ingot + cobblestone (stands in for flint), works in the 2x2 grid
@@ -3415,8 +3421,71 @@ const RS = { mi: {} };
   MI.comparator = RS.mi.cmp[0][0][0];
   MI.pressure_plate = RS.mi.plate;
 })();
+// ================= Rails: textures + shape from neighbours =================
+const RAIL = { mi: {} };
+const RAIL_DIRS = [[1, 0], [-1, 0], [0, 1], [0, -1]];   // +x -x +z -z  (bit 0..3 of a connection mask)
+(function buildRailArt() {
+  const cutout = tex => {
+    const i = regMat(tex, true), m = MAT_LIST[i];
+    m.side = THREE.DoubleSide; m.transparent = false; m.opacity = 1; m.alphaTest = 0.5;
+    return i;
+  };
+  const TIE = [128, 94, 52], TIE2 = [100, 72, 38], RL = [184, 186, 190], RD = [118, 120, 126];
+  const make = kind => makeTexture(ctx => {
+    ctx.clearRect(0, 0, 16, 16);
+    const img = ctx.createImageData(16, 16), d = img.data;
+    const put = (x, y, c) => { const o = (y * 16 + x) * 4; d[o] = c[0]; d[o + 1] = c[1]; d[o + 2] = c[2]; d[o + 3] = 255; };
+    if (kind === 'z' || kind === 'x') {
+      for (let y = 0; y < 16; y++) for (let x = 0; x < 16; x++) {
+        const u = kind === 'z' ? x : y, v = kind === 'z' ? y : x;   // u across the track, v along it
+        let c = null;
+        if (u >= 2 && u <= 13 && (v & 3) >= 1 && (v & 3) <= 2) c = (v & 3) === 1 ? TIE : TIE2;
+        if (u === 3 || u === 12) c = RD;
+        if (u === 4 || u === 11) c = RL;
+        if (c) put(x, y, c);
+      }
+    } else {
+      const C = [[16, 0], [16, 16], [0, 16], [0, 0]][+kind.slice(1)];
+      for (let y = 0; y < 16; y++) for (let x = 0; x < 16; x++) {
+        const px = x + 0.5, py = y + 0.5, dist = Math.hypot(px - C[0], py - C[1]);
+        let ang = Math.atan2(py - C[1], px - C[0]) * 180 / Math.PI; ang = ((ang % 18) + 18) % 18;
+        let c = null;
+        if (dist > 2.2 && dist < 13.8 && ang < 6) c = ang < 3 ? TIE : TIE2;
+        if (Math.abs(dist - 3.5) < 0.9 || Math.abs(dist - 12.5) < 0.9) c = dist < 8 ? RL : RD;
+        if (c) put(x, y, c);
+      }
+    }
+    ctx.putImageData(img, 0, 0);
+  });
+  for (const k of ['z', 'x', 'c0', 'c1', 'c2', 'c3']) RAIL.mi[k] = cutout(make(k));
+  MI.rail = RAIL.mi.z;
+})();
+function railAt(x, y, z) { const b = world.get(key(x, y, z)); return !!b && b.type === 'rail'; }
+// Neighbouring rails this rail connects to: same level, one step up, or one step down.
+function railConns(x, y, z) {
+  const out = [];
+  for (const d of RAIL_DIRS) {
+    const nx = x + d[0], nz = z + d[1];
+    if (railAt(nx, y, nz)) out.push({ d, dy: 0 });
+    else if (railAt(nx, y + 1, nz)) out.push({ d, dy: 1 });
+    else if (railAt(nx, y - 1, nz) && !solidAt(nx, y, nz)) out.push({ d, dy: -1 });
+  }
+  return out;
+}
+function railMatFor(b) {
+  let m = 0;
+  for (const k of railConns(b.x, b.y, b.z)) m |= 1 << RAIL_DIRS.findIndex(q => q[0] === k.d[0] && q[1] === k.d[1]);
+  if ((m & 3) === 3) return RAIL.mi.x;
+  if ((m & 12) === 12) return RAIL.mi.z;
+  if ((m & 3) && (m & 12)) {
+    const xp = !!(m & 1), zp = !!(m & 4);
+    return RAIL.mi[xp ? (zp ? 'c0' : 'c1') : (zp ? 'c3' : 'c2')];
+  }
+  if (m & 3) return RAIL.mi.x;
+  return RAIL.mi.z;
+}
 // Flat inventory / hand / drop sprites for the new items (drawn from the placed textures).
-const RS_FLAT_ITEMS = { repeater: 1, comparator: 1, pressure_plate: 1 };
+const RS_FLAT_ITEMS = { repeater: 1, comparator: 1, pressure_plate: 1, rail: 1 };
 function rsSprite(type) {
   const mk = () => { const c = document.createElement('canvas'); c.width = c.height = 16; const g = c.getContext('2d'); g.imageSmoothingEnabled = false; return [c, g]; };
   const img = i => MAT_LIST[i].map.image;
@@ -3424,6 +3493,7 @@ function rsSprite(type) {
   if (type === 'repeater')       { const [c, g] = mk(); g.drawImage(img(RS.mi.rep[0][1][1]), 1, 5, 14, 8); return c; }
   if (type === 'comparator')     { const [c, g] = mk(); g.drawImage(img(RS.mi.cmp[0][0][1]), 1, 5, 14, 8); return c; }
   if (type === 'pressure_plate') { const [c, g] = mk(); g.drawImage(img(RS.mi.plate), 2, 6, 12, 6); return c; }
+  if (type === 'rail')           { const [c, g] = mk(); g.drawImage(img(RAIL.mi.z), 0, 0); return c; }
   return null;
 }
 MI.glassV = GLASS_TEX.map((t, m) => m === 15 ? MI.glass : regMat(t, true));
@@ -4114,6 +4184,8 @@ function blockBoxes(b) {
     r = [(m & 4) ? edgeBox(dir, -0.5, 0.5) : [-0.5, 0.5, -0.5, -0.5 + SHAPE_T, -0.5, 0.5]];
   } else if (shape === 'dust') {
     r = [[-0.5, 0.5, -0.5, -0.48, -0.5, 0.5]];
+  } else if (shape === 'rail') {
+    r = [[-0.5, 0.5, -0.5, -0.44, -0.5, 0.5]];
   } else if (shape === 'plate') {
     r = [[-0.4375, 0.4375, -0.5, (m & 1) ? -0.47 : -0.4375, -0.4375, 0.4375]];   // sinks a little when pressed
   } else if (shape === 'repeater' || shape === 'comparator') {
@@ -4149,6 +4221,7 @@ function cardinalFromYaw(yaw) {
   return fz > 0 ? 2 : 3;
 }
 function shapeMat(b) {
+  if (b.type === 'rail') return railMatFor(b);
   if (RS_TYPES[b.type]) { const rm = rsShapeMat(b); if (rm != null) return rm; }
   if (isDoorType(b.type)) {
     const up = ((b.meta | 0) & 8) !== 0;
@@ -4603,7 +4676,7 @@ let worldMaxY = Y_MIN;
 const chunkYRange = new Map(); // "cx,cz" -> [minY, maxY]
 // Redstone registry: keys of every redstone-relevant block (kept current by the wrappers below).
 const RS_TYPES = { redstone_dust: 1, repeater: 1, comparator: 1, pressure_plate: 1, redstone_torch: 1, door: 1, birch_door: 1, trapdoor: 1, birch_trapdoor: 1, piston: 1, sticky_piston: 1 };
-const RS_FLOOR = { redstone_dust: 1, repeater: 1, comparator: 1, pressure_plate: 1 };   // need a solid block underneath
+const RS_FLOOR = { redstone_dust: 1, repeater: 1, comparator: 1, pressure_plate: 1, rail: 1 };   // need a solid block underneath
 const rsKeys = new Set();
 const _worldSetOrig = world.set.bind(world);
 const _worldDeleteOrig = world.delete.bind(world);
@@ -12325,6 +12398,17 @@ function wemmbuStartElytra(a, tgt) {
   wemmbuFly(a, true, true);
   a.vel.y = 10;
 }
+// Wemmbu "instant mace": right after a smash he re-equips the Elytra, rockets straight up and dives again, no ground time, no pause.
+function wemmbuIsInstant(a) { return a.kind === 'wemmbu'; }
+function wemmbuChainUp(a, tgt) {
+  wemmbuSword(a, false);
+  a.wm = 'ascend'; a.wmT = 0; a.peakY = a.pos.y; a.lastY = a.pos.y; a.chain = 0;
+  a.wmAlt = tgt.y + 11 + Math.random() * 3;
+  wemmbuFly(a, true, true);
+  a.vel.set(a.vel.x * 0.2, 26, a.vel.z * 0.2);
+  a.onGround = false;
+  try { wemmbuSparks(a, 8); } catch (e) {}
+}
 function wemmbuSparks(a, n) {   // firework sparks for the host's own burst effects
   try { for (let i = 0; i < n; i++) jcSpawn(Math.random() < 0.5 ? 'crit' : 'arc', a.pos.x, a.pos.y + 0.9, a.pos.z, (Math.random() - 0.5) * 8, (Math.random() - 0.5) * 8, (Math.random() - 0.5) * 8, 0.25, 0.6); } catch (e) {}
 }
@@ -12390,8 +12474,9 @@ function wemmbuAI(a, dt) {
       spokeSet(a, { melee: 1, axe: 0, draw: 0 });
     }
     // pick the next combo — elytra mace / wind charge (same as Wemmbu)
-    if (a.wmCd <= 0 && grounded) {
-      if (dist > 10 || (dist > 5 && Math.random() < 0.45)) wemmbuStartElytra(a, tgt);
+    if (a.wmCd <= 0 && (grounded || wemmbuIsInstant(a))) {
+      if (wemmbuIsInstant(a)) wemmbuChainUp(a, tgt);
+      else if (dist > 10 || (dist > 5 && Math.random() < 0.45)) wemmbuStartElytra(a, tgt);
       else wemmbuStartWindCharge(a);
       return;
     }
@@ -12442,7 +12527,7 @@ function wemmbuAI(a, dt) {
     a.vel.x *= Math.pow(0.02, dt); a.vel.z *= Math.pow(0.02, dt); a.vel.y = 1.2;
     a.facing = Math.atan2(dx, dz);
     a.peakY = Math.max(a.peakY, a.pos.y);
-    if (a.wmT > 0.3) { a.wm = 'dive'; a.wmT = 0; a.lastPos = { x: a.pos.x, y: a.pos.y, z: a.pos.z }; wemmbuFly(a, true, true); wemmbuSparks(a, 14); }   // firework #2
+    if (a.wmT > (wemmbuIsInstant(a) ? 0.06 : 0.3)) { a.wm = 'dive'; a.wmT = 0; a.lastPos = { x: a.pos.x, y: a.pos.y, z: a.pos.z }; wemmbuFly(a, true, true); wemmbuSparks(a, 14); }   // firework #2
     return;
   }
   if (mode === 'dive') {   // fly at the enemy and mace them
@@ -12467,10 +12552,16 @@ function wemmbuAI(a, dt) {
     }
     if (d3 < 3.0 + sp3 * dt * 0.5) {   // close enough: smash
       wemmbuSmash(a, tgt, a.peakY - a.pos.y);
+      if (wemmbuIsInstant(a)) {
+        if (tgt.alive && a.hp > a.maxHp * 0.45) { wemmbuChainUp(a, tgt); }   // instant mace: elytra + firework up again right away
+        else { wemmbuFly(a, false, false); a.wm = 'ground'; a.wmCd = 0; a.vel.set(0, 8, 0); }   // hurt: land and heal
+        return;
+      }
       wemmbuFly(a, false, false);
       a.chain = 1; a.wm = 'air'; a.wmT = 0; a.peakY = a.pos.y; a.vel.set(0, 13.5, 0);   // Wind Burst bounces him up for the next hit
       return;
     }
+    if (wemmbuIsInstant(a) && (a.wmT > 2.0 || (a.wmT > 0.4 && sp3 < 6))) { if (tgt.alive) wemmbuChainUp(a, tgt); else { wemmbuFly(a, false, false); a.wm = 'ground'; } return; }
     if (a.wmT > 3.2 || (a.wmT > 0.5 && sp3 < 6)) {   // missed / blocked: stop flying, keep falling toward them
       wemmbuFly(a, false, false); a.wm = (a.kind === 'null_commander') ? 'ground' : 'air'; a.wmT = 0; a.peakY = Math.max(a.peakY, a.pos.y); a.chain = 1;
     }
@@ -19474,8 +19565,8 @@ const BOAT_TEX_SRC = "data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAIAAAABACAYA
 const BOAT_MAX_SPEED = 11, BOAT_LAND_SPEED = 1.8, BOAT_ACCEL = 14, BOAT_TURN = 2.4;   // blocks/s (sprint is 6)
 const boats = [];
 let boatRide = null, _boatId = 1, _boatSnPrev = false, _boatSaveT = 0, _boatLoaded = false, _boatDirty = false, _boatMat = null;
-function _boxUV(w, h, d, u, v) {   // Minecraft-style box UV layout on a 128x64 sheet
-  const g = new THREE.BoxGeometry(w, h, d), uv = g.attributes.uv, TW = 128, TH = 64;
+function _boxUV(w, h, d, u, v, TW = 128, TH = 64) {   // Minecraft-style box UV layout on a 128x64 sheet
+  const g = new THREE.BoxGeometry(w, h, d), uv = g.attributes.uv;
   const rect = (i, x, y, rw, rh) => {
     const u0 = x / TW, u1 = (x + rw) / TW, v1 = 1 - y / TH, v0 = 1 - (y + rh) / TH;
     uv.setXY(i * 4, u0, v1); uv.setXY(i * 4 + 1, u1, v1); uv.setXY(i * 4 + 2, u0, v0); uv.setXY(i * 4 + 3, u1, v0);
@@ -19638,6 +19729,202 @@ canvas.addEventListener('mousedown', e => {
     if (boatRide) return;
     const lb = findLookedBoat(4);
     if (lb) { startSwing(); boatBreak(lb); boatSave(); e.stopImmediatePropagation(); }
+  }
+});
+// ================= Minecart =================
+// Place it on a rail (right-click the rail). Right-click the cart to sit in it. Look where you want to go and hold W:
+// the cart follows the rails toward where you look (look back + W turns it around). S brakes.
+// Shift or Jump gets you out. Left-click an empty cart to pick it up.
+const CART_TEX_SRC = "data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAEAAAAAgCAYAAACinX6EAAAEjElEQVR4AeyYzWtcZRTGz9xFo1OakTCiMaaDsRZF3Aj+C40IWhSyEFfuVKS4UFy5EsHSLqQUdaUbEdwY/EComyLWIqZRZGhaYjo1TcexdFKchExnunB6fy85b09ub2buTOZOGWjoM+ec5zznvPf9mHvvNJDNv9lvv2v9cOLH1k+nfnHAB8Sa0xhOAUd+s83QGb8AF0oXpVQqSbFYdFg4d15O/vaHfH/ylJz+c0GIbR7d3Jl5pymXy0M3cb3ggB08/smnLSWw2T2jMpbPyxOPTEohn3OQ8K/RvBF+3vo3FmoKYR6eHtrrsy++bH319WwsyClUozE9bnUfjOdPwNnFJVmu1hzOXVyRn0//Ktj54oLjrqxfF6AaeDTE8PZyr1WrslG/LiuXVrwlT7w7e6+Q1xgdcX19DWrg8AvAyNVKWRQaq1VeLTyIxnD3jOzCuFOEM7l3EiPWshBj4QkioRZ/0PALULv6b89j21q+DjSqbN4XsOzy0l9L7jRYqzrdfa2FHxT8AjAgEwH4SYAWRLVMJDe6x9H7Htvn7PjEhLDrxFhiEujQA+JBwy/A6uqqH5tJJYEW2Fq4ZrMpjfCGqbuPhY/bfXTNUE9eLf6g4BeAAaMTgeuEaI1OQi03OHaZY24t/MjIiKhObafx+p3fsgA0Z0LdgJo4XKlec/SlckVqa+uyWFreYuGZtOqc+A58BM9NH8i8+fprmQPTz8rMzIw8/8JBwZ96/EkB+HDkLODIoQFMkpcldpl5PJAfE/y9E+OEsr6xIUvLKwLPzu+fKri8WjiEr75xqAU+OHykdfSjYy3eDfDJpQF/AriARvi9bYbfx/kzc3Lim1kHfLhGmGOSWNBso6MXaIQ1zTa6bvqlMXl6Bu+8f7jFCv99+R8Blaurkrv/QZk++KLDQ4UpgdMcFsCRUx017DAvVICXIyavupdefsX1U532wAKrQ6s6egFOBeCi+4ngvl2BsFs0Lf4+J6BauUzoQLx8YVHiQM6Jwg9qSufPCghDsX036vXwHaAO7aHcdtYLU3b8V0DHGc3lnLs7mw2f21nR2JGRD3KqI0WMhcNasDA7Ab3i+sLvBMF/N/6/rT4//rDnrO/JTcfmrE86ri88YKGSAG2/Ee235QRwUQg4zlhgfWILm1Nfe1id9Tvle9Xaum58twDcrLRorVZT11s4AIEF6mMVymts+8J1M3n0oJca6pLCLYDeBJMWJdWl1Tfp+El0AXfr6E4lKeykSatvp3G7zd89Ae3u1t2uptWn1deO0Q/fnYB+NBrWHrctQNxdFw4wSSxQH6tQXuOojT4lovm4uJeauD7bce4mqEkdzL7UWF91am1Ofe3BTVB11mrectv53Wi369GJdycg+hTQlxqKrU9sYXPWV020r/JMLAlUn6Z1C2Cf11wYA+qPFPx2sDpbS43ty/8Z7AT0YyxsP7Hlt8BTTz8jQI8zPz4Kj+6XdkDDBVGjEyS2TwE0AB7gJwHatBEcee/dzNtvHcocP/qhx+cfH8sAy7Xz0UaRVt9+L4j7CvS76TD1u7sAw7RbvVxrp5qbAAAA//84QD09AAAABklEQVQDAHwrGH0PPEiTAAAAAElFTkSuQmCC";
+const CART_MAX_SPEED = 11, CART_ACCEL = 7, CART_COAST = 1.6, CART_BRAKE = 16;   // blocks/s (sprint is 6)
+const carts = [];
+let cartRide = null, _cartId = 1, _cartSnPrev = false, _cartJmpPrev = false, _cartSaveT = 0, _cartLoaded = false, _cartDirty = false, _cartMat = null, _cartLook = [0, 0];
+function _buildCartMesh() {
+  if (!_cartMat) {
+    const img = new Image(), tex = new THREE.Texture(img);
+    tex.magFilter = THREE.NearestFilter; tex.minFilter = THREE.NearestFilter; tex.generateMipmaps = false;
+    img.onload = () => { tex.needsUpdate = true; };
+    img.src = CART_TEX_SRC;
+    _cartMat = new THREE.MeshLambertMaterial({ map: tex, alphaTest: 0.1 });
+  }
+  const model = new THREE.Group();   // pixels (16 px = 1 block), front = +x
+  const add = (geo, x, y, z, ry) => { const m = new THREE.Mesh(geo, _cartMat); m.position.set(x, y, z); if (ry) m.rotation.y = ry; model.add(m); };
+  const plate = _boxUV(20, 16, 2, 0, 10, 64, 32); plate.rotateX(-Math.PI / 2);
+  add(plate, 0, 1, 0);
+  add(_boxUV(16, 8, 2, 0, 0, 64, 32), 0, 6, 7, Math.PI);
+  add(_boxUV(16, 8, 2, 0, 0, 64, 32), 0, 6, -7, 0);
+  add(_boxUV(16, 8, 2, 0, 0, 64, 32), 9, 6, 0, -Math.PI / 2);
+  add(_boxUV(16, 8, 2, 0, 0, 64, 32), -9, 6, 0, Math.PI / 2);
+  model.scale.setScalar(1 / 16);
+  const holder = new THREE.Group(); holder.add(model);
+  holder.userData.model = model;
+  return holder;
+}
+function cartIsStraight(c) { return c.e0[0] === -c.e1[0] && c.e0[1] === -c.e1[1]; }
+function cartPose(c) {   // position + heading from where the cart is on its tile
+  const conns = railConns(c.cx, c.cy, c.cz);
+  const dyOf = d => { for (const k of conns) if (k.d[0] === d[0] && k.d[1] === d[1]) return k.dy; return 0; };
+  const floor = c.cy - 0.5 + 0.06;
+  const h = floor + 0.5 * dyOf(c.e0) * (1 - c.t) + 0.5 * dyOf(c.e1) * c.t;
+  let x, z, tx, tz;
+  if (cartIsStraight(c)) {
+    x = c.cx + 0.5 * c.e0[0] * (1 - c.t) + 0.5 * c.e1[0] * c.t;
+    z = c.cz + 0.5 * c.e0[1] * (1 - c.t) + 0.5 * c.e1[1] * c.t;
+    tx = c.e1[0]; tz = c.e1[1];
+  } else {
+    const kx = c.cx + 0.5 * c.e0[0] + 0.5 * c.e1[0], kz = c.cz + 0.5 * c.e0[1] + 0.5 * c.e1[1];
+    const ax = -0.5 * c.e1[0], az = -0.5 * c.e1[1], bx = -0.5 * c.e0[0], bz = -0.5 * c.e0[1];
+    const ph = c.t * Math.PI / 2, cs = Math.cos(ph), sn = Math.sin(ph);
+    x = kx + ax * cs + bx * sn; z = kz + az * cs + bz * sn;
+    tx = -ax * sn + bx * cs; tz = -az * sn + bz * cs;
+  }
+  c.pos.set(x, h, z);
+  c.mesh.position.set(x, h + 0.03, z);
+  c.mesh.userData.model.rotation.y = Math.atan2(-tz, tx);
+}
+function cartPickExit(cx, cy, cz, e0, look) {   // which way to leave a tile we just entered: the rail closest to where the player looks
+  let best = null, bs = -9;
+  for (const k of railConns(cx, cy, cz)) {
+    if (k.d[0] === e0[0] && k.d[1] === e0[1]) continue;
+    let sc = k.d[0] * look[0] + k.d[1] * look[1];
+    if (k.d[0] === -e0[0] && k.d[1] === -e0[1]) sc += 0.15;   // tie: carry straight on
+    if (sc > bs) { bs = sc; best = k.d; }
+  }
+  return best;
+}
+function cartAdvance(c, dt, look) {
+  let dist = c.speed * dt, guard = 0;
+  while (dist > 1e-6 && guard++ < 8) {
+    const link = railConns(c.cx, c.cy, c.cz).find(k => k.d[0] === c.e1[0] && k.d[1] === c.e1[1]);
+    const len = cartIsStraight(c) ? 1 : 0.785398;
+    const tmax = link ? 1 : 0.5;   // the end of the line: stop in the middle of the last rail
+    const nt = c.t + dist / len;
+    if (nt < tmax) { c.t = nt; break; }
+    if (!link) { if (c.t < tmax) c.t = tmax; c.speed = 0; break; }
+    dist -= (1 - c.t) * len;
+    c.cx += c.e1[0]; c.cz += c.e1[1]; c.cy += link.dy;
+    c.e0 = [-c.e1[0], -c.e1[1]];
+    c.e1 = cartPickExit(c.cx, c.cy, c.cz, c.e0, look) || [-c.e0[0], -c.e0[1]];
+    c.t = 0;
+  }
+}
+function makeCart(cx, cy, cz, e0, e1, t) {
+  const c = { id: _cartId++, cx, cy, cz, e0, e1, t: t == null ? 0.5 : t, speed: 0, pos: new THREE.Vector3(), mesh: _buildCartMesh() };
+  scene.add(c.mesh); carts.push(c); cartPose(c); _cartDirty = true;
+  return c;
+}
+function cartSave() { try { localStorage.setItem(SAVE_KEY + '_carts', JSON.stringify(carts.map(c => [c.cx, c.cy, c.cz, c.e0[0], c.e0[1], c.e1[0], c.e1[1], +c.t.toFixed(3)]))); } catch (e) {} }
+function cartLoad() {
+  _cartLoaded = true;
+  try {
+    const a = JSON.parse(localStorage.getItem(SAVE_KEY + '_carts') || '[]');
+    for (const r of a) if (r.length >= 8 && r.every(Number.isFinite)) makeCart(r[0], r[1], r[2], [r[3], r[4]], [r[5], r[6]], r[7]);
+    _cartDirty = false;
+  } catch (e) {}
+}
+function findLookedCart(reach) {
+  const dir = new THREE.Vector3(); camera.getWorldDirection(dir);
+  const o = camera.position; let best = null, bd = 1e9;
+  for (const c of carts) {
+    if (c === cartRide) continue;
+    const cx = c.pos.x - o.x, cy = c.pos.y + 0.3 - o.y, cz = c.pos.z - o.z;
+    const t = cx * dir.x + cy * dir.y + cz * dir.z;
+    if (t < 0 || t > reach) continue;
+    if (Math.hypot(cx - dir.x * t, cy - dir.y * t, cz - dir.z * t) < 0.95 && t < bd) { best = c; bd = t; }
+  }
+  return best;
+}
+function cartMount(c) {
+  if (boatRide) return;
+  cartRide = c; c.speed = 0;
+  if (player.crouched) { player.crouched = false; player.height = STAND_HEIGHT; }
+  player.vel.set(0, 0, 0);
+}
+function cartDismount() {
+  const c = cartRide; if (!c) return;
+  cartRide = null; c.speed = 0;
+  const sx = -c.e1[1], sz = c.e1[0];   // sideways first, then along the track
+  for (const [dx, dz] of [[sx, sz], [-sx, -sz], [c.e1[0], c.e1[1]], [-c.e1[0], -c.e1[1]]]) {
+    for (const dy of [0.2, 1.1]) {
+      const x = c.pos.x + dx * 1.3, z = c.pos.z + dz * 1.3, y = c.pos.y + dy;
+      if (!checkCollision(x, y, z, player.radius, STAND_HEIGHT)) { player.pos.set(x, y, z); player.vel.set(0, 0, 0); _cartDirty = true; return; }
+    }
+  }
+  player.pos.set(c.pos.x, c.pos.y + 1.2, c.pos.z); player.vel.set(0, 0, 0); _cartDirty = true;
+}
+function cartBreak(c) {
+  if (cartRide === c) cartDismount();
+  scene.remove(c.mesh);
+  const i = carts.indexOf(c); if (i >= 0) carts.splice(i, 1);
+  spawnDroppedItem('minecart', 1, new THREE.Vector3(c.pos.x, c.pos.y + 0.6, c.pos.z), new THREE.Vector3(0, 2, 0));
+  _cartDirty = true;
+}
+function updateCarts(dt) {
+  if (!_cartLoaded && gameStarted) cartLoad();
+  if (!carts.length) { cartRide = null; return; }
+  const playing = isPlaying();
+  if (cartRide && player.hp <= 0) cartDismount();
+  const sn = playing && (keyDown('sneak') || (touchMode && mobile.sneak));
+  const jm = playing && (keyDown('jump') || (touchMode && mobile.jump));
+  if (cartRide && ((sn && !_cartSnPrev) || (jm && !_cartJmpPrev))) cartDismount();
+  _cartSnPrev = sn; _cartJmpPrev = jm;
+  const dir = new THREE.Vector3(); camera.getWorldDirection(dir);
+  const ll = Math.hypot(dir.x, dir.z);
+  if (ll > 0.25) _cartLook = [dir.x / ll, dir.z / ll];
+  for (const c of carts.slice()) {
+    if (!railAt(c.cx, c.cy, c.cz)) {
+      if (!world.get(key(c.cx, c.cy - 1, c.cz))) { c.speed = 0; continue; }   // chunk not loaded: stay put
+      cartBreak(c); continue;                                                  // the rail under it was removed
+    }
+    const ridden = cartRide === c;
+    if (ridden && playing) {
+      const fwd = keyDown('forward') || (touchMode && mobile.fwd), back = keyDown('back') || (touchMode && mobile.back);
+      const ahead = c.e1[0] * _cartLook[0] + c.e1[1] * _cartLook[1];   // > 0: you are looking the way the cart is heading
+      if (back) c.speed = Math.max(0, c.speed - CART_BRAKE * dt);
+      else if (fwd && ahead < -0.25) {                               // looking behind: brake, then turn around
+        c.speed = Math.max(0, c.speed - CART_BRAKE * dt);
+        if (c.speed < 0.4) { const t = c.e0; c.e0 = c.e1; c.e1 = t; c.t = 1 - c.t; c.speed = 0.5; }
+      }
+      else if (fwd) c.speed = Math.min(CART_MAX_SPEED, c.speed + CART_ACCEL * dt);
+      else c.speed = Math.max(0, c.speed - CART_COAST * dt);
+    } else c.speed = Math.max(0, c.speed - 6 * dt);
+    if (c.speed > 0) { cartAdvance(c, dt, ridden ? _cartLook : [0, 0]); _cartDirty = true; }
+    cartPose(c);
+    if (ridden) { player.pos.set(c.pos.x, c.pos.y - 0.13, c.pos.z); player.vel.set(0, 0, 0); player.onGround = true; }
+  }
+  _cartSaveT += dt;
+  if (_cartSaveT > 5) { _cartSaveT = 0; if (_cartDirty) { _cartDirty = false; cartSave(); } }
+}
+function tryPlaceCart() {
+  const held = inventory[currentSlot];
+  if (!held || held.type !== 'minecart') return false;
+  const r = bucketRay(false);
+  if (!r || r.b.type !== 'rail') return false;   // carts only go on rails
+  const x = r.cell.x, y = r.cell.y, z = r.cell.z;
+  if (carts.some(c => c.cx === x && c.cy === y && c.cz === z)) return false;
+  const cs = railConns(x, y, z).map(k => k.d);
+  let e0, e1;
+  outer: for (const a of cs) for (const b of cs) if (a[0] === -b[0] && a[1] === -b[1]) { e0 = a; e1 = b; break outer; }
+  if (!e1) { if (cs.length >= 2) { e0 = cs[0]; e1 = cs[1]; } else if (cs.length === 1) { e1 = cs[0]; e0 = [-cs[0][0], -cs[0][1]]; } else { e0 = [-1, 0]; e1 = [1, 0]; } }
+  startSwing();
+  makeCart(x, y, z, e0, e1, 0.5);
+  removeFromCurrentSlot(1);
+  renderHotbar(); if (inventoryOpen) try { renderInventoryPanel(); } catch (e) {}
+  saveLocalPlayer(); cartSave();
+  return true;
+}
+canvas.addEventListener('mousedown', e => {
+  if (!pointerLocked || (e.button !== 0 && e.button !== 2)) return;
+  if (e.button === 2) {
+    useOffHand = false; blockFromOff = false;
+    if (cartRide || boatRide) return;
+    const lc = findLookedCart(4);
+    if (lc) { cartMount(lc); e.stopImmediatePropagation(); return; }
+    if (tryPlaceCart()) { e.stopImmediatePropagation(); return; }
+  } else {
+    if (cartRide || boatRide) return;
+    const lc = findLookedCart(4);
+    if (lc) { startSwing(); cartBreak(lc); cartSave(); e.stopImmediatePropagation(); }
   }
 });
 // ---- Off hand: right-click uses the off-hand item (food, shield, or placing a block) ----
@@ -21547,6 +21834,7 @@ function animate() {
   updateWaterAnim();
   updateWaterPush(dt);
   try { updateBoats(dt); } catch (e) { console.warn('boats', e); }
+  try { updateCarts(dt); } catch (e) { console.warn('carts', e); }
   updateDroppedItems(dt);
   updateBow(dt);
   updateSpearCharge(dt);
@@ -21574,7 +21862,7 @@ function animate() {
   const wantForward = keyDown('forward') || (touchMode && mobile.fwd);
   const wantBack = keyDown('back') || (touchMode && mobile.back);
   // Shift (or the phone Sneak button) = crouch. Standing back up needs headroom.
-  const wantSneak = isPlaying() && !inWater && !boatRide && (keyDown('sneak') || (touchMode && mobile.sneak));
+  const wantSneak = isPlaying() && !inWater && !boatRide && !cartRide && (keyDown('sneak') || (touchMode && mobile.sneak));
   if (wantSneak && !player.crouched) { player.crouched = true; player.height = CROUCH_HEIGHT; isSprinting = false; mobile.sprint = false; }
   else if (!wantSneak && player.crouched &&
            !checkCollision(player.pos.x, player.pos.y, player.pos.z, player.radius, STAND_HEIGHT)) {
@@ -21691,7 +21979,7 @@ function animate() {
     const peak = player.fallPeakY != null ? player.fallPeakY : player.pos.y;
     player.fallDist = Math.max(0, peak - player.pos.y);
   }
-  if (boatRide) { player.vel.set(0, 0, 0); player.onGround = true; }   // riding a boat: the boat carries you
+  if (boatRide || cartRide) { player.vel.set(0, 0, 0); player.onGround = true; }   // riding a boat / minecart: it carries you
   else collideAndMove(player.pos, player.vel, dt);
   glideAfterMove();
 
@@ -21726,12 +22014,12 @@ function animate() {
     camera.updateProjectionMatrix();
   }
   if (touchMode) setMobileVisible(gameStarted && !menusOpen());
-  updateHunger(dt, isMoving && !boatRide, sprinting && !boatRide);
+  updateHunger(dt, isMoving && !boatRide && !cartRide, sprinting && !boatRide && !cartRide);
   updateOxygen(dt);
   broadcastMyPosition(dt);
 
   updateOtherPlayerVisuals(dt);
-  updateMyModel(dt, isMoving && !boatRide);
+  updateMyModel(dt, isMoving && !boatRide && !cartRide);
   if (typeof pulseHeldEnchantGlints === 'function') pulseHeldEnchantGlints(performance.now() * 0.001);
 
   if (thirdPerson && !selfieView) {
