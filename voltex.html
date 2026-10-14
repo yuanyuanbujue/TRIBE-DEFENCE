@@ -2180,6 +2180,7 @@ const ITEM_INFO = {
   water_bucket: { maxStack: 1 },
   boat: { maxStack: 1 },
   minecart: { maxStack: 1 },
+  tnt_minecart: { maxStack: 1 },
   lava_bucket: { maxStack: 1 },
   flint_and_steel: { maxStack: 1, durability: 65 },
   // ---- farming ----
@@ -2816,6 +2817,7 @@ Object.assign(PACK_ITEMS, {wheat_seeds: "data:image/png;base64,iVBORw0KGgoAAAANS
 PACK_ITEMS.lava_bucket = "data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAABAAAAAQCAYAAAAf8/9hAAABTUlEQVR4AaSPsUvDQBTGX8XJzQ7Wxa0QBAsZzF8gZugkOBSFLI5FnBwddDezoEI2JxVRcMgaQUgcMrgEsulgB7O4uFV+B3f00tsMfHkv7/vu9y4L8s/HCQiCYOqSa5cF0IfuR0syHm7J2ShUulj+EaT9WZABYHKIYCdck+3dTxnIi9Lq+ab0wp6CACWrIQbAYPD6oIL00/RDACHdA1lJ77CNLEB9cCrXj9/ydfxmAvRAGEzSieQ7R7RGFsD3fVkfn8jT76ICXR2WqgfCLW42huagbiwAQyB7l7eCgCG2sh2/2+1SjOYAOJ7nUSy5thOwAGVZMnNq//3ZObcAeZ47Qwz1DZqm4dPIAIqi6GRZpoyqqlRtv/r9viRJImS1ZwB60P6N9kad09UCQI7jWNqQuq7FtR2IBWCgIVEUCTCuzK9R8cjMag6ASdAlvLb+AAAA//8pIEw+AAAABklEQVQDAECGniFrZeOrAAAAAElFTkSuQmCC";
 PACK_ITEMS.boat = "data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAABAAAAAQCAYAAAAf8/9hAAABrUlEQVR4AaSSzSvDcRzHP3Zxk6dCJMqiaDcty5aTh4tduCzlsCInubHSbuOyG8VKTnYZh7mhJFyklDWapsjjhKntD5i9PvWb37aU8qv39/Hzfn3f328/i/zzKwOEgpM55HHbc39hlwEwDY+46MQ/O5orlW6YmiIAJzv6e2RjPSrWtgYZGuxWjXucgppbaxRq8ksBgPn54Usi4RM1YV4JHQoKBLYFAS+FWDASEzMmhAlZ8ynQgKtLEHAgRQl+M1LknXbTSV11pYrTWUjev9GpLExa2js0Kqch3ck38wshvXsslsrPRCE6MDX6Bk93t7K8NKXLnGKzNWpkYnN3HhBIU2OdvtH7Y1ZraRTAIJNNC5GJy9zozZC9/StN5HB2UKIqAJgB6e2zM1TxP/BoBoRkmY+0Qnh4iizh6FmFfzHKWGVAAHE1DEfHCfH5xoQrvKY+hTWuBUQTHFxcV8zNbCrAaDAzjidehDvzFlX1tQUIe0gBDAwIdOacRLLI1rmwR1ID0tljlZt4krKfP5EZhZi8E0FZWz1VI2vsIQMCaGf3UvgFCgkoQBgMMS8VELO+AQAA///BXUezAAAABklEQVQDAPej6yGHDpwwAAAAAElFTkSuQmCC";
 PACK_ITEMS.minecart = "data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAABAAAAAQCAYAAAAf8/9hAAAAkElEQVR4nGNgGAWMDAwMDGpaev/J0Xzr2iVGFhinqamJ4d37D0RpFBIUYKirq2NgYGBggBtw5eo1BgEBAaIMePbsGZzNgizx4QNxLkAGcAPu3LlDsmYGBgYGJnSBB/fvEWTjNUBBUYkgG68BpAJGGIPUtHDr2iVGDEE1Lb3/TW1d/7EZhkuOEV0RLhvwyVEEAFsZNPXBChl3AAAAAElFTkSuQmCC";
+PACK_ITEMS.tnt_minecart = "data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAABAAAAAQCAYAAAAf8/9hAAABuUlEQVR4AXyPzyvDYRzH33NwIZSf0ZT5Hbkh5UeI/QOjtJzUojmTkxSlnRwov+KwlnCQk5hlNmq1KLJE4yJlMxfKDmqz97Oep202a5/v9/t83p/36/15svDPr74yJyor01hagDQd1ubjYGwS43nZYC8dJAnAIZY09r+UYsB2Av2QCexRS4UoAEUOMfEoEEZBRTHsxkE4tAEBiXSPpt1EASSZRia2WmzKSC3TJgLQ3dsX5RBrd2kBWS6rSOeZRrnJ8f46Fv2f6NBoUN3UIjwCwMHS6na+VHGTVKMU3bk6+QkFMBgMMEUacPP1I0RuYtlaEYmiEXssR7Wg2Tg8EjvF/wpw9+DHhNmMZ11bXEl4Jhrn52YRCgWVqgDN9TW49z0KiNyEaSyamNrYVIcz1yWKikqSAa/BELgBBwjhdbiJvq8fM9NTAkyN5rLCYrx9vCcDnny3GofjVNA5SBihXT2duPZeobJKKzSanU47rBuroIcUdQU2JITXoeg+vxDrEkLNtrcDr8eDcl0NZVEKwJOEcAOeeVcmbm+uiUTq4fC3hm/qrCQAGxSZxu90iewn1h8ARUJkpSZST6xfAAAA///KZoy1AAAABklEQVQDADEJ4yHIHn9UAAAAAElFTkSuQmCC";
 Object.assign(PACK_ITEMS, {redstone: "data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAABAAAAAQCAYAAAAf8/9hAAABFklEQVR4AcyQMYrCQBSG/xFcl4Vlm2WbPYOFnbUHsLPzAtYewdraQ9h5AAsrOxHPYGcjghgFx/fJTEhiYmNjyGPy/nn/N/OnphefNwf0G/LUs5SVETD+JVL304nvKkgpAAPGcXBtr1JT8qHNLQ+AaO7tvaY/Tktb5xfpt14OyQGimSMwA2kbpGPmf5ssg5jMuO45yYwJhZMx0rfsBsQYfDk1Puq5ODWGY3HaMDTkx0C/shsgz05e395oNKFSwDqRJkcvIJxKBG6BGRDz3OLgAg3BKgVsJLczOJCsmexosgdzcr6IWWvvbwqgYwPIyP78wrKixVPRi2b2cwAEIBTDmCi+0ShmsvUAiJsMZyvqxbUSUBys6m8AAAD//zAunpIAAAAGSURBVAMAN1JyIeXGWoIAAAAASUVORK5CYII=",wood_sword: "data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAABAAAAAQCAYAAAAf8/9hAAABKUlEQVR4AZySzUrDQBSFT4KKFaKNUC0iKAUXIiLdKIKIW1c+og/gA+iyO9GVIKLdFClFLP60EqyiQvQbnJBU06QNnMzPne/MvTPjaoRva7UYWg1tALi74etgZ07tzoeGMrCw742rE3ya3HMb9MNHtbZu73tOLoM0mBQyDQbBCQMWIiatGFcWCrI127RtnDaRQdEbExABWuD1iqfLRqD/YNZFBmfXXacbfAlouTwV0i6WJg18evViDgygX5FBPLC9NqPnn2tqPbxrEAyTMCCLxt2bgckmC/5jsL9ZCqsr06o3e8Q070+Icswg5RdlALxXnVXt4snUyzNFWSYup42WygUdHrd003x12IxXhjBhnCaTAdd3cv4YwfHFmKD4XLzvskP9t+Z4IG//GwAA///+MCFKAAAABklEQVQDAKrspORZQORHAAAAAElFTkSuQmCC",stone_sword: "data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAABAAAAAQCAYAAAAf8/9hAAABKklEQVR4AZySv2vCQBzFX1I6dEyhpRRam06ZLF1KaZcOHRrobP+DUvq3ODi4O+s/ENxcNI7+QMhkJBEHQTI5R97BhYsaEw28XO6+93n37nI6Tnhs246ljjYg+P31if+/X3ieh6MMJHz/8IhgNhXZCxtsw9VaHb7va4UMsmBGyDU4BKcMOJHioBT7T+Uy5J5lbFlnm0pgGAYIscCW8PvbK7q9PvbBnJcYOI6jRVEEQqZpxmzvbq8F3Gy1xIER2FZioBZ+KhUEYYhwscQhmEzKgCmGo5GAmSYP3jGwX67i0vkEruuyBsuywO2ITsYrSUD44/kSncFK7JfXlMoz0XnaVOnmAg1nDi9Ya1yMt4yiCftZEgn4+9rjswRWJ9OEUsfUb50ryD2rhaLfGwAAAP//A3iTuQAAAAZJREFUAwCsfqVH1HgUFgAAAABJRU5ErkJggg==",iron_sword: "data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAABAAAAAQCAYAAAAf8/9hAAABIElEQVR4AZySsU6FQBBFBzotTUyAxsaEhsbGGgiNLR/ET0DvF0DsLCBgbWUBiVgaQ2gsbWwwh4TNvhcRniQXdnbn3Jll15R/PFEUTYtONgAsy1JQ27ZyksECN02j+t5toMNBEIht2zKOo7HLQIcdx1EwbWwaHMO+78+VgZEyIBExuYg4yzJhz1Q+hslTBgSu6woQY77AwzDIGkyeMqiqyuj7XuI4FsuyJuC6rv+EDwwIFiVJImmaShiG8lvbSx5f1QEBXRRFIV3XCd1swTAHBne3l9P1+Zvkec6aeJ43b2cOVl7KANi/uZCnl8/5mLimaMvE5G+jK+tM7h8/5PX9y6AYtwxhQrymuQOO7+H5W8F6MiZIn9PHJhWWPesLe8c/AAAA//9EKgVoAAAABklEQVQDACdNovY7Kms4AAAAAElFTkSuQmCC",gold_sword: "data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAABAAAAAQCAYAAAAf8/9hAAABOklEQVR4AZySu0oDQRSG/10LY6NEjdjlDVxsBCuDVjZWFiIIioUPIVroQxgLCUQQESsbK0ErW7XRzgsqeAnxgiCIrnwLM0xCNrvJwr87Z+Z8/zmzM77aeNbmBkKjlg0AV8pPQkfn32rJwMAv1Rnbd2oDF85ld1UIenRy8eGlMnDhvmzewrSRaFAPjwfFqDIwsgYkIiaNiJfL82LPVK6HybMGBLOjvwJizBe4Ur1VHEyeNVjdfvZ2Tju0NB1qbKg7BH49KDWFawwIjPbWO3W9saX+qQU1atvk8bUdENDF5r6nz4c/0U0SDFNjMDmSCx/fM1os/rCmiSATbScKYl7WALgw3Kvjs0p0TFxTlGTi87dRfrBLpcN7Xd19eRTjliFMiOMUdcDxXd68WdhNxgS5c+7Yp4LZs7uQdvwPAAD//wjk07kAAAAGSURBVAMAMe2kj+ijUAUAAAAASUVORK5CYII=",diamond_sword: "data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAABAAAAAQCAYAAAAf8/9hAAABOUlEQVR4AZySvUoDQRSFz26hsVEREsQmFgYstdnCRgUbsVUEO0HfQZ9AsNc2PkBaEUT8K2NjIyqKaBARRRBFjDabfAszTEI2u8nC2Z07c79z7+yMry6e/ukgNOrYAHD3+FDo/+VNHRkYeKt8ZPtObeDCm8Gc1sYnVL179FIZuHBmLG9h2kg0aIavppaiysDIGpCImDQiLpR2xJ6p3AyTZw0IeuvtATHmC1y9f1IcTJ41+Dore3/15MGFWWUKoyHwe7GkdnCDAYFRbn1ZlY1tZVcX1aptk8fXdkBAF5/7J/q9fRDdJMEwDQbzQTZcGXjV9/kFa+oZyYntREHMyxoAz0wO6fTyIzomrilKMvH52yg/3KfiwbNuKj8exbhlCBPiOEUdcHx7176F3WRMkDvnjn0qmD27C2nHNQAAAP//CgQLPAAAAAZJREFUAwC+naIFUl9TgAAAAABJRU5ErkJggg==",gold_pickaxe: "data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAABAAAAAQCAYAAAAf8/9hAAABHElEQVR4AbSRu2oCQRSG/02qNCEXcqniG+TSpEti7EyRKrFTttN3EC0EH8DOTtHSVrATxRcQKztBLETQQlCwGv0HzuJldkTEZc/OZef7zpmZMxz5nE6Qid6r7TAVa6yAYLLkIpH7RvxP6WCf8+H3O5X4fVIiMwrS5ZGTjRXxH6whklroUK26FgXfbtBoj4WHUcC/lDQ7U0fCzQLORwjuzwQPV+eQx1cgC9iy7MDjBT5fqxyi0gjj6/lSb2OvgLCU3e3PHG6J29Gm1ccqIMzMhdoAhFfrd15fAeH1zOskz0LGRgFhW+bb64Dwu7dA2C8zKd5K6CUPthxvVEDYlpkAQ2D2PQFhW2YuNoUn6A3nsJ22CeacJ+A1MTh5SCwBAAD//wfvYI4AAAAGSURBVAMAIbWHIVXSgRwAAAAASUVORK5CYII=",diamond_pickaxe: "data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAABAAAAAQCAYAAAAf8/9hAAABIElEQVR4AbSRq4tCQRTGz10W1i0bhAu7YVV8/AEWg0WrCCbFpsUgGK9YrCIGq1XBbLdqNVkEQcQHBkE0CIpBufoNzsXH3BERL/ebx5n5fefMzAe9+L3P4Cfg028lKlZYAUBPo0L/pRz9aSkmjBEP+VQ9HbHp3ExosG53lEE0Q8NEliZakWm/WDGjoNdKre6S8yQ0wCpMdoOxwuUs5OlTtVI1rNH4S8UWJlMDtnpuULb995sO8SSLuOplsngc7BgPDQDzsvvTjYIj4TjM6dRIDQAjc605I8Cn/Xe/qQHgy8yXJO6Cz4UGgGWZLW475+9fAbBZZlB4lZ4/Rugxv6oAsCwzAIjDGBsGgGWZsVkkw2A035LstkUwYoYBnglC8BkdAQAA///rOwBRAAAABklEQVQDAIeEhSEqTSrgAAAAAElFTkSuQmCC"});
 Object.keys(PACK_ITEMS).forEach(k => {
   if (__skipNewItem(k)) return;
@@ -3015,6 +3017,9 @@ const RECIPES = [
   // Rail: 6 iron + 2 sticks -> 16 rails.  Minecart: 5 iron in a U.
   { shape: [['iron_ingot',null,'iron_ingot'],['iron_ingot','stick','iron_ingot'],['iron_ingot','stick','iron_ingot']], out: 'rail', outCount: 16, needsTable: true },
   { shape: [['iron_ingot',null,'iron_ingot'],['iron_ingot','iron_ingot','iron_ingot']], out: 'minecart', outCount: 1, needsTable: true },
+  // TNT Minecart: TNT + Minecart (either order)
+  { shape: [['tnt'],['minecart']], out: 'tnt_minecart', outCount: 1, needsTable: false },
+  { shape: [['minecart'],['tnt']], out: 'tnt_minecart', outCount: 1, needsTable: false },
   // Totem of Undying: middle row of gold + one gold below the center
   { shape: [[null,null,null],['gold_ingot','gold_ingot','gold_ingot'],[null,'gold_ingot',null]], out: 'totem_of_undying', outCount: 1, needsTable: true },
   // Flint and steel: iron ingot + cobblestone (stands in for flint), works in the 2x2 grid
@@ -12476,6 +12481,7 @@ function wemmbuAI(a, dt) {
     // pick the next combo — elytra mace / wind charge (same as Wemmbu)
     if (a.wmCd <= 0 && (grounded || wemmbuIsInstant(a))) {
       if (wemmbuIsInstant(a)) wemmbuChainUp(a, tgt);
+      else if (a.kind === 'law_leader' && (dist > 4 || Math.random() < 0.6) && Math.random() < 0.85) wemmbuStartElytra(a, tgt);   // LettuceK: elytra mace most of the time
       else if (dist > 10 || (dist > 5 && Math.random() < 0.45)) wemmbuStartElytra(a, tgt);
       else wemmbuStartWindCharge(a);
       return;
@@ -12527,7 +12533,7 @@ function wemmbuAI(a, dt) {
     a.vel.x *= Math.pow(0.02, dt); a.vel.z *= Math.pow(0.02, dt); a.vel.y = 1.2;
     a.facing = Math.atan2(dx, dz);
     a.peakY = Math.max(a.peakY, a.pos.y);
-    if (a.wmT > (wemmbuIsInstant(a) ? 0.06 : 0.3)) { a.wm = 'dive'; a.wmT = 0; a.lastPos = { x: a.pos.x, y: a.pos.y, z: a.pos.z }; wemmbuFly(a, true, true); wemmbuSparks(a, 14); }   // firework #2
+    if (a.wmT > (wemmbuIsInstant(a) ? 0.06 : 0.3)) { a.wm = 'dive'; a.wmT = 0; a.missOff = null; if (wemmbuIsInstant(a) && Math.random() < 0.3) { const _ang = Math.atan2(dz, dx) + (Math.random() < 0.5 ? 1 : -1) * (1.2 + Math.random() * 0.5), _r = 3.5 + Math.random() * 2; a.missOff = { x: Math.cos(_ang) * _r, z: Math.sin(_ang) * _r }; } a.lastPos = { x: a.pos.x, y: a.pos.y, z: a.pos.z }; wemmbuFly(a, true, true); wemmbuSparks(a, 14); }   // firework #2
     return;
   }
   if (mode === 'dive') {   // fly at the enemy and mace them
@@ -12536,7 +12542,7 @@ function wemmbuAI(a, dt) {
     const ex = tgt.x, ey = tgt.y + 0.9, ez = tgt.z;
     const d3 = Math.hypot(ex - a.pos.x, ey - (a.pos.y + 0.9), ez - a.pos.z) || 0.001;
     const lead = Math.min(0.45, d3 / SP);
-    const ax = ex + pv.x * lead, ay = ey + pv.y * lead, az = ez + pv.z * lead;
+    const ax = ex + pv.x * lead + (a.missOff ? a.missOff.x : 0), ay = ey + pv.y * lead, az = ez + pv.z * lead + (a.missOff ? a.missOff.z : 0);
     let vx = ax - a.pos.x, vy = ay - (a.pos.y + 0.9), vz = az - a.pos.z;
     const vl = Math.hypot(vx, vy, vz) || 1; vx = vx / vl * SP; vy = vy / vl * SP; vz = vz / vl * SP;
     const k = Math.min(1, dt * 10);
@@ -12550,13 +12556,19 @@ function wemmbuAI(a, dt) {
       wemmbuFly(a, false, false); a.wm = 'ground'; a.vel.set(a.vel.x * 0.2, 5, a.vel.z * 0.2);
       return;
     }
-    if (d3 < 3.0 + sp3 * dt * 0.5) {   // close enough: smash
+    if (a.missOff && Math.hypot(ax - a.pos.x, (ay - 0.9) - a.pos.y, az - a.pos.z) < 1.6) {   // whiffed the smash on purpose-ish
+      a.missOff = null;
+      if (tgt.alive) wemmbuChainUp(a, tgt); else { wemmbuFly(a, false, false); a.wm = 'ground'; }
+      return;
+    }
+    if (d3 < 3.0 + sp3 * dt * 0.5 && !a.missOff) {   // close enough: smash
       wemmbuSmash(a, tgt, a.peakY - a.pos.y);
       if (wemmbuIsInstant(a)) {
         if (tgt.alive && a.hp > a.maxHp * 0.45) { wemmbuChainUp(a, tgt); }   // instant mace: elytra + firework up again right away
         else { wemmbuFly(a, false, false); a.wm = 'ground'; a.wmCd = 0; a.vel.set(0, 8, 0); }   // hurt: land and heal
         return;
       }
+      if (a.kind === 'law_leader' && tgt.alive && a.hp > a.maxHp * 0.35 && Math.random() < 0.65) { wemmbuChainUp(a, tgt); return; }   // LettuceK: elytra again right after the smash
       wemmbuFly(a, false, false);
       a.chain = 1; a.wm = 'air'; a.wmT = 0; a.peakY = a.pos.y; a.vel.set(0, 13.5, 0);   // Wind Burst bounces him up for the next hit
       return;
@@ -12584,7 +12596,7 @@ function wemmbuAI(a, dt) {
       return;
     }
     const landed = a.wmT > 0.3 && a.vel.y === 0 && moved < 0.001;
-    if (landed || a.wmT > 5) { a.wm = 'ground'; a.wmCd = 0.8 + Math.random() * 1.0; a.chain = 0; }
+    if (landed || a.wmT > 5) { a.wm = 'ground'; a.wmCd = (a.kind === 'law_leader' ? 0.2 + Math.random() * 0.5 : 0.8 + Math.random() * 1.0); a.chain = 0; }
     return;
   }
   a.wm = 'ground';
@@ -16018,6 +16030,10 @@ playersChannel
       return;
     }
     spawnPrimedTnt(payload.x, payload.y, payload.z, payload.fuse, { id: payload.id, remote: true, vx: payload.vx, vy: payload.vy, vz: payload.vz });
+  })
+  .on('broadcast', { event: 'cart_boom' }, ({ payload }) => {
+    if (!payload || payload.from === MY_ID) return;
+    explodeTnt({ pos: new THREE.Vector3(payload.x, payload.y, payload.z), owner: false, fullBlock: true });
   })
   // Someone swung their arm (attack animation).
   .on('broadcast', { event: 'swing' }, ({ payload }) => {
@@ -19739,7 +19755,7 @@ const CART_TEX_SRC = "data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAEAAAAAgCAYA
 const CART_MAX_SPEED = 11, CART_ACCEL = 7, CART_COAST = 1.6, CART_BRAKE = 16;   // blocks/s (sprint is 6)
 const carts = [];
 let cartRide = null, _cartId = 1, _cartSnPrev = false, _cartJmpPrev = false, _cartSaveT = 0, _cartLoaded = false, _cartDirty = false, _cartMat = null, _cartLook = [0, 0];
-function _buildCartMesh() {
+function _buildCartMesh(withTnt) {
   if (!_cartMat) {
     const img = new Image(), tex = new THREE.Texture(img);
     tex.magFilter = THREE.NearestFilter; tex.minFilter = THREE.NearestFilter; tex.generateMipmaps = false;
@@ -19758,6 +19774,11 @@ function _buildCartMesh() {
   model.scale.setScalar(1 / 16);
   const holder = new THREE.Group(); holder.add(model);
   holder.userData.model = model;
+  if (withTnt) {   // TNT block sitting in the cart
+    const mats = [0, 1, 2, 3, 4, 5].map(i => MAT_LIST[faceMatIndex('tnt', i)]);
+    const tm = new THREE.Mesh(new THREE.BoxGeometry(0.62, 0.62, 0.62), mats);
+    tm.position.set(0, 0.42, 0); holder.add(tm); holder.userData.tntMesh = tm;
+  }
   return holder;
 }
 function cartIsStraight(c) { return c.e0[0] === -c.e1[0] && c.e0[1] === -c.e1[1]; }
@@ -19808,17 +19829,17 @@ function cartAdvance(c, dt, look) {
     c.t = 0;
   }
 }
-function makeCart(cx, cy, cz, e0, e1, t) {
-  const c = { id: _cartId++, cx, cy, cz, e0, e1, t: t == null ? 0.5 : t, speed: 0, pos: new THREE.Vector3(), mesh: _buildCartMesh() };
+function makeCart(cx, cy, cz, e0, e1, t, tnt) {
+  const c = { id: _cartId++, cx, cy, cz, e0, e1, t: t == null ? 0.5 : t, speed: 0, tnt: !!tnt, pos: new THREE.Vector3(), mesh: _buildCartMesh(!!tnt) };
   scene.add(c.mesh); carts.push(c); cartPose(c); _cartDirty = true;
   return c;
 }
-function cartSave() { try { localStorage.setItem(SAVE_KEY + '_carts', JSON.stringify(carts.map(c => [c.cx, c.cy, c.cz, c.e0[0], c.e0[1], c.e1[0], c.e1[1], +c.t.toFixed(3)]))); } catch (e) {} }
+function cartSave() { try { localStorage.setItem(SAVE_KEY + '_carts', JSON.stringify(carts.map(c => [c.cx, c.cy, c.cz, c.e0[0], c.e0[1], c.e1[0], c.e1[1], +c.t.toFixed(3), c.tnt ? 1 : 0]))); } catch (e) {} }
 function cartLoad() {
   _cartLoaded = true;
   try {
     const a = JSON.parse(localStorage.getItem(SAVE_KEY + '_carts') || '[]');
-    for (const r of a) if (r.length >= 8 && r.every(Number.isFinite)) makeCart(r[0], r[1], r[2], [r[3], r[4]], [r[5], r[6]], r[7]);
+    for (const r of a) if (r.length >= 8 && r.slice(0, 8).every(Number.isFinite)) makeCart(r[0], r[1], r[2], [r[3], r[4]], [r[5], r[6]], r[7], r[8] === 1);
     _cartDirty = false;
   } catch (e) {}
 }
@@ -19856,8 +19877,18 @@ function cartBreak(c) {
   if (cartRide === c) cartDismount();
   scene.remove(c.mesh);
   const i = carts.indexOf(c); if (i >= 0) carts.splice(i, 1);
-  spawnDroppedItem('minecart', 1, new THREE.Vector3(c.pos.x, c.pos.y + 0.6, c.pos.z), new THREE.Vector3(0, 2, 0));
+  spawnDroppedItem(c.tnt ? 'tnt_minecart' : 'minecart', 1, new THREE.Vector3(c.pos.x, c.pos.y + 0.6, c.pos.z), new THREE.Vector3(0, 2, 0));
   _cartDirty = true;
+}
+// TNT minecart: right-click = instant blast. Blocks between the blast and a player/mob block ALL the damage (fullBlock).
+function cartExplode(c) {
+  if (cartRide === c) cartDismount();
+  const p = c.pos.clone();
+  scene.remove(c.mesh);
+  const i = carts.indexOf(c); if (i >= 0) carts.splice(i, 1);
+  _cartDirty = true; cartSave();
+  try { playersChannel.send({ type: 'broadcast', event: 'cart_boom', payload: { from: MY_ID, x: p.x, y: p.y, z: p.z } }); } catch (e) {}
+  explodeTnt({ pos: p, owner: true, fullBlock: true });
 }
 function updateCarts(dt) {
   if (!_cartLoaded && gameStarted) cartLoad();
@@ -19897,7 +19928,8 @@ function updateCarts(dt) {
 }
 function tryPlaceCart() {
   const held = inventory[currentSlot];
-  if (!held || held.type !== 'minecart') return false;
+  if (!held || (held.type !== 'minecart' && held.type !== 'tnt_minecart')) return false;
+  const isTnt = held.type === 'tnt_minecart';
   const r = bucketRay(false);
   if (!r || r.b.type !== 'rail') return false;   // carts only go on rails
   const x = r.cell.x, y = r.cell.y, z = r.cell.z;
@@ -19907,7 +19939,7 @@ function tryPlaceCart() {
   outer: for (const a of cs) for (const b of cs) if (a[0] === -b[0] && a[1] === -b[1]) { e0 = a; e1 = b; break outer; }
   if (!e1) { if (cs.length >= 2) { e0 = cs[0]; e1 = cs[1]; } else if (cs.length === 1) { e1 = cs[0]; e0 = [-cs[0][0], -cs[0][1]]; } else { e0 = [-1, 0]; e1 = [1, 0]; } }
   startSwing();
-  makeCart(x, y, z, e0, e1, 0.5);
+  makeCart(x, y, z, e0, e1, 0.5, isTnt);
   removeFromCurrentSlot(1);
   renderHotbar(); if (inventoryOpen) try { renderInventoryPanel(); } catch (e) {}
   saveLocalPlayer(); cartSave();
@@ -19919,6 +19951,7 @@ canvas.addEventListener('mousedown', e => {
     useOffHand = false; blockFromOff = false;
     if (cartRide || boatRide) return;
     const lc = findLookedCart(4);
+    if (lc && lc.tnt) { startSwing(); cartExplode(lc); e.stopImmediatePropagation(); return; }   // TNT minecart: instant boom
     if (lc) { cartMount(lc); e.stopImmediatePropagation(); return; }
     if (tryPlaceCart()) { e.stopImmediatePropagation(); return; }
   } else {
@@ -21147,12 +21180,14 @@ function explodeTnt(t) {
     if (d < reach && player.hp > 0) {
       const dirv = pc.clone().sub(c); if (dirv.lengthSq() < 1e-4) dirv.set(0, 1, 0); dirv.normalize();
       const blocked = d > 1 && castVoxelRay(c, dirv, Math.max(0, d - 0.6));
+      if (blocked && t.fullBlock) { /* TNT minecart: a block in the way blocks all damage + knockback */ } else {
       let imp = (1 - d / reach) * (blocked ? 0.45 : 1);
       const dmg = Math.round(imp * imp * 24 + imp * 4);
       player.vel.x += dirv.x * imp * 14; player.vel.z += dirv.z * imp * 14;
       player.vel.y = Math.max(player.vel.y, 3 + dirv.y * imp * 12 + imp * 4);
       player.onGround = false;
       if (dmg > 0) damagePlayer(dmg);
+      }
     }
   }
   animals.forEach(a => {
@@ -21162,6 +21197,7 @@ function explodeTnt(t) {
     if (d >= reach) return;
     const imp = 1 - d / reach;
     const dirv = ac.clone().sub(c); if (dirv.lengthSq() < 1e-4) dirv.set(0, 1, 0); dirv.normalize();
+    if (t.fullBlock && d > 1 && castVoxelRay(c, dirv, Math.max(0, d - 0.6))) return;
     a.vel.x += dirv.x * imp * 12; a.vel.z += dirv.z * imp * 12; a.vel.y = 4 + imp * 6;
     damageAnimal(a, Math.round(imp * imp * 24 + imp * 4));
   });
