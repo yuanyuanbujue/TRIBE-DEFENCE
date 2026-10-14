@@ -233,6 +233,22 @@
   .skinPick input { display: none; }
   .skinMsg { min-height: 14px; font-size: 12px; color: #ff9d9d; text-align: center; }
   .skinResetBtn:disabled { opacity: .4; cursor: default; }
+  #playersBtn { margin-top: 10px; padding: 9px 18px; font-size: 13.5px; font-weight: 600; border-radius: 10px; cursor: pointer; border: 1px solid rgba(126,232,250,0.45); background: rgba(126,232,250,0.1); color: #bff4ff; }
+  #playersBtn:hover { background: rgba(126,232,250,0.2); }
+  #playersOverlay { position: fixed; inset: 0; z-index: 100000; display: none; align-items: center; justify-content: center; background: rgba(5,8,20,0.7); font-family: 'Segoe UI', Arial, sans-serif; }
+  #playersOverlay.open { display: flex; }
+  #playersBox { width: min(560px, 92vw); max-height: 84vh; overflow-y: auto; background: rgba(20,26,46,0.97); border: 1px solid rgba(255,255,255,0.18); border-radius: 16px; padding: 20px 22px; color: #fff; text-align: left; user-select: text; box-shadow: 0 20px 60px rgba(0,0,0,0.55); }
+  #playersBox h3 { margin: 0 0 4px; font-size: 20px; }
+  #playersBox h4 { margin: 16px 0 6px; font-size: 12px; letter-spacing: 2px; text-transform: uppercase; opacity: .6; }
+  #playersBox .pNote { font-size: 12px; opacity: .65; margin: 2px 0 6px; }
+  .pRow { padding: 8px 10px; margin-bottom: 6px; border-radius: 10px; background: rgba(255,255,255,0.06); }
+  .pRow .pName { font-weight: 700; font-size: 15px; }
+  .pRow .pDot { display: inline-block; width: 8px; height: 8px; border-radius: 50%; background: #3ddc84; margin-right: 7px; }
+  .pRow .pDot.off { background: #777; }
+  .pRow .pHist { margin-top: 4px; font-size: 12px; opacity: .8; display: flex; flex-wrap: wrap; gap: 4px; align-items: center; }
+  .pRow .pChip { background: rgba(255,255,255,0.12); border-radius: 6px; padding: 1px 7px; }
+  .pRow .pChip.cur { background: rgba(126,232,250,0.28); }
+  #playersClose { float: right; background: none; border: 0; color: #fff; font-size: 22px; cursor: pointer; opacity: .8; }
   #nameInput::placeholder { color: rgba(255,255,255,0.45); }
 
   #authChoice, #authUser { margin-top: 16px; display: flex; flex-direction: column; align-items: center; gap: 10px; }
@@ -1027,10 +1043,13 @@
     <div id="loadBarWrap"><div id="loadBarFill"></div></div>
     <div id="connStatus"><span class="connDot" id="connDot"></span><span id="connText">Connecting to server…</span></div>
     <button id="startBtn" disabled>Start Game</button><br>
+    <button id="playersBtn" type="button">Online Players &amp; Name History</button><br>
     <button id="resetBtn">Reset My Local Data</button>
     </div>
   </div>
 </div>
+
+<div id="playersOverlay"><div id="playersBox"><button id="playersClose" aria-label="Close">&#10005;</button><h3>Online Players</h3><div class="pNote">Players currently in the world, with every name they have used. Players who are still on the menu appear once they press Start.</div><div id="playersBody"></div></div></div>
 
 <div id="confirmOverlay">
   <div id="confirmBox">
@@ -1246,7 +1265,7 @@
 <div id="settingsOverlay">
   <div id="settingsBox">
     <h3>⚙️ Settings</h3>
-    <div class="stabs"><button data-tab="controls" class="on">Controls</button><button data-tab="graphics">Graphics</button><button data-tab="gameplay">Gameplay</button><button data-tab="keys">Keybinds</button><button data-tab="aibot">AI Bot</button></div>
+    <div class="stabs"><button data-tab="controls" class="on">Controls</button><button data-tab="graphics">Graphics</button><button data-tab="gameplay">Gameplay</button><button data-tab="keys">Keybinds</button></div>
     <div class="stab on" data-tab="controls">
     <h4>Controls</h4>
     <div class="settingRow">
@@ -1342,19 +1361,6 @@
       <input type="checkbox" id="torchShadowsToggle">
     </label>
     </div>
-    <div class="stab" data-tab="aibot">
-    <h4>AI Bot (Groq)</h4>
-    <div class="settingRow" style="flex-direction:column;align-items:stretch;gap:6px">
-      <label for="groqKeyInput">Groq API key</label>
-      <input type="password" id="groqKeyInput" placeholder="gsk_..." autocomplete="off" spellcheck="false" style="padding:6px 8px;border-radius:6px;border:1px solid rgba(255,255,255,0.3);background:rgba(0,0,0,0.35);color:#fff">
-      <div style="font-size:11.5px;opacity:.7">Optional. Without a key the bot still moves, chats and plays using its built-in brain. A free key from console.groq.com makes it smarter; it stays in this browser and is sent only to Groq.</div>
-    </div>
-    <label class="settingRow" for="aiBotToggle">
-      Enable AI Bot (random name, visible to everyone)
-      <input type="checkbox" id="aiBotToggle">
-    </label>
-    <div id="aiBotMsg" style="font-size:12px;opacity:.8;margin-top:6px"></div>
-    </div>
     <div class="stab" data-tab="keys">
     <h4>Keybinds</h4>
     <div id="keybindList"></div>
@@ -1410,6 +1416,37 @@ try {
 }
 const MY_ID = Math.random().toString(36).slice(2, 10);
 let MY_NAME = 'Player' + Math.floor(Math.random() * 1000);
+// Stable per-browser player id + name history (shared with other players through presence, and remembered locally for players you meet)
+const UID_KEY = 'voltex_uid', NAMEHIST_KEY = 'voltex_name_history', SEEN_KEY = 'voltex_seen_players';
+function _lsGet(k, d) { try { const v = JSON.parse(localStorage.getItem(k) || 'null'); return v == null ? d : v; } catch (e) { return d; } }
+function _lsSet(k, v) { try { localStorage.setItem(k, JSON.stringify(v)); } catch (e) {} }
+const MY_UID = (() => { try { let u = localStorage.getItem(UID_KEY); if (!u) { u = 'u' + Math.random().toString(36).slice(2, 10) + Date.now().toString(36); localStorage.setItem(UID_KEY, u); } return u; } catch (e) { return 'u' + MY_ID; } })();
+function _cleanHist(h) { return (Array.isArray(h) ? h : []).filter(x => x && typeof x.n === 'string' && x.n.trim()).map(x => ({ n: x.n.slice(0, 16), t: Number(x.t) || 0 })); }
+function myNameHistory() { return _cleanHist(_lsGet(NAMEHIST_KEY, [])); }
+function recordMyName(name) {
+  name = String(name || '').trim().slice(0, 16); if (!name) return;
+  const h = myNameHistory(); if (h.length && h[h.length - 1].n === name) return;
+  h.push({ n: name, t: Date.now() }); _lsSet(NAMEHIST_KEY, h.slice(-20));
+}
+function presenceMeta() {
+  let skin = null, touch = false;
+  try { skin = mySkinData; } catch (e) {}
+  try { touch = !!touchMode; } catch (e) {}
+  return { name: MY_NAME, uid: MY_UID, hist: myNameHistory().slice(-10), skin, touch };
+}
+function noteSeenPlayer(uid, name, hist) {
+  if (!uid || typeof uid !== 'string' || uid === MY_UID) return;
+  name = String(name || '').slice(0, 16);
+  const d = _lsGet(SEEN_KEY, {}), before = JSON.stringify(d[uid] || null);
+  const e = d[uid] || { names: [] };
+  const merged = _cleanHist(e.names);
+  for (const x of _cleanHist(hist).concat(name ? [{ n: name, t: Date.now() }] : [])) { if (!merged.some(m => m.n === x.n)) merged.push(x); }
+  e.names = merged.slice(-20); if (name) e.name = name;
+  if (JSON.stringify(Object.assign({}, e, { last: 0 })) === JSON.stringify(Object.assign({}, JSON.parse(before || '{"names":[]}'), { last: 0 })) && before !== 'null') return;   // nothing new: skip the write
+  e.last = Date.now(); d[uid] = e;
+  const keys = Object.keys(d); if (keys.length > 200) keys.sort((p, q) => (d[p].last || 0) - (d[q].last || 0)).slice(0, keys.length - 200).forEach(k => delete d[k]);
+  _lsSet(SEEN_KEY, d);
+}
 
 // ================= Renderer / Scene =================
 const scene = new THREE.Scene();
@@ -9204,7 +9241,7 @@ function setMySkin(cv) {
   try { if (mySkinData) localStorage.setItem(SKIN_KEY, mySkinData); else localStorage.removeItem(SKIN_KEY); } catch (e) {}
   applyMySkin(cv);
   if (typeof refreshSkinUI === 'function') refreshSkinUI();
-  if (gameStarted && typeof playersChannel !== 'undefined') playersChannel.track({ name: MY_NAME, skin: mySkinData, touch: !!touchMode });
+  if (gameStarted && typeof playersChannel !== 'undefined') playersChannel.track(presenceMeta());
 }
 function pickSkinFile(file) {
   if (!file) return;
@@ -10977,8 +11014,7 @@ function createMob(kind, px, py, pz, id, remote, eq) {
   const isBr = kind === 'breeze';
   const isCr = kind === 'creeper';
   const isB = isSpk(kind);
-  const isAI = kind === 'aibot';
-  const group = isAI ? buildZombie(WEMMBU_SKIN) : isB ? buildZombie(
+  const group = isB ? buildZombie(
     kind === 'flamefrags' ? FLAME_SKIN
     : kind === 'wemmbu' ? WEMMBU_SKIN
     : kind === 'law_leader' ? LETTUCE_SKIN
@@ -10991,9 +11027,6 @@ function createMob(kind, px, py, pz, id, remote, eq) {
     wemmbuSetupModel(group, tag);
   }
   if (kind === 'null' || kind === 'null_commander') { group.userData.isNullBlack = true; group.traverse(o => { if (o.isMesh && o.material && o.material.color) { o.material.color.setHex(0x000000); o.userData.nullBlack = true; } }); }
-  if (isAI) {
-    group.userData.armBase = 0.0;
-  }
   scene.add(group);
   const pos = new THREE.Vector3(px, py, pz);
   group.position.copy(pos);
@@ -11009,7 +11042,6 @@ function createMob(kind, px, py, pz, id, remote, eq) {
     target: remote ? { x: px, y: py, z: pz, f: 0 } : null,
   };
   animals.push(e);
-  if (isAI) { e.hp = e.maxHp = 20; e.radius = 0.42; e.height = 1.8; e.localOnly = true; }
   if (isZ) applyZombieGear(e); else if (isS) applySkeletonGear(e); else if (isB) applySpokeGear(e);
   if (kind === 'law_normal' || kind === 'law_elite' || kind === 'law_commander') {
     try { if (typeof attachLawNameplate === 'function') attachLawNameplate(e); } catch (err) {}
@@ -11135,7 +11167,6 @@ function jcLootingLevel() {
   return Math.max(0, Math.min(50, Math.trunc(Number(h.ench.looting) || 0)));
 }
 function giveMobLoot(kind, eq, botName) {
-  if (kind === 'aibot') { jcAddXp(30); announceBotDefeat(String(botName || 'AI Bot').slice(0, 24)); saveLocalPlayer(); return; }
   const L = jcLootingLevel();
   // Looting: +25% XP per level (IV = double), and up to +L extra of each drop
   // Armored zombies are worth more: bonus per armor piece worn (iron +2, gold +3, diamond +5; a full diamond set = +20)
@@ -13090,7 +13121,6 @@ function updateSpokeHud(dt) {
 
 function updateAnimals(dt) {
   const iAmHost = isMobHost();
-  try { aiBotManage(dt); } catch (e) { console.warn('aibot', e); }
   try { bossMaceGuardTick(dt); } catch (e) { console.warn('boss guard', e); }
   _zPathBudget = 2;   // at most 2 path searches per update, so a crowd of zombies can't stall a frame
   animals.forEach(a => {
@@ -13170,8 +13200,6 @@ function updateAnimals(dt) {
           }
         }
       }
-    } else if (a.kind === 'aibot') {
-      aiBotUpdate(a, dt);
     } else if (isSpk(a.kind)) {
       bossFreeIfEmbedded(a, dt);
       if (isLawKind(a.kind) && typeof lawShouldAggro === 'function' && !lawShouldAggro(a)) {
@@ -13420,12 +13448,6 @@ function updateAnimalSpawning(dt) {
 }
 
 function damageAnimal(animal, dmg, fromPos, kbMul) {
-  if (animal.kind === 'aibot' && animal.remote) {   // another player's AI bot: its owner applies the hit
-    flashRed(animal.group);
-    const fp0 = fromPos || player.pos;
-    playersChannel.send({ type: 'broadcast', event: 'aibot_hit', payload: { id: animal.id, dmg, kx: fp0.x - animal.pos.x, kz: fp0.z - animal.pos.z, kb: kbMul == null ? 1 : kbMul, by: MY_ID } });
-    return;
-  }
   if (animal.remote) {
     // the host owns this mob: show feedback locally and ask the host to apply the hit
     flashRed(animal.group);
@@ -13460,8 +13482,6 @@ function killAnimal(animal, by) {
   animal.alive = false;
   scene.remove(animal.group);
   if (wasSpoke) killSpokeMinions();
-  if (animal.kind === 'aibot' && !animal.remote) { try { aiBotDropAll(animal); playersChannel.send({ type: 'broadcast', event: 'aibot_gone', payload: { id: animal.id } }); } catch (e) {} }
-  if (_abKiller && animal.kind !== 'aibot') { try { abMobLoot(_abKiller, animal.kind, animal.eq | 0); } catch (e) {} return; }   // killed by the AI bot: the bot gets the loot
   if (!by || by === MY_ID) {
     try { registerAnimalKill(animal.kind); } catch (e) {}
     giveMobLoot(animal.kind, animal.eq, animal.botName);
@@ -15218,6 +15238,15 @@ function updateOtherSkin(entry, skinData) {
   if (!skinData) { applySkin(entry.model, null); return; }
   loadSkinFromDataUrl(skinData, cv => { if (entry.skinData === skinData) applySkin(entry.model, cv); });
 }
+function updateOtherName(entry, name) {   // a remote player's real name arrived (or changed): refresh the label above their head
+  name = filterText(String(name || '').trim().slice(0, 16));
+  if (!entry || !name || entry.name === name) return;
+  entry.name = name;
+  const old = entry.group.children.find(c => c.userData && c.userData.isPlayerName);
+  const spr = makeNameSprite(name); spr.userData.isPlayerName = true;
+  if (old) { spr.position.copy(old.position); spr.visible = old.visible; entry.group.remove(old); try { if (old.material.map) old.material.map.dispose(); old.material.dispose(); } catch (e) {} }
+  entry.group.add(spr);
+}
 function removeOtherPlayer(id) {
   const entry = otherPlayers.get(id);
   if (!entry) return;
@@ -15249,16 +15278,20 @@ playersChannel
         if (!firstSync) addChatLine('System', filterText(String(meta.name || 'Player')) + ' joined the game', true);
       }
       const m2 = (state[id][0] || {});
+      { const oe0 = otherPlayers.get(id); if (oe0 && m2.name) updateOtherName(oe0, m2.name); }
+      try { noteSeenPlayer(m2.uid, m2.name, m2.hist); } catch (e) {}
       updateOtherSkin(otherPlayers.get(id), m2.skin);
       { const oe = otherPlayers.get(id); if (oe) oe.touch = !!m2.touch; }
     });
     Array.from(otherPlayers.keys()).forEach(id => { if (!seen.has(id)) removeOtherPlayer(id); });
     _joinAnnounced.forEach(id => { if (!seen.has(id)) _joinAnnounced.delete(id); });
+    try { if (typeof renderPlayersPanel === 'function') renderPlayersPanel(); } catch (e) {}
   })
   .on('broadcast', { event: 'pos' }, ({ payload }) => {
     if (!payload || payload.id === MY_ID) return;
     let entry = otherPlayers.get(payload.id);
     if (!entry) entry = createOtherPlayer(payload.id, payload.name || 'Player');
+    else if (payload.name && entry.name !== payload.name) updateOtherName(entry, payload.name);
     entry.target.x = payload.x; entry.target.y = payload.y; entry.target.z = payload.z; entry.target.yaw = payload.yaw; entry.target.pitch = payload.pitch || 0;
     entry.offType = payload.offType || null;
     entry.heldEnch = !!payload.heldEnch;
@@ -15499,37 +15532,6 @@ playersChannel
   .on('broadcast', { event: 'mob_dead' }, ({ payload }) => {
     if (payload && payload.to === MY_ID) giveMobLoot(payload.kind, payload.eq | 0, typeof payload.name === 'string' ? payload.name : null);
   })
-  .on('broadcast', { event: 'aibot_state' }, ({ payload }) => {   // someone's AI bot (random-named player-like bot): show it
-    if (!payload || payload.from === MY_ID || typeof payload.id !== 'string') return;
-    const x = Number(payload.x), y = Number(payload.y), z = Number(payload.z), f = Number(payload.f);
-    if (![x, y, z, f].every(Number.isFinite)) return;
-    let e = animals.find(q => q.id === payload.id);
-    if (!e) { e = createMob('aibot', x, y, z, payload.id, true, 0); aiBotSetName(e, String(payload.name || 'Bot').slice(0, 24)); }
-    e.localOnly = true; e.remote = true; e.lastSeen = performance.now();
-    if (!e.target) e.target = { x, y, z, f };
-    e.target.x = x; e.target.y = y; e.target.z = z; e.target.f = f;
-    const hp = Number(payload.hp); if (Number.isFinite(hp)) { if (hp < e.hp) flashRed(e.group); e.hp = hp; }
-    aiBotSetHeld(e, typeof payload.held === 'string' ? payload.held : null);
-    if ((payload.sw | 0) !== (e._sw | 0)) { e._sw = payload.sw | 0; e.attackCd = 1.1; }
-  })
-  .on('broadcast', { event: 'aibot_hit' }, ({ payload }) => {   // another player hit my bot
-    const a = aiBotEnt;
-    if (!payload || !a || !a.alive || payload.id !== a.id) return;
-    a.hp -= Math.max(0, Math.min(40, Number(payload.dmg) || 0)); flashRed(a.group);
-    knockbackEntity(a, new THREE.Vector3(a.pos.x + (Number(payload.kx) || 0), a.pos.y, a.pos.z + (Number(payload.kz) || 0)), 7.5 * (payload.kb == null ? 1 : Number(payload.kb)));
-    if (a.hp <= 0) killAnimal(a, payload.by);
-  })
-  .on('broadcast', { event: 'aibot_chat' }, ({ payload }) => {
-    if (!payload || payload.from === MY_ID || typeof payload.text !== 'string') return;
-    const nm = String(payload.name || 'Bot').slice(0, 24), tx = filterText(payload.text.slice(0, 120));
-    addChatLine(nm, tx, false);
-    const e = animals.find(q => q.id === payload.id); if (e) { try { showChatBubbleOn(e, tx); } catch (err) {} }
-  })
-  .on('broadcast', { event: 'aibot_gone' }, ({ payload }) => {
-    if (!payload) return;
-    const i = animals.findIndex(q => q.id === payload.id && q.kind === 'aibot' && q.remote);
-    if (i >= 0) { animals[i].alive = false; try { scene.remove(animals[i].group); } catch (e) {} animals.splice(i, 1); }
-  })
   .on('broadcast', { event: 'time_sync' }, ({ payload }) => {
     if (!payload || payload.from === MY_ID) return;
     adoptSharedClock(payload.t);
@@ -15539,9 +15541,9 @@ playersChannel
     if (!payload || payload.id === MY_ID) return;
     const cleanText = filterText(payload.text || '');
     addChatLine(payload.name || 'Player', cleanText, false);
-    try { aiBotHear(cleanText, payload.name); } catch (e) {}
     let entry = otherPlayers.get(payload.id);
     if (!entry) entry = createOtherPlayer(payload.id, payload.name || 'Player');
+    else if (payload.name && entry.name !== payload.name) updateOtherName(entry, payload.name);
     showChatBubbleOn(entry, cleanText);
   })
   // PvP: the attacker broadcasts who they hit and for how much. Everyone
@@ -17175,7 +17177,6 @@ function sendChatMessage() {
   addChatLine(MY_NAME, text, true);
   showChatBubbleOn(myModel, text);
   playersChannel.send({ type: 'broadcast', event: 'chat', payload: { id: MY_ID, name: MY_NAME, text } });
-  try { aiBotHear(text, MY_NAME); } catch (e) {}
 }
 chatInput.addEventListener('keydown', e => {
   e.stopPropagation(); // don't let WASD/etc leak through to game controls while typing
@@ -17340,7 +17341,7 @@ function applyTouchMode() {
   } catch (e) {}
   try {
     if (typeof gameStarted !== 'undefined' && gameStarted && typeof playersChannel !== 'undefined' && playersChannel) {
-      playersChannel.track({ name: MY_NAME, skin: typeof mySkinData !== 'undefined' ? mySkinData : null, touch: !!touchMode });
+      playersChannel.track(presenceMeta());
     }
   } catch (e) {}
   console.log('[Voltex] client mode:', touchMode ? 'mobile' : 'pc', '(pref=' + pref + ')');
@@ -17959,6 +17960,7 @@ function toggleFullscreen() { if (isFullscreen()) exitFullscreen(); else enterFu
 
 function startGame() {
   MY_NAME = filterText((nameInput.value || MY_NAME).trim().slice(0, 16)) || MY_NAME;
+  recordMyName(MY_NAME);
   startScreen.style.display = 'none';
   gameStarted = true;
   if (touchMode) {
@@ -17968,11 +17970,60 @@ function startGame() {
   } else {
     canvas.requestPointerLock();
   }
-  try { Promise.resolve(playersChannel.track({ name: MY_NAME, skin: mySkinData, touch: !!touchMode })).catch(() => {}); } catch (e) {}
+  try { Promise.resolve(playersChannel.track(presenceMeta())).catch(() => {}); } catch (e) {}
   saveLocalPlayer(); // remember the name (and everything else) for next time
 }
 document.getElementById('startBtn').addEventListener('click', startGame);
 if (typeof initMobileControls === 'function') initMobileControls();
+
+// ---------- Online players + name history panel (main menu) ----------
+function _histChips(list, cur) {
+  const box = document.createElement('div'); box.className = 'pHist';
+  const arr = _cleanHist(list).sort((a, b) => (a.t || 0) - (b.t || 0));
+  if (arr.length <= 1) { const sp = document.createElement('span'); sp.textContent = 'No name changes yet'; sp.style.opacity = '.6'; box.appendChild(sp); return box; }
+  const lead = document.createElement('span'); lead.textContent = 'Names:'; box.appendChild(lead);
+  arr.forEach((x, i) => { if (i) { const ar = document.createElement('span'); ar.textContent = '\u2192'; ar.style.opacity = '.5'; box.appendChild(ar); } const c = document.createElement('span'); c.className = 'pChip' + (x.n === cur ? ' cur' : ''); c.textContent = x.n; c.title = x.t ? new Date(x.t).toLocaleDateString() : ''; box.appendChild(c); });
+  return box;
+}
+function _playerRow(name, hist, online, extra) {
+  const r = document.createElement('div'); r.className = 'pRow';
+  const n = document.createElement('div'); n.className = 'pName';
+  const dot = document.createElement('span'); dot.className = 'pDot' + (online ? '' : ' off'); n.appendChild(dot);
+  n.appendChild(document.createTextNode(name + (extra || '')));
+  r.appendChild(n); r.appendChild(_histChips(hist, name)); return r;
+}
+function renderPlayersPanel() {
+  const ov = document.getElementById('playersOverlay'); if (!ov || !ov.classList.contains('open')) return;
+  const body = document.getElementById('playersBody'); body.textContent = '';
+  const h4 = t => { const e = document.createElement('h4'); e.textContent = t; body.appendChild(e); };
+  const myName = (nameInput && nameInput.value.trim()) || MY_NAME;
+  const myHist = myNameHistory(); if (!myHist.length || myHist[myHist.length - 1].n !== myName) myHist.push({ n: myName, t: Date.now() });
+  h4('You'); body.appendChild(_playerRow(myName, myHist, true, ' (you)'));
+  let state = {}; try { state = playersChannel.presenceState() || {}; } catch (e) {}
+  const online = [], onlineUids = new Set();
+  Object.keys(state).forEach(id => { if (id === MY_ID) return; const m = (state[id] && state[id][0]) || {}; if (m.uid === MY_UID) return; online.push(m); if (m.uid) onlineUids.add(m.uid); });
+  h4('Online now (' + online.length + ')');
+  if (!online.length) { const p = document.createElement('div'); p.className = 'pNote'; p.textContent = 'Nobody else is in the world right now.'; body.appendChild(p); }
+  online.sort((a, b) => String(a.name).localeCompare(String(b.name))).forEach(m => {
+    const nm = String(m.name || 'Player').slice(0, 16), seen = (_lsGet(SEEN_KEY, {})[m.uid] || {}).names;
+    const hist = _cleanHist(m.hist).length ? m.hist : (seen || [{ n: nm, t: 0 }]);
+    body.appendChild(_playerRow(nm, hist, true, m.touch ? ' \uD83D\uDCF1' : ''));
+  });
+  const seenAll = _lsGet(SEEN_KEY, {}), off = Object.keys(seenAll).filter(u => !onlineUids.has(u)).sort((a, b) => (seenAll[b].last || 0) - (seenAll[a].last || 0)).slice(0, 30);
+  h4('Seen before (' + off.length + ')');
+  if (!off.length) { const p = document.createElement('div'); p.className = 'pNote'; p.textContent = 'Players you meet in the world will be remembered here, with their name history.'; body.appendChild(p); }
+  off.forEach(u => { const e = seenAll[u]; const r = _playerRow(String(e.name || 'Player'), e.names, false, ''); body.appendChild(r); });
+}
+(function wirePlayersPanel() {
+  const ov = document.getElementById('playersOverlay'), btn = document.getElementById('playersBtn'), x = document.getElementById('playersClose');
+  if (!ov || !btn) return;
+  btn.addEventListener('click', () => { ov.classList.add('open'); renderPlayersPanel(); });
+  const close = () => ov.classList.remove('open');
+  x.addEventListener('click', close);
+  ov.addEventListener('click', e => { if (e.target === ov) close(); });
+  ['keydown', 'keyup', 'keypress'].forEach(ev => ov.addEventListener(ev, e => e.stopPropagation()));
+  if (nameInput) nameInput.addEventListener('input', () => renderPlayersPanel());
+})();
 
 // ================= Sign-in: Supabase Auth (Google / Email / Guest) =================
 const authChoiceEl = document.getElementById('authChoice'), playSectionEl = document.getElementById('playSection');
@@ -18240,7 +18291,8 @@ async function applyAuthUser(user) {
       // Truly brand-new only: never wipe items already loaded into memory
       inventory = new Array(INV_SIZE).fill(null); currentSlot = 1; respawnPoint = null; respawnPlayer();
     }
-    MY_NAME = ((best && best.name) || googleName || MY_NAME).slice(0, 16);
+    const _bn = (best && best.name && !/^Player\d{1,4}$/.test(best.name)) ? best.name : '';
+    MY_NAME = (_bn || googleName || (best && best.name) || MY_NAME).slice(0, 16);
     nameInput.value = MY_NAME;
     renderHotbar(); updateHpUI();
     try { saveLocalPlayer(); } catch (e) {}
@@ -18380,755 +18432,6 @@ if (settings.mobileMode !== 'on' && settings.mobileMode !== 'off') settings.mobi
 function saveSettings() {
   try { localStorage.setItem(SETTINGS_KEY, JSON.stringify(settings)); } catch(e) {}
 }
-// ================= AI Bot (Groq) =================
-// A shared bot that acts like a normal player: random name, visible to everyone, fights, eats, mines / destroys, crafts,
-// smelts, builds and enchants using the game's real recipes and enchant rules. It lives on the client of the player who
-// enabled it (Settings -> AI Bot: paste a Groq API key, then enable) and is streamed to everyone else.
-// Every few seconds the model picks a mode (follow | wander | stay | attack | flee) and optionally a job ("do");
-// walking, digging, placing, hitting and eating are done locally every frame.
-const AIBOT_MODEL = 'llama-3.3-70b-versatile';
-if (typeof settings.groqKey !== 'string') settings.groqKey = '';
-settings.aiBotOn = settings.aiBotOn === true;
-let aiBotEnt = null, aiBotRespawnT = 0, aiBotBusy = false, aiBotNextThink = 0, aiBotHeard = [], aiBotNetT = 0, _abKiller = null;
-const AIBOT_OWN = new Set();   // keys of blocks the bot placed itself (the only player-placed blocks it may break again)
-let _abBadKey = false;
-function aiBotHasKey() { return !_abBadKey && String(settings.groqKey || '').trim().length > 10; }
-function aiBotEnabled() { return settings.aiBotOn === true; }   // the Groq key is optional: without it the bot uses its built-in offline brain
-function aiBotSysMsg(t) { try { addChatLine('System', t, true, true); } catch (e) {} }
-function aiBotRandomName() {
-  const A = ['Pixel', 'Blocky', 'Crafty', 'Miner', 'Ender', 'Creeper', 'Diamond', 'Shadow', 'Frost', 'Nova', 'Rusty', 'Mossy', 'Cobble', 'Lava', 'Storm', 'Ember'];
-  const B = ['Fox', 'Wolf', 'Jack', 'Max', 'Kid', 'Pro', 'Bee', 'Ace', 'Bear', 'Owl', 'Duke', 'Rex'];
-  return A[Math.floor(Math.random() * A.length)] + B[Math.floor(Math.random() * B.length)] + (Math.random() < 0.6 ? String(10 + Math.floor(Math.random() * 90)) : '');
-}
-function aiBotSetName(e, name) {
-  e.botName = name;
-  for (const c of e.group.children.slice()) if (c.userData && c.userData.isNameTag) e.group.remove(c);
-  try { const tag = makeNameSprite(name); tag.position.y = 2.2; tag.userData.isNameTag = true; e.group.add(tag); } catch (err) {}
-}
-function aiBotSetHeld(e, type) {
-  type = type || null;
-  if (e._heldType === type) return;
-  e._heldType = type;
-  if (e._heldSpr) { e.group.remove(e._heldSpr); e._heldSpr = null; }
-  if (!type) return;
-  try { const s = makeItemSprite(type); s.scale.set(0.55, 0.55, 1); s.position.set(0.42, 0.95, 0.3); e.group.add(s); e._heldSpr = s; } catch (err) {}
-}
-function aiBotRemove() {
-  if (aiBotEnt) { aiBotEnt.alive = false; try { scene.remove(aiBotEnt.group); } catch (e) {} const i = animals.indexOf(aiBotEnt); if (i >= 0) animals.splice(i, 1); }
-  aiBotEnt = null;
-}
-function aiBotLeave(msg) {
-  const a = aiBotEnt; if (!a) return;
-  try { aiBotSave(a); } catch (e) {}
-  try { announce(a.botName + ' ' + msg); } catch (e) {}
-  try { playersChannel.send({ type: 'broadcast', event: 'aibot_gone', payload: { id: a.id } }); } catch (e) {}
-  aiBotRemove();
-}
-function aiBotGroundAt(x, z) {   // feet height standing on the top surface at (x,z), or null
-  const bx = Math.round(x), bz = Math.round(z);
-  for (let y = 120; y > 2; y--) if (solidAt(bx, y - 1, bz) && !solidAt(bx, y, bz) && !solidAt(bx, y + 1, bz)) return y - 0.45;
-  return null;
-}
-function aiBotSpawnNear(cx, cz, rMin, rMax) {
-  for (let t = 0; t < 12; t++) {
-    const ang = Math.random() * Math.PI * 2, r = rMin + Math.random() * (rMax - rMin);
-    const x = cx + Math.cos(ang) * r, z = cz + Math.sin(ang) * r, y = aiBotGroundAt(x, z);
-    if (y != null) return { x, y, z };
-  }
-  return null;
-}
-function aiBotInit(a) {
-  a.ai = { mode: 'follow', atkCd: 0, wanderT: 0, jumpCd: 0 };
-  a.items = []; a.worn = [null, null, null, null]; a.xpLevel = 0; a.task = null; a.swing = 0; a.eatT = 0; a.busyT = 0; a.kills = 0; a.lastResult = '';
-}
-// ---- the bot's own inventory (same item objects as the player's: { type, count, dur?, ench? }) ----
-function abAdd(a, type, n, extra) {
-  n = n | 0; if (n <= 0 || !type) return;
-  if (isDurableItem(type) || extra) { for (let i = 0; i < n; i++) a.items.push(makeDurableItem(type, extra)); return; }
-  const s = a.items.find(it => it.type === type && !it.ench);
-  if (s) s.count = (s.count || 1) + n; else a.items.push({ type, count: n });
-}
-function abCount(a, type) { let n = 0; for (const it of a.items) if (it.type === type) n += it.count || 1; return n; }
-function abTake(a, type, n) {
-  if (abCount(a, type) < n) return false;
-  for (let i = 0; i < a.items.length && n > 0; i++) {
-    const it = a.items[i]; if (it.type !== type) continue;
-    const c = it.count || 1, k = Math.min(c, n);
-    if (k >= c) { a.items.splice(i, 1); i--; } else it.count = c - k;
-    n -= k;
-  }
-  return true;
-}
-function abRemoveItem(a, it) { const i = a.items.indexOf(it); if (i >= 0) a.items.splice(i, 1); }
-const AB_ALIAS = { wood: ['wood', 'birch_wood'], planks: ['planks', 'birch_planks'], stone: ['stone', 'cobblestone'] };
-function abAliases(t) { return AB_ALIAS[t] || [t]; }
-function abHas(a, t, n) { let c = 0; for (const x of abAliases(t)) c += abCount(a, x); return c >= n; }
-function abCountAlias(a, t) { let c = 0; for (const x of abAliases(t)) c += abCount(a, x); return c; }
-function abConsume(a, t, n) { for (const x of abAliases(t)) { const k = Math.min(n, abCount(a, x)); if (k > 0) { abTake(a, x, k); n -= k; } if (n <= 0) break; } }
-function abTier(type) { if (/^(wood|gold)_/.test(type)) return 1; if (type.startsWith('stone_')) return 2; if (type.startsWith('iron_')) return 3; if (type.startsWith('diamond_')) return 4; return 0; }
-function abBestTool(a, kind) {
-  if (!kind) return null;
-  let best = null;
-  for (const it of a.items) {
-    if (!(it.type.endsWith('_' + kind) || (kind === 'sword' && it.type === 'shears'))) continue;
-    ensureDur(it); if (it.dur <= 0) continue;
-    if (!best || abTier(it.type) > abTier(best.type)) best = it;
-  }
-  return best;
-}
-function abBestWeapon(a) {
-  let best = null, bv = 0;
-  for (const it of a.items) {
-    if (!(isSword(it.type) || isAxe(it.type) || isSpear(it.type))) continue;
-    ensureDur(it); if (it.dur <= 0) continue;
-    const v = (ITEM_INFO[it.type] && ITEM_INFO[it.type].attack) || 0;
-    if (v > bv) { bv = v; best = it; }
-  }
-  return best;
-}
-function abArmorPts(a) { let p = 0; for (const w of a.worn) if (w) p += (ITEM_INFO[w.type] && ITEM_INFO[w.type].armor) || 0; return p; }
-function abEquipAll(a) {
-  let n = 0;
-  for (const it of a.items.slice()) {
-    const inf = ITEM_INFO[it.type];
-    if (!inf || !inf.armor || inf.slot == null || inf.slot < 0 || inf.slot > 3) continue;
-    const cur = a.worn[inf.slot];
-    if (!cur || (ITEM_INFO[cur.type].armor || 0) < inf.armor) { abRemoveItem(a, it); if (cur) a.items.push(cur); a.worn[inf.slot] = it; n++; }
-  }
-  return n;
-}
-// ---- blocks ----
-function abBlockAt(x, y, z) { return world.get(key(Math.round(x), Math.round(y), Math.round(z))); }
-function abBreakable(b) { return !!b && !SPOKE_NOBREAK.has(b.type) && b.y >= 2 && (!b.placed || AIBOT_OWN.has(key(b.x, b.y, b.z))); }
-function abExposed(b) { return !world.has(key(b.x + 1, b.y, b.z)) || !world.has(key(b.x - 1, b.y, b.z)) || !world.has(key(b.x, b.y + 1, b.z)) || !world.has(key(b.x, b.y - 1, b.z)) || !world.has(key(b.x, b.y, b.z + 1)) || !world.has(key(b.x, b.y, b.z - 1)); }
-const AB_GROUPS = { log: ['wood', 'birch_wood'], logs: ['wood', 'birch_wood'], wood: ['wood', 'birch_wood'], tree: ['wood', 'birch_wood'], stone: ['stone', 'cobblestone'], ore: ['coal_ore', 'iron_ore', 'gold_ore', 'diamond_ore', 'redstone_ore'], ores: ['coal_ore', 'iron_ore', 'gold_ore', 'diamond_ore', 'redstone_ore'], dirt: ['dirt', 'grass'], leaves: ['leaves', 'birch_leaves'], planks: ['planks', 'birch_planks'] };
-function abBlockTypes(name) { name = String(name || '').toLowerCase().replace(/ /g, '_'); if (/_log$|_logs$/.test(name)) name = 'wood'; if (name === 'cobble') name = 'cobblestone'; if (AB_GROUPS[name]) return AB_GROUPS[name].filter(t => BLOCK_TYPES[t]); return BLOCK_TYPES[name] ? [name] : []; }
-function abFindBlock(a, types, R) {
-  const cx = Math.round(a.pos.x), cy = Math.round(a.pos.y), cz = Math.round(a.pos.z);
-  let best = null, bd = 1e9;
-  for (let dx = -R; dx <= R; dx++) for (let dz = -R; dz <= R; dz++) for (let dy = -10; dy <= 8; dy++) {
-    const b = world.get(key(cx + dx, cy + dy, cz + dz));
-    if (!b || types.indexOf(b.type) < 0 || !abBreakable(b)) continue;
-    let d = dx * dx + dz * dz + dy * dy * 1.5;
-    if (d >= bd) continue;
-    if (!abExposed(b)) d += 300;
-    if (d < bd) { bd = d; best = b; }
-  }
-  return best;
-}
-function abNear(a, type, R) {   // a block of this type within R of the bot (crafting table, furnace, enchanting table)
-  const cx = Math.round(a.pos.x), cy = Math.round(a.pos.y), cz = Math.round(a.pos.z);
-  for (let dx = -R; dx <= R; dx++) for (let dz = -R; dz <= R; dz++) for (let dy = -3; dy <= 3; dy++) {
-    const b = world.get(key(cx + dx, cy + dy, cz + dz)); if (b && b.type === type) return b;
-  }
-  return null;
-}
-function abToolTierOk(type, toolType) {
-  const t = abTier(toolType);
-  if (type === 'iron_ore') return t >= 2;
-  if (type === 'gold_ore' || type === 'diamond_ore' || type === 'redstone_ore') return t >= 3;
-  return t >= 1;
-}
-function abMineTime(a, type) {
-  const def = BLOCK_TYPES[type]; if (!def || !def.hardness) return 0.15;
-  const tool = abBestTool(a, def.tool); let mult = 1;
-  if (tool) {
-    const n = tool.type; let tier = 2.5;
-    if (n.startsWith('stone_')) tier = 4; else if (n.startsWith('iron_')) tier = 6; else if (n.startsWith('diamond_')) tier = 8; else if (n.startsWith('gold_')) tier = 10;
-    mult = tier; const eff = Number(tool.ench && tool.ench.efficiency) || 0; if (eff) mult *= Math.max(0.05, 1 + 0.6 * eff);
-  } else if (def.tool === 'pickaxe') mult = 0.35;
-  return Math.max(0.12, def.hardness / mult);
-}
-function abDoBreak(a, b) {
-  const x = b.x, y = b.y, z = b.z, type = b.type;
-  removeBlock(x, y, z); pushBlockDiff(x, y, z, 'air'); AIBOT_OWN.delete(key(x, y, z));
-  const def = BLOCK_TYPES[type] || {};
-  const tool = abBestTool(a, def.tool);
-  let drop = null;
-  if (def.tool !== 'pickaxe' || (tool && abToolTierOk(type, tool.type))) drop = blockDropType(type);
-  if (type === 'leaves' || type === 'birch_leaves') drop = null;
-  if (drop) abAdd(a, drop, 1);
-  if (isOreType(type) && drop) a.xpLevel += (type === 'coal_ore' || type === 'iron_ore') ? 0.5 : 1;
-  if (tool) { ensureDur(tool); tool.dur -= 1; if (tool.dur <= 0) { abRemoveItem(a, tool); aiBotSay(a, 'my ' + displayName(tool.type) + ' broke'); } }
-  a.swing++; a.attackCd = 1.1;
-  return drop;
-}
-function abPlaceableType(a, pref) {
-  if (pref && abCount(a, pref) > 0 && isPlaceable(pref)) return pref;
-  for (const t of ['cobblestone', 'dirt', 'planks', 'birch_planks', 'stone', 'sand', 'brick', 'wood', 'birch_wood']) if (abCount(a, t) > 0) return t;
-  return null;
-}
-function abPlaceBlock(a, x, y, z, type) {
-  x = Math.round(x); y = Math.round(y); z = Math.round(z);
-  const k = key(x, y, z);
-  if (world.has(k) || !abTake(a, type, 1)) return false;
-  removedDiffs.delete(k);
-  if (!addBlock(x, y, z, type)) { abAdd(a, type, 1); return false; }
-  markPlaced(x, y, z); pushBlockDiff(x, y, z, type); AIBOT_OWN.add(k);
-  a.swing++; a.attackCd = 1.1;
-  return true;
-}
-function abFeetCell(a) { return Math.round(a.pos.y + 0.5); }
-function abInBody(a, p) { const f = abFeetCell(a); return Math.round(a.pos.x) === p.x && Math.round(a.pos.z) === p.z && (p.y === f || p.y === f + 1); }
-function abFreeSpot(a) {
-  const f = abFeetCell(a), bx = Math.round(a.pos.x), bz = Math.round(a.pos.z);
-  for (const [dx, dz] of [[1, 0], [-1, 0], [0, 1], [0, -1], [1, 1], [-1, -1], [2, 0], [0, 2], [-2, 0], [0, -2]]) {
-    const x = bx + dx, z = bz + dz;
-    if (world.has(key(x, f, z)) || world.has(key(x, f + 1, z)) || !solidAt(x, f - 1, z)) continue;
-    return { x, y: f, z };
-  }
-  return null;
-}
-// ---- crafting (real RECIPES; shapes are only used to count ingredients, like a bot that knows every recipe) ----
-function abNeeds(r) { const m = {}; for (const row of r.shape) for (const c of row) if (c) m[c] = (m[c] || 0) + 1; return m; }
-function abEnsureIngredients(a, r, depth) {
-  const need = abNeeds(r);
-  for (const t in need) {
-    let have = abCountAlias(a, t), guard = 0;
-    while (have < need[t] && depth < 3 && guard++ < 6) {
-      if (abMakeOnce(a, t === 'stone' ? 'stone' : t, depth + 1) !== 'ok') break;
-      have = abCountAlias(a, t);
-    }
-    if (have < need[t]) return t + ' (need ' + need[t] + ', have ' + have + ')';
-  }
-  return null;
-}
-function abUseStation(a, type) {   // a crafting table / furnace / enchanting table within reach (places one if the bot has or can craft it)
-  if (abNear(a, type, 5)) return true;
-  if (abCount(a, type) < 1 && abMakeOnce(a, type, 2) !== 'ok') return false;
-  const p = abFreeSpot(a); if (!p) return false;
-  return abPlaceBlock(a, p.x, p.y, p.z, type);
-}
-function abMakeOnce(a, item, depth) {
-  const rs = RECIPES.filter(r => r.out === item);
-  if (!rs.length) return 'no recipe for ' + item;
-  let why = '';
-  for (const r of rs) {
-    const miss = abEnsureIngredients(a, r, depth);
-    if (miss) { why = 'missing ' + miss; continue; }
-    if (r.needsTable && !abUseStation(a, 'crafting_table')) { why = 'needs a crafting table nearby (4 planks)'; continue; }
-    const need = abNeeds(r);
-    for (const t in need) abConsume(a, t, need[t]);
-    abAdd(a, r.out, r.outCount || 1);
-    return 'ok';
-  }
-  return why || ('cannot craft ' + item);
-}
-// ---- enchanting: the game's own enchant list / costs / levels; the bot pays with its own XP levels ----
-function abEnchant(a, itemType) {
-  let it = itemType ? a.items.find(i => i.type === itemType) : null;
-  if (!it) it = abBestWeapon(a) || abBestTool(a, 'pickaxe') || a.items.find(i => jcEnchInfo(i.type)) ;
-  if (!it) return 'nothing to enchant';
-  const info = jcEnchInfo(it.type); if (!info) return displayName(it.type) + ' cannot be enchanted';
-  const t = it.type, pref = (isSword(t) || isAxe(t) || isSpear(t)) ? ['sharpness', 'looting', 'unbreaking', 'mending'] : isArmor(t) ? ['protection', 'unbreaking', 'mending'] : ['efficiency', 'fortune', 'unbreaking', 'mending'];
-  let id = null;
-  for (const p of pref) if (info.opts.includes(p) && (Number(it.ench && it.ench[p]) || 0) < (JC_ENCH_MAX[p] || 4)) { id = p; break; }
-  if (!id) return displayName(t) + ' is fully enchanted';
-  const cur = Number(it.ench && it.ench[id]) || 0;
-  let pick = null;
-  for (let i = JC_ENCH_TIERS.length - 1; i >= 0; i--) {
-    const tr = JC_ENCH_TIERS[i];
-    if (tr.level > (JC_ENCH_MAX[id] || 4) || cur >= tr.level) continue;
-    if (a.xpLevel >= jcEnchCost(id, tr)) { pick = tr; break; }
-  }
-  if (!pick) return 'not enough XP levels for ' + id + ' (have ' + Math.floor(a.xpLevel) + ')';
-  if (!abUseStation(a, 'enchanting_table')) return 'needs an enchanting table nearby (2 diamond, 4 planks/logs, 1 iron ingot + crafting table)';
-  a.xpLevel -= jcEnchCost(id, pick);
-  it.ench = Object.assign({}, it.ench || {}, { [id]: pick.level });
-  a.swing++; a.attackCd = 1.1;
-  return 'ok ' + displayName(t) + ' ' + id + ' ' + pick.level;
-}
-// ---- eating ----
-function abBestFood(a) {
-  let best = null, bv = 0;
-  for (const it of a.items) {
-    const inf = ITEM_INFO[it.type]; if (!inf || !inf.food) continue;
-    if (inf.golden && a.hp > a.maxHp * 0.4) continue;
-    if (inf.food > bv) { bv = inf.food; best = it; }
-  }
-  return best;
-}
-function abStartEat(a) {
-  const f = abBestFood(a); if (!f) return false;
-  a.eatT = 1.6; a.eatItem = f.type; return true;
-}
-function abFinishEat(a) {
-  const t = a.eatItem; a.eatItem = null;
-  if (!t || !abTake(a, t, 1)) return;
-  const inf = ITEM_INFO[t] || {};
-  a.hp = Math.min(a.maxHp, a.hp + (inf.golden ? 8 : (inf.food || 1)));
-}
-// ---- combat ----
-function abAttack(a, m) {
-  const w = abBestWeapon(a), base = w ? ((ITEM_INFO[w.type] && ITEM_INFO[w.type].attack) || 2) : 1.5;
-  const dmg = base + (w && w.ench ? (Number(w.ench.sharpness) || 0) * 0.7 : 0);
-  a.attackCd = 1.1; a.swing++;
-  _abKiller = a;
-  try { damageAnimal(m, dmg, a.pos, 1); } catch (e) {} finally { _abKiller = null; }
-  if (w) { ensureDur(w); w.dur -= 1; if (w.dur <= 0) { abRemoveItem(a, w); aiBotSay(a, 'my ' + displayName(w.type) + ' broke'); } }
-}
-function abMobLoot(a, kind, eq) {   // loot from a mob the bot killed goes into the bot's own inventory
-  a.kills++;
-  const r = (n) => Math.floor(Math.random() * (n + 1));
-  if (kind === 'zombie') { a.xpLevel += 1; if (Math.random() < 0.1) abAdd(a, 'iron_ingot', 1); }
-  else if (kind === 'skeleton') { a.xpLevel += 1; abAdd(a, 'arrow', r(2)); if (Math.random() < 0.04) abAdd(a, 'bow', 1); }
-  else if (kind === 'creeper') { a.xpLevel += 1; abAdd(a, 'gunpowder', 1 + r(1)); }
-  else if (kind === 'pig') { a.xpLevel += 0.3; abAdd(a, 'raw_porkchop', 1 + r(2)); }
-  else if (kind === 'cow') { a.xpLevel += 0.3; abAdd(a, 'raw_beef', 1 + r(2)); }
-  else if (kind === 'sheep') { a.xpLevel += 0.3; abAdd(a, 'raw_mutton', 1 + r(1)); abAdd(a, 'wool', 1 + r(1)); }
-  else a.xpLevel += 0.3;
-}
-function aiBotDropAll(a) { try { aiBotSave(a); } catch (e) {} }   // keep-inventory: the bot's resources are saved and come back with it when it respawns
-function aiBotDie(a, cause) {
-  if (!a.alive) return;
-  a.alive = false; try { scene.remove(a.group); } catch (e) {}
-  aiBotDropAll(a);
-  try { playersChannel.send({ type: 'broadcast', event: 'aibot_gone', payload: { id: a.id } }); } catch (e) {}
-  try { announce(a.botName + ' ' + cause); } catch (e) {}
-}
-// ---- spawn / remote copies ----
-function aiBotManage(dt) {
-  try { aiBotRemoteTick(dt); } catch (e) {}
-  if (typeof gameStarted === 'undefined' || !gameStarted) return;
-  if (!aiBotEnabled()) { if (aiBotEnt) aiBotLeave('left the game'); return; }
-  if (aiBotEnt && aiBotEnt.alive) return;
-  if (aiBotEnt) { aiBotEnt = null; aiBotRespawnT = 8; }   // it died: a new bot joins a few seconds later
-  aiBotRespawnT -= dt; if (aiBotRespawnT > 0) return;
-  const p = aiBotSpawnNear(player.pos.x, player.pos.z, 3, 6) || aiBotSpawnNear(0.5, 0.5, 2, 5);   // near the player (or world spawn)
-  if (!p) return;
-  aiBotEnt = createMob('aibot', p.x, p.y, p.z, null, false, 0);
-  aiBotInit(aiBotEnt);
-  const sv = aiBotLoadSave();
-  aiBotSetName(aiBotEnt, (sv && sv.name) ? String(sv.name).slice(0, 24) : aiBotRandomName());
-  if (sv) aiBotRestore(aiBotEnt, sv);
-  aiBotSave(aiBotEnt);
-  aiBotNextThink = 0;
-  try { announce(aiBotEnt.botName + (sv ? ' respawned' : ' joined the game')); } catch (e) {}
-}
-function aiBotRemoteTick(dt) {   // copies of other players' bots: animate swings, drop them when the owner stops streaming
-  const now = performance.now();
-  for (let i = animals.length - 1; i >= 0; i--) {
-    const e = animals[i];
-    if (e.kind !== 'aibot' || !e.remote) continue;
-    if (e.attackCd > 0) e.attackCd -= dt;
-    if (now - (e.lastSeen || now) > 4000) { e.alive = false; try { scene.remove(e.group); } catch (err) {} animals.splice(i, 1); }
-  }
-}
-function aiBotNet(a, dt) {
-  aiBotNetT -= dt; if (aiBotNetT > 0) return;
-  aiBotNetT = 0.1;
-  try { playersChannel.send({ type: 'broadcast', event: 'aibot_state', payload: { id: a.id, from: MY_ID, name: a.botName, x: +a.pos.x.toFixed(2), y: +a.pos.y.toFixed(2), z: +a.pos.z.toFixed(2), f: +a.facing.toFixed(2), hp: +a.hp.toFixed(1), held: a._heldType || null, sw: a.swing | 0 } }); } catch (e) {}
-}
-function aiBotSay(a, text) {
-  text = filterText(String(text || '').replace(/\s+/g, ' ').trim().slice(0, 100));
-  if (!text) return;
-  try { addChatLine(a.botName || 'Bot', text, false); } catch (e) {}
-  try { showChatBubbleOn(a, text); } catch (e) {}
-  try { playersChannel.send({ type: 'broadcast', event: 'aibot_chat', payload: { id: a.id, from: MY_ID, name: a.botName, text } }); } catch (e) {}
-}
-function aiBotHear(text, from) {
-  if (!aiBotEnt || !aiBotEnt.alive) return;
-  aiBotHeard.push({ from: String(from || MY_NAME).slice(0, 24), text: String(text).slice(0, 160) });
-  if (aiBotHeard.length > 5) aiBotHeard.shift();
-  aiBotNextThink = 0;   // answer soon
-}
-// ---- persistence: the bot keeps its name + resources across death, respawn and page reloads ----
-const AIBOT_SAVE_KEY = 'voltex_aibot_save_v1';
-function aiBotLoadSave() {
-  try { const s = JSON.parse(localStorage.getItem(AIBOT_SAVE_KEY) || 'null'); return (s && typeof s === 'object') ? s : null; } catch (e) { return null; }
-}
-function aiBotSave(a) {
-  if (!a || !a.items) return;
-  try { localStorage.setItem(AIBOT_SAVE_KEY, JSON.stringify({ v: 1, name: a.botName, items: a.items, worn: a.worn, xp: a.xpLevel || 0, kills: a.kills | 0 })); } catch (e) {}
-}
-function aiBotRestore(a, sv) {
-  try {
-    if (Array.isArray(sv.items)) a.items = sv.items.filter(it => it && typeof it.type === 'string').slice(0, 300);
-    if (Array.isArray(sv.worn)) a.worn = [0, 1, 2, 3].map(i => (sv.worn[i] && typeof sv.worn[i].type === 'string') ? sv.worn[i] : null);
-    a.xpLevel = Number(sv.xp) || 0; a.kills = sv.kills | 0;
-  } catch (e) {}
-}
-// ---- offline brain: used when there is no Groq key, or when the API fails. It understands simple chat and plays on its own ----
-function aiBotApplyOut(a, out) {
-  if (!out || !a || !a.alive) return;
-  if (AIBOT_MODES.indexOf(out.mode) >= 0) a.ai.mode = out.mode;
-  if (typeof out.say === 'string' && out.say.trim()) aiBotSay(a, out.say);
-  if (out.do && typeof out.do === 'object') abApplyJob(a, out.do);
-  else if (typeof out.do === 'string' && out.do !== 'null') abApplyJob(a, { do: out.do });
-}
-function aiBotLocalBrain(a, heard) {
-  const out = { mode: null, say: '', do: null };
-  const has = (t) => abCount(a, t) > 0;
-  const wood = () => abCount(a, 'wood') + abCount(a, 'birch_wood');
-  const BLK = [[/wood|tree|log|chop/, 'wood'], [/cobble|stone|rock/, 'stone'], [/dirt|soil/, 'dirt'], [/sand/, 'sand'], [/coal/, 'coal_ore'], [/iron/, 'iron_ore'], [/gold/, 'gold_ore'], [/diamond/, 'diamond_ore'], [/redstone/, 'redstone_ore'], [/ore/, 'ore']];
-  for (const h of heard) {
-    const t = String(h.text || '').toLowerCase(), from = h.from || 'friend';
-    let m;
-    if (/\b(follow|come|here|come here|come on)\b/.test(t)) { out.mode = 'follow'; out.do = { do: 'stop' }; out.say = 'coming, ' + from + '!'; }
-    else if (/\b(stay|wait|stop|halt|freeze)\b/.test(t)) { out.mode = 'stay'; out.do = { do: 'stop' }; out.say = 'ok, staying here'; }
-    else if (/\b(wander|explore|roam|go away)\b/.test(t)) { out.mode = 'wander'; out.do = { do: 'stop' }; out.say = 'going for a walk'; }
-    else if (/\b(flee|run|escape)\b/.test(t)) { out.mode = 'flee'; out.say = 'running!'; }
-    else if (/\b(attack|fight|kill|defend)\b/.test(t)) { out.mode = 'attack'; out.say = 'on it!'; }
-    else if (/\b(hunt|food|meat|hungry)\b/.test(t)) { out.do = { do: 'hunt', count: 2 }; out.say = 'hunting some food'; }
-    else if (/\b(eat)\b/.test(t)) { out.do = { do: 'eat' }; out.say = 'nom nom'; }
-    else if (/\b(equip|armor|armour|wear)\b/.test(t)) { out.do = { do: 'equip' }; out.say = 'putting on my armor'; }
-    else if (/\b(enchant)\b/.test(t)) { out.do = { do: 'enchant' }; out.say = 'trying to enchant'; }
-    else if (/\b(smelt|cook|furnace)\b/.test(t)) { const it = /iron/.test(t) ? 'iron_ore' : /gold/.test(t) ? 'gold_ore' : /sand/.test(t) ? 'sand' : /beef/.test(t) ? 'raw_beef' : /pork/.test(t) ? 'raw_porkchop' : /mutton/.test(t) ? 'raw_mutton' : 'iron_ore'; out.do = { do: 'smelt', item: it, count: 3 }; out.say = 'smelting ' + it.replace(/_/g, ' '); }
-    else if (/\b(build|make a|construct)\b/.test(t) && /(house|home|wall|platform|bridge|pillar|tower)/.test(t)) { const sh = /house|home/.test(t) ? 'house' : /wall/.test(t) ? 'wall' : /platform/.test(t) ? 'platform' : /bridge/.test(t) ? 'bridge' : 'pillar'; out.do = { do: 'build', shape: sh, block: has('cobblestone') ? 'cobblestone' : has('planks') ? 'planks' : 'dirt' }; out.say = 'building a ' + sh; }
-    else if (/\b(craft|make)\b/.test(t) && (m = t.match(/(?:craft|make)\s+(?:a\s+|an\s+|some\s+)?([a-z_ ]+)/))) { const it = m[1].trim().replace(/ /g, '_'); out.do = { do: 'craft', item: it, count: 1 }; out.say = 'crafting ' + it.replace(/_/g, ' '); }
-    else if (/\b(mine|dig|break|destroy|gather|collect|get|chop|cut)\b/.test(t)) { let b = 'wood'; for (const [re, nm] of BLK) if (re.test(t)) { b = nm; break; } out.do = { do: 'mine', block: b, count: 5 }; out.say = 'mining ' + b.replace(/_/g, ' '); }
-    else if (/\b(hi|hello|hey|yo|sup|hola|howdy)\b/.test(t)) out.say = 'hey ' + from + '!';
-    else if (/(your name|who are you|who r u)/.test(t)) out.say = "I'm " + a.botName;
-    else if (/(how are you|how r u|you ok)/.test(t)) out.say = 'doing great! hp ' + Math.round(a.hp);
-    else if (/(inventory|what do you have|resources|items)/.test(t)) { const n = a.items.reduce((s2, it) => s2 + (it.count || 1), 0); out.say = 'I have ' + n + ' items saved'; }
-    else if (/(help|what can you do|commands)/.test(t)) out.say = 'try: come, stay, mine wood, craft pickaxe, build house, hunt';
-    else out.say = ['ok!', 'got it', 'sure thing', 'tell me: come / mine stone / build house'][Math.floor(Math.random() * 4)];
-  }
-  if (heard.length) return out;
-  // nothing said: play on its own when idle
-  if (a.task || a.eatT > 0 || a.busyT > 0) return out;
-  if (a.hp <= a.maxHp * 0.6 && abBestFood(a)) { out.do = { do: 'eat' }; return out; }
-  if (/^(no |could not|need |cannot|unknown)/.test(a.lastResult || '') && a.ai.mode !== 'wander') { a.lastResult = ''; out.mode = 'wander'; a.ai.wanderT = 0; return out; }   // couldn't do that here: look somewhere else
-  if (a.ai.mode === 'stay') return out;
-  if (a.ai.mode === 'wander' && Math.random() < 0.5) { out.mode = 'follow'; return out; }
-  const pick = (kind, extra) => { out.do = Object.assign({ do: kind }, extra); return out; };
-  if (!has('wood_pickaxe') && !has('stone_pickaxe') && !has('iron_pickaxe')) { if (wood() + abCount(a, 'planks') < 4) return pick('mine', { block: 'wood', count: 5 }); return pick('craft', { item: 'wood_pickaxe', count: 1 }); }
-  if (!has('wood_sword') && !has('stone_sword') && !has('iron_sword')) { if (wood() + abCount(a, 'planks') < 2) return pick('mine', { block: 'wood', count: 3 }); return pick('craft', { item: 'wood_sword', count: 1 }); }
-  if (abCount(a, 'cobblestone') < 10) return pick('mine', { block: 'stone', count: 10 });
-  if (!has('stone_pickaxe') && !has('iron_pickaxe')) return pick('craft', { item: 'stone_pickaxe', count: 1 });
-  if (!has('stone_sword') && !has('iron_sword')) return pick('craft', { item: 'stone_sword', count: 1 });
-  if (a.hp < a.maxHp && !abBestFood(a)) return pick('hunt', { count: 2 });
-  const r = Math.random();
-  if (r < 0.3) return pick('mine', { block: 'wood', count: 4 });
-  if (r < 0.5) return pick('mine', { block: 'coal_ore', count: 3 });
-  if (r < 0.65) return pick('mine', { block: 'iron_ore', count: 3 });
-  if (r < 0.78) return pick('hunt', { count: 2 });
-  if (r < 0.88 && abPlaceableType(a, 'cobblestone') && abCount(a, 'cobblestone') >= 30) return { mode: null, say: '', do: { do: 'build', shape: 'house', block: 'cobblestone' } };
-  out.mode = 'wander'; return out;
-}
-// ---- the brain: Groq picks a mode and a job ----
-const AIBOT_MODES = ['follow', 'wander', 'stay', 'attack', 'flee'];
-function abSummary(a) {
-  const counts = {};
-  for (const it of a.items) counts[it.type] = (counts[it.type] || 0) + (it.count || 1);
-  const inv = Object.keys(counts).sort((p, q) => counts[q] - counts[p]).slice(0, 24).map(k => k + ' x' + counts[k]);
-  const gear = a.items.filter(i => i.ench).map(i => i.type + ':' + Object.keys(i.ench).map(k => k + i.ench[k]).join('+'));
-  const near = {}, want = { wood: 1, birch_wood: 1, stone: 1, cobblestone: 1, dirt: 1, sand: 1, coal_ore: 1, iron_ore: 1, gold_ore: 1, diamond_ore: 1, redstone_ore: 1, crafting_table: 1, furnace: 1, enchanting_table: 1 };
-  const cx = Math.round(a.pos.x), cy = Math.round(a.pos.y), cz = Math.round(a.pos.z);
-  for (let dx = -10; dx <= 10; dx++) for (let dz = -10; dz <= 10; dz++) for (let dy = -6; dy <= 6; dy++) {
-    const b = world.get(key(cx + dx, cy + dy, cz + dz));
-    if (b && want[b.type] && (!b.placed || b.type === 'crafting_table' || b.type === 'furnace' || b.type === 'enchanting_table')) near[b.type] = (near[b.type] || 0) + 1;
-  }
-  const animalsNear = {};
-  for (const m of animals) if (m.alive && m !== a && (m.kind === 'pig' || m.kind === 'cow' || m.kind === 'sheep')) { const d = Math.hypot(m.pos.x - a.pos.x, m.pos.z - a.pos.z); if (d < 25 && (animalsNear[m.kind] == null || d < animalsNear[m.kind])) animalsNear[m.kind] = +d.toFixed(0); }
-  return { inv, gear, worn: a.worn.filter(Boolean).map(i => i.type), near, animalsNear };
-}
-function aiBotThink(a) {
-  const now = performance.now();
-  if (aiBotBusy || now < aiBotNextThink || document.visibilityState === 'hidden') return;
-  const heardNow = aiBotHeard.splice(0);
-  if (!aiBotHasKey()) { aiBotNextThink = now + (heardNow.length ? 1200 : 3500); try { aiBotApplyOut(a, aiBotLocalBrain(a, heardNow)); } catch (e) { console.warn('aibot local', e); } return; }
-  aiBotBusy = true; aiBotNextThink = now + (a.task ? 9000 : 5000);
-  const hostiles = [];
-  for (const m of animals) {
-    if (!m.alive || m === a || !(m.kind === 'zombie' || m.kind === 'skeleton' || m.kind === 'creeper' || m.kind === 'breeze')) continue;
-    hostiles.push({ kind: m.kind, dist: +Math.hypot(m.pos.x - a.pos.x, m.pos.z - a.pos.z).toFixed(1) });
-  }
-  hostiles.sort((p, q) => p.dist - q.dist);
-  const s = abSummary(a);
-  const t = a.task;
-  const state = {
-    bot_name: a.botName, hp: +a.hp.toFixed(1), xp_levels: +a.xpLevel.toFixed(1), player: MY_NAME, dist_to_player: +Math.hypot(player.pos.x - a.pos.x, player.pos.z - a.pos.z).toFixed(1),
-    night: !!isNightTime(), mode: a.ai.mode, current_job: t ? (t.kind + (t.label ? ' ' + t.label : '') + (t.shape ? ' ' + t.shape : '')) : null,
-    last_job_result: a.lastResult || null, inventory: s.inv, enchanted: s.gear, wearing: s.worn, nearby_blocks_within_10: s.near,
-    passive_animals_nearby: s.animalsNear, nearby_hostiles: hostiles.slice(0, 5), chat_since_last_turn: heardNow
-  };
-  a.lastResult = '';
-  const sys = 'You are "' + a.botName + '", an AI player in a Minecraft-like voxel survival game, living alongside real players. You play like a normal player: gather resources, craft, fight, eat, build, smelt and enchant. Every few seconds you get a JSON state and reply with ONLY a JSON object: ' +
-    '{"mode":"follow|wander|stay|attack|flee","say":"","do":null}. "say" is an optional chat line under 80 chars. "do" is an optional job, one of: ' +
-    '{"do":"mine","block":"wood|stone|dirt|sand|coal_ore|iron_ore|gold_ore|diamond_ore|redstone_ore|ore","count":5} (walk there and dig it; "destroy" is the same), ' +
-    '{"do":"craft","item":"<item id e.g. planks, stick, crafting_table, wood_pickaxe, stone_sword, furnace, iron_chestplate, enchanting_table, bread>","count":1} (missing sub-ingredients like planks or sticks are crafted automatically; a crafting table is placed if needed), ' +
-    '{"do":"smelt","item":"iron_ore|gold_ore|cobblestone|sand|raw_beef|raw_porkchop|raw_mutton","count":3} (needs furnace + fuel like coal/wood), {"do":"eat"}, {"do":"equip"} (wear best armor), ' +
-    '{"do":"enchant","item":"<tool/weapon/armor id>"} (needs an enchanting table and xp_levels: 5/10/15/20 for level I-IV; xp comes from kills and ores), ' +
-    '{"do":"build","shape":"house|wall|platform|bridge|pillar","block":"cobblestone|planks|dirt"} (uses blocks from inventory), {"do":"hunt","animal":"pig|cow|sheep","count":2} (food), {"do":"stop"}. ' +
-    'Use "do":null to keep the current job. Typical progression: mine wood -> craft planks, stick, crafting_table, wood_pickaxe -> mine stone -> stone_pickaxe, stone_sword -> coal_ore, iron_ore -> smelt iron -> iron tools/armor -> diamond_ore -> enchanting_table -> enchant gear. ' +
-    'Fight zombies and skeletons, never melee creepers (flee). Eat when hp is low (hunt animals, smelt meat). You can only break natural blocks and blocks you placed yourself. If a player talks to you, answer briefly like a friendly player and help if asked (e.g. "come here" -> follow). Chat only when spoken to, in danger, or for something notable; otherwise say "".';
-  fetch('https://api.groq.com/openai/v1/chat/completions', {
-    method: 'POST',
-    headers: { 'Content-Type': 'application/json', 'Authorization': 'Bearer ' + String(settings.groqKey).trim() },
-    body: JSON.stringify({ model: AIBOT_MODEL, temperature: 0.5, max_tokens: 220, response_format: { type: 'json_object' },
-      messages: [{ role: 'system', content: sys }, { role: 'user', content: JSON.stringify(state) }] })
-  }).then(r => {
-    if (r.status === 401 || r.status === 403) { _abBadKey = true; try { aiBotUiRefresh(); } catch (e) {} aiBotSysMsg('Groq rejected the API key - the bot switched to its offline brain. Check the key in Settings > AI Bot.'); throw new Error('auth'); }
-    if (r.status === 429) { aiBotNextThink = performance.now() + 30000; throw new Error('rate'); }
-    if (!r.ok) { aiBotNextThink = performance.now() + 15000; throw new Error('http ' + r.status); }
-    return r.json();
-  }).then(j => {
-    const txt = j && j.choices && j.choices[0] && j.choices[0].message && j.choices[0].message.content;
-    const out = JSON.parse(txt || '{}');
-    if (!a.alive) return;
-    aiBotApplyOut(a, out);
-  }).catch(err => {
-    if (String(err && err.message) !== 'auth' && String(err && err.message) !== 'rate') console.warn('AI Bot:', err);
-    try { if (a.alive) aiBotApplyOut(a, aiBotLocalBrain(a, heardNow)); } catch (e) {}   // API down / rate limited / bad reply: the offline brain keeps the bot alive
-  })
-    .finally(() => { aiBotBusy = false; });
-}
-function abApplyJob(a, d) {
-  const kind = String(d.do || '').toLowerCase();
-  const cnt = Math.max(1, Math.min(32, parseInt(d.count, 10) || 3));
-  if (kind === 'stop') { a.task = null; a.lastResult = 'stopped'; return; }
-  if (kind === 'mine' || kind === 'destroy') {
-    const types = abBlockTypes(d.block);
-    if (!types.length) { a.lastResult = 'unknown block ' + d.block; return; }
-    a.task = { kind: 'mine', types, label: String(d.block), count: cnt, got: 0, t: 0 }; return;
-  }
-  if (kind === 'craft') {
-    const item = String(d.item || '').toLowerCase().replace(/ /g, '_').replace(/^wooden_/, 'wood_').replace(/^golden_/, 'gold_').replace(/^oak_planks$/, 'planks'), n = Math.min(16, cnt);
-    let made = 0, why = '';
-    for (let i = 0; i < n; i++) { const r = abMakeOnce(a, item, 0); if (r !== 'ok') { why = r; break; } made++; }
-    a.lastResult = made ? ('crafted ' + made + ' x ' + item + (why ? ' (then: ' + why + ')' : '')) : ('could not craft ' + item + ': ' + why);
-    if (made) { a.busyT = 0.8; a.swing++; a.attackCd = 1.1; }
-    return;
-  }
-  if (kind === 'smelt') {
-    const item = String(d.item || ''), rec = SMELT_RECIPES[item];
-    if (!rec) { a.lastResult = 'cannot smelt ' + item; return; }
-    if (!abCount(a, item)) { a.lastResult = 'no ' + item + ' to smelt'; return; }
-    if (!abUseStation(a, 'furnace')) { a.lastResult = 'need a furnace nearby (8 cobblestone + crafting table)'; return; }
-    a.task = { kind: 'smelt', input: item, out: rec.out, time: rec.time, left: Math.min(cnt, abCount(a, item)), prog: 0, fuel: 0, t: 0, label: item }; return;
-  }
-  if (kind === 'eat') { if (!abStartEat(a)) a.lastResult = 'no food to eat'; return; }
-  if (kind === 'equip') { const n = abEquipAll(a); a.lastResult = n ? 'equipped ' + n + ' armor piece(s)' : 'no better armor to wear'; return; }
-  if (kind === 'enchant') { a.lastResult = abEnchant(a, d.item ? String(d.item) : null); if (a.lastResult.startsWith('ok')) a.busyT = 1; return; }
-  if (kind === 'hunt') {
-    const an = ['pig', 'cow', 'sheep'].indexOf(String(d.animal)) >= 0 ? String(d.animal) : null;
-    a.task = { kind: 'hunt', animal: an, count: Math.min(cnt, 6), start: a.kills, t: 0, label: an || 'animals' }; return;
-  }
-  if (kind === 'build') {
-    const shape = ['house', 'wall', 'platform', 'bridge', 'pillar'].indexOf(String(d.shape)) >= 0 ? String(d.shape) : 'wall';
-    const block = abPlaceableType(a, String(d.block || ''));
-    if (!block) { a.lastResult = 'no building blocks in inventory'; return; }
-    a.task = abBuildJob(a, shape, String(d.block || block)); return;
-  }
-  a.lastResult = 'unknown job ' + kind;
-}
-function abBuildJob(a, shape, block) {
-  const s = Math.sin(a.facing), c = Math.cos(a.facing);
-  let fx = 0, fz = 0; if (Math.abs(s) > Math.abs(c)) fx = s > 0 ? 1 : -1; else fz = c > 0 ? 1 : -1;
-  const rx = -fz, rz = fx, bx = Math.round(a.pos.x), bz = Math.round(a.pos.z);
-  const gy = abFeetCell(a), under = gy - 1;
-  const P = (i, j, y) => ({ x: bx + fx * j + rx * i, y, z: bz + fz * j + rz * i });
-  const list = [];
-  if (shape === 'pillar') return { kind: 'build', shape, block, pillar: 6, placed: 0, t: 0, label: shape };
-  if (shape === 'wall') { for (let h = 0; h < 3; h++) for (let i = -2; i <= 2; i++) list.push(P(i, 3, gy + h)); }
-  else if (shape === 'platform') { for (let j = 1; j <= 5; j++) for (let i = -2; i <= 2; i++) list.push(P(i, j, under)); }
-  else if (shape === 'bridge') { for (let j = 1; j <= 8; j++) list.push(P(0, j, under)); }
-  else {   // house: 5x5 walls 3 high with a 2-high door gap facing the bot, then a roof
-    for (let h = 0; h < 3; h++) for (let i = -2; i <= 2; i++) for (let j = 2; j <= 6; j++) {
-      if (!(i === -2 || i === 2 || j === 2 || j === 6)) continue;
-      if (j === 2 && i === 0 && h < 2) continue;
-      list.push(P(i, j, gy + h));
-    }
-    for (let i = -2; i <= 2; i++) for (let j = 2; j <= 6; j++) list.push(P(i, j, gy + 3));
-  }
-  return { kind: 'build', shape, block, list, i: 0, placed: 0, cd: 0, skips: 0, t: 0, label: shape };
-}
-// ---- movement + jobs ----
-function aiBotMove(a, dx, dz, speed) {
-  const d = Math.hypot(dx, dz);
-  if (d < 1e-4) { a.vel.x *= 0.5; a.vel.z *= 0.5; return; }
-  dx /= d; dz /= d;
-  a.vel.x = dx * speed; a.vel.z = dz * speed;
-  a.facing = Math.atan2(dx, dz);
-  a.ai.jumpCd -= 0.016;
-  const grounded = Math.abs(a.vel.y) < 0.2;
-  if (grounded && a.ai.jumpCd <= 0) {
-    const ax = a.pos.x + dx * 0.7, az = a.pos.z + dz * 0.7;
-    if (checkCollision(ax, a.pos.y, az, a.radius, a.height) && !checkCollision(ax, a.pos.y + 1.05, az, a.radius, a.height * 0.85)) { a.vel.y = 7.2; a.ai.jumpCd = 0.6; }
-  }
-}
-function abStand(a, fx, fz) { a.vel.x *= 0.5; a.vel.z *= 0.5; if (fx != null) a.facing = Math.atan2(fx - a.pos.x, fz - a.pos.z); }
-function abPillarStep(a) {
-  const ty = Math.round(a.pos.y - 0.55);
-  const grounded = Math.abs(a.vel.y) < 0.2 && solidAt(a.pos.x, a.pos.y - 0.1, a.pos.z);
-  if (grounded) { a.vel.y = 7.5; return false; }
-  if (a.vel.y < 3.5 && !world.has(key(Math.round(a.pos.x), ty, Math.round(a.pos.z)))) { const t = abPlaceableType(a); if (t && abPlaceBlock(a, a.pos.x, ty, a.pos.z, t)) return true; }
-  return false;
-}
-function abTravel(a, tx, tz, ty, dt, T) {   // walk toward a spot; if blocked, dig through natural blocks or pillar up
-  const dx = tx - a.pos.x, dz = tz - a.pos.z;
-  aiBotMove(a, dx, dz, 3.4);
-  T.chk = (T.chk || 0) + dt;
-  if (T.chk >= 0.6) { const moved = Math.hypot(a.pos.x - (T.lx != null ? T.lx : a.pos.x), a.pos.z - (T.lz != null ? T.lz : a.pos.z)); T.stuck = moved < 0.25 ? (T.stuck || 0) + 1 : 0; T.lx = a.pos.x; T.lz = a.pos.z; T.chk = 0; }
-  if ((T.stuck || 0) < 2) return;
-  const d = Math.hypot(dx, dz) || 1, ax = a.pos.x + dx / d * 0.9, az = a.pos.z + dz / d * 0.9, f = abFeetCell(a);
-  if (ty > a.pos.y + 1.6 && abPlaceableType(a)) { if (abPillarStep(a)) T.stuck = 0; return; }
-  for (const y of [f + 1, f]) {
-    const b = abBlockAt(ax, y, az);
-    if (b && abBreakable(b)) {
-      abStand(a, b.x, b.z); a.dig = (a.dig || 0) + dt;
-      if (a.dig >= abMineTime(a, b.type)) { abDoBreak(a, b); a.dig = 0; T.stuck = 0; }
-      return;
-    }
-  }
-}
-function abTaskEnd(a, result) { a.lastResult = result; a.task = null; aiBotNextThink = Math.min(aiBotNextThink, performance.now() + 600); }
-function abTaskMine(a, dt, T) {
-  if (T.got >= T.count) return abTaskEnd(a, 'mined ' + T.got + ' ' + T.label);
-  let b = T.tgt && abBlockAt(T.tgt.x, T.tgt.y, T.tgt.z);
-  if (!b || T.types.indexOf(b.type) < 0 || !abBreakable(b)) {
-    b = abFindBlock(a, T.types, 18);
-    if (!b) return abTaskEnd(a, T.got ? 'mined ' + T.got + ' ' + T.label + ', no more nearby' : 'no ' + T.label + ' within 18 blocks - explore somewhere else');
-    T.tgt = b; T.prog = 0;
-  }
-  const d3 = Math.hypot(b.x - a.pos.x, b.y - (a.pos.y + 1.5), b.z - a.pos.z);
-  if (d3 <= 4.2) {
-    abStand(a, b.x, b.z);
-    const def = BLOCK_TYPES[b.type] || {}, tool = abBestTool(a, def.tool);
-    aiBotSetHeld(a, tool ? tool.type : null);
-    T.prog += dt; T.sw = (T.sw || 0) - dt; if (T.sw <= 0) { T.sw = 0.4; a.swing++; a.attackCd = 1.1; }
-    if (T.prog >= abMineTime(a, b.type)) { abDoBreak(a, b); T.got++; T.prog = 0; T.tgt = null; }
-  } else abTravel(a, b.x, b.z, b.y, dt, T);
-}
-function abTaskBuild(a, dt, T) {
-  aiBotSetHeld(a, T.block);
-  if (T.pillar) {
-    if (T.placed >= T.pillar) return abTaskEnd(a, 'built a pillar ' + T.placed + ' high');
-    if (!abPlaceableType(a, T.block)) return abTaskEnd(a, 'out of blocks after ' + T.placed);
-    a.vel.x *= 0.5; a.vel.z *= 0.5;
-    if (abPillarStep(a)) T.placed++;
-    return;
-  }
-  while (T.i < T.list.length && world.has(key(T.list[T.i].x, T.list[T.i].y, T.list[T.i].z))) T.i++;
-  if (T.i >= T.list.length) return abTaskEnd(a, 'built ' + T.placed + ' blocks (' + T.shape + ')');
-  const p = T.list[T.i];
-  if (Math.hypot(p.x - a.pos.x, p.y - (a.pos.y + 1), p.z - a.pos.z) > 4.3) { abTravel(a, p.x, p.z, p.y, dt, T); return; }
-  abStand(a, p.x, p.z); T.cd -= dt; if (T.cd > 0) return;
-  if (abInBody(a, p)) { if (T.skips++ > 40) return abTaskEnd(a, 'built ' + T.placed + ' blocks, blocked by my own position'); T.list.push(T.list.splice(T.i, 1)[0]); aiBotMove(a, a.pos.x - p.x, a.pos.z - p.z, 2); return; }
-  const t = abPlaceableType(a, T.block);
-  if (!t) return abTaskEnd(a, 'ran out of ' + T.block + ' after placing ' + T.placed);
-  if (abPlaceBlock(a, p.x, p.y, p.z, t)) { T.placed++; T.cd = 0.22; }
-  T.i++;
-}
-function abTaskHunt(a, dt, T) {
-  if (a.kills - T.start >= T.count) return abTaskEnd(a, 'hunted ' + (a.kills - T.start) + ' ' + T.label);
-  let best = null, bd = 1e9;
-  for (const m of animals) {
-    if (!m.alive || m === a || !(T.animal ? m.kind === T.animal : (m.kind === 'pig' || m.kind === 'cow' || m.kind === 'sheep'))) continue;
-    const d = Math.hypot(m.pos.x - a.pos.x, m.pos.z - a.pos.z); if (d < bd) { bd = d; best = m; }
-  }
-  if (!best || bd > 30) return abTaskEnd(a, 'no ' + T.label + ' nearby' + (a.kills - T.start ? ' (hunted ' + (a.kills - T.start) + ')' : ''));
-  const w = abBestWeapon(a); aiBotSetHeld(a, w ? w.type : null);
-  if (bd > 1.9) aiBotMove(a, best.pos.x - a.pos.x, best.pos.z - a.pos.z, 3.6); else abStand(a, best.pos.x, best.pos.z);
-  if (bd < 2.4 && Math.abs(best.pos.y - a.pos.y) < 1.6 && a.attackCd <= 0.3) abAttack(a, best);
-}
-function abTaskSmelt(a, dt, T) {
-  const f = abNear(a, 'furnace', 6);
-  if (!f) return abTaskEnd(a, 'lost my furnace');
-  if (T.left <= 0) return abTaskEnd(a, 'smelted ' + (T.done || 0) + ' ' + T.input);
-  if (Math.hypot(f.x - a.pos.x, f.z - a.pos.z) > 3) { abTravel(a, f.x, f.z, f.y, dt, T); return; }
-  abStand(a, f.x, f.z);
-  if (T.fuel <= 0) {
-    let fu = null; for (const t of ['coal', 'charcoal', 'wood', 'birch_wood', 'planks', 'birch_planks', 'stick']) if (FUEL_VALUES[t] && abCount(a, t) > 0 && t !== T.input) { fu = t; break; }
-    if (!fu) return abTaskEnd(a, 'out of fuel after smelting ' + (T.done || 0));
-    abTake(a, fu, 1); T.fuel += FUEL_VALUES[fu];
-  }
-  T.fuel -= dt; T.prog += dt;
-  if (T.prog >= T.time) {
-    T.prog = 0;
-    if (!abTake(a, T.input, 1)) return abTaskEnd(a, 'ran out of ' + T.input);
-    abAdd(a, T.out, 1); T.left--; T.done = (T.done || 0) + 1;
-  }
-}
-function aiBotUpdate(a, dt) {
-  if (!a.ai) aiBotInit(a);
-  a._saveT = (a._saveT || 0) - dt; if (a._saveT <= 0) { a._saveT = 5; aiBotSave(a); }
-  if (a.attackCd > 0) a.attackCd -= dt;
-  if (a.kbT > 0) { a.kbT -= dt; aiBotNet(a, dt); return; }
-  a.hp = Math.min(a.maxHp, a.hp + dt * 0.15);
-  if (a.pos.y < -30) { aiBotDie(a, 'died'); return; }
-  abEquipAll(a);
-  aiBotThink(a);
-  const ai = a.ai;
-  const pdx = player.pos.x - a.pos.x, pdz = player.pos.z - a.pos.z, pd = Math.hypot(pdx, pdz);
-  if (pd > 60 || Math.abs(player.pos.y - a.pos.y) > 30) {   // lost the player: catch up
-    const p = aiBotSpawnNear(player.pos.x, player.pos.z, 2, 4);
-    if (p) { a.pos.set(p.x, p.y, p.z); a.vel.set(0, 0, 0); }
-    return;
-  }
-  let hostile = null, hd = 1e9;
-  const armor = Math.min(0.8, abArmorPts(a) * 0.04);
-  for (const m of animals) {
-    if (!m.alive || m === a || !(m.kind === 'zombie' || m.kind === 'skeleton' || m.kind === 'creeper' || m.kind === 'breeze')) continue;
-    const d = Math.hypot(m.pos.x - a.pos.x, m.pos.z - a.pos.z);
-    if (d < hd) { hd = d; hostile = m; }
-    if (m.kind === 'zombie' && d < (m.atkReach || 1.35) + 0.4 && Math.abs(m.pos.y - a.pos.y) < 1.4) {   // zombies hurt the bot like they hurt a player
-      m._bcd = (m._bcd == null ? 0.6 : m._bcd) - dt;
-      if (m._bcd <= 0) {
-        m._bcd = m.atkCd || 1.1;
-        a.hp -= (m.atkDmg || 3) * (1 - armor); flashRed(a.group); knockbackEntity(a, m.pos, 6);
-        if (a.hp <= 0) { aiBotDie(a, 'was slain by a Zombie'); return; }
-      }
-    }
-  }
-  if (a.eatT > 0) { a.eatT -= dt; abStand(a); aiBotSetHeld(a, a.eatItem); if (a.eatT <= 0) abFinishEat(a); aiBotNet(a, dt); return; }
-  if (a.busyT > 0) { a.busyT -= dt; abStand(a); aiBotNet(a, dt); return; }
-  if (a.hp <= a.maxHp * 0.6 && hd > 4 && abBestFood(a)) { abStartEat(a); return; }
-  let mode = ai.mode;
-  const fighting = hostile && hostile.kind !== 'creeper' && hd < 6;
-  if (hostile && hostile.kind === 'creeper' && hd < 5) mode = 'flee';
-  else if (fighting && mode !== 'flee' && mode !== 'stay') mode = 'attack';
-  if (mode === 'attack' && (!hostile || hostile.kind === 'creeper' || hd > 22)) mode = a.task ? 'task' : 'follow';
-  ai.atkCd -= dt;
-  const w = abBestWeapon(a);
-  if (mode === 'attack') {
-    aiBotSetHeld(a, w ? w.type : null);
-    const dx = hostile.pos.x - a.pos.x, dz = hostile.pos.z - a.pos.z;
-    if (hd > 1.9) aiBotMove(a, dx, dz, 3.6); else { abStand(a); a.facing = Math.atan2(dx, dz); }
-    if (hd < 2.4 && Math.abs(hostile.pos.y - a.pos.y) < 1.6 && ai.atkCd <= 0) { ai.atkCd = 0.7; abAttack(a, hostile); }
-  } else if (mode === 'flee') {
-    const src = hostile || { pos: player.pos };
-    aiBotMove(a, a.pos.x - src.pos.x, a.pos.z - src.pos.z, 4.2);
-  } else if (a.task) {
-    a.task.t = (a.task.t || 0) + dt;
-    if (a.task.t > 150) abTaskEnd(a, 'gave up ' + a.task.kind + ' (timeout)');
-    else if (a.task.kind === 'mine') abTaskMine(a, dt, a.task);
-    else if (a.task.kind === 'build') abTaskBuild(a, dt, a.task);
-    else if (a.task.kind === 'hunt') abTaskHunt(a, dt, a.task);
-    else if (a.task.kind === 'smelt') abTaskSmelt(a, dt, a.task);
-    else a.task = null;
-  } else if (mode === 'stay') {
-    abStand(a, player.pos.x, player.pos.z); aiBotSetHeld(a, null);
-  } else if (mode === 'wander') {
-    aiBotSetHeld(a, null);
-    ai.wanderT -= dt;
-    if (ai.wanderT <= 0) { ai.wanderT = 2 + Math.random() * 3; ai.wa = Math.random() < 0.3 ? null : Math.random() * Math.PI * 2; }
-    if (ai.wa == null) abStand(a); else aiBotMove(a, Math.sin(ai.wa), Math.cos(ai.wa), 1.6);
-    if (pd > 25) aiBotMove(a, pdx, pdz, 3.2);
-  } else {   // follow
-    aiBotSetHeld(a, w ? w.type : null);
-    if (pd > 3.5) aiBotMove(a, pdx, pdz, pd > 12 ? 4.6 : 3.2); else abStand(a, player.pos.x, player.pos.z);
-  }
-  aiBotNet(a, dt);
-}
-function aiBotUiRefresh() {
-  const key = document.getElementById('groqKeyInput'), on = document.getElementById('aiBotToggle'), msg = document.getElementById('aiBotMsg');
-  if (!key || !on || !msg) return;
-  const has = aiBotHasKey();
-  on.disabled = false;
-  on.checked = settings.aiBotOn === true;
-  msg.textContent = on.checked ? ('AI Bot is on (' + (has ? 'Groq brain + offline fallback' : 'offline brain') + '). Chat: come, stay, mine wood, craft pickaxe, build house, hunt. It respawns and keeps its resources.') : 'Tick the box to spawn the bot. A Groq key is optional (smarter chat).';
-}
-(function aiBotSettingsUI() {
-  const key = document.getElementById('groqKeyInput'), on = document.getElementById('aiBotToggle');
-  if (!key || !on) return;
-  key.value = settings.groqKey || '';
-  ['keydown', 'keyup', 'keypress'].forEach(ev => key.addEventListener(ev, e => e.stopPropagation()));
-  key.addEventListener('input', () => { _abBadKey = false; settings.groqKey = key.value.trim(); saveSettings(); aiBotUiRefresh(); });
-  on.addEventListener('change', () => { settings.aiBotOn = on.checked; saveSettings(); aiBotUiRefresh(); });
-  aiBotUiRefresh();
-})();
 // ---------- Controls settings (sensitivity + mobile button size) ----------
 const sensitivitySlider = document.getElementById('sensitivitySlider');
 const sensitivityValue = document.getElementById('sensitivityValue');
@@ -20060,7 +19363,7 @@ function enableStart(online) {
         enableStart(true);
         try { playersChannel.send({ type: 'broadcast', event: 'sync_req', payload: { id: MY_ID } }); } catch (e) {}   // get chests + dropped items from whoever is online
         // connected after pressing Start while offline: announce yourself now
-        try { if (gameStarted) playersChannel.track({ name: MY_NAME, skin: mySkinData, touch: !!touchMode }); } catch (e) {}
+        try { if (gameStarted) playersChannel.track(presenceMeta()); } catch (e) {}
       } else if (status === 'CHANNEL_ERROR' || status === 'TIMED_OUT' || status === 'CLOSED') {
         enableStart(false);
       }
