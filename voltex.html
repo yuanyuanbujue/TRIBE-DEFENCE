@@ -1347,7 +1347,7 @@
     <div class="settingRow" style="flex-direction:column;align-items:stretch;gap:6px">
       <label for="groqKeyInput">Groq API key</label>
       <input type="password" id="groqKeyInput" placeholder="gsk_..." autocomplete="off" spellcheck="false" style="padding:6px 8px;border-radius:6px;border:1px solid rgba(255,255,255,0.3);background:rgba(0,0,0,0.35);color:#fff">
-      <div style="font-size:11.5px;opacity:.7">Get a free key at console.groq.com. It is stored only in this browser and sent only to Groq.</div>
+      <div style="font-size:11.5px;opacity:.7">Optional. Without a key the bot still moves, chats and plays using its built-in brain. A free key from console.groq.com makes it smarter; it stays in this browser and is sent only to Groq.</div>
     </div>
     <label class="settingRow" for="aiBotToggle">
       Enable AI Bot (random name, visible to everyone)
@@ -18391,8 +18391,9 @@ if (typeof settings.groqKey !== 'string') settings.groqKey = '';
 settings.aiBotOn = settings.aiBotOn === true;
 let aiBotEnt = null, aiBotRespawnT = 0, aiBotBusy = false, aiBotNextThink = 0, aiBotHeard = [], aiBotNetT = 0, _abKiller = null;
 const AIBOT_OWN = new Set();   // keys of blocks the bot placed itself (the only player-placed blocks it may break again)
-function aiBotHasKey() { return String(settings.groqKey || '').trim().length > 10; }
-function aiBotEnabled() { return settings.aiBotOn === true && aiBotHasKey(); }
+let _abBadKey = false;
+function aiBotHasKey() { return !_abBadKey && String(settings.groqKey || '').trim().length > 10; }
+function aiBotEnabled() { return settings.aiBotOn === true; }   // the Groq key is optional: without it the bot uses its built-in offline brain
 function aiBotSysMsg(t) { try { addChatLine('System', t, true, true); } catch (e) {} }
 function aiBotRandomName() {
   const A = ['Pixel', 'Blocky', 'Crafty', 'Miner', 'Ender', 'Creeper', 'Diamond', 'Shadow', 'Frost', 'Nova', 'Rusty', 'Mossy', 'Cobble', 'Lava', 'Storm', 'Ember'];
@@ -18418,6 +18419,7 @@ function aiBotRemove() {
 }
 function aiBotLeave(msg) {
   const a = aiBotEnt; if (!a) return;
+  try { aiBotSave(a); } catch (e) {}
   try { announce(a.botName + ' ' + msg); } catch (e) {}
   try { playersChannel.send({ type: 'broadcast', event: 'aibot_gone', payload: { id: a.id } }); } catch (e) {}
   aiBotRemove();
@@ -18676,14 +18678,7 @@ function abMobLoot(a, kind, eq) {   // loot from a mob the bot killed goes into 
   else if (kind === 'sheep') { a.xpLevel += 0.3; abAdd(a, 'raw_mutton', 1 + r(1)); abAdd(a, 'wool', 1 + r(1)); }
   else a.xpLevel += 0.3;
 }
-function aiBotDropAll(a) {
-  let n = 0;
-  for (const it of (a.items || []).concat((a.worn || []).filter(Boolean))) {
-    if (n++ > 40) break;
-    try { spawnDroppedItem(it.type, it.count || 1, new THREE.Vector3(a.pos.x, a.pos.y + 1, a.pos.z), new THREE.Vector3((Math.random() - 0.5) * 3, 3, (Math.random() - 0.5) * 3), { ench: it.ench, dur: it.dur }); } catch (e) {}
-  }
-  a.items = []; a.worn = [null, null, null, null];
-}
+function aiBotDropAll(a) { try { aiBotSave(a); } catch (e) {} }   // keep-inventory: the bot's resources are saved and come back with it when it respawns
 function aiBotDie(a, cause) {
   if (!a.alive) return;
   a.alive = false; try { scene.remove(a.group); } catch (e) {}
@@ -18699,14 +18694,16 @@ function aiBotManage(dt) {
   if (aiBotEnt && aiBotEnt.alive) return;
   if (aiBotEnt) { aiBotEnt = null; aiBotRespawnT = 8; }   // it died: a new bot joins a few seconds later
   aiBotRespawnT -= dt; if (aiBotRespawnT > 0) return;
-  if (!generatedChunks.has('0,0')) return;
-  const p = aiBotSpawnNear(0.5, 0.5, 2, 5);   // near world spawn
+  const p = aiBotSpawnNear(player.pos.x, player.pos.z, 3, 6) || aiBotSpawnNear(0.5, 0.5, 2, 5);   // near the player (or world spawn)
   if (!p) return;
   aiBotEnt = createMob('aibot', p.x, p.y, p.z, null, false, 0);
   aiBotInit(aiBotEnt);
-  aiBotSetName(aiBotEnt, aiBotRandomName());
+  const sv = aiBotLoadSave();
+  aiBotSetName(aiBotEnt, (sv && sv.name) ? String(sv.name).slice(0, 24) : aiBotRandomName());
+  if (sv) aiBotRestore(aiBotEnt, sv);
+  aiBotSave(aiBotEnt);
   aiBotNextThink = 0;
-  try { announce(aiBotEnt.botName + ' joined the game'); } catch (e) {}
+  try { announce(aiBotEnt.botName + (sv ? ' respawned' : ' joined the game')); } catch (e) {}
 }
 function aiBotRemoteTick(dt) {   // copies of other players' bots: animate swings, drop them when the owner stops streaming
   const now = performance.now();
@@ -18735,6 +18732,80 @@ function aiBotHear(text, from) {
   if (aiBotHeard.length > 5) aiBotHeard.shift();
   aiBotNextThink = 0;   // answer soon
 }
+// ---- persistence: the bot keeps its name + resources across death, respawn and page reloads ----
+const AIBOT_SAVE_KEY = 'voltex_aibot_save_v1';
+function aiBotLoadSave() {
+  try { const s = JSON.parse(localStorage.getItem(AIBOT_SAVE_KEY) || 'null'); return (s && typeof s === 'object') ? s : null; } catch (e) { return null; }
+}
+function aiBotSave(a) {
+  if (!a || !a.items) return;
+  try { localStorage.setItem(AIBOT_SAVE_KEY, JSON.stringify({ v: 1, name: a.botName, items: a.items, worn: a.worn, xp: a.xpLevel || 0, kills: a.kills | 0 })); } catch (e) {}
+}
+function aiBotRestore(a, sv) {
+  try {
+    if (Array.isArray(sv.items)) a.items = sv.items.filter(it => it && typeof it.type === 'string').slice(0, 300);
+    if (Array.isArray(sv.worn)) a.worn = [0, 1, 2, 3].map(i => (sv.worn[i] && typeof sv.worn[i].type === 'string') ? sv.worn[i] : null);
+    a.xpLevel = Number(sv.xp) || 0; a.kills = sv.kills | 0;
+  } catch (e) {}
+}
+// ---- offline brain: used when there is no Groq key, or when the API fails. It understands simple chat and plays on its own ----
+function aiBotApplyOut(a, out) {
+  if (!out || !a || !a.alive) return;
+  if (AIBOT_MODES.indexOf(out.mode) >= 0) a.ai.mode = out.mode;
+  if (typeof out.say === 'string' && out.say.trim()) aiBotSay(a, out.say);
+  if (out.do && typeof out.do === 'object') abApplyJob(a, out.do);
+  else if (typeof out.do === 'string' && out.do !== 'null') abApplyJob(a, { do: out.do });
+}
+function aiBotLocalBrain(a, heard) {
+  const out = { mode: null, say: '', do: null };
+  const has = (t) => abCount(a, t) > 0;
+  const wood = () => abCount(a, 'wood') + abCount(a, 'birch_wood');
+  const BLK = [[/wood|tree|log|chop/, 'wood'], [/cobble|stone|rock/, 'stone'], [/dirt|soil/, 'dirt'], [/sand/, 'sand'], [/coal/, 'coal_ore'], [/iron/, 'iron_ore'], [/gold/, 'gold_ore'], [/diamond/, 'diamond_ore'], [/redstone/, 'redstone_ore'], [/ore/, 'ore']];
+  for (const h of heard) {
+    const t = String(h.text || '').toLowerCase(), from = h.from || 'friend';
+    let m;
+    if (/\b(follow|come|here|come here|come on)\b/.test(t)) { out.mode = 'follow'; out.do = { do: 'stop' }; out.say = 'coming, ' + from + '!'; }
+    else if (/\b(stay|wait|stop|halt|freeze)\b/.test(t)) { out.mode = 'stay'; out.do = { do: 'stop' }; out.say = 'ok, staying here'; }
+    else if (/\b(wander|explore|roam|go away)\b/.test(t)) { out.mode = 'wander'; out.do = { do: 'stop' }; out.say = 'going for a walk'; }
+    else if (/\b(flee|run|escape)\b/.test(t)) { out.mode = 'flee'; out.say = 'running!'; }
+    else if (/\b(attack|fight|kill|defend)\b/.test(t)) { out.mode = 'attack'; out.say = 'on it!'; }
+    else if (/\b(hunt|food|meat|hungry)\b/.test(t)) { out.do = { do: 'hunt', count: 2 }; out.say = 'hunting some food'; }
+    else if (/\b(eat)\b/.test(t)) { out.do = { do: 'eat' }; out.say = 'nom nom'; }
+    else if (/\b(equip|armor|armour|wear)\b/.test(t)) { out.do = { do: 'equip' }; out.say = 'putting on my armor'; }
+    else if (/\b(enchant)\b/.test(t)) { out.do = { do: 'enchant' }; out.say = 'trying to enchant'; }
+    else if (/\b(smelt|cook|furnace)\b/.test(t)) { const it = /iron/.test(t) ? 'iron_ore' : /gold/.test(t) ? 'gold_ore' : /sand/.test(t) ? 'sand' : /beef/.test(t) ? 'raw_beef' : /pork/.test(t) ? 'raw_porkchop' : /mutton/.test(t) ? 'raw_mutton' : 'iron_ore'; out.do = { do: 'smelt', item: it, count: 3 }; out.say = 'smelting ' + it.replace(/_/g, ' '); }
+    else if (/\b(build|make a|construct)\b/.test(t) && /(house|home|wall|platform|bridge|pillar|tower)/.test(t)) { const sh = /house|home/.test(t) ? 'house' : /wall/.test(t) ? 'wall' : /platform/.test(t) ? 'platform' : /bridge/.test(t) ? 'bridge' : 'pillar'; out.do = { do: 'build', shape: sh, block: has('cobblestone') ? 'cobblestone' : has('planks') ? 'planks' : 'dirt' }; out.say = 'building a ' + sh; }
+    else if (/\b(craft|make)\b/.test(t) && (m = t.match(/(?:craft|make)\s+(?:a\s+|an\s+|some\s+)?([a-z_ ]+)/))) { const it = m[1].trim().replace(/ /g, '_'); out.do = { do: 'craft', item: it, count: 1 }; out.say = 'crafting ' + it.replace(/_/g, ' '); }
+    else if (/\b(mine|dig|break|destroy|gather|collect|get|chop|cut)\b/.test(t)) { let b = 'wood'; for (const [re, nm] of BLK) if (re.test(t)) { b = nm; break; } out.do = { do: 'mine', block: b, count: 5 }; out.say = 'mining ' + b.replace(/_/g, ' '); }
+    else if (/\b(hi|hello|hey|yo|sup|hola|howdy)\b/.test(t)) out.say = 'hey ' + from + '!';
+    else if (/(your name|who are you|who r u)/.test(t)) out.say = "I'm " + a.botName;
+    else if (/(how are you|how r u|you ok)/.test(t)) out.say = 'doing great! hp ' + Math.round(a.hp);
+    else if (/(inventory|what do you have|resources|items)/.test(t)) { const n = a.items.reduce((s2, it) => s2 + (it.count || 1), 0); out.say = 'I have ' + n + ' items saved'; }
+    else if (/(help|what can you do|commands)/.test(t)) out.say = 'try: come, stay, mine wood, craft pickaxe, build house, hunt';
+    else out.say = ['ok!', 'got it', 'sure thing', 'tell me: come / mine stone / build house'][Math.floor(Math.random() * 4)];
+  }
+  if (heard.length) return out;
+  // nothing said: play on its own when idle
+  if (a.task || a.eatT > 0 || a.busyT > 0) return out;
+  if (a.hp <= a.maxHp * 0.6 && abBestFood(a)) { out.do = { do: 'eat' }; return out; }
+  if (/^(no |could not|need |cannot|unknown)/.test(a.lastResult || '') && a.ai.mode !== 'wander') { a.lastResult = ''; out.mode = 'wander'; a.ai.wanderT = 0; return out; }   // couldn't do that here: look somewhere else
+  if (a.ai.mode === 'stay') return out;
+  if (a.ai.mode === 'wander' && Math.random() < 0.5) { out.mode = 'follow'; return out; }
+  const pick = (kind, extra) => { out.do = Object.assign({ do: kind }, extra); return out; };
+  if (!has('wood_pickaxe') && !has('stone_pickaxe') && !has('iron_pickaxe')) { if (wood() + abCount(a, 'planks') < 4) return pick('mine', { block: 'wood', count: 5 }); return pick('craft', { item: 'wood_pickaxe', count: 1 }); }
+  if (!has('wood_sword') && !has('stone_sword') && !has('iron_sword')) { if (wood() + abCount(a, 'planks') < 2) return pick('mine', { block: 'wood', count: 3 }); return pick('craft', { item: 'wood_sword', count: 1 }); }
+  if (abCount(a, 'cobblestone') < 10) return pick('mine', { block: 'stone', count: 10 });
+  if (!has('stone_pickaxe') && !has('iron_pickaxe')) return pick('craft', { item: 'stone_pickaxe', count: 1 });
+  if (!has('stone_sword') && !has('iron_sword')) return pick('craft', { item: 'stone_sword', count: 1 });
+  if (a.hp < a.maxHp && !abBestFood(a)) return pick('hunt', { count: 2 });
+  const r = Math.random();
+  if (r < 0.3) return pick('mine', { block: 'wood', count: 4 });
+  if (r < 0.5) return pick('mine', { block: 'coal_ore', count: 3 });
+  if (r < 0.65) return pick('mine', { block: 'iron_ore', count: 3 });
+  if (r < 0.78) return pick('hunt', { count: 2 });
+  if (r < 0.88 && abPlaceableType(a, 'cobblestone') && abCount(a, 'cobblestone') >= 30) return { mode: null, say: '', do: { do: 'build', shape: 'house', block: 'cobblestone' } };
+  out.mode = 'wander'; return out;
+}
 // ---- the brain: Groq picks a mode and a job ----
 const AIBOT_MODES = ['follow', 'wander', 'stay', 'attack', 'flee'];
 function abSummary(a) {
@@ -18755,6 +18826,8 @@ function abSummary(a) {
 function aiBotThink(a) {
   const now = performance.now();
   if (aiBotBusy || now < aiBotNextThink || document.visibilityState === 'hidden') return;
+  const heardNow = aiBotHeard.splice(0);
+  if (!aiBotHasKey()) { aiBotNextThink = now + (heardNow.length ? 1200 : 3500); try { aiBotApplyOut(a, aiBotLocalBrain(a, heardNow)); } catch (e) { console.warn('aibot local', e); } return; }
   aiBotBusy = true; aiBotNextThink = now + (a.task ? 9000 : 5000);
   const hostiles = [];
   for (const m of animals) {
@@ -18768,7 +18841,7 @@ function aiBotThink(a) {
     bot_name: a.botName, hp: +a.hp.toFixed(1), xp_levels: +a.xpLevel.toFixed(1), player: MY_NAME, dist_to_player: +Math.hypot(player.pos.x - a.pos.x, player.pos.z - a.pos.z).toFixed(1),
     night: !!isNightTime(), mode: a.ai.mode, current_job: t ? (t.kind + (t.label ? ' ' + t.label : '') + (t.shape ? ' ' + t.shape : '')) : null,
     last_job_result: a.lastResult || null, inventory: s.inv, enchanted: s.gear, wearing: s.worn, nearby_blocks_within_10: s.near,
-    passive_animals_nearby: s.animalsNear, nearby_hostiles: hostiles.slice(0, 5), chat_since_last_turn: aiBotHeard.splice(0)
+    passive_animals_nearby: s.animalsNear, nearby_hostiles: hostiles.slice(0, 5), chat_since_last_turn: heardNow
   };
   a.lastResult = '';
   const sys = 'You are "' + a.botName + '", an AI player in a Minecraft-like voxel survival game, living alongside real players. You play like a normal player: gather resources, craft, fight, eat, build, smelt and enchant. Every few seconds you get a JSON state and reply with ONLY a JSON object: ' +
@@ -18786,7 +18859,7 @@ function aiBotThink(a) {
     body: JSON.stringify({ model: AIBOT_MODEL, temperature: 0.5, max_tokens: 220, response_format: { type: 'json_object' },
       messages: [{ role: 'system', content: sys }, { role: 'user', content: JSON.stringify(state) }] })
   }).then(r => {
-    if (r.status === 401 || r.status === 403) { settings.aiBotOn = false; saveSettings(); try { aiBotUiRefresh(); } catch (e) {} aiBotSysMsg('Groq rejected the API key - AI Bot turned off. Check the key in Settings > AI Bot.'); throw new Error('auth'); }
+    if (r.status === 401 || r.status === 403) { _abBadKey = true; try { aiBotUiRefresh(); } catch (e) {} aiBotSysMsg('Groq rejected the API key - the bot switched to its offline brain. Check the key in Settings > AI Bot.'); throw new Error('auth'); }
     if (r.status === 429) { aiBotNextThink = performance.now() + 30000; throw new Error('rate'); }
     if (!r.ok) { aiBotNextThink = performance.now() + 15000; throw new Error('http ' + r.status); }
     return r.json();
@@ -18794,11 +18867,11 @@ function aiBotThink(a) {
     const txt = j && j.choices && j.choices[0] && j.choices[0].message && j.choices[0].message.content;
     const out = JSON.parse(txt || '{}');
     if (!a.alive) return;
-    if (AIBOT_MODES.indexOf(out.mode) >= 0) a.ai.mode = out.mode;
-    if (typeof out.say === 'string' && out.say.trim()) aiBotSay(a, out.say);
-    if (out.do && typeof out.do === 'object') abApplyJob(a, out.do);
-    else if (typeof out.do === 'string' && out.do !== 'null') abApplyJob(a, { do: out.do });
-  }).catch(err => { if (String(err && err.message) !== 'auth' && String(err && err.message) !== 'rate') console.warn('AI Bot:', err); })
+    aiBotApplyOut(a, out);
+  }).catch(err => {
+    if (String(err && err.message) !== 'auth' && String(err && err.message) !== 'rate') console.warn('AI Bot:', err);
+    try { if (a.alive) aiBotApplyOut(a, aiBotLocalBrain(a, heardNow)); } catch (e) {}   // API down / rate limited / bad reply: the offline brain keeps the bot alive
+  })
     .finally(() => { aiBotBusy = false; });
 }
 function abApplyJob(a, d) {
@@ -18970,6 +19043,7 @@ function abTaskSmelt(a, dt, T) {
 }
 function aiBotUpdate(a, dt) {
   if (!a.ai) aiBotInit(a);
+  a._saveT = (a._saveT || 0) - dt; if (a._saveT <= 0) { a._saveT = 5; aiBotSave(a); }
   if (a.attackCd > 0) a.attackCd -= dt;
   if (a.kbT > 0) { a.kbT -= dt; aiBotNet(a, dt); return; }
   a.hp = Math.min(a.maxHp, a.hp + dt * 0.15);
@@ -19042,18 +19116,17 @@ function aiBotUiRefresh() {
   const key = document.getElementById('groqKeyInput'), on = document.getElementById('aiBotToggle'), msg = document.getElementById('aiBotMsg');
   if (!key || !on || !msg) return;
   const has = aiBotHasKey();
-  on.disabled = !has;
-  if (!has && settings.aiBotOn) { settings.aiBotOn = false; saveSettings(); }
-  on.checked = settings.aiBotOn === true && has;
-  msg.textContent = !has ? 'Paste a Groq API key above to unlock the bot.' : (on.checked ? 'AI Bot is on. Say something in chat to talk to it.' : 'Key saved. Tick the box to spawn the bot near spawn.');
+  on.disabled = false;
+  on.checked = settings.aiBotOn === true;
+  msg.textContent = on.checked ? ('AI Bot is on (' + (has ? 'Groq brain + offline fallback' : 'offline brain') + '). Chat: come, stay, mine wood, craft pickaxe, build house, hunt. It respawns and keeps its resources.') : 'Tick the box to spawn the bot. A Groq key is optional (smarter chat).';
 }
 (function aiBotSettingsUI() {
   const key = document.getElementById('groqKeyInput'), on = document.getElementById('aiBotToggle');
   if (!key || !on) return;
   key.value = settings.groqKey || '';
   ['keydown', 'keyup', 'keypress'].forEach(ev => key.addEventListener(ev, e => e.stopPropagation()));
-  key.addEventListener('input', () => { settings.groqKey = key.value.trim(); saveSettings(); aiBotUiRefresh(); });
-  on.addEventListener('change', () => { settings.aiBotOn = on.checked && aiBotHasKey(); saveSettings(); aiBotUiRefresh(); });
+  key.addEventListener('input', () => { _abBadKey = false; settings.groqKey = key.value.trim(); saveSettings(); aiBotUiRefresh(); });
+  on.addEventListener('change', () => { settings.aiBotOn = on.checked; saveSettings(); aiBotUiRefresh(); });
   aiBotUiRefresh();
 })();
 // ---------- Controls settings (sensitivity + mobile button size) ----------
