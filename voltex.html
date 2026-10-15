@@ -402,6 +402,8 @@
     margin-top: 18px; width: 100%; padding: 10px; border-radius: 8px; border: none;
     background: rgba(255,255,255,0.12); color: #fff; font-weight: 700; font-size: 13px; cursor: pointer;
   }
+  .slotBtn { padding: 6px 12px; margin: 0 6px 4px 0; border: 1px solid rgba(255,255,255,0.3); background: rgba(255,255,255,0.1); color: #fff; border-radius: 6px; cursor: pointer; font: inherit; }
+  .slotBtn:hover { background: rgba(255,255,255,0.22); }
   #settingsCloseBtn:hover { background: rgba(255,255,255,0.2); }
   #pauseOverlay {
     position: fixed; inset:0; z-index: 50; display:none; cursor: pointer;
@@ -1413,6 +1415,13 @@
     <div class="stab" data-tab="keys">
     <h4>Keybinds</h4>
     <div id="keybindList"></div>
+    </div>
+    <div id="slotBox" style="margin:12px 0 6px;padding-top:8px;border-top:1px solid rgba(255,255,255,0.15)">
+      <h4 style="margin:0 0 6px">Save slot file (voltex_player)</h4>
+      <button id="slotSaveBtn" class="slotBtn">Save player to file</button>
+      <button id="slotLoadBtn" class="slotBtn">Load player from file</button>
+      <div id="slotStatus" style="font-size:12px;opacity:.8;margin-top:5px"></div>
+      <input type="file" id="slotFile" accept=".json,application/json" style="display:none">
     </div>
     <button id="settingsCloseBtn">Close</button>
   </div>
@@ -19225,6 +19234,48 @@ function closeSettings() {
 }
 settingsBtn.addEventListener('click', () => { if (settingsOpen) closeSettings(); else openSettings(); });
 document.getElementById('settingsCloseBtn').addEventListener('click', closeSettings);
+
+// ================= Save slot file: voltex_player =================
+// Saves your player (position, inventory, armor, off-hand, hotbar slot, HP/hunger, XP, ender chest, furnace, respawn point,
+// wanted level) to a file called voltex_player, and loads it back. Where the browser allows it, the same file is overwritten
+// on every save; otherwise voltex_player.json is downloaded.
+let _slotHandle = null;
+function slotMsg(t) {
+  try { addChatLine('System', t, true); } catch (e) {}
+  const el = document.getElementById('slotStatus'); if (el) el.textContent = t;
+}
+async function slotSave() {
+  const json = JSON.stringify({ game: 'voltex', kind: 'voltex_player', version: 1, savedAt: new Date().toISOString(), data: snapshotSave() }, null, 1);
+  try {
+    if (window.showSaveFilePicker) {
+      if (!_slotHandle) _slotHandle = await window.showSaveFilePicker({ suggestedName: 'voltex_player.json', types: [{ description: 'Voltex player', accept: { 'application/json': ['.json'] } }] });
+      const w = await _slotHandle.createWritable(); await w.write(json); await w.close();
+      slotMsg('Saved player to ' + _slotHandle.name); return;
+    }
+  } catch (e) { if (e && e.name === 'AbortError') return; _slotHandle = null; }   // picker refused / not allowed here: fall back to a download
+  try {
+    const a = document.createElement('a'); a.href = URL.createObjectURL(new Blob([json], { type: 'application/json' })); a.download = 'voltex_player.json';
+    document.body.appendChild(a); a.click(); setTimeout(() => { URL.revokeObjectURL(a.href); a.remove(); }, 500);
+    slotMsg('Downloaded voltex_player.json');
+  } catch (e) { slotMsg('Could not save the file.'); }
+}
+function slotApply(text) {
+  let o; try { o = JSON.parse(text); } catch (e) { slotMsg('That is not a valid voltex_player file.'); return; }
+  const data = (o && o.kind === 'voltex_player' && o.data) ? o.data : (o && Array.isArray(o.inventory) ? o : null);
+  if (!data) { slotMsg('That is not a valid voltex_player file.'); return; }
+  applySaveData(data);
+  try { player.vel.set(0, 0, 0); } catch (e) {}
+  try { updateHpUI(); } catch (e) {}
+  try { renderHotbar(); if (inventoryOpen) renderInventoryPanel(); } catch (e) {}
+  saveLocalPlayer();
+  slotMsg('Loaded player from file.');
+}
+document.getElementById('slotSaveBtn').addEventListener('click', () => { slotSave(); });
+document.getElementById('slotLoadBtn').addEventListener('click', () => { const i = document.getElementById('slotFile'); i.value = ''; i.click(); });
+document.getElementById('slotFile').addEventListener('change', e => {
+  const f = e.target.files && e.target.files[0]; if (!f) return;
+  const r = new FileReader(); r.onload = () => slotApply(String(r.result || '')); r.onerror = () => slotMsg('Could not read the file.'); r.readAsText(f);
+});
 settingsOverlay.addEventListener('click', e => { if (e.target === settingsOverlay) closeSettings(); });
 
 // Mouse wheel cycles through the hotbar (scroll down = next slot, up = previous)
