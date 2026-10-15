@@ -2101,6 +2101,8 @@ const BLOCK_TYPES = {
   piston:        { transparent: false, hardness: 1.5, tool: 'pickaxe' },
   sticky_piston: { transparent: false, hardness: 1.5, tool: 'pickaxe' },
   campfire: { transparent: true, hardness: 0.5, tool: 'axe', shape: 'campfire' },
+  ladder:       { transparent: true, hardness: 0.4, tool: 'axe', shape: 'ladder', noCollide: true },   // climbable: stand in it and hold forward / jump
+  shulker_box:  { transparent: false, hardness: 2.0, tool: null },   // portable chest: mine it and it keeps its items; place it down to open it
   spawner:  { transparent: false, hardness: 5.0, tool: 'pickaxe' },   // dungeon mob spawner (Silk Touch to pick up; fixed mob type)
   fire:     { transparent: true, hardness: 0.05, tool: null, cross: true },   // placed by flint and steel; never an item
   // ---- farming ----
@@ -2206,6 +2208,7 @@ const ITEM_INFO = {
   heavy_core:     {},
   mace:           { maxStack: 1, attack: 6, durability: 500 },
   spawner:        { maxStack: 64 },
+  shulker_box:    { maxStack: 1 },
   glass_bottle:   { maxStack: 64 },
   potion_strength:   { maxStack: 1, potion: 'strength', potionLvl: 1, potionSecs: 480 },
   potion_strength_2: { maxStack: 1, potion: 'strength', potionLvl: 2, potionSecs: 90 },
@@ -2381,6 +2384,8 @@ CUSTOM_PX.stone_pickaxe = "00000000000000000000000000000000000000000000000000000
 CUSTOM_PX.iron_pickaxe = "0000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000444444ff444444ff444444ff444444ff444444ff00000000000000000000000000000000000000000000000000000000000000000000000000000000444444ffffffffffd8d8d8ffc1c1c1ffc1c1c1ffd8d8d8ff444444ff493615ff684e1eff0000000000000000000000000000000000000000000000000000000000000000444444ff181818ff181818ff181818ffc1c1c1ffc1c1c1ff896727ff281e0bff000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000493615ffd8d8d8ffc1c1c1ff181818ff0000000000000000000000000000000000000000000000000000000000000000000000000000000000000000493615ff684e1eff281e0bffc1c1c1ffd8d8d8ff181818ff000000000000000000000000000000000000000000000000000000000000000000000000493615ff896727ff281e0bff00000000181818ffc1c1c1ff181818ff0000000000000000000000000000000000000000000000000000000000000000493615ff684e1eff281e0bff0000000000000000181818ffc1c1c1ff181818ff00000000000000000000000000000000000000000000000000000000493615ff896727ff281e0bff000000000000000000000000181818ffd8d8d8ff181818ff000000000000000000000000000000000000000000000000493615ff684e1eff281e0bff00000000000000000000000000000000181818ffffffffff181818ff0000000000000000000000000000000000000000493615ff896727ff281e0bff000000000000000000000000000000000000000000000000181818ff0000000000000000000000000000000000000000493615ff684e1eff281e0bff000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000493615ff896727ff281e0bff00000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000281e0bff281e0bff00000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000";
 CUSTOM_PX.gold_pickaxe = "0000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000a88a10ffa88a10ffa88a10ffa88a10ffa88a10ff00000000000000000000000000000000000000000000000000000000000000000000000000000000a88a10ffffee9bffffe566ffe6c200ffe6c200ffffe566ffa88a10ff493615ff684e1eff0000000000000000000000000000000000000000000000000000000000000000a88a10ff181818ff181818ff181818ffe6c200ffe6c200ff896727ff281e0bff000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000493615ffffe566ffe6c200ff181818ff0000000000000000000000000000000000000000000000000000000000000000000000000000000000000000493615ff684e1eff281e0bffe6c200ffffe566ff181818ff000000000000000000000000000000000000000000000000000000000000000000000000493615ff896727ff281e0bff00000000181818ffe6c200ff181818ff0000000000000000000000000000000000000000000000000000000000000000493615ff684e1eff281e0bff0000000000000000181818ffe6c200ff181818ff00000000000000000000000000000000000000000000000000000000493615ff896727ff281e0bff000000000000000000000000181818ffffe566ff181818ff000000000000000000000000000000000000000000000000493615ff684e1eff281e0bff00000000000000000000000000000000181818ffffee9bff181818ff0000000000000000000000000000000000000000493615ff896727ff281e0bff000000000000000000000000000000000000000000000000181818ff0000000000000000000000000000000000000000493615ff684e1eff281e0bff000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000493615ff896727ff281e0bff00000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000281e0bff281e0bff00000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000";
 CUSTOM_PX.diamond_pickaxe = "00000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000001a8aa0ff1a8aa0ff1a8aa0ff1a8aa0ff1a8aa0ff000000000000000000000000000000000000000000000000000000000000000000000000000000001a8aa0ffd0ffffffb8ffffff4fd0e8ff4fd0e8ffb8ffffff1a8aa0ff493615ff684e1eff00000000000000000000000000000000000000000000000000000000000000001a8aa0ff181818ff181818ff181818ff4fd0e8ff4fd0e8ff896727ff281e0bff000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000493615ffb8ffffff4fd0e8ff181818ff0000000000000000000000000000000000000000000000000000000000000000000000000000000000000000493615ff684e1eff281e0bff4fd0e8ffb8ffffff181818ff000000000000000000000000000000000000000000000000000000000000000000000000493615ff896727ff281e0bff00000000181818ff4fd0e8ff181818ff0000000000000000000000000000000000000000000000000000000000000000493615ff684e1eff281e0bff0000000000000000181818ff4fd0e8ff181818ff00000000000000000000000000000000000000000000000000000000493615ff896727ff281e0bff000000000000000000000000181818ffb8ffffff181818ff000000000000000000000000000000000000000000000000493615ff684e1eff281e0bff00000000000000000000000000000000181818ffd0ffffff181818ff0000000000000000000000000000000000000000493615ff896727ff281e0bff000000000000000000000000000000000000000000000000181818ff0000000000000000000000000000000000000000493615ff684e1eff281e0bff000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000493615ff896727ff281e0bff00000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000281e0bff281e0bff00000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000";
+CUSTOM_PX.ladder = "0000000000000000967441ff513d24ff0000000000000000000000000000000000000000000000000000000000000000967441ff513d24ff0000000000000000000000007e6237ffb58d50ff7e6237ff967441ffb58d50ff967441ffb58d50ffb58d50ffb58d50ffb58d50ff967441ffb58d50ff7e6237ffb58d50ff000000000000000067502cff7e6237ff67502cff513d24ff67502cff67502cff67502cff67502cff67502cff67502cff513d24ff7e6237ff67502cff67502cff000000000000000000000000513d24ff3a2f1eff0000000000000000000000000000000000000000000000000000000000000000513d24ff3a2f1eff00000000000000000000000000000000967441ff513d24ff0000000000000000000000000000000000000000000000000000000000000000967441ff513d24ff000000000000000000000000b58d50ffb58d50ff7e6237ff967441ffb58d50ffb58d50ffb58d50ff967441ffb58d50ff967441ff967441ffb58d50ff7e6237ffb58d50ff000000000000000067502cff7e6237ff67502cff513d24ff67502cff67502cff67502cff67502cff67502cff67502cff513d24ff7e6237ff67502cff67502cff000000000000000000000000513d24ff3a2f1eff0000000000000000000000000000000000000000000000000000000000000000513d24ff3a2f1eff00000000000000000000000000000000967441ff513d24ff0000000000000000000000000000000000000000000000000000000000000000967441ff513d24ff000000000000000000000000b58d50ffb58d50ff7e6237ff967441ffb58d50ffb58d50ffb58d50ffb58d50ffb58d50ffb58d50ff967441ffb58d50ff7e6237ff7e6237ff000000000000000067502cff7e6237ff67502cff513d24ff67502cff67502cff67502cff67502cff67502cff67502cff513d24ff7e6237ff67502cff67502cff000000000000000000000000513d24ff3a2f1eff0000000000000000000000000000000000000000000000000000000000000000513d24ff3a2f1eff00000000000000000000000000000000967441ff513d24ff0000000000000000000000000000000000000000000000000000000000000000967441ff513d24ff000000000000000000000000b58d50ffb58d50ff7e6237ff967441ffb58d50ff967441ffb58d50ffb58d50ffb58d50ffb58d50ff967441ffb58d50ff7e6237ffb58d50ff000000000000000067502cff7e6237ff67502cff513d24ff67502cff67502cff67502cff67502cff67502cff67502cff513d24ff7e6237ff67502cff67502cff000000000000000000000000513d24ff3a2f1eff0000000000000000000000000000000000000000000000000000000000000000513d24ff3a2f1eff0000000000000000";
+CUSTOM_PX.shulker_tex = "7f5a7fff8f678fff8f678fff7f597fff7f5a7fff8f658fff8f658fff7f5b7fff7f577fff8f658fff8f658fff7f5b7fff7f597fff8f648fff8f658fff775777ff8f658fff775277ff775477ff875e87ff875f87ff775577ff775277ff875e87ff875f87ff775477ff775277ff875e87ff875e87ff775577ff775477ff7f597fff8f678fff775577ff875e87ff976797ff976797ff875e87ff875f87ff976797ff976797ff875e87ff875b87ff976a97ff976997ff875c87ff775577ff7f577fff7f5a7fff875f87ff976797ff976a97ff976697ff976697ff976997ff976997ff976a97ff976797ff976697ff976a97ff976a97ff976a97ff875e87ff705070ff7f577fff875e87ff976997ff976997ff976997ff976997ff976997ff976a97ff976997ff976997ff976b97ff976797ff976797ff976797ff876087ff704f70ff8f648fff775577ff875f87ff976797ff976797ff976a97ff976997ff976997ff976797ff976797ff976997ff976997ff976997ff875e87ff775577ff7f5a7fff8f668fff775477ff875e87ff976a97ff976b97ff976a97ff976597ff976997ff976997ff976697ff976997ff976797ff976797ff875f87ff775477ff7f587fff7f5a7fff875e87ff976697ff976797ff976797ff976697ff976797ff976797ff976697ff976797ff976797ff976997ff976797ff976997ff875e87ff704e70ff7f5a7fff875f87ff976597ff976997ff976a97ff976a97ff976a97ff976697ff976797ff976a97ff976997ff976797ff976797ff976797ff875e87ff704f70ff8f658fff775477ff876087ff976997ff976997ff976797ff976997ff976797ff976797ff976997ff976997ff976797ff976a97ff875c87ff775477ff7f597fff8f638fff775277ff875c87ff976997ff976997ff976997ff976a97ff976a97ff976997ff976997ff976997ff976797ff976797ff875f87ff775477ff7f577fff7f5a7fff875e87ff976997ff976997ff976797ff976597ff976797ff976a97ff976a97ff976a97ff976997ff976997ff976797ff976997ff875e87ff704f70ff7f597fff875f87ff976b97ff976797ff976a97ff976b97ff976a97ff976997ff976797ff976797ff976997ff976997ff976997ff976997ff875f87ff704f70ff8f668fff775477ff875b87ff976a97ff976697ff875e87ff875e87ff976a97ff976697ff875e87ff875f87ff976697ff976997ff876087ff775277ff7f597fff8f658fff775077ff775277ff875e87ff875c87ff775477ff775077ff875e87ff875f87ff775577ff775577ff875e87ff876087ff775577ff775477ff7f5a7fff775577ff7f5a7fff7f577fff704f70ff704f70ff7f587fff7f597fff704f70ff704f70ff7f577fff7f5a7fff704e70ff705070ff7f587fff7f587fff704f70ff";
 CUSTOM_PX.leather = "00000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000542716ff542716ff542716ff542716ff0000000000000000000000000000000000000000000000000000000000000000542716ff542716ff00000000542716ff9e492affd76b43ffc65c35ff893b25ff542716ff00000000542716ff542716ff00000000000000000000000000000000542716ff9e492aff542716ffc65c35ffd76b43ffd76b43ffd76b43ff9e492affc65c35ff542716ff9e492aff3d1c10ff0000000000000000000000000000000000000000542716ffc65c35ffc65c35ff9e492affd76b43ffd76b43ffd76b43ffc65c35ff9e492aff3d1c10ff000000000000000000000000000000000000000000000000542716ff9e492affd76b43ff9e492affd76b43ffd76b43ff9e492affc65c35ff893b25ff3d1c10ff00000000000000000000000000000000000000000000000000000000542716ffd76b43ff893b25ffc65c35ffd76b43ffc65c35ff9e492aff3d1c10ff0000000000000000000000000000000000000000000000000000000000000000542716ff9e492affc65c35ffc65c35ffd76b43ffc65c35ff9e492aff3d1c10ff0000000000000000000000000000000000000000000000000000000000000000542716ffc65c35ffc65c35ff9e492affd76b43ffc65c35ffc65c35ff3d1c10ff0000000000000000000000000000000000000000000000000000000000000000542716ffc65c35ffc65c35ff9e492affd76b43ffc65c35ffc65c35ff3d1c10ff00000000000000000000000000000000000000000000000000000000542716ff893b25ff9e492affc65c35ff9e492affc65c35ff9e492aff9e492aff893b25ff3d1c10ff000000000000000000000000000000000000000000000000542716ffc65c35ffc65c35ffc65c35ffc65c35ffc65c35ffc65c35ffc65c35ff893b25ff3d1c10ff000000000000000000000000000000000000000000000000542716ffc65c35ff9e492aff9e492aff9e492aff893b25ff9e492affc65c35ff9e492aff3d1c10ff0000000000000000000000000000000000000000542716ff893b25ff9e492aff3d1c10ff3d1c10ff893b25ff893b25ff3d1c10ff3d1c10ff9e492aff893b25ff3d1c10ff00000000000000000000000000000000542716ff3d1c10ff3d1c10ff00000000000000003d1c10ff3d1c10ff00000000000000003d1c10ff3d1c10ff3d1c10ff000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000";
 CUSTOM_PX.book = "0000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000422412ff422412ff422412ff422412ff422412ff422412ff422412ff422412ff422412ff422412ff000000000000000000000000000000000000000000000000422412ff5c351bff7a4a2aff7a4a2aff7a4a2aff7a4a2aff7a4a2aff7a4a2affd6ccaaffd6ccaaff000000000000000000000000000000000000000000000000422412ff5c351bff7a4a2aff7a4a2aff96643cff7a4a2aff7a4a2aff7a4a2affd6ccaafff1ead2ff000000000000000000000000000000000000000000000000422412ff5c351bff7a4a2aff7a4a2aff96643cff7a4a2aff7a4a2aff7a4a2affd6ccaafff1ead2ff000000000000000000000000000000000000000000000000422412ff5c351bff7a4a2aff7a4a2aff96643cff7a4a2aff7a4a2aff7a4a2affd6ccaafff1ead2ff000000000000000000000000000000000000000000000000422412ff5c351bff7a4a2aff96643cff96643cff4fd8ecff96643cff7a4a2affd6ccaafff1ead2ff000000000000000000000000000000000000000000000000422412ff5c351bff7a4a2aff7a4a2aff96643cff7a4a2aff7a4a2aff7a4a2affd6ccaafff1ead2ff000000000000000000000000000000000000000000000000422412ff5c351bff7a4a2aff7a4a2aff96643cff7a4a2aff7a4a2aff7a4a2affd6ccaafff1ead2ff000000000000000000000000000000000000000000000000422412ff5c351bff7a4a2aff7a4a2aff96643cff7a4a2aff7a4a2aff7a4a2affd6ccaafff1ead2ff000000000000000000000000000000000000000000000000422412ff5c351bff7a4a2aff7a4a2aff96643cff7a4a2aff7a4a2aff7a4a2affd6ccaafff1ead2ff000000000000000000000000000000000000000000000000422412ff5c351bff7a4a2aff7a4a2aff7a4a2aff7a4a2aff7a4a2aff7a4a2affd6ccaafff1ead2ff000000000000000000000000000000000000000000000000422412ff422412ff422412ff422412ff422412ff422412ff422412ff422412ff422412ff422412ff0000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000";
 CUSTOM_PX.lapis_lazuli = "0000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000001a3d8fff1a3d8fff1a3d8fff1a3d8fff052463ff000000000000000000000000000000000000000000000000000000000000000000000000000000001a3d8fff1c53a8ff5a82e2ff5a82e2ff345ec3ff1c53a8ff052463ff00000000000000000000000000000000000000000000000000000000000000001a3d8fff345ec3ff5a82e2ff7497eaff345ec3ff1c53a8ff12408bff1c53a8ff052463ff0000000000000000000000000000000000000000000000001a3d8fff345ec3ff5a82e2ff345ec3ff5a82e2ff1c53a8ff12408bff1c53a8ff345ec3ff052463ff0000000000000000000000000000000000000000000000001a3d8fff7497eaff5a82e2ff1c53a8ff345ec3ff1c53a8ff12408bff345ec3ff5a82e2ff052463ff0000000000000000000000000000000000000000000000001a3d8fff5a82e2ff5a82e2ff7497eaff1c53a8ff12408bff345ec3ff345ec3ff5a82e2ff052463ff00000000000000000000000000000000000000001a3d8fff345ec3ff1c53a8ff5a82e2ff345ec3ff12408bff345ec3ff345ec3ff5a82e2ff052463ff00000000000000000000000000000000000000001a3d8fff345ec3ff7497eaff5a82e2ff1c53a8ff12408bff345ec3ff5a82e2ff1c53a8ff1c53a8ff052463ff00000000000000000000000000000000000000001a3d8fff12408bff5a82e2ff345ec3ff12408bff1c53a8ff345ec3ff345ec3ff1c53a8ff052463ff000000000000000000000000000000000000000000000000052463ff345ec3ff12408bff12408bff345ec3ff5a82e2ff345ec3ff1c53a8ff052463ff00000000000000000000000000000000000000000000000000000000052463ff1c53a8ff345ec3ff5a82e2ff1c53a8ff052463ff052463ff052463ff000000000000000000000000000000000000000000000000000000000000000000000000052463ff052463ff052463ff052463ff0000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000";
@@ -3074,6 +3079,8 @@ RECIPES.push({ shape: [['breeze_rod']], out: 'wind_charge', outCount: 4, needsTa
 RECIPES.push({ shape: [['wool','wool','wool'],['wool','wool','wool'],['wool','wool','wool']], out: 'compressed_wool', outCount: 1, needsTable: true });   // 9 wool -> 1 compressed wool
 RECIPES.push({ shape: [['compressed_wool','compressed_wool'],['compressed_wool','compressed_wool']], out: 'elytra', outCount: 1, needsTable: false });   // 4 compressed wool -> elytra
 // book = 3 paper + 1 leather (any arrangement in the 2x2 grid)
+RECIPES.push({ shape: [['stick',null,'stick'],['stick','stick','stick'],['stick',null,'stick']], out: 'ladder', outCount: 3, needsTable: true });   // 7 sticks (H shape) -> 3 ladders
+RECIPES.push({ shape: [['diamond','diamond','diamond'],['diamond','chest','diamond'],['diamond','diamond','diamond']], out: 'shulker_box', outCount: 1, needsTable: true });   // chest + 8 diamonds
 RECIPES.push({ shape: [['leather','paper'],['paper','paper']], out: 'book', outCount: 1, needsTable: false });
 RECIPES.push({ shape: [['paper','leather'],['paper','paper']], out: 'book', outCount: 1, needsTable: false });
 RECIPES.push({ shape: [['paper','paper'],['leather','paper']], out: 'book', outCount: 1, needsTable: false });
@@ -3225,6 +3232,11 @@ MI.birchDoorLower = regMat(TEX.birchDoorLower);
 MI.birchDoorUpper = regMat(TEX.birchDoorUpper);
 MI.birchTrapdoor  = regMat(TEX.birchTrapdoor);
 // ---- farming materials: tall grass + wheat stages are crossed sprites (alpha cutout), farmland is a cube ----
+TEX.ladder = makeTexture(ctx => _drawPx(ctx, CUSTOM_PX.ladder));
+MI.ladder = regMat(TEX.ladder);
+{ const _lm = MAT_LIST[MI.ladder]; _lm.alphaTest = 0.5; _lm.side = THREE.DoubleSide; }   // cut-out rungs
+TEX.shulker_box = makeTexture(ctx => _drawPx(ctx, CUSTOM_PX.shulker_tex));
+MI.shulker_box = regMat(TEX.shulker_box);
 TEX.sugar_cane = makeTexture(ctx => _drawPx(ctx, CUSTOM_PX.sugar_cane_block));
 MI.sugar_cane = regMat(TEX.sugar_cane, true);
 MI.tall_grass = regMat(TEX.tall_grass, true);
@@ -3499,7 +3511,7 @@ function railMatFor(b) {
   return RAIL.mi.z;
 }
 // Flat inventory / hand / drop sprites for the new items (drawn from the placed textures).
-const RS_FLAT_ITEMS = { repeater: 1, comparator: 1, pressure_plate: 1, rail: 1 };
+const RS_FLAT_ITEMS = { repeater: 1, comparator: 1, pressure_plate: 1, rail: 1, ladder: 1 };
 function rsSprite(type) {
   const mk = () => { const c = document.createElement('canvas'); c.width = c.height = 16; const g = c.getContext('2d'); g.imageSmoothingEnabled = false; return [c, g]; };
   const img = i => MAT_LIST[i].map.image;
@@ -4213,6 +4225,9 @@ function blockBoxes(b) {
       // standing sign: post + board
       r = [[-0.06, 0.06, -0.5, 0.1, -0.06, 0.06], [-0.4, 0.4, 0.1, 0.5, -0.06, 0.06]];
     }
+  } else if (shape === 'ladder') {
+    const t = 0.0625;   // 1/16 thick, flat against the wall it is attached to
+    r = [dir === 0 ? [0.5 - t, 0.5, -0.5, 0.5, -0.5, 0.5] : dir === 1 ? [-0.5, -0.5 + t, -0.5, 0.5, -0.5, 0.5] : dir === 2 ? [-0.5, 0.5, -0.5, 0.5, 0.5 - t, 0.5] : [-0.5, 0.5, -0.5, 0.5, -0.5, -0.5 + t]];
   } else if (shape === 'campfire') {
     // low log base (player can stand on it)
     r = [[-0.45, 0.45, -0.5, -0.12, -0.45, 0.45]];
@@ -4243,6 +4258,7 @@ function shapeMat(b) {
   }
   if (isTrapType(b.type)) return b.type === 'birch_trapdoor' ? MI.birchTrapdoor : MI.trapdoor;
   if (b.type === 'sign') return MI.sign;
+  if (b.type === 'ladder') return MI.ladder;
   return MI.planks;
 }
 // ---- Bed: 2 blocks long. meta bits0-1 = direction from the foot toward the head, bit3 = this is the head half ----
@@ -6114,6 +6130,7 @@ function normalizeItem(it) {
     if (out.spawnKind == null) out.spawnKind = spawnerKindFromBlock({ meta: out.meta }, 0, 0, 0);
     if (out.meta == null) out.meta = spawnerMetaForKind(out.spawnKind);
   }
+  if (out.type === 'shulker_box') { out.count = 1; if (typeof it.meta === 'string' && it.meta.indexOf('c:') === 0) out.meta = it.meta; }   // meta = the box's packed contents (travels with the item, like a backpack)
   if (isDurableItem(out.type)) {
     const max = maxDurability(out.type);
     if (it.dur != null && Number.isFinite(Number(it.dur))) out.dur = Math.max(0, Math.min(max, Math.trunc(Number(it.dur))));
@@ -6231,6 +6248,9 @@ function applyBlockDiff(row, skipMark) {
   if (typeof type === 'string' && type.indexOf('chest|c:') === 0) {
     applyChestFromDb(key(x, y, z), type.slice(8), !!skipMark);
     type = 'chest';
+  } else if (typeof type === 'string' && type.indexOf('shulker_box|c:') === 0) {
+    applyChestFromDb(key(x, y, z), type.slice(14), !!skipMark);
+    type = 'shulker_box';
   }
   // Orientation/open-state rides along in the type string ("stairs|2"), so no schema change is needed.
   if (typeof type === 'string' && type.indexOf('|') >= 0) {
@@ -6294,7 +6314,8 @@ async function pushBlockDiff(x, y, z, type, meta) {
   // Keep removedDiffs in step right now. It used to be updated only when our own write echoed back from the
   // server; since those echoes are skipped now (see ownStamp), do it here at the moment the change is made.
   { const rk = key(x, y, z); if (type === 'air') removedDiffs.add(rk); else removedDiffs.delete(rk); }
-  const typeStr = (meta != null && type !== 'air' && BLOCK_TYPES[type] && (BLOCK_TYPES[type].shape || type === 'spawner' || type === 'piston' || type === 'sticky_piston')) ? (type + '|' + meta) : type;
+  let typeStr = (meta != null && type !== 'air' && BLOCK_TYPES[type] && (BLOCK_TYPES[type].shape || type === 'spawner' || type === 'piston' || type === 'sticky_piston')) ? (type + '|' + meta) : type;
+  if (type === 'shulker_box') typeStr = 'shulker_box|' + encodeChest(chestData[key(x, y, z)] || new Array(CHEST_SIZE).fill(null));   // contents ride in the row, so everyone sees the same box
   const { error } = await sb.from('world_blocks').upsert({ x, y, z, type: typeStr, updated_at: ownStamp() });
   if (error) console.error('pushBlockDiff', error);
 }
@@ -7662,6 +7683,13 @@ function broadcastChestRemove(k) {
 // stamp it, save it and tell everyone.
 function chestSyncTick() {
   if (!chestOpen || !chestSlots || !chestKey) return;
+  if (chestKey !== ENDER_KEY) {   // a shulker box can't go inside a shulker box: hand it straight back
+    const _cb = world.get(chestKey);
+    if (_cb && _cb.type === 'shulker_box') for (let i = 0; i < CHEST_SIZE; i++) {
+      const it = chestSlots[i];
+      if (it && it.type === 'shulker_box') { chestSlots[i] = null; stashBackpack(it); if (it.count > 0) spawnDroppedItem(it.type, it.count, new THREE.Vector3(player.pos.x, player.pos.y + 1, player.pos.z), undefined, { meta: it.meta }); renderChestPanel(); renderHotbar(); }
+    }
+  }
   const str = JSON.stringify(chestSlots);
   if (chestKey === ENDER_KEY) {                 // personal storage: save with the player, no world sync
     if (str !== chestSyncedStr) { chestSyncedStr = str; saveLocalPlayer(); }
@@ -7694,7 +7722,8 @@ function scheduleChestDbPush(k) {
     const enc = encodeChest(slots);
     recentChestPushes.push(enc); if (recentChestPushes.length > 30) recentChestPushes.shift();
     const [x, y, z] = k.split(',').map(Number);
-    const { error } = await sb.from('world_blocks').upsert({ x, y, z, type: 'chest|' + enc, updated_at: new Date().toISOString() });
+    const _pb = world.get(k);
+    const { error } = await sb.from('world_blocks').upsert({ x, y, z, type: ((_pb && _pb.type === 'shulker_box') ? 'shulker_box|' : 'chest|') + enc, updated_at: new Date().toISOString() });
     if (error) console.error('chest save', error);
   }, 250);
 }
@@ -7796,7 +7825,7 @@ function openEnderChest() {
   document.exitPointerLock();
 }
 function openChest(x, y, z) {
-  const _h = chestPanel.querySelector('h2'); if (_h) _h.textContent = 'Chest';
+  const _h = chestPanel.querySelector('h2'); const _ob = world.get(key(x, y, z)); if (_h) _h.textContent = (_ob && _ob.type === 'shulker_box') ? 'Shulker Box' : 'Chest';
   chestOpen = true;
   chestKey = key(x, y, z);
   chestSlots = getChestSlots(chestKey);
@@ -13592,8 +13621,9 @@ function trySpawnerSpawn(x, y, z) {
   for (let i = 0; i < 16 && made < want && nearby + made < SPAWNER_MAX_NEARBY; i++) {
     const sx = x + Math.floor(Math.random() * 7) - 3, sz = z + Math.floor(Math.random() * 7) - 3;
     if (sx === x && sz === z) continue;
-    for (let cy = y + 1; cy >= y - 1; cy--) {                     // a free 2-high spot with solid ground under it
-      if (!solidAt(sx, cy - 1, sz) || getBlock(sx, cy - 1, sz).type === 'spawner' || solidAt(sx, cy, sz) || solidAt(sx, cy + 1, sz) || getBlock(sx, cy, sz) || getBlock(sx, cy + 1, sz)) continue;
+    const sy0 = y + 1 + Math.floor(Math.random() * 3) - (Math.random() < 0.5 ? 0 : 2);   // random height around the spawner: air spots count too
+    for (let cy = sy0; cy >= y - 2; cy--) {                       // any free 2-high spot (solid ground NOT required: mobs may spawn in mid-air)
+      if (solidAt(sx, cy, sz) || solidAt(sx, cy + 1, sz) || getBlock(sx, cy, sz) || getBlock(sx, cy + 1, sz)) continue;
       let eq = 0;
       if (kind === 'zombie') eq = rollZombieGear();
       else if (kind === 'skeleton') eq = rollSkeletonGear(sx, sz);
@@ -18083,6 +18113,7 @@ function tryMobilePlace() {
   const facing = cardinalFromYaw(player.yaw);
   if (isDoorType(type)) { placeDoorAt(type, hit, nx, ny, nz, facing, canPlace); return; }
   if (type === 'bed') { placeBedAt(nx, ny, nz, facing, canPlace); return; }
+  if (type === 'ladder') { placeLadderAt(hit, nx, ny, nz, canPlace); return; }
   const ptype = rsPlaceType(type);
   let meta = (ptype === 'stairs' || isTrapType(ptype)) ? facing : rsPlaceMeta(ptype, facing);
   if (ptype === 'piston' || ptype === 'sticky_piston') meta = (typeof pistonFacingFromLook === 'function' ? pistonFacingFromLook() : facing);
@@ -18098,12 +18129,69 @@ function tryMobilePlace() {
       const b = getBlock(nx, ny, nz);
       if (b) b.spawnKind = window.__placeSpawnKind || spawnerKindFromBlock(b, nx, ny, nz);
     }
+    if (ptype === 'shulker_box') shulkerPlaced(nx, ny, nz, currentItem());
     removeFromCurrentSlot(1);
     flushDirtyChunks(false);
     renderHotbar();
     if (inventoryOpen) renderInventoryPanel();
     pushBlockDiff(nx, ny, nz, ptype, meta);
   }
+}
+
+// ---- Ladder: attaches to the side of a solid block (meta = which edge it is stuck to: 0:+x 1:-x 2:+z 3:-z) ----
+const LADDER_DV = [[1, 0], [-1, 0], [0, 1], [0, -1]];
+function ladderWallSolid(nx, ny, nz, d) {
+  const w = world.get(key(nx + LADDER_DV[d][0], ny, nz + LADDER_DV[d][1]));
+  return !!(w && BLOCK_TYPES[w.type] && !BLOCK_TYPES[w.type].transparent && w.type !== 'water');
+}
+function placeLadderAt(hit, nx, ny, nz, canPlace) {
+  const nX = hit.x - hit.px, nY = hit.y - hit.py, nZ = hit.z - hit.pz;
+  let dir = -1;
+  if (Math.abs(nX) > 0.5) dir = nX > 0 ? 0 : 1;
+  else if (Math.abs(nZ) > 0.5) dir = nZ > 0 ? 2 : 3;
+  else {   // clicked a top / bottom face: extend the ladder you clicked, otherwise use any wall next to the spot
+    const hb = world.get(key(hit.x, hit.y, hit.z));
+    if (hb && hb.type === 'ladder' && ladderWallSolid(nx, ny, nz, hb.meta & 3)) dir = hb.meta & 3;
+    else for (let d = 0; d < 4; d++) if (ladderWallSolid(nx, ny, nz, d)) { dir = d; break; }
+  }
+  if (dir < 0 || !ladderWallSolid(nx, ny, nz, dir)) return;   // nothing to stick to
+  clearWaterForPlace(nx, ny, nz);
+  if (canPlace && !world.has(key(nx, ny, nz)) && addBlock(nx, ny, nz, 'ladder', false, dir) && markPlaced(nx, ny, nz)) {
+    removeFromCurrentSlot(1);
+    flushDirtyChunks(false);
+    renderHotbar();
+    if (inventoryOpen) renderInventoryPanel();
+    pushBlockDiff(nx, ny, nz, 'ladder', dir);
+  }
+}
+function playerOnLadder() {
+  if (typeof world === 'undefined') return false;
+  for (const dy of [0.1, player.height * 0.5, player.height - 0.1]) {
+    const b = getBlock(player.pos.x, player.pos.y + dy, player.pos.z);
+    if (b && b.type === 'ladder') return true;
+  }
+  return false;
+}
+// ---- Shulker box: works like a backpack. Its contents are packed into the item (item.meta = 'c:...'), unpacked into the placed block
+// (stored like a chest, shared with every player) and packed again when the block is mined. ----
+function shulkerPlaced(x, y, z, item) {
+  const k = key(x, y, z);
+  chestData[k] = (item && typeof item.meta === 'string' && item.meta.indexOf('c:') === 0) ? decodeChest(item.meta.slice(2)) : new Array(CHEST_SIZE).fill(null);
+  chestStamps[k] = Date.now();
+  saveChestData();
+  try { broadcastChest(k); } catch (e) {}
+}
+function shulkerPack(x, y, z) {   // block mined / blown up -> the string the dropped item carries (null when empty)
+  const k = key(x, y, z), slots = chestData[k];
+  let packed = null;
+  if (slots && slots.some(s => s)) packed = encodeChest(slots);
+  try { broadcastChestRemove(k); } catch (e) {}
+  delete chestData[k]; saveChestData();
+  return packed;
+}
+function openShulker(x, y, z) {
+  if (!chestData[key(x, y, z)]) chestData[key(x, y, z)] = new Array(CHEST_SIZE).fill(null);
+  openChest(x, y, z);
 }
 
 // Mobile target picking: generous capsule around each mob/player (see jcPickTarget),
@@ -19542,7 +19630,9 @@ function updateMining(dt) {
       // Spawners are not placeable by default, but Silk Touch + pickaxe drops the spawner (keeping its fixed spawn kind).
       const _silkSpawner = !!(toolKind === 'pickaxe' && held && held.ench && Number(held.ench.silktouch) > 0 && b.type === 'spawner');
       const _silk = !!(canDrop && toolKind && held && held.ench && Number(held.ench.silktouch) > 0 && BLOCK_TYPES[b.type] && isPlaceable(b.type) && b.type !== 'redstone_dust' && !isPlantType(b.type));
-      if (canDrop || _silkSpawner) {
+      if (b.type === 'shulker_box') {   // always drops itself, items inside included (they travel with the item)
+        { const _pk = shulkerPack(hit.x, hit.y, hit.z); spawnDroppedItem('shulker_box', 1, popPos, null, _pk ? { meta: _pk } : undefined); }
+      } else if (canDrop || _silkSpawner) {
         if (_silkSpawner) {
           const sk = spawnerKindFromBlock(b, hit.x, hit.y, hit.z);
           // Store kind on the item via meta-like field; pickup will keep it
@@ -19681,6 +19771,7 @@ function tryUseLookedBlock() {
   }
   if (targeted.type === 'chest') { openChest(hit.x, hit.y, hit.z); return true; }
   if (targeted.type === 'ender_chest') { openEnderChest(); return true; }
+  if (targeted.type === 'shulker_box') { openShulker(hit.x, hit.y, hit.z); return true; }
   if (isDoorType(targeted.type) || isTrapType(targeted.type)) { toggleOpenable(targeted); return true; }
   if (typeof rsInteract === 'function' && rsInteract(targeted)) return true;
   if (targeted.type === 'bed') { useBed(hit.x, hit.y, hit.z); return true; }
@@ -20286,6 +20377,8 @@ canvas.addEventListener('mousedown', e => {
         placeDoorAt(type, hit, nx, ny, nz, facing, canPlace);
       } else if (type === 'bed') {
         placeBedAt(nx, ny, nz, facing, canPlace);
+      } else if (type === 'ladder') {
+        placeLadderAt(hit, nx, ny, nz, canPlace);
       } else {
         const ptype = rsPlaceType(type);
         let meta = (ptype === 'stairs' || isTrapType(ptype)) ? facing : rsPlaceMeta(ptype, facing);
@@ -20302,6 +20395,7 @@ canvas.addEventListener('mousedown', e => {
             const b = getBlock(nx, ny, nz);
             if (b) b.spawnKind = window.__placeSpawnKind || spawnerKindFromBlock(b, nx, ny, nz);
           }
+          if (ptype === 'shulker_box') shulkerPlaced(nx, ny, nz, currentItem());
           removeFromCurrentSlot(1);
           flushDirtyChunks(false);
           renderHotbar();
@@ -21391,7 +21485,8 @@ function explodeTnt(t) {
     const b = getBlock(x, y, z);
     if (!b || b.type === 'water') continue;
     if (b.type === 'tnt') { chain.push({ x, y, z }); continue; }
-    if (b.type === 'chest') {
+    if (b.type === 'shulker_box') { { const _pk = shulkerPack(x, y, z); spawnDroppedItem('shulker_box', 1, new THREE.Vector3(x, y, z), undefined, _pk ? { meta: _pk } : undefined); } }
+    else if (b.type === 'chest') {
       const k = key(x, y, z);
       broadcastChestRemove(k);
       const slots = chestData[k];
@@ -22171,6 +22266,14 @@ function animate() {
     }
   }
 
+  if (!inWater && !boatRide && !cartRide && playerOnLadder()) {   // ladder: forward / jump climbs, sneak holds on, otherwise slide down slowly
+    player.fallDist = 0; player.fallPeakY = player.pos.y;
+    const _up = isPlaying() && (keyDown('forward') || keyDown('jump') || (touchMode && (mobile.fwd || mobile.jump)));
+    if (_up) player.vel.y = 3.6;
+    else if (player.crouched) player.vel.y = Math.max(player.vel.y, 0) * 0;
+    else if (player.vel.y < -2.5) player.vel.y = -2.5;
+    else if (player.vel.y > 0) player.vel.y = 0;
+  }
   updateGlide(dt, inWater);   // Elytra gliding (overrides velocity while active)
   updateRiptide(dt);   // Riptide contact damage window (velocity is impulse-only, not locked)
   const wasOnGround = player.onGround;
