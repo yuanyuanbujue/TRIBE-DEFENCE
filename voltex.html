@@ -1197,7 +1197,7 @@
     <div id="enchantTop">
       <div id="enchantSlotWrap"></div>
       <div id="enchantChoices">
-        <div id="enchTypeRow"><button class="enchBtn enchType" id="enchType0"><span class="eb-t">Efficiency</span><span class="eb-s">faster mining</span></button><button class="enchBtn enchType" id="enchType1"><span class="eb-t">Fortune</span><span class="eb-s">more ore / wood</span></button><button class="enchBtn enchType" id="enchType2"><span class="eb-t">Sharpness</span><span class="eb-s">more damage</span></button><button class="enchBtn enchType" id="enchType3"><span class="eb-t">Protection</span><span class="eb-s">less damage</span></button><button class="enchBtn enchType" id="enchType4"><span class="eb-t">Unbreaking</span><span class="eb-s">lasts longer</span></button><button class="enchBtn enchType" id="enchType5"><span class="eb-t">Mending</span><span class="eb-s">repairs with XP</span></button><button class="enchBtn enchType" id="enchType6"><span class="eb-t">Looting</span><span class="eb-s">more XP &amp; drops</span></button><button class="enchBtn enchType" id="enchType7"><span class="eb-t">Power</span><span class="eb-s">arrow damage</span></button><button class="enchBtn enchType" id="enchType8"><span class="eb-t">Charge</span><span class="eb-s">arrow knockback</span></button><button class="enchBtn enchType" id="enchType9"><span class="eb-t">Infinity</span><span class="eb-s">infinite arrows</span></button><button class="enchBtn enchType" id="enchType10"><span class="eb-t">Lunge</span><span class="eb-s">dash when attacking</span></button><button class="enchBtn enchType" id="enchType11"><span class="eb-t">Loyalty</span><span class="eb-s">trident returns</span></button><button class="enchBtn enchType" id="enchType12"><span class="eb-t">Riptide</span><span class="eb-s">dash in water / rain</span></button><button class="enchBtn enchType" id="enchType13"><span class="eb-t">Silk Touch</span><span class="eb-s">mine blocks intact</span></button><button class="enchBtn enchType" id="enchType14"><span class="eb-t">Density</span><span class="eb-s">more smash damage</span></button><button class="enchBtn enchType" id="enchType15"><span class="eb-t">Breach</span><span class="eb-s">armor pierce</span></button><button class="enchBtn enchType" id="enchType16"><span class="eb-t">Wind Burst</span><span class="eb-s">launch on smash</span></button><button class="enchBtn enchType" id="enchType17"><span class="eb-t">Sweeping Edge</span><span class="eb-s">bigger sweep AOE</span></button><button class="enchBtn enchType" id="enchType18"><span class="eb-t">Flame</span><span class="eb-s">arrows set targets on fire</span></button></div>
+        <div id="enchTypeRow"><button class="enchBtn enchType" id="enchType0"><span class="eb-t">Efficiency</span><span class="eb-s">faster mining</span></button><button class="enchBtn enchType" id="enchType1"><span class="eb-t">Fortune</span><span class="eb-s">more ore / wood</span></button><button class="enchBtn enchType" id="enchType2"><span class="eb-t">Sharpness</span><span class="eb-s">more damage</span></button><button class="enchBtn enchType" id="enchType3"><span class="eb-t">Protection</span><span class="eb-s">less damage</span></button><button class="enchBtn enchType" id="enchType4"><span class="eb-t">Unbreaking</span><span class="eb-s">lasts longer</span></button><button class="enchBtn enchType" id="enchType5"><span class="eb-t">Mending</span><span class="eb-s">repairs with XP</span></button><button class="enchBtn enchType" id="enchType6"><span class="eb-t">Looting</span><span class="eb-s">more XP &amp; drops</span></button><button class="enchBtn enchType" id="enchType7"><span class="eb-t">Power</span><span class="eb-s">arrow damage</span></button><button class="enchBtn enchType" id="enchType8"><span class="eb-t">Charge</span><span class="eb-s">arrow knockback</span></button><button class="enchBtn enchType" id="enchType9"><span class="eb-t">Infinity</span><span class="eb-s">infinite arrows</span></button><button class="enchBtn enchType" id="enchType10"><span class="eb-t">Lunge</span><span class="eb-s">dash when attacking</span></button><button class="enchBtn enchType" id="enchType11"><span class="eb-t">Loyalty</span><span class="eb-s">trident returns</span></button><button class="enchBtn enchType" id="enchType12"><span class="eb-t">Riptide</span><span class="eb-s">dash in water / rain</span></button><button class="enchBtn enchType" id="enchType13"><span class="eb-t">Silk Touch</span><span class="eb-s">mine blocks intact</span></button><button class="enchBtn enchType" id="enchType14"><span class="eb-t">Density</span><span class="eb-s">more smash damage</span></button><button class="enchBtn enchType" id="enchType15"><span class="eb-t">Breach</span><span class="eb-s">armor pierce</span></button><button class="enchBtn enchType" id="enchType16"><span class="eb-t">Wind Burst</span><span class="eb-s">launch on smash</span></button><button class="enchBtn enchType" id="enchType17"><span class="eb-t">Sweeping Edge</span><span class="eb-s">bigger sweep AOE</span></button><button class="enchBtn enchType" id="enchType18"><span class="eb-t">Flame</span><span class="eb-s">arrows set targets on fire</span></button><button class="enchBtn enchType" id="enchType19"><span class="eb-t">Fire Aspect</span><span class="eb-s">sword hits set targets on fire</span></button></div>
         <button class="enchBtn" id="enchBtn0"><span class="eb-t"></span><span class="eb-s"></span></button>
         <button class="enchBtn" id="enchBtn1"><span class="eb-t"></span><span class="eb-s"></span></button>
         <button class="enchBtn" id="enchBtn2"><span class="eb-t"></span><span class="eb-s"></span></button>
@@ -13921,7 +13921,7 @@ function spawnArrow(pos, vel, opts) {
   mesh.position.copy(a.pos);
   if (a.vel.lengthSq() > 1e-6) mesh.quaternion.setFromUnitVectors(_arrowUp, a.vel.clone().normalize());
   if (opts.flame) {   // Flame arrow: glowing orange head
-    a.flame = true;
+    a.flame = true; a.flameLvl = Math.max(1, Math.min(5, Math.trunc(Number(opts.flameLvl) || 1)));
     try {
       const gl = new THREE.Mesh(new THREE.SphereGeometry(0.16, 8, 8), new THREE.MeshBasicMaterial({ color: 0xff7a1a, transparent: true, opacity: 0.85 }));
       gl.position.set(0, 0.35, 0); mesh.add(gl);
@@ -13950,7 +13950,7 @@ function releaseBow() {
   const origin = ray.origin.clone().add(dir.clone().multiplyScalar(0.6)); origin.y -= 0.1;
   const vel = dir.clone().multiplyScalar(8 + 30 * power);
   const _flame = (Number(be.flame) || 0) > 0;
-  spawnArrow(origin, vel, { power, powerLvl: Number(be.power) || 0, charge: Number(be.charge) || 0, noPickup: infinite, flame: _flame });
+  spawnArrow(origin, vel, { power, powerLvl: Number(be.power) || 0, charge: Number(be.charge) || 0, noPickup: infinite, flame: _flame, flameLvl: Number(be.flame) || 1 });
   playersChannel.send({ type: 'broadcast', event: 'arrow', payload: { from: MY_ID, x: origin.x, y: origin.y, z: origin.z, vx: vel.x, vy: vel.y, vz: vel.z, fl: _flame ? 1 : 0 } });
   startSwing();
   damageHeldTool(1);                 // bow wear (Unbreaking applies)
@@ -13980,12 +13980,12 @@ function arrowHit(a, found, dir, pt) {
   const kbBonus = Math.max(0, a.charge);
   if (found.mob) {
     jcNoLootUntil = performance.now() + 1500;   // bow kills: no Looting
-    if (a.flame) found.mob.burnT = 6;            // Flame: set the mob on fire
+    if (a.flame) found.mob.burnT = Math.max(found.mob.burnT || 0, 5 * (a.flameLvl || 1));            // Flame: set the mob on fire (5 s per level)
     const d = jcIframe(found.mob, dmg);
     if (d > 0) damageAnimal(found.mob, d, new THREE.Vector3(pt.x - dir.x * 2, pt.y, pt.z - dir.z * 2), 0.7 + 0.9 * kbBonus);   // Charge: more knockback
   } else {
     const g = found.entry.group.position;
-    if (a.flame) { try { playersChannel.send({ type: 'broadcast', event: 'ignite', payload: { to: found.id, secs: 6 } }); } catch (e) {} }
+    if (a.flame) { try { playersChannel.send({ type: 'broadcast', event: 'ignite', payload: { to: found.id, secs: Math.min(10, 5 * (a.flameLvl || 1)) } }); } catch (e) {} }
     const d = jcIframe(found.entry, dmg);
     if (d > 0) {
       playersChannel.send({ type: 'broadcast', event: 'hit', payload: { targetId: found.id, amount: d, attackerId: MY_ID, kx: dir.x, kz: dir.z, knock: 5 + 4 * kbBonus } });
@@ -14025,6 +14025,10 @@ function updateArrows(dt) {
         const n = Math.max(1, Math.ceil(dHit / 0.3));
         for (let k = 1; k <= n; k++) {
           const pt = { x: a.pos.x + dir.x * dHit * k / n, y: a.pos.y + dir.y * dHit * k / n, z: a.pos.z + dir.z * dHit * k / n };
+          if (a.flame && !a.hostile) {   // Flame arrow into a TNT minecart: instant explosion
+            const _tc = carts.find(c => c.tnt && Math.abs(pt.x - c.pos.x) < 0.65 && Math.abs(pt.z - c.pos.z) < 0.65 && pt.y > c.pos.y - 0.1 && pt.y < c.pos.y + 1.0);
+            if (_tc) { removeArrow(i); done = 'gone'; cartExplode(_tc); break; }
+          }
           const found = a.hostile ? hostileHitAt(pt) : arrowEntityAt(pt);
           if (found) { if (a.hostile) hostileHitDamage(a, found, dir); else arrowHit(a, found, dir, pt); removeArrow(i); done = 'gone'; break; }
         }
@@ -15032,6 +15036,10 @@ function jcSweep(r, primary) {
     flashRed(entry.group);
   });
 }
+function jcFireAspectLevel() {   // Fire Aspect on the sword in your hand: 4 s of burning per level
+  const h = currentItem();
+  return (h && isSword(h.type) && h.ench) ? Math.max(0, Math.min(5, Math.trunc(Number(h.ench.fireaspect) || 0))) : 0;
+}
 function jcAttackAnimal(a) {
   // Block if: cobweb/solid BETWEEN you, OR target fully web-covered (leg+head cobweb), OR boss heal-cover while eating
   if (lineBlockedByCover(player.pos.x, player.pos.y + 1.2, player.pos.z, a.pos.x, a.pos.y + 1.0, a.pos.z) ||
@@ -15045,6 +15053,7 @@ function jcAttackAnimal(a) {
   if (d > 0) {
     const ax = a.pos.x, ay = a.pos.y, az = a.pos.z, h = a.height ? a.height * 0.6 : 0.8;
     damageAnimal(a, d, player.pos, r.kb);
+    { const _fa = jcFireAspectLevel(); if (_fa > 0 && a.alive) a.burnT = Math.max(a.burnT || 0, 4 * _fa); }   // Fire Aspect
     if (r.smash) {
       player.maceSmashCancel = true;
       player.fallDist = 0;   // spend the smash charge
@@ -15116,6 +15125,7 @@ function jcAttackPlayer(pt) {
       payload: { targetId: pt.id, amount: d, attackerId: MY_ID, kx: g.x - player.pos.x, kz: g.z - player.pos.z, knock: 8.8 * r.kb, axe: !!(held && isAxe(held.type)), mace: !!(held && isMace(held.type)), breach: r.breach || 0 }
     });
     flashRed(entry.group);
+    { const _fa = jcFireAspectLevel(); if (_fa > 0) { try { playersChannel.send({ type: 'broadcast', event: 'ignite', payload: { to: pt.id, secs: Math.min(10, 4 * _fa) } }); } catch (e) {} } }   // Fire Aspect
     if (entry.blocking) entry.shieldPulse = 0.25;
     if (r.smash) {
       player.maceSmashCancel = true;
@@ -15248,11 +15258,12 @@ const JC_ENCH_TIERS = [
   { name: 'Level V',   cost: 25, level: 5 },
 ];
 // Highest level the table offers per enchant (default 4)
-const JC_ENCH_MAX = { lunge: 3, unbreaking: 3, mending: 1, sharpness: 5, looting: 5, power: 5, charge: 2, infinity: 1, loyalty: 3, riptide: 3, silktouch: 1, density: 5, breach: 5, windburst: 3, sweepingedge: 3, flame: 1 };
+const JC_ENCH_MAX = { lunge: 3, unbreaking: 3, mending: 1, sharpness: 5, looting: 5, power: 5, charge: 2, infinity: 1, loyalty: 3, riptide: 3, silktouch: 1, density: 5, breach: 5, windburst: 3, sweepingedge: 3, flame: 2, fireaspect: 2 };
 // Per-enchant cost override (XP levels) for a given tier; others use the tier's normal cost
-const JC_ENCH_COST = { mending: 25, infinity: 25, silktouch: 15, flame: 25 };
-function jcEnchCost(id, t) { return JC_ENCH_COST[id] != null ? JC_ENCH_COST[id] : t.cost; }
-const JC_ENCH_TYPE_IDS = ['efficiency', 'fortune', 'sharpness', 'protection', 'unbreaking', 'mending', 'looting', 'power', 'charge', 'infinity', 'lunge', 'loyalty', 'riptide', 'silktouch', 'density', 'breach', 'windburst', 'sweepingedge', 'flame'];
+const JC_ENCH_COST = { mending: 25, infinity: 25, silktouch: 15 };
+const JC_ENCH_LVCOST = { flame: 10, fireaspect: 10 };   // Flame / Fire Aspect: level I = 10 XP levels, level II = 20
+function jcEnchCost(id, t) { return JC_ENCH_LVCOST[id] != null ? JC_ENCH_LVCOST[id] * t.level : (JC_ENCH_COST[id] != null ? JC_ENCH_COST[id] : t.cost); }
+const JC_ENCH_TYPE_IDS = ['efficiency', 'fortune', 'sharpness', 'protection', 'unbreaking', 'mending', 'looting', 'power', 'charge', 'infinity', 'lunge', 'loyalty', 'riptide', 'silktouch', 'density', 'breach', 'windburst', 'sweepingedge', 'flame', 'fireaspect'];
 const _fr = (a, b) => Array.from({ length: b - a + 1 }, (_, i) => a + i);
 // Total items dropped per Fortune level [I, II, III] (each list is picked from uniformly, so repeats weight the odds)
 const JC_FORTUNE = {
@@ -15265,12 +15276,12 @@ const JC_FORTUNE = {
   wood:        [[1, 1, 2], [1, 2, 2], [1, 2, 3], _fr(1, 4)],
   birch_wood:  [[1, 1, 2], [1, 2, 2], [1, 2, 3], _fr(1, 4)],
 };
-const JC_ENCH_NAMES = { swap: 'Swap', lunge: 'Lunge', sharpness: 'Sharpness', protection: 'Protection', efficiency: 'Efficiency', fortune: 'Fortune', unbreaking: 'Unbreaking', mending: 'Mending', looting: 'Looting', power: 'Power', charge: 'Charge', infinity: 'Infinity', loyalty: 'Loyalty', riptide: 'Riptide', silktouch: 'Silk Touch', density: 'Density', breach: 'Breach', windburst: 'Wind Burst', sweepingedge: 'Sweeping Edge', flame: 'Flame' };
+const JC_ENCH_NAMES = { swap: 'Swap', lunge: 'Lunge', sharpness: 'Sharpness', protection: 'Protection', efficiency: 'Efficiency', fortune: 'Fortune', unbreaking: 'Unbreaking', mending: 'Mending', looting: 'Looting', power: 'Power', charge: 'Charge', infinity: 'Infinity', loyalty: 'Loyalty', riptide: 'Riptide', silktouch: 'Silk Touch', density: 'Density', breach: 'Breach', windburst: 'Wind Burst', sweepingedge: 'Sweeping Edge', flame: 'Flame', fireaspect: 'Fire Aspect' };
 let enchPick = 'efficiency';   // which tool enchant the table will apply (Efficiency / Fortune)
 function jcToolKind(type) { const m = /_(pickaxe|axe|shovel)$/.exec(type || ''); return m ? m[1] : null; }
 function jcEnchInfo(type) {
   let opts = null;
-  if (isSword(type)) opts = ['sharpness', 'looting', 'sweepingedge'];   // Looting: swords (and spears); Sweeping Edge: swords only
+  if (isSword(type)) opts = ['sharpness', 'looting', 'sweepingedge', 'fireaspect'];   // Looting: swords (and spears); Sweeping Edge: swords only
   else if (isSpear(type)) opts = ['sharpness', 'looting', 'lunge'];   // Lunge: spear only
   else if (isMace(type)) opts = ['density', 'breach', 'windburst', 'looting'];
   else if (isArmor(type)) opts = ['protection'];
@@ -15293,8 +15304,8 @@ function jcCleanEnch(e) {
   if (!e || typeof e !== 'object') return null;
   const out = {}; let any = false;
   // Admin levels from cloud: -9999 … 9999 (0 ignored). Also accept alias keys.
-  const map = { sharpness:1, sharp:1, protection:1, prot:1, efficiency:1, eff:1, fortune:1, fort:1, unbreaking:1, unb:1, mending:1, mend:1, looting:1, loot:1, power:1, charge:1, infinity:1, lunge:1, loyalty:1, loy:1, riptide:1, rip:1, silktouch:1, silk:1, density:1, dens:1, breach:1, windburst:1, wind_burst:1, wb:1, sweepingedge:1, sweeping_edge:1, sweeping:1, se:1, flame:1, null:1, swap:1 };
-  const canon = { silk: 'silktouch', rip: 'riptide', sharp: 'sharpness', prot: 'protection', eff: 'efficiency', fort: 'fortune', unb: 'unbreaking', mend: 'mending', loot: 'looting', loy: 'loyalty', dens: 'density', wind_burst: 'windburst', wb: 'windburst', sweeping_edge: 'sweepingedge', sweeping: 'sweepingedge', se: 'sweepingedge' };
+  const map = { sharpness:1, sharp:1, protection:1, prot:1, efficiency:1, eff:1, fortune:1, fort:1, unbreaking:1, unb:1, mending:1, mend:1, looting:1, loot:1, power:1, charge:1, infinity:1, lunge:1, loyalty:1, loy:1, riptide:1, rip:1, silktouch:1, silk:1, density:1, dens:1, breach:1, windburst:1, wind_burst:1, wb:1, sweepingedge:1, sweeping_edge:1, sweeping:1, se:1, flame:1, fireaspect:1, fire_aspect:1, fire:1, null:1, swap:1 };
+  const canon = { silk: 'silktouch', rip: 'riptide', sharp: 'sharpness', prot: 'protection', eff: 'efficiency', fort: 'fortune', unb: 'unbreaking', mend: 'mending', loot: 'looting', loy: 'loyalty', dens: 'density', wind_burst: 'windburst', wb: 'windburst', sweeping_edge: 'sweepingedge', sweeping: 'sweepingedge', se: 'sweepingedge', fire_aspect: 'fireaspect', fire: 'fireaspect' };
   for (const k of Object.keys(e)) {
     const lk = String(k).toLowerCase();
     if (!map[lk]) continue;
@@ -15917,7 +15928,7 @@ playersChannel
   })
   .on('broadcast', { event: 'give_item' }, ({ payload }) => {
     if (!payload || payload.from === MY_ID || (payload.to !== '*' && payload.to !== MY_ID)) return;
-    if (givePlayerItem(payload.item, payload.count)) addChatLine('System', 'You were given ' + (payload.count || 1) + ' ' + GIVE_ITEMS[String(payload.item).toLowerCase()] + '.', true);
+    if (givePlayerItem(payload.item, payload.count)) addChatLine('System', 'You were given ' + (payload.count || 1) + ' ' + (giveResolve(payload.item) || payload.item) + '.', true);
   })
   .on('broadcast', { event: 'give_spawner' }, ({ payload }) => {
     if (!payload || payload.from === MY_ID || (payload.to !== '*' && payload.to !== MY_ID)) return;
@@ -16399,8 +16410,22 @@ function findPlayerByName(name) {
   return exact || partial;
 }
 const GIVE_ITEMS = { firework: 'firework', firework_1: 'firework', firework_2: 'firework_2', firework_3: 'firework_3', rocket: 'firework', elytra: 'elytra', mace: 'mace', golden_apple: 'golden_apple', gapple: 'golden_apple', goldenapple: 'golden_apple', wind_charge: 'wind_charge', windcharge: 'wind_charge' };
+function giveResolve(name) {   // any item or block in the game (plus the short aliases above)
+  const n = String(name || '').toLowerCase().replace(/^minecraft:/, '').replace(/[\s-]+/g, '_');
+  if (GIVE_ITEMS[n]) return GIVE_ITEMS[n];
+  if (n === 'air' || n === 'water' || n === 'lava' || n === 'fire' || n === 'spawner') return null;   // spawners: /give <who> zombie|skeleton|breeze
+  if (BLOCK_TYPES[n] || ITEM_INFO[n]) return n;
+  return null;
+}
 function givePlayerItem(item, count) {
-  const type = GIVE_ITEMS[String(item || '').toLowerCase()]; if (!type) return false;
+  const type = giveResolve(item); if (!type) return false;
+  if (type === 'null_totem') {
+    let slot = -1; for (let i = 0; i < INV_SIZE; i++) if (!inventory[i]) { slot = i; break; }
+    if (slot < 0) { spawnDroppedItem('null_totem', 1, new THREE.Vector3(player.pos.x, player.pos.y + 1, player.pos.z), new THREE.Vector3(0, 2, 0), { ench: { null: 1 }, uses: 10 }); }
+    else inventory[slot] = { type: 'null_totem', count: 1, uses: 10, ench: { null: 1 } };
+    try { renderHotbar(); if (inventoryOpen) renderInventoryPanel(); saveLocalPlayer(); } catch (e) {}
+    return true;
+  }
   const n = Math.max(1, Math.min(maxStackFor(type) === 1 ? 36 : 64, Math.trunc(Number(count)) || 1));
   const left = addItemToInventory(type, n);
   if (left > 0) spawnDroppedItem(type, left, new THREE.Vector3(player.pos.x, player.pos.y + 1, player.pos.z));
@@ -17606,8 +17631,8 @@ function runChatCommand(text) {
     sys('Gave ' + e.name + ' ' + kind + ' spawner(s).'); return;
   }
   // /give <@s|@a|player> <firework|firework_2|firework_3|elytra|mace> [count]
-  if (cmd === 'give' && parts.length >= 2 && GIVE_ITEMS[(parts[1] || '').toLowerCase()]) {
-    const who = parts[0], item = parts[1].toLowerCase(), count = parts[2] || 1, nm = GIVE_ITEMS[item];
+  if (cmd === 'give' && parts.length >= 2 && giveResolve(parts[1])) {
+    const who = parts[0], item = parts[1].toLowerCase(), count = parts[2] || 1, nm = giveResolve(item);
     if (who === '@s' || who === '@p' || who.toLowerCase() === (MY_NAME || '').toLowerCase()) { givePlayerItem(item, count); sys('Gave yourself ' + (Number(count) || 1) + ' ' + nm + '.'); return; }
     if (who === '@a') {
       givePlayerItem(item, count);
@@ -17620,7 +17645,7 @@ function runChatCommand(text) {
     playersChannel.send({ type: 'broadcast', event: 'give_item', payload: { from: MY_ID, to: tid, item, count: Number(count) || 1 } });
     sys('Gave ' + e.name + ' ' + nm + '.'); return;
   }
-  if (cmd === 'give' && (parts[0] || '').toLowerCase() !== 'null_totem') { sys('Usage: /give <@s|@a|player> <zombie|skeleton|breeze|firework|elytra|mace|golden_apple|wind_charge> [count]'); return; }
+  if (cmd === 'give' && (parts[0] || '').toLowerCase() !== 'null_totem') { sys('Usage: /give <@s|@a|player> <any item or block, e.g. diamond_sword, tnt_minecart, elytra, zombie (spawner)> [count]  (use _ for spaces)'); return; }
   // /xp <player|@s|@a> <amount>[L] - give XP points (or levels with an L suffix, e.g. 10L; negative takes away). Creator only.
   if (cmd === 'xp') {
     const who = parts[0], raw = (parts[1] || '').trim();
@@ -19960,6 +19985,15 @@ function cartBreak(c) {
   _cartDirty = true;
 }
 // TNT minecart: right-click = instant blast. Blocks between the blast and a player/mob block ALL the damage (fullBlock).
+function cartIgnite(c) {   // lit by Fire Aspect / flint and steel: blinks like primed TNT, then explodes
+  if (!c || !c.tnt || c.fuse != null) return;
+  c.fuse = TNT_FUSE;
+  try {
+    const tm = c.mesh.userData.tntMesh;
+    if (tm) { const fl = new THREE.Mesh(_tntFlashGeo, _tntFlashMat); fl.scale.setScalar(0.64); fl.visible = false; tm.add(fl); c.flash = fl; }
+  } catch (e) {}
+  try { tntSound('fuse'); } catch (e) {}
+}
 function cartExplode(c) {
   if (cartRide === c) cartDismount();
   const p = c.pos.clone();
@@ -19982,6 +20016,11 @@ function updateCarts(dt) {
   const ll = Math.hypot(dir.x, dir.z);
   if (ll > 0.25) _cartLook = [dir.x / ll, dir.z / ll];
   for (const c of carts.slice()) {
+    if (c.tnt && c.fuse != null) {   // burning fuse
+      c.fuse -= dt;
+      if (c.flash) c.flash.visible = Math.floor(Math.max(0, c.fuse) * (3 + (1 - Math.max(0, c.fuse) / TNT_FUSE) * 9)) % 2 === 0;
+      if (c.fuse <= 0) { cartExplode(c); continue; }
+    }
     if (!railAt(c.cx, c.cy, c.cz)) {
       if (!world.get(key(c.cx, c.cy - 1, c.cz))) { c.speed = 0; continue; }   // chunk not loaded: stay put
       cartBreak(c); continue;                                                  // the rail under it was removed
@@ -20030,7 +20069,13 @@ canvas.addEventListener('mousedown', e => {
     useOffHand = false; blockFromOff = false;
     if (cartRide || boatRide) return;
     const lc = findLookedCart(4);
-    if (lc && lc.tnt) { startSwing(); cartExplode(lc); e.stopImmediatePropagation(); return; }   // TNT minecart: instant boom
+    if (lc && lc.tnt) {   // TNT minecart: a Fire Aspect sword / flint and steel lights the fuse; anything else = instant boom
+      startSwing();
+      const _h = mainItem();
+      if (_h && (_h.type === 'flint_and_steel' || (isSword(_h.type) && _h.ench && Number(_h.ench.fireaspect) > 0))) { cartIgnite(lc); try { damageHeldTool(1); } catch (er) {} }
+      else cartExplode(lc);
+      e.stopImmediatePropagation(); return;
+    }
     if (lc) { cartMount(lc); e.stopImmediatePropagation(); return; }
     if (tryPlaceCart()) { e.stopImmediatePropagation(); return; }
   } else {
