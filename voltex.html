@@ -10031,7 +10031,7 @@ function _disposeHeldRoot(root) {
 function setHeldVisual(state, anchor, type, ench) {
   const hasEnch = !!(ench && typeof ench === 'object' && Object.keys(ench).length);
   const sig = (type || '') + '|' + (hasEnch ? '1' : '0');
-  if (state.heldSig === sig) return;
+  if (state.heldSig === sig && (state.heldMesh || !type) && !(state.heldMesh && !state.heldMesh.parent)) return;
   state.heldSig = sig;
   state.heldType = type;
   if (state.heldMesh) {
@@ -10044,8 +10044,11 @@ function setHeldVisual(state, anchor, type, ench) {
       try { state.heldMesh.geometry.dispose(); } catch (e) {}
     }
   }
-  const mesh = makeHeldItemMesh(type);
-  if (!mesh) { state.heldMesh = null; return; }
+  let mesh = null;
+  try { mesh = makeHeldItemMesh(type); } catch (err) { mesh = null; }
+  if (!mesh && type) { try { mesh = new THREE.Mesh(new THREE.BoxGeometry(0.26, 0.26, 0.26), getHeldCubeMaterials(type)); } catch (err) { mesh = null; } }
+  if (!mesh) { state.heldMesh = null; if (type) state.heldSig = null; return; }   // retry next frame instead of staying empty forever
+  mesh.traverse(o => { o.frustumCulled = false; });
   // First-person LEFT hand: mirror flat item sprites so the tip leans toward the centre like the right hand's does.
   if (state === viewModelOffState && mesh.isMesh && mesh.geometry && mesh.geometry.userData && mesh.geometry.userData.gx !== undefined) {
     mesh.scale.x *= -1; mesh.rotation.y *= -1; mesh.updateMatrix();
@@ -11822,6 +11825,7 @@ function bossElytraVisual(a, dt) {
   if (!ud.pivot) {
     if (!((a.eq >> 10) & 1) || a._wingTry) return;
     a._wingTry = true; wemmbuSetupModel(a.group, null, true);
+    if (ud.pivot) ud.pivot.traverse(o => { o.frustumCulled = false; });
     if (a.kind === 'null_commander' && ud.wings) for (const w of ud.wings) w.grp.traverse(o => { if (o.isMesh && o.material && o.material.color) o.material.color.setHex(0x1c1c1c); });
   }
   wemmbuVisualTick(a, dt);
@@ -12659,14 +12663,20 @@ function wemmbuAI(a, dt) {
 function wemmbuVisualTick(a, dt) {
   const ud = a.group.userData, pivot = ud && ud.pivot; if (!pivot || !(dt > 0)) return;
   const _wk = wemmbuKind(a), fly = _wk ? (a.eq >> 4) & 1 : (a.eq >> 10) & 1, boost = _wk ? (a.eq >> 5) & 1 : (a.eq >> 11) & 1;
+  pivot.visible = true;
+  if (!isFinite(a.tilt)) a.tilt = 0;
   const lp = a.vlp || (a.vlp = a.pos.clone()), sv = a.vsm || (a.vsm = new THREE.Vector3());
+  if (!isFinite(sv.x + sv.y + sv.z)) sv.set(0, 0, 0);
+  if (!isFinite(lp.x + lp.y + lp.z)) lp.copy(a.pos);
   let vx = (a.pos.x - lp.x) / dt, vy = (a.pos.y - lp.y) / dt, vz = (a.pos.z - lp.z) / dt; lp.copy(a.pos);
   const vl = Math.hypot(vx, vy, vz); if (vl > 45) { vx *= 45 / vl; vy *= 45 / vl; vz *= 45 / vl; }
   const kv = Math.min(1, dt * 10); sv.x += (vx - sv.x) * kv; sv.y += (vy - sv.y) * kv; sv.z += (vz - sv.z) * kv;
   const sp = sv.length();
   let th = 0;
   if (fly && sp > 2) th = Math.PI / 2 - Math.atan2(sv.y, Math.hypot(sv.x, sv.z));
+  if (!isFinite(th)) th = 0;
   a.tilt = (a.tilt || 0) + (th - (a.tilt || 0)) * Math.min(1, dt * 9);
+  if (!fly && Math.abs(a.tilt) < 0.02) a.tilt = 0;
   pivot.rotation.x = a.tilt;
   pivot.position.set(0, 0.9 * (1 - Math.cos(a.tilt)), -0.9 * Math.sin(a.tilt));
   a.wingS = (a.wingS || 0) + ((fly ? 1 : 0) - (a.wingS || 0)) * Math.min(1, dt * 8);
