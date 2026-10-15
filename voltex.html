@@ -8562,19 +8562,20 @@ function damagePlayer(amount, knockDir, knockStrength, opts) {
   }
 }
 // Dying with a mace or a worn Elytra: each one has a chance to drop where you fell (the killer can pick it up).
-const DEATH_GEAR_DROP_CHANCE = 0.4;
+const DEATH_GEAR_DROP_CHANCE = 0.4;   // Elytra; maces always drop
 function deathGearDrop() {
+  return;   // keep inventory: dying drops nothing (no mace, no Elytra)
   const at = new THREE.Vector3(player.pos.x, player.pos.y + 0.6, player.pos.z);
   let any = false;
-  const tryDrop = (it, clear) => {
-    if (!it || Math.random() >= DEATH_GEAR_DROP_CHANCE) return;
+  const tryDrop = (it, clear, always) => {
+    if (!it || (!always && Math.random() >= DEATH_GEAR_DROP_CHANCE)) return;
     spawnDroppedItem(it.type, 1, at.clone(), new THREE.Vector3((Math.random() - 0.5) * 3, 3, (Math.random() - 0.5) * 3), { ench: it.ench, dur: it.dur, name: it.name, meta: it.meta });
     clear(); any = true;
   };
   const el = armorSlots[1];
   if (el && el.type === 'elytra') tryDrop(el, () => { armorSlots[1] = null; });
-  for (let i = 0; i < INV_SIZE; i++) { const it = inventory[i]; if (it && isMace(it.type)) tryDrop(it, () => { inventory[i] = null; }); }
-  if (offhand && isMace(offhand.type)) tryDrop(offhand, () => { offhand = null; });
+  for (let i = 0; i < INV_SIZE; i++) { const it = inventory[i]; if (it && isMace(it.type)) tryDrop(it, () => { inventory[i] = null; }, true); }
+  if (offhand && isMace(offhand.type)) tryDrop(offhand, () => { offhand = null; }, true);
   if (any) { try { renderHotbar(); if (inventoryOpen) renderInventoryPanel(); saveLocalPlayer(); } catch (e) {} }
 }
 // ---- death messages: shown to everyone ("X was slain by Y" / "X died") ----
@@ -11666,7 +11667,7 @@ function applySpokeGear(a) {
   a.atkDmg = SPOKE_SWORD_DMG;
   if (a.kind === 'null') blackenNull(a);
 }
-function killPlayerNow() { announce(MY_NAME + ' was killed'); player.hp = 0; updateHpUI(); respawnPlayer(); }   // straight to respawn: no totem check
+function killPlayerNow() { announce(MY_NAME + ' was killed'); player.hp = 0; updateHpUI(); try { deathGearDrop(); } catch (e) {} respawnPlayer(); }   // straight to respawn: no totem check
 function killAllMobs() { for (const a of animals) if (a.alive) { a.alive = false; scene.remove(a.group); } }
 function summonNullCommander(x, y, z) {
   // Elite Null: floating name like players, sword + spear, rare bow, elytra, 3 totems
