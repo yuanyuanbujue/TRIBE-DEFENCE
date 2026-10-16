@@ -1958,6 +1958,49 @@ TEX.birchTrapdoor = makeTexture(ctx => {
 TEX.cobblestone = makeTexture(ctx => speckle(ctx, '#7a7a7a', ['#6a6a6a','#8c8c8c','#5a5a5a'], 70));
 TEX.obsidian = makeTexture(ctx => { const pal = ["000001", "06030b", "100c1c", "271e3d", "3b2754"], d = 'baaaabcbaedbbdedbabcacbaecbbdecbaaeedabddccacdabaedccdbcbcaabcbaadcccaaaaaabbbabcccaacbbbbedbbaaccbcdeedbadabaabbaceccacaaaaaedaaaedcccddbaadcccdcaacbddcbacbcbbcbbabbbcbbaacbadacbbcabcbeedccccbeecacccdecbcecbddcbbbacccbbbadbadbbcbdbbccabaabcbacabcdcabbbbbb'; for (let i = 0; i < 256; i++) { ctx.fillStyle = '#' + pal[d.charCodeAt(i) - 97]; ctx.fillRect(i % 16, (i / 16) | 0, 1, 1); } });
 // lava: animated-looking orange/red blotches (static texture, scrolled slowly in updateLavaAnim)
+
+TEX.crying_obsidian = makeTexture(ctx => {
+  const pal = ["0a0614","1a0f2a","2a1840","3d2460","5a3a90","7a50c0","9a70e8","c090ff"];
+  // dark base like obsidian with purple weeping streaks
+  const d = "0011223344556677001122334455667700112233445566770011223344556677"+
+            "0011332244665577001133224466557700113322446655770011332244665577"+
+            "1122003344556677112200334455667711220033445566771122003344556677"+
+            "0011223344556677001122334455667700112233445566770011223344556677";
+  // simpler pixel fill
+  for (let y=0;y<16;y++) for (let x=0;x<16;x++) {
+    const n = ((x*7+y*13)^ (x*y)) & 7;
+    ctx.fillStyle = '#' + pal[n];
+    ctx.fillRect(x,y,1,1);
+  }
+  // cyan/purple "tears"
+  ctx.fillStyle = '#b080ff';
+  for (const [x,y] of [[3,2],[3,3],[3,4],[4,5],[7,1],[7,2],[7,3],[11,4],[11,5],[11,6],[12,7],[2,10],[2,11],[8,12],[8,13],[14,8],[14,9]])
+    ctx.fillRect(x,y,1,1);
+  ctx.fillStyle = '#e0c0ff';
+  for (const [x,y] of [[3,2],[7,1],[11,4],[2,10],[14,8]]) ctx.fillRect(x,y,1,1);
+});
+TEX.stone_bricks = makeTexture(ctx => {
+  // stone brick pattern
+  const cols = ['#7a7a7a','#6e6e6e','#8a8a8a','#5c5c5c','#9a9a9a'];
+  for (let y=0;y<16;y++) for (let x=0;x<16;x++) {
+    const bx = Math.floor(x/8), by = Math.floor(y/4);
+    const ox = (by&1)?4:0;
+    const cx = Math.floor((x+ox)/8);
+    const edge = (x+ox)%8===0 || y%4===0;
+    ctx.fillStyle = edge ? '#4a4a4a' : cols[(cx*3+by*5+x+y)&4];
+    ctx.fillRect(x,y,1,1);
+  }
+});
+TEX.gold_block = makeTexture(ctx => {
+  const pal = ['#f8e050','#e8c830','#d4a820','#c09018','#a87810','#ffe878','#8a6810'];
+  for (let y=0;y<16;y++) for (let x=0;x<16;x++) {
+    const border = x===0||y===0||x===15||y===15 || x===7||y===7;
+    const n = ((x>>1)^(y>>1)) & 3;
+    ctx.fillStyle = border ? '#6a5010' : '#' + ['f8e050','e8c830','d4a820','ffe878'][n];
+    ctx.fillRect(x,y,1,1);
+  }
+});
+
 TEX.lava = makeTexture(ctx => {
   for (let y = 0; y < 16; y++) for (let x = 0; x < 16; x++) {
     const v = Math.sin(x * 0.9 + Math.sin(y * 0.7) * 2) * Math.cos(y * 0.8 + Math.sin(x * 0.5)) + 0.5 * Math.sin((x + y) * 1.3);
@@ -2070,6 +2113,10 @@ const BLOCK_TYPES = {
   water:  { transparent: true, hardness: 0 },
   lava:   { transparent: true, hardness: 0 },   // liquid: see addLavaBlock / lava flow
   obsidian: { transparent: false, hardness: 30, tool: 'pickaxe' },   // lava source + water; only a diamond pickaxe drops it
+  crying_obsidian: { transparent: false, hardness: 30, tool: 'pickaxe' },   // same as obsidian; emits low light; found on ruined portals
+  stone_bricks: { transparent: false, hardness: 1.5, tool: 'pickaxe' },
+  stone_brick_stairs: { transparent: true, hardness: 1.5, tool: 'pickaxe', shape: 'stairs' },
+  gold_block: { transparent: false, hardness: 3.0, tool: 'pickaxe' },
   crafting_table: { transparent: false, hardness: 1.0, tool: 'axe' },
   enchanting_table: { transparent: false, hardness: 2.0, tool: 'pickaxe' },
   anvil:          { transparent: false, hardness: 5.0, tool: 'pickaxe' },
@@ -3204,6 +3251,9 @@ const MI = {
   stone:     regMat(TEX.stone),
   cobblestone: regMat(TEX.cobblestone),
   obsidian: regMat(TEX.obsidian),
+  crying_obsidian: regMat(TEX.crying_obsidian),
+  stone_bricks: regMat(TEX.stone_bricks),
+  gold_block: regMat(TEX.gold_block),
   pistonSide: regMat(TEX.pistonSide),
   pistonBottom: regMat(TEX.pistonBottom),
   pistonTop: regMat(TEX.pistonTop),
@@ -3550,6 +3600,8 @@ MI.glassV = GLASS_TEX.map((t, m) => m === 15 ? MI.glass : regMat(t, true));
 // Minecraft light-emitting block.
 MAT_LIST[MI.torch].emissive = new THREE.Color(0xff9a3c);
 MAT_LIST[MI.torch].emissiveIntensity = 0.9;
+MAT_LIST[MI.crying_obsidian].emissive = new THREE.Color(0x6a40c0);
+MAT_LIST[MI.crying_obsidian].emissiveIntensity = 0.35;
 MAT_LIST[MI.campfire].emissive = new THREE.Color(0xff7a20);
 MAT_LIST[MI.campfire].emissiveIntensity = 0.85;
 MAT_LIST[MI.campfireTop].emissive = new THREE.Color(0xff9a30);
@@ -4285,6 +4337,7 @@ function shapeMat(b) {
   if (isTrapType(b.type)) return b.type === 'birch_trapdoor' ? MI.birchTrapdoor : MI.trapdoor;
   if (b.type === 'sign') return MI.sign;
   if (b.type === 'ladder') return MI.ladder;
+  if (b.type === 'stone_brick_stairs') return MI.stone_bricks;
   return MI.planks;
 }
 // ---- Bed: 2 blocks long. meta bits0-1 = direction from the foot toward the head, bit3 = this is the head half ----
@@ -4829,10 +4882,10 @@ for (let i = 0; i < MAX_ACTIVE_TORCH_LIGHTS; i++) {
 function syncBlockLight(x,y,z,type,deferRerank) {
   const k = key(x,y,z);
   try { if (lavaIdxSync(x, y, z, type === 'lava')) lavaFloodInvalidate(x, y, z, true); } catch (e) {}
-  if (type === 'torch' || type === 'campfire' || type === 'fire') {
+  if (type === 'torch' || type === 'campfire' || type === 'fire' || type === 'crying_obsidian') {
     if (!blockLights.has(k)) {
-      const yOff = type === 'campfire' ? 0.85 : 0.6;
-      blockLights.set(k, { position: new THREE.Vector3(x+0.5, y+yOff, z+0.5), bx: x, by: y, bz: z });
+      const yOff = type === 'campfire' ? 0.85 : (type === 'crying_obsidian' ? 0.5 : 0.6);
+      blockLights.set(k, { position: new THREE.Vector3(x+0.5, y+yOff, z+0.5), bx: x, by: y, bz: z, weak: type === 'crying_obsidian' });
       if (!deferRerank) scheduleTorchRerank();
     }
   } else if (blockLights.has(k)) {
@@ -5662,6 +5715,7 @@ const DUNGEON_LOOT = [   // [item, chance, min, max]
   ['arrow', 0.5, 4, 12], ['string', 0.4, 2, 6], ['torch', 0.65, 6, 16], ['apple', 0.35, 1, 3], ['golden_apple', 0.1, 1, 1],
 ];
 function dungeonLootFor(k, b) {
+  if (b && b.ruinedPortal && b.type === 'chest') return ruinedPortalLootFor(k, b);
   if (!b || !b.dungeon || b.type !== 'chest') return null;
   const [x, y, z] = k.split(',').map(Number);
   const rng = mulberry32(Math.floor(hashRandom(x, y, z, 8200) * 4294967296));
@@ -5681,6 +5735,169 @@ function dungeonLootFor(k, b) {
 // Pools of lava source blocks: sunk 2 deep into a cave floor underground (with extra diamond ore around them) or into flat ground
 // on the surface. Pure functions of the chunk, so every client generates the same pools.
 const LAVA_CAVE_CHANCE = 0.30, LAVA_SURFACE_CHANCE = 0.05;
+
+// ================= Ruined Nether portals =================
+// Incomplete portal frames of obsidian + crying obsidian, stone-brick decoration,
+// a small netherrack platform underneath, a loot chest, and a few gold blocks.
+// Pure functions of the region so every client builds the same structure.
+const RUINED_PORTAL_REGION = 64;
+const RUINED_PORTAL_CHANCE = 0.35;
+const _ruinedPortalCache = new Map();
+function ruinedPortalAt(gx, gz) {
+  const ck = gx + ',' + gz;
+  if (_ruinedPortalCache.has(ck)) return _ruinedPortalCache.get(ck);
+  let portal = null;
+  if (hashRandom(gx, gz, 0, 9401) < RUINED_PORTAL_CHANCE) {
+    const margin = 10;
+    const cx = gx * RUINED_PORTAL_REGION + margin + Math.floor(hashRandom(gx, gz, 1, 9402) * (RUINED_PORTAL_REGION - 2 * margin));
+    const cz = gz * RUINED_PORTAL_REGION + margin + Math.floor(hashRandom(gx, gz, 2, 9403) * (RUINED_PORTAL_REGION - 2 * margin));
+    if (!(Math.abs(cx) < 40 && Math.abs(cz) < 40)) {
+      const col = columnInfo(cx, cz);
+      const h = col.h;
+      if (h >= 2) {
+        // size variants: small (4x5 frame) or large (5x5)
+        const large = hashRandom(gx, gz, 3, 9404) < 0.4;
+        const axisZ = hashRandom(gx, gz, 4, 9405) < 0.5; // frame runs along Z (portal faces X) or along X
+        const floorY = h; // surface; underwater/caves still ok if column is solid
+        portal = { cx, cz, floorY, large, axisZ, seed: Math.floor(hashRandom(gx, gz, 5, 9406) * 1e9) };
+      }
+    }
+  }
+  _ruinedPortalCache.set(ck, portal);
+  return portal;
+}
+const RUINED_PORTAL_LOOT = [
+  ['obsidian', 0.55, 1, 2], ['crying_obsidian', 0.35, 1, 2], ['gold_nugget', 0.7, 4, 18],
+  ['gold_ingot', 0.45, 2, 8], ['iron_ingot', 0.35, 1, 4], ['gold_block', 0.15, 1, 1],
+  ['golden_apple', 0.12, 1, 1], ['diamond', 0.08, 1, 1], ['flint_and_steel', 0.25, 1, 1],
+  ['stone_bricks', 0.4, 2, 8],
+];
+function ruinedPortalLootFor(k, b) {
+  if (!b || !b.ruinedPortal || b.type !== 'chest') return null;
+  const [x, y, z] = k.split(',').map(Number);
+  const rng = mulberry32(Math.floor(hashRandom(x, y, z, 9410) * 4294967296));
+  const slots = new Array(CHEST_SIZE).fill(null);
+  const order = Array.from({ length: CHEST_SIZE }, (_, i) => i);
+  for (let i = order.length - 1; i > 0; i--) { const j = Math.floor(rng() * (i + 1)); const t = order[i]; order[i] = order[j]; order[j] = t; }
+  let n = 0;
+  for (const [type, chance, lo, hi] of RUINED_PORTAL_LOOT) {
+    if (rng() < chance && n < order.length) {
+      const amt = lo + Math.floor(rng() * (hi - lo + 1));
+      // only place if the item type exists in the game
+      if (BLOCK_TYPES[type] || ITEM_INFO[type]) slots[order[n++]] = { type, count: amt };
+    }
+  }
+  return slots;
+}
+function rpPut(x, y, z, type, meta, flags) {
+  const k = key(x, y, z);
+  if (diffTouched.has(k) || removedDiffs.has(k)) return false;
+  const existing = world.get(k);
+  if (existing && existing.type === 'bedrock') return false;
+  const b = existing || { x, y, z };
+  b.type = type;
+  b.meta = meta != null ? meta : 0;
+  delete b.placed; delete b.natural;
+  if (flags) Object.assign(b, flags);
+  world.set(k, b);
+  if (type === 'crying_obsidian') try { syncBlockLight(x, y, z, type, true); } catch (e) {}
+  return true;
+}
+function genRuinedPortals(cx, cz) {
+  const x0 = cx * CHUNK_SIZE, z0 = cz * CHUNK_SIZE;
+  const x1 = x0 + CHUNK_SIZE - 1, z1 = z0 + CHUNK_SIZE - 1;
+  const gx0 = Math.floor(x0 / RUINED_PORTAL_REGION), gx1 = Math.floor(x1 / RUINED_PORTAL_REGION);
+  const gz0 = Math.floor(z0 / RUINED_PORTAL_REGION), gz1 = Math.floor(z1 / RUINED_PORTAL_REGION);
+  for (let gx = gx0; gx <= gx1; gx++) for (let gz = gz0; gz <= gz1; gz++) {
+    const p = ruinedPortalAt(gx, gz);
+    if (!p) continue;
+    const { cx: px, cz: pz, floorY, large, axisZ, seed } = p;
+    // only build cells that fall inside this chunk (structure can straddle chunks)
+    const inChunk = (x, z) => x >= x0 && x <= x1 && z >= z0 && z <= z1;
+    const rng = mulberry32(seed);
+    const W = large ? 5 : 4; // frame width in portal direction
+    const H = large ? 5 : 4; // frame height
+    // Platform: roughly 7x7 netherrack under the structure
+    for (let dx = -3; dx <= 3; dx++) for (let dz = -3; dz <= 3; dz++) {
+      const x = px + dx, z = pz + dz;
+      if (!inChunk(x, z)) continue;
+      const h = columnInfo(x, z).h;
+      const y = Math.min(floorY, h);
+      for (let dy = -1; dy <= 0; dy++) {
+        if (rng() < 0.88 || (Math.abs(dx) + Math.abs(dz) < 2)) rpPut(x, y + dy, z, 'netherrack');
+      }
+      if (rng() < 0.035) rpPut(x, y + 1, z, 'gold_block');
+    }
+    // Guarantee 1-2 gold blocks near the portal base
+    if (inChunk(px + 1, pz + 1)) rpPut(px + 1, floorY + 1, pz + 1, 'gold_block');
+    if (large && inChunk(px - 2, pz - 1) && rng() < 0.7) rpPut(px - 2, floorY + 1, pz - 1, 'gold_block');
+
+    // Incomplete portal frame: place some but not all of the 4x5 / 5x5 ring
+    // Frame coordinates: interior is 2 wide in portal plane
+    const frameCells = [];
+    if (axisZ) {
+      // frame in X-Y, portal faces +/-Z (thin in Z)
+      for (let i = 0; i < W; i++) {
+        frameCells.push([px + i, floorY, pz]);           // bottom
+        frameCells.push([px + i, floorY + H - 1, pz]); // top
+      }
+      for (let j = 1; j < H - 1; j++) {
+        frameCells.push([px, floorY + j, pz]);           // left
+        frameCells.push([px + W - 1, floorY + j, pz]); // right
+      }
+    } else {
+      for (let i = 0; i < W; i++) {
+        frameCells.push([px, floorY, pz + i]);
+        frameCells.push([px, floorY + H - 1, pz + i]);
+      }
+      for (let j = 1; j < H - 1; j++) {
+        frameCells.push([px, floorY + j, pz]);
+        frameCells.push([px, floorY + j, pz + W - 1]);
+      }
+    }
+    // omit ~25-40% of frame cells (ruined)
+    frameCells.forEach(([x, y, z], idx) => {
+      if (!inChunk(x, z)) return;
+      if (rng() < 0.32) return; // missing piece
+      const cry = rng() < 0.28;
+      rpPut(x, y, z, cry ? 'crying_obsidian' : 'obsidian');
+    });
+
+    // Stone brick decoration: scattered blocks + stairs around the base
+    const decor = [
+      [px - 2, floorY + 1, pz - 2], [px + W + 1, floorY + 1, pz - 1],
+      [px - 1, floorY + 1, pz + 2], [px + 2, floorY + 1, pz - 3],
+      [px + W, floorY + 1, pz + 1], [px - 3, floorY + 1, pz],
+    ];
+    decor.forEach(([x, y, z], i) => {
+      if (!inChunk(x, z)) return;
+      if (rng() < 0.25) return;
+      if (rng() < 0.4) {
+        const facing = i & 3;
+        rpPut(x, y, z, 'stone_brick_stairs', facing);
+      } else {
+        rpPut(x, y, z, 'stone_bricks');
+        if (rng() < 0.35) rpPut(x, y + 1, z, 'stone_bricks');
+      }
+    });
+    // a few more random stone bricks on the netherrack pad
+    for (let t = 0; t < 6; t++) {
+      const x = px + Math.floor(rng() * 7) - 3;
+      const z = pz + Math.floor(rng() * 7) - 3;
+      if (!inChunk(x, z)) continue;
+      if (rng() < 0.5) rpPut(x, floorY + 1, z, 'stone_bricks');
+    }
+
+    // Loot chest beside the portal
+    const chestOffsets = [[-2, 1], [W + 1, 0], [1, -2], [2, 2]];
+    const co = chestOffsets[Math.floor(rng() * chestOffsets.length)];
+    const cxChest = px + co[0], czChest = pz + co[1];
+    if (inChunk(cxChest, czChest)) {
+      rpPut(cxChest, floorY + 1, czChest, 'chest', null, { ruinedPortal: true });
+    }
+  }
+}
+
 function genLavaPools(cx, cz) {
   if (Math.abs(cx) <= 2 && Math.abs(cz) <= 2) return;                 // never around the spawn point
   const x0 = cx * CHUNK_SIZE, z0 = cz * CHUNK_SIZE;
@@ -5845,6 +6062,8 @@ function* generateChunkColumnsGen(cx, cz) {
   genSpawnerRooms(cx, cz);
   yield;
   try { genLavaPools(cx, cz); } catch (e) { console.warn('lava pools', e); }
+  yield;
+  try { genRuinedPortals(cx, cz); } catch (e) { console.warn('ruined portals', e); }
   yield;
   // Trees whose base sits just outside this chunk can still canopy into it,
   // so scan a small padded border too — idempotent (addBlock no-ops on an
@@ -12213,7 +12432,7 @@ function summonNullArmy(sp) {
   if (made > 0) addChatLine('System', 'Spoke summoned the Null army! (' + made + ')', true);
 }
 // ---- block editing for Spoke / Null (host-side, synced through the same world_blocks table players use) ----
-const SPOKE_NOBREAK = new Set(['bedrock', 'water', 'lava', 'chest', 'spawner', 'obsidian', 'sign', 'bed']);
+const SPOKE_NOBREAK = new Set(['bedrock', 'water', 'lava', 'chest', 'spawner', 'obsidian', 'crying_obsidian', 'sign', 'bed']);
 function spokeBreak(x, y, z) {
   x = Math.round(x); y = Math.round(y); z = Math.round(z);
   const b = world.get(key(x, y, z));
@@ -19908,7 +20127,7 @@ function updateMining(dt) {
       if (canDrop && b.type === 'iron_ore') {
         canDrop = toolKind === 'pickaxe' && (heldType.startsWith('stone_') || heldType.startsWith('iron_') || heldType.startsWith('gold_') || heldType.startsWith('diamond_'));
       }
-      if (canDrop && b.type === 'obsidian') canDrop = toolKind === 'pickaxe' && heldType.startsWith('diamond_');   // obsidian: diamond pickaxe only
+      if (canDrop && (b.type === 'obsidian' || b.type === 'crying_obsidian')) canDrop = toolKind === 'pickaxe' && heldType.startsWith('diamond_');   // obsidian / crying: diamond pickaxe only
       // Gold / diamond ore need at least an iron pickaxe (or better: gold/diamond).
       if (canDrop && (b.type === 'gold_ore' || b.type === 'diamond_ore' || b.type === 'redstone_ore' || b.type === 'lapis_ore')) {
         canDrop = toolKind === 'pickaxe' && (heldType.startsWith('iron_') || heldType.startsWith('gold_') || heldType.startsWith('diamond_'));
@@ -21782,6 +22001,7 @@ function explodeTnt(t) {
     const x = cx + dx, y = cy + dy, z = cz + dz;
     const b = getBlock(x, y, z);
     if (!b || b.type === 'water') continue;
+    if (b.type === 'obsidian' || b.type === 'crying_obsidian' || b.type === 'bedrock') continue; // blast-resistant
     if (b.type === 'tnt') { chain.push({ x, y, z }); continue; }
     if (b.type === 'shulker_box') { { const _pk = shulkerPack(x, y, z); spawnDroppedItem('shulker_box', 1, new THREE.Vector3(x, y, z), undefined, _pk ? { meta: _pk } : undefined); } }
     else if (b.type === 'chest') {
@@ -22873,7 +23093,7 @@ animate();
   const DEFAULT_NAME = 'Realistic LOW (built-in)';
 
   // game key -> candidate file names. Java names first, Bedrock after. Subfolders allowed.
-  const BLOCKS = {"enchBottom": ["enchanting_table_bottom"], "brewing_stand": ["brewing_stand"], "cobblestone": ["cobblestone"], "wool": ["white_wool", "wool_colored_white"], "grassTop": ["grass_block_top", "grass_carried", "grass_top"], "grassSide": ["grass_block_side", "grass_side_carried", "grass_side"], "dirt": ["dirt"], "stone": ["stone"], "iron_ore": ["iron_ore"], "gold_ore": ["gold_ore"], "diamond_ore": ["diamond_ore"], "coalOre": ["coal_ore"], "redstone_ore": ["redstone_ore"], "planks": ["oak_planks", "planks_oak"], "leaves": ["oak_leaves", "leaves_oak"], "brick": ["bricks", "brick"], "tnt": ["tnt_side"], "tntTop": ["tnt_top"], "craftTop": ["crafting_table/top", "crafting_table_top"], "craftSide": ["crafting_table/side", "crafting_table_side"], "sapling": ["oak_sapling", "sapling_oak"], "wood": ["oak_log", "log_oak"], "woodTop": ["oak_log_top", "log_oak_top"], "sand": ["sand"], "water": ["water_still"], "torch": ["torch", "torch_on"], "furnace": ["furnace_front", "furnace_front_off"], "doorLower": ["oak_door_bottom", "door_wood_lower"], "doorUpper": ["oak_door_top", "door_wood_upper"], "trapdoor": ["oak_trapdoor", "trapdoor"], "birchWood": ["birch_log", "log_birch"], "birchWoodTop": ["birch_log_top", "log_birch_top"], "birch_planks": ["birch_planks", "planks_birch"], "birch_leaves": ["birch_leaves", "leaves_birch"], "birchDoorLower": ["birch_door_bottom", "door_birch_lower"], "birchDoorUpper": ["birch_door_top", "door_birch_upper"], "birchTrapdoor": ["birch_trapdoor"], "enchSide": ["enchanting_table_side"], "enchTop": ["enchanting_table_top"], "spawner": ["spawner", "mob_spawner"], "cobweb": ["cobweb", "web"], "tall_grass": ["tall_grass_bottom", "tallgrass", "short_grass"], "farmland": ["farmland", "farmland_dry"], "wheat_0": ["wheat_stage0", "wheat_stage_0"], "wheat_1": ["wheat_stage3", "wheat_stage_3"], "wheat_2": ["wheat_stage5", "wheat_stage_5"], "wheat_3": ["wheat_stage7", "wheat_stage_7"], "fire": ["fire_0"], "chest": ["chest_front"], "chestTop": ["chest_top"], "enderChest": ["ender_chest_front"], "enderChestTop": ["ender_chest_top"], "bedTopHead": ["bed_head_top"], "bedTopFoot": ["bed_feet_top"], "bedSideHead": ["bed_head_side"], "bedSideFoot": ["bed_feet_side"], "bedEndHead": ["bed_head_end"], "bedEndFoot": ["bed_feet_end"]};
+  const BLOCKS = {"enchBottom": ["enchanting_table_bottom"], "brewing_stand": ["brewing_stand"], "cobblestone": ["cobblestone"], "wool": ["white_wool", "wool_colored_white"], "grassTop": ["grass_block_top", "grass_carried", "grass_top"], "grassSide": ["grass_block_side", "grass_side_carried", "grass_side"], "dirt": ["dirt"], "stone": ["stone"], "iron_ore": ["iron_ore"], "gold_ore": ["gold_ore"], "diamond_ore": ["diamond_ore"], "coalOre": ["coal_ore"], "redstone_ore": ["redstone_ore"], "planks": ["oak_planks", "planks_oak"], "leaves": ["oak_leaves", "leaves_oak"], "brick": ["bricks", "brick"], "tnt": ["tnt_side"], "tntTop": ["tnt_top"], "craftTop": ["crafting_table/top", "crafting_table_top"], "craftSide": ["crafting_table/side", "crafting_table_side"], "sapling": ["oak_sapling", "sapling_oak"], "wood": ["oak_log", "log_oak"], "woodTop": ["oak_log_top", "log_oak_top"], "sand": ["sand"], "water": ["water_still"], "torch": ["torch", "torch_on"], "furnace": ["furnace_front", "furnace_front_off"], "doorLower": ["oak_door_bottom", "door_wood_lower"], "doorUpper": ["oak_door_top", "door_wood_upper"], "trapdoor": ["oak_trapdoor", "trapdoor"], "birchWood": ["birch_log", "log_birch"], "birchWoodTop": ["birch_log_top", "log_birch_top"], "birch_planks": ["birch_planks", "planks_birch"], "birch_leaves": ["birch_leaves", "leaves_birch"], "birchDoorLower": ["birch_door_bottom", "door_birch_lower"], "birchDoorUpper": ["birch_door_top", "door_birch_upper"], "birchTrapdoor": ["birch_trapdoor"], "enchSide": ["enchanting_table_side"], "enchTop": ["enchanting_table_top"], "spawner": ["spawner", "mob_spawner"], "cobweb": ["cobweb", "web"], "tall_grass": ["tall_grass_bottom", "tallgrass", "short_grass"], "farmland": ["farmland", "farmland_dry"], "wheat_0": ["wheat_stage0", "wheat_stage_0"], "wheat_1": ["wheat_stage3", "wheat_stage_3"], "wheat_2": ["wheat_stage5", "wheat_stage_5"], "wheat_3": ["wheat_stage7", "wheat_stage_7"], "fire": ["fire_0"], "chest": ["chest_front"], "chestTop": ["chest_top"], "enderChest": ["ender_chest_front"], "enderChestTop": ["ender_chest_top"], "bedTopHead": ["bed_head_top"], "bedTopFoot": ["bed_feet_top"], "bedSideHead": ["bed_head_side"], "bedSideFoot": ["bed_feet_side"], "bedEndHead": ["bed_head_end"], "bedEndFoot": ["bed_feet_end"], "crying_obsidian": ["crying_obsidian"], "stone_bricks": ["stone_bricks", "stonebrick"], "gold_block": ["gold_block", "gold_block"]};
   const ITEMS = (function () {
     const m = {"apple": ["apple"], "bread": ["bread"], "wheat": ["wheat"], "wheat_seeds": ["wheat_seeds", "seeds_wheat"], "raw_beef": ["beef", "beef_raw"], "cooked_beef": ["cooked_beef", "beef_cooked"], "raw_porkchop": ["porkchop", "porkchop_raw"], "cooked_porkchop": ["cooked_porkchop", "porkchop_cooked"], "raw_mutton": ["mutton", "mutton_raw"], "cooked_mutton": ["cooked_mutton", "mutton_cooked"], "golden_apple": ["golden_apple", "apple_golden"], "gold_nugget": ["gold_nugget"], "charcoal": ["charcoal"], "iron_ingot": ["iron_ingot"], "redstone": ["redstone", "redstone_dust"], "leather": ["leather"], "book": ["book"], "gold_ingot": ["gold_ingot"], "diamond": ["diamond"], "coal": ["coal"], "stick": ["stick"], "arrow": ["arrow"], "bow": ["bow", "bow_standby"], "sign": ["oak_sign", "sign"], "trident": ["trident"], "breeze_rod": ["breeze_rod"], "wind_charge": ["wind_charge"], "mace": ["mace"], "heavy_core": ["heavy_core"], "totem_of_undying": ["totem_of_undying", "totem"]};
     const mats = { wood: ['wooden', 'wood'], stone: ['stone', 'stone'], iron: ['iron', 'iron'], gold: ['golden', 'gold'], diamond: ['diamond', 'diamond'] };
