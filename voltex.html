@@ -1898,6 +1898,10 @@ TEX.diamond_ore = makeTexture(ctx => { speckle(ctx, '#8a8a8a', ['#7d7d7d','#9595
 TEX.redstone_ore = makeTexture(ctx => { speckle(ctx, '#8a8a8a', ['#7d7d7d','#959595','#6f6f6f'], 40); drawOrePixels(ctx, ORE_REDSTONE); });
 const LAPIS_ORE_PX = "8f8f8fff7f7f7fff7f7f7fff8f8f8fff7f7f7fff747474ff747474ff7f7f7fff747474ff686868ff747474ff747474ff7f7f7fff8f8f8fff8f8f8fff8f8f8fff7f7f7fff7f7f7fff686868ff5c5c5cff5c5c5cff686868ff747474ff8f8f8fff8f8f8fff7f7f7fff7f7f7fff686868ff5c5c5cff5c5c5cff7f7f7fff747474ff7f7f7fff747474ff1855bdff20598bff1855bdff16448dff686868ff5c5c5cff5c5c5cff747474ff747474ff8f8f8fff1034bdff16448dff7f7f7fff7f7f7fff8f8f8fff7f7f7fff8f8f8fffa2a2a2ff8f8f8fff1044acff747474ff16448dff446fdcff8f8f8fff7f7f7fff7f7f7fffa2a2a2ff8f8f8fff747474ff747474ff747474ff7f7f7fff7f7f7fff747474ff747474ff5c5c5cff5c5c5cff747474ff8f8f8fff7f7f7fff5c5c5cff5c5c5cff8f8f8fff747474ff7f7f7fff7f7f7fff7f7f7fff8f8f8fff7f7f7fff686868ff5c5c5cff1855bdff1044acff7f7f7fff7f7f7fff686868ff20598bff1034bdff747474ff686868ff747474ff8f8f8fff747474ff7f7f7fff5c5c5cff1034bdff446fdcff6995f4ff446fdcff16448dff8f8f8fff7f7f7fff446fdcff6995f4ff8f8f8fff8f8f8fff7f7f7fff7f7f7fff747474ff1044acff446fdcffa2a2a2ffa2a2a2ffa2a2a2ff8f8f8fff5c5c5cff686868ff686868ff7f7f7fffa2a2a2ff747474ff8f8f8fff8f8f8fff7f7f7fff8f8f8fff446fdcff6995f4ffa2a2a2ff8f8f8fff7f7f7fff686868ff1044acff5c5c5cff1855bdff16448dff16448dff7f7f7fff5c5c5cff5c5c5cff747474ff7f7f7fffa2a2a2ffa2a2a2ff7f7f7fff686868ff7f7f7fff686868ff1044acff1855bdff446fdcff446fdcff16448dff686868ff1044acff686868ff686868ff686868ff7f7f7fff686868ff686868ff1044acff747474ff747474ff686868ff1034bdff446fdcff6995f4ff8f8f8fff747474ff446fdcff20598bff7f7f7fff7f7f7fff7f7f7fff16448dff10349cff10349cff7f7f7fff7f7f7fff8f8f8fffa2a2a2ffa2a2a2ff8f8f8fff7f7f7fff8f8f8fff6995f4ff446fdcff7f7f7fff7f7f7fff747474ffa2a2a2ffa2a2a2ff8f8f8fff10349cff686868ff686868ff16448dff446fdcff446fdcff686868ffa2a2a2ff1034bdff446fdcff8f8f8fff8f8f8fff8f8f8fff7f7f7fff747474ff446fdcff6995f4ff1855bdff7f7f7fff446fdcff6995f4ff1034bdffa2a2a2ff747474ffa2a2a2ffa2a2a2ff7f7f7fff7f7f7fff747474ff747474ff7f7f7fff1855bdff446fdcff16448dffa2a2a2ff7f7f7fffa2a2a2ffa2a2a2ff7f7f7fff747474ff747474ff747474ff7f7f7fff7f7f7fff7f7f7fff7f7f7fff7f7f7fff8f8f8fffa2a2a2ffa2a2a2ff7f7f7fff7f7f7fff7f7f7fff7f7f7fff7f7f7fff7f7f7fff7f7f7fff8f8f8fff8f8f8fff";
 TEX.lapis_ore = makeTexture(ctx => { _drawPx(ctx, LAPIS_ORE_PX); });
+TEX.netherrack = makeTexture(ctx => { _drawPx(ctx, "511515ff572121ff511515ff501b1bff652828ff501b1bff723232ff723232ff652828ff652828ff411616ff652828ff652828ff723232ff652828ff572121ff572121ff652828ff652828ff572121ff501b1bff411616ff501b1bff652828ff723232ff501b1bff511515ff411616ff652828ff652828ff501b1bff511515ff723232ff652828ff723232ff652828ff572121ff411616ff511515ff501b1bff652828ff572121ff501b1bff511515ff652828ff501b1bff652828ff723232ff854242ff723232ff652828ff723232ff652828ff501b1bff572121ff723232ff652828ff723232ff723232ff572121ff511515ff652828ff501b1bff652828ff723232ff854242ff723232ff652828ff501b1bff652828ff723232ff854242ff854242ff652828ff723232ff723232ff501b1bff723232ff652828ff572121ff511515ff723232ff652828ff572121ff511515ff723232ff854242ff854242ff723232ff723232ff652828ff501b1bff652828ff652828ff723232ff652828ff511515ff652828ff723232ff501b1bff411616ff723232ff652828ff723232ff723232ff652828ff501b1bff511515ff652828ff723232ff854242ff723232ff723232ff572121ff511515ff411616ff501b1bff652828ff723232ff652828ff511515ff511515ff723232ff652828ff501b1bff652828ff854242ff854242ff652828ff501b1bff652828ff723232ff652828ff501b1bff501b1bff511515ff652828ff652828ff723232ff723232ff652828ff511515ff652828ff723232ff501b1bff652828ff723232ff854242ff723232ff652828ff411616ff501b1bff652828ff723232ff652828ff723232ff723232ff511515ff511515ff501b1bff572121ff723232ff652828ff723232ff723232ff652828ff411616ff501b1bff723232ff854242ff723232ff723232ff501b1bff411616ff411616ff501b1bff652828ff501b1bff501b1bff723232ff652828ff501b1bff511515ff411616ff501b1bff723232ff652828ff511515ff411616ff501b1bff572121ff501b1bff511515ff652828ff723232ff652828ff501b1bff723232ff652828ff511515ff501b1bff501b1bff511515ff723232ff652828ff723232ff652828ff511515ff572121ff723232ff652828ff723232ff723232ff854242ff723232ff511515ff501b1bff501b1bff572121ff652828ff723232ff854242ff723232ff511515ff501b1bff652828ff723232ff723232ff854242ff652828ff501b1bff572121ff501b1bff411616ff652828ff723232ff652828ff723232ff652828ff652828ff501b1bff501b1bff652828ff723232ff723232ff501b1bff652828ff723232ff572121ff411616ff501b1bff652828ff723232ff723232ff652828ff652828ff"); });
+TEX.nether_gold_ore = makeTexture(ctx => { _drawPx(ctx, "511515ff572121ff511515ff501b1bff652828ff501b1bff723232ff723232ff652828ff652828ff411616ff652828ff652828ff723232ff652828ff572121ff572121ff652828ff652828ff572121ff501b1bff411616ff501b1bff652828ff723232ff501b1bff511515ff411616ff652828ff652828ff501b1bff511515ff723232ff652828ff723232ff652828ffb34316ffb34316ff511515ff501b1bff652828ff572121fff8af2bff511515ff652828ff501b1bff652828ff723232ff854242ff723232ff652828fffcee4bffffffb5fff8af2bff572121ff723232ff652828ff723232fffcee4bffc7641dff511515ff652828ff501b1bff652828ff723232ff854242ff723232fff8af2bfffcee4bff652828ff723232ff854242ff854242ff652828ff723232ff723232ff501b1bff723232ff652828ff572121ff511515ff723232ff652828ff572121ffc7641dff723232ff854242ff854242ff723232ff723232ff652828ffc7641dff652828ff652828ff723232ff652828ff511515ff652828ff723232ff501b1bff411616ff723232ff652828ff723232ff723232ff652828ff501b1bffffffb5fffcee4bff723232ff854242ff723232ff723232ff572121ff511515ff411616ff501b1bff652828ff723232ff652828fff8af2bffc7641dff723232ffc7641dfff8af2bff652828ff854242ff854242ff652828ff501b1bff652828ff723232ff652828ff501b1bff501b1bffb34316ff652828ff652828ff723232ff723232ff652828ff511515ff652828ff723232ff501b1bff652828ff723232fffcee4bffffffb5ff652828ff411616ff501b1bff652828ff723232ff652828ff723232ff723232ff511515ff511515ff501b1bff572121ff723232ff652828ff723232fff8af2bff652828ff411616ff501b1bff723232ff854242ff723232ff723232ff501b1bffb34316ff411616ff501b1bff652828ffb34316ff501b1bff723232ff652828ff501b1bff511515ffc7641dff501b1bff723232ff652828ff511515ffb34316fff8af2bff572121ff501b1bff511515ff652828ff723232ff652828ff501b1bff723232ff652828ffffffb5fffcee4bff501b1bff511515ff723232ff652828ff723232ff652828ff511515ff572121ff723232ff652828ff723232ff723232ff854242ff723232fffcee4bfff8af2bffc7641dff572121ff652828ff723232ff854242ff723232ff511515ff501b1bff652828ff723232ff723232ff854242ff652828ff501b1bff572121ff501b1bffb34316ff652828ff723232ff652828ff723232ff652828ff652828ff501b1bff501b1bff652828ff723232ff723232ff501b1bff652828ff723232ff572121ff411616ff501b1bff652828ff723232ff723232ff652828ff652828ff"); });
+TEX.nether_quartz_ore = makeTexture(ctx => { _drawPx(ctx, "511515ff572121ff511515ff501b1bff652828ff501b1bff723232ff723232ff652828ff652828ff411616ff652828ff652828ff723232ff652828ff572121ff572121ff652828ff652828ff572121ff501b1bff411616ff501b1bff652828ff723232ff723232ff511515ff411616ff652828ff652828ff501b1bff511515ff723232ff652828ff723232ff652828ff572121ff411616ff723232ffac716affd4cabaffb6a48eff501b1bff511515ff652828ff501b1bff652828ff723232ff854242ff723232ff652828ff723232ff723232ffeae5deffd4cabaffd4cabaffac716aff723232ff723232ff572121ff511515ff652828ff501b1bff652828ff723232ff854242ff723232ff723232ffeae5deffd4cabaffac716aff723232ff854242ff652828ff723232ff723232ff501b1bff723232ff652828ff572121ff511515ff723232ff723232ffac716affb6a48eff6f5843ff723232ff854242ffac716affd4cabaffac716aff6f5843ff652828ff652828ff723232ff652828ff511515ff652828ff723232ff723232ff6f5843ff723232ff6f5843ffeae5deffd4cabaffb6a48eff6f5843ff511515ff652828ff723232ffac716aff723232ff723232ff572121ff511515ff411616ff501b1bffac716affb6a48effac716aff6f5843ff723232ff723232ff652828ff501b1bffeae5deffb6a48eff854242ff652828ff501b1bff652828ff723232ffb6a48effeae5deffac716aff511515ff652828ff652828ff723232ff723232ffd4cabaffeae5deffac716aff723232ff501b1bff652828ff723232ff854242ffeae5deffd4cabaff723232ff501b1bff652828ff723232ff652828ff723232ffeae5deffb6a48eff6f5843ff501b1bff572121ff723232ff652828ffd4cabaffb6a48eff6f5843ff411616ff501b1bff723232ffac716aff723232ff723232ff6f5843ff723232ff411616ff501b1bff652828ff501b1bff723232ffac716aff6f5843ff501b1bff511515ff411616ffac716affeae5deff723232ff511515ff723232ff501b1bff572121ff501b1bff511515ff652828ff723232ff652828ff501b1bff723232ff652828ffb6a48effd4cabaffb6a48eff511515ff723232ff652828ffb6a48eff652828ff511515ff572121ff723232ff652828ff723232ff723232ff854242ff723232ffac716affb6a48eff501b1bff572121ffac716affb6a48eff854242ff723232ff511515ff501b1bff652828ff723232ff723232ff854242ff652828ff501b1bff572121ffac716aff411616ff652828ff723232ff652828ff723232ff652828ff652828ff501b1bff501b1bff652828ff723232ff723232ff501b1bff652828ff723232ff572121ff411616ff501b1bff652828ff723232ff723232ff652828ff652828ff"); });
+TEX.nether_portal = makeTexture(ctx => { ctx.fillStyle = 'rgba(110,30,200,0.75)'; ctx.fillRect(0, 0, 16, 16); });   // animated from nether_portal.png (see drawPortalFrame)
 
 // ---- Birch ----
 TEX.birchWood = makeTexture(ctx => {
@@ -2044,6 +2048,12 @@ applyTexturePack();
   im.src = PACK_TEX.stone;
 })();
 
+// ================= Nether (a second dimension: a region of the same world, far away) =================
+const NETHER_MIN_Z = 20000, NETHER_BASE_Z = 30000, NETHER_SCALE = 8;   // overworld (x,z) <-> nether (x/8, z/8 + 30000)
+const NETHER_FLOOR = -28, NETHER_CEIL = 48, NETHER_LAVA_Y = -13, NETHER_SKY = 4;
+function isNetherZ(z) { return z >= NETHER_MIN_Z; }
+const portalCells = new Map();   // every nether_portal block (kept current by the world.set / world.delete wrappers)
+let _netherSky = null, _netherFogSaved = null;
 // ================= Block types =================
 const BLOCK_TYPES = {
   grass:  { transparent: false, hardness: 0.6, tool: 'shovel' },
@@ -2072,6 +2082,10 @@ const BLOCK_TYPES = {
   diamond_ore: { transparent: false, hardness: 3.0, tool: 'pickaxe' },
   redstone_ore: { transparent: false, hardness: 3.0, tool: 'pickaxe' },
   lapis_ore: { transparent: false, hardness: 3.0, tool: 'pickaxe' },
+  netherrack: { transparent: false, hardness: 0.4, tool: 'pickaxe' },
+  nether_gold_ore: { transparent: false, hardness: 3.0, tool: 'pickaxe' },     // drops a few gold nuggets
+  nether_quartz_ore: { transparent: false, hardness: 3.0, tool: 'pickaxe' },   // drops quartz
+  nether_portal: { transparent: true, hardness: 0.1, tool: null, shape: 'portal', noCollide: true },   // placed by lighting an obsidian frame with flint and steel; never an item
   torch: { transparent: true, hardness: 0.1, tool: null, cross: true },
   furnace: { transparent: false, hardness: 1.75, tool: 'pickaxe' },
   chest: { transparent: false, hardness: 1.0, tool: 'axe' },
@@ -2152,6 +2166,7 @@ const ITEM_INFO = {
   diamond:        {},
   redstone:       {},
   lapis_lazuli:   {},
+  quartz:         {},
   iron_helmet:     { maxStack: 1, armor: 2, slot: 0, durability: 165 },
   iron_chestplate: { maxStack: 1, armor: 4, slot: 1, durability: 240 },
   iron_leggings:   { maxStack: 1, armor: 3, slot: 2, durability: 225 },
@@ -2389,6 +2404,7 @@ CUSTOM_PX.shulker_tex = "7f5a7fff8f678fff8f678fff7f597fff7f5a7fff8f658fff8f658ff
 CUSTOM_PX.leather = "00000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000542716ff542716ff542716ff542716ff0000000000000000000000000000000000000000000000000000000000000000542716ff542716ff00000000542716ff9e492affd76b43ffc65c35ff893b25ff542716ff00000000542716ff542716ff00000000000000000000000000000000542716ff9e492aff542716ffc65c35ffd76b43ffd76b43ffd76b43ff9e492affc65c35ff542716ff9e492aff3d1c10ff0000000000000000000000000000000000000000542716ffc65c35ffc65c35ff9e492affd76b43ffd76b43ffd76b43ffc65c35ff9e492aff3d1c10ff000000000000000000000000000000000000000000000000542716ff9e492affd76b43ff9e492affd76b43ffd76b43ff9e492affc65c35ff893b25ff3d1c10ff00000000000000000000000000000000000000000000000000000000542716ffd76b43ff893b25ffc65c35ffd76b43ffc65c35ff9e492aff3d1c10ff0000000000000000000000000000000000000000000000000000000000000000542716ff9e492affc65c35ffc65c35ffd76b43ffc65c35ff9e492aff3d1c10ff0000000000000000000000000000000000000000000000000000000000000000542716ffc65c35ffc65c35ff9e492affd76b43ffc65c35ffc65c35ff3d1c10ff0000000000000000000000000000000000000000000000000000000000000000542716ffc65c35ffc65c35ff9e492affd76b43ffc65c35ffc65c35ff3d1c10ff00000000000000000000000000000000000000000000000000000000542716ff893b25ff9e492affc65c35ff9e492affc65c35ff9e492aff9e492aff893b25ff3d1c10ff000000000000000000000000000000000000000000000000542716ffc65c35ffc65c35ffc65c35ffc65c35ffc65c35ffc65c35ffc65c35ff893b25ff3d1c10ff000000000000000000000000000000000000000000000000542716ffc65c35ff9e492aff9e492aff9e492aff893b25ff9e492affc65c35ff9e492aff3d1c10ff0000000000000000000000000000000000000000542716ff893b25ff9e492aff3d1c10ff3d1c10ff893b25ff893b25ff3d1c10ff3d1c10ff9e492aff893b25ff3d1c10ff00000000000000000000000000000000542716ff3d1c10ff3d1c10ff00000000000000003d1c10ff3d1c10ff00000000000000003d1c10ff3d1c10ff3d1c10ff000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000";
 CUSTOM_PX.book = "0000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000422412ff422412ff422412ff422412ff422412ff422412ff422412ff422412ff422412ff422412ff000000000000000000000000000000000000000000000000422412ff5c351bff7a4a2aff7a4a2aff7a4a2aff7a4a2aff7a4a2aff7a4a2affd6ccaaffd6ccaaff000000000000000000000000000000000000000000000000422412ff5c351bff7a4a2aff7a4a2aff96643cff7a4a2aff7a4a2aff7a4a2affd6ccaafff1ead2ff000000000000000000000000000000000000000000000000422412ff5c351bff7a4a2aff7a4a2aff96643cff7a4a2aff7a4a2aff7a4a2affd6ccaafff1ead2ff000000000000000000000000000000000000000000000000422412ff5c351bff7a4a2aff7a4a2aff96643cff7a4a2aff7a4a2aff7a4a2affd6ccaafff1ead2ff000000000000000000000000000000000000000000000000422412ff5c351bff7a4a2aff96643cff96643cff4fd8ecff96643cff7a4a2affd6ccaafff1ead2ff000000000000000000000000000000000000000000000000422412ff5c351bff7a4a2aff7a4a2aff96643cff7a4a2aff7a4a2aff7a4a2affd6ccaafff1ead2ff000000000000000000000000000000000000000000000000422412ff5c351bff7a4a2aff7a4a2aff96643cff7a4a2aff7a4a2aff7a4a2affd6ccaafff1ead2ff000000000000000000000000000000000000000000000000422412ff5c351bff7a4a2aff7a4a2aff96643cff7a4a2aff7a4a2aff7a4a2affd6ccaafff1ead2ff000000000000000000000000000000000000000000000000422412ff5c351bff7a4a2aff7a4a2aff96643cff7a4a2aff7a4a2aff7a4a2affd6ccaafff1ead2ff000000000000000000000000000000000000000000000000422412ff5c351bff7a4a2aff7a4a2aff7a4a2aff7a4a2aff7a4a2aff7a4a2affd6ccaafff1ead2ff000000000000000000000000000000000000000000000000422412ff422412ff422412ff422412ff422412ff422412ff422412ff422412ff422412ff422412ff0000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000";
 CUSTOM_PX.lapis_lazuli = "0000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000001a3d8fff1a3d8fff1a3d8fff1a3d8fff052463ff000000000000000000000000000000000000000000000000000000000000000000000000000000001a3d8fff1c53a8ff5a82e2ff5a82e2ff345ec3ff1c53a8ff052463ff00000000000000000000000000000000000000000000000000000000000000001a3d8fff345ec3ff5a82e2ff7497eaff345ec3ff1c53a8ff12408bff1c53a8ff052463ff0000000000000000000000000000000000000000000000001a3d8fff345ec3ff5a82e2ff345ec3ff5a82e2ff1c53a8ff12408bff1c53a8ff345ec3ff052463ff0000000000000000000000000000000000000000000000001a3d8fff7497eaff5a82e2ff1c53a8ff345ec3ff1c53a8ff12408bff345ec3ff5a82e2ff052463ff0000000000000000000000000000000000000000000000001a3d8fff5a82e2ff5a82e2ff7497eaff1c53a8ff12408bff345ec3ff345ec3ff5a82e2ff052463ff00000000000000000000000000000000000000001a3d8fff345ec3ff1c53a8ff5a82e2ff345ec3ff12408bff345ec3ff345ec3ff5a82e2ff052463ff00000000000000000000000000000000000000001a3d8fff345ec3ff7497eaff5a82e2ff1c53a8ff12408bff345ec3ff5a82e2ff1c53a8ff1c53a8ff052463ff00000000000000000000000000000000000000001a3d8fff12408bff5a82e2ff345ec3ff12408bff1c53a8ff345ec3ff345ec3ff1c53a8ff052463ff000000000000000000000000000000000000000000000000052463ff345ec3ff12408bff12408bff345ec3ff5a82e2ff345ec3ff1c53a8ff052463ff00000000000000000000000000000000000000000000000000000000052463ff1c53a8ff345ec3ff5a82e2ff1c53a8ff052463ff052463ff052463ff000000000000000000000000000000000000000000000000000000000000000000000000052463ff052463ff052463ff052463ff0000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000";
+CUSTOM_PX.quartz = "000000000000000000000000000000000000000000000000000000000000000000000000b3a091ffb3a091ffb3a091ff000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000b3a091ffeae5deffeae5deffb3a091ff0000000000000000000000000000000000000000b3a091ffb3a091ffb3a091ff000000000000000000000000b3a091ffeae5deffeae5defff7f5f2ff897b73ff0000000000000000000000000000000000000000b3a091ffeae5deffeae5deff897b73ff00000000b3a091ffeae5deffeae5defff7f5f2ffddd4c6ff897b73ff0000000000000000000000000000000000000000b3a091ffeae5deffeae5defff7f5f2ff897b73ffb3a091fff7f5f2fff7f5f2ffe5dfd6ffd4cabaff897b73ff0000000000000000000000000000000000000000b3a091fff7f5f2fff7f5f2ffe5dfd6ffd4cabaffb3a091ffe5dfd6ffe5dfd6ffddd4c6ffb6a48eff897b73ffb3a091ffb3a091ff00000000000000000000000000000000897b73ffe5dfd6ffe5dfd6ffb6a48effb3a091ffddd4c6ffe5dfd6ffd4cabaff897b73ffe5dfd6fff7f5f2ffb3a091ff0000000000000000000000000000000000000000897b73ffd4cabaffb3a091ffddd4c6ffddd4c6ffe5dfd6ffb6a48eff897b73ffd4cabaffe5dfd6ff897b73ff000000000000000000000000b3a091ffb3a091ff897b73ffb6a48effb3a091ffddd4c6ffddd4c6ffddd4c6ffb6a48eff6f5d5affd4cabaff6f5d5aff00000000000000000000000000000000b3a091ffeae5deffb3a091ff897b73ffb3a091ffd4cabaffddd4c6ffd4cabaffb6a48eff6f5d5affb6a48effb3a091ffb3a091ffb3a091ff0000000000000000897b73fff7f5f2ffeae5deff897b73ffb6a48effd4cabaffddd4c6ffb6a48eff6f5d5affb6a48effb3a091ffe5dfd6ffe5dfd6ffb3a091ff0000000000000000897b73ffd4cabafff7f5f2ffeae5deff897b73ffd4cabaffd4cabaffb6a48eff6f5d5aff897b73ffd4cabafff7f5f2ffd4cabaff897b73ff00000000000000006f5d5affd4cabaffd4cabaffd4cabaff6f5d5affd4cabaffb6a48effb6a48eff6f5d5affb6a48effd4cabaffb6a48eff6f5d5aff000000000000000000000000000000006f5d5affd4cabaffb6a48eff6f5d5aff6f5d5affb6a48effb6a48eff6f5d5affb6a48effb6a48eff6f5d5aff0000000000000000000000000000000000000000000000006f5d5aff6f5d5aff00000000000000006f5d5aff6f5d5aff000000006f5d5aff6f5d5aff0000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000";
 function _drawPx(ctx, hex) {
   for (let i = 0; i < 256; i++) {
     const o = i * 8, a = parseInt(hex.substr(o + 6, 2), 16);
@@ -2900,12 +2916,15 @@ function blockDropType(t) {
   if (t === 'diamond_ore') return 'diamond';
   if (t === 'redstone_ore') return 'redstone';
   if (t === 'lapis_ore') return 'lapis_lazuli';
+  if (t === 'nether_gold_ore') return 'gold_nugget';
+  if (t === 'nether_quartz_ore') return 'quartz';
+  if (t === 'nether_portal') return null;
   if (t === 'redstone_dust') return 'redstone';
   if (t === 'fire' || t === 'lava') return null;
   if (t === 'spawner') return null;   // a broken spawner drops nothing (just XP)
   return t;
 }
-function isPlaceable(type) { return (!!BLOCK_TYPES[type] && type !== 'water' && type !== 'lava' && type !== 'fire') || type === 'redstone' || type === 'spawner'; }   // 'redstone' places as dust; spawner placeable after Silk Touch
+function isPlaceable(type) { return (!!BLOCK_TYPES[type] && type !== 'water' && type !== 'lava' && type !== 'fire' && type !== 'nether_portal') || type === 'redstone' || type === 'spawner'; }   // 'redstone' places as dust; spawner placeable after Silk Touch
 
 // ================= Mining time =================
 // Base hardness (seconds with bare hands) comes from BLOCK_TYPES; the right
@@ -3196,6 +3215,10 @@ const MI = {
   diamond_ore: regMat(TEX.diamond_ore),
   redstone_ore: regMat(TEX.redstone_ore),
   lapis_ore: regMat(TEX.lapis_ore),
+  netherrack: regMat(TEX.netherrack),
+  nether_gold_ore: regMat(TEX.nether_gold_ore),
+  nether_quartz_ore: regMat(TEX.nether_quartz_ore),
+  nether_portal: regMat(TEX.nether_portal, true),
   wood:      regMat(TEX.wood),
   woodTop:   regMat(TEX.woodTop),
   leaves:    regMat(TEX.leaves),
@@ -4212,6 +4235,8 @@ function blockBoxes(b) {
     r = [[-0.5, 0.5, -0.5, -0.48, -0.5, 0.5]];
   } else if (shape === 'rail') {
     r = [[-0.5, 0.5, -0.5, -0.44, -0.5, 0.5]];
+  } else if (shape === 'portal') {
+    r = (m & 1) ? [[-0.125, 0.125, -0.5, 0.5, -0.5, 0.5]] : [[-0.5, 0.5, -0.5, 0.5, -0.125, 0.125]];   // thin sheet; meta bit 0 = runs along Z
   } else if (shape === 'plate') {
     r = [[-0.4375, 0.4375, -0.5, (m & 1) ? -0.47 : -0.4375, -0.4375, 0.4375]];   // sinks a little when pressed
   } else if (shape === 'repeater' || shape === 'comparator') {
@@ -4250,6 +4275,7 @@ function cardinalFromYaw(yaw) {
   return fz > 0 ? 2 : 3;
 }
 function shapeMat(b) {
+  if (b.type === 'nether_portal') return MI.nether_portal;
   if (b.type === 'rail') return railMatFor(b);
   if (RS_TYPES[b.type]) { const rm = rsShapeMat(b); if (rm != null) return rm; }
   if (isDoorType(b.type)) {
@@ -4281,7 +4307,7 @@ function bedFaceMat(b, f, x, y, z) {
 function addShapedBlock(buffers, b, x, y, z, cellShade) {
   const isBed = b.type === 'bed';
   const baseMi = isBed ? -1 : shapeMat(b);
-  const ownShade = cellShade(x, y, z);
+  const ownShade = (b.type === 'nether_portal') ? (_warm = 0, shadeFromLevel(10)) : cellShade(x, y, z);   // the portal glows
   for (const bx of blockBoxes(b)) {
     for (let f = 0; f < 6; f++) {
       const F = FACES[f];
@@ -4526,8 +4552,9 @@ function rebuildChunk(cx, cz) {
     const torchRaw = torchFloods.length ? (gi >= 0 && torchGrid ? torchGrid[gi] : slowTorchAt(x, y, z)) : 0;
     // steeper falloff than linear: bright pool of light near the flame, fading softly
     const torch = torchRaw > 0 ? LIGHT_MAX * Math.pow(torchRaw / TORCH_LIGHT_LEVEL, 1.5) : 0;
-    const skyL = Math.max(sky, 0);
+    const skyL = Math.max(z >= NETHER_MIN_Z ? NETHER_SKY : sky, 0);   // the Nether has no sky: a constant dim glow
     _warm = torch > 0 ? torch / (torch + skyL * 1.2 + 1) : 0;
+    if (z >= NETHER_MIN_Z) _warm = Math.max(_warm, 0.4);   // red-orange tint
     const res = shadeFromLevel(Math.min(LIGHT_MAX, skyL + torch));
     if (gi >= 0) { shadeCache[gi] = res; warmCache[gi] = _warm; }
     return res;
@@ -4723,6 +4750,7 @@ world.delete = function (k) {
   const b = world.get(k);
   if (b && typeof b.x === 'number') bumpChunkVer(b.x, b.z);
   if (b && RS_TYPES[b.type]) rsKeys.delete(k);
+  if (b && b.type === 'nether_portal') portalCells.delete(k);
   if (b) skyTopCache.delete(skyKey(b.x, b.z));
   if (b && b.type === 'sign') {
     try {
@@ -4735,6 +4763,7 @@ world.delete = function (k) {
 world.set = function (k, v) {
   if (v && typeof v.x === 'number') bumpChunkVer(v.x, v.z);
   if (v && RS_TYPES[v.type]) rsKeys.add(k); else if (rsKeys.size) rsKeys.delete(k);
+  if (v && v.type === 'nether_portal') portalCells.set(k, v); else if (portalCells.size) portalCells.delete(k);
   if (v && typeof v.x === 'number') {
     const sk = skyKey(v.x, v.z), t = skyTopCache.get(sk);
     if (t !== undefined && v.y >= t) {
@@ -4957,7 +4986,7 @@ function addBlock(x,y,z,type,skipMark,meta) {
 }
 // Blocks a player placed (or that arrived as a saved/synced placement) are tagged, so mined-and-replaced
 // ore can't be farmed with Fortune. Natural ore (terrain generation) never carries the tag.
-function isOreType(t) { return t === 'coal_ore' || t === 'iron_ore' || t === 'gold_ore' || t === 'diamond_ore' || t === 'redstone_ore' || t === 'lapis_ore'; }
+function isOreType(t) { return t === 'nether_gold_ore' || t === 'nether_quartz_ore' || t === 'coal_ore' || t === 'iron_ore' || t === 'gold_ore' || t === 'diamond_ore' || t === 'redstone_ore' || t === 'lapis_ore'; }
 function markPlaced(x, y, z) { const b = world.get(key(Math.round(x), Math.round(y), Math.round(z))); if (b) b.placed = true; return true; }
 function removeBlock(x,y,z,skipMark) {
   x=Math.round(x); y=Math.round(y); z=Math.round(z);
@@ -4965,6 +4994,7 @@ function removeBlock(x,y,z,skipMark) {
   if (!world.has(k)) return false;
   const removedType = world.get(k).type;
   world.delete(k);
+  if ((removedType === 'obsidian' || removedType === 'nether_portal') && !_portalBreaking) { try { netherPortalBreak(x, y, z); } catch (e) { console.warn('portal break', e); } }
   if (removedType === 'fire') onFireRemoved(x, y, z);
   if (removedType === 'sign') {
     if (signData[k]) { delete signData[k]; saveSignData(); broadcastSign(k, ''); }
@@ -5708,7 +5738,80 @@ function genLavaPools(cx, cz) {
     }
   }
 }
+// ================= Nether: world generation =================
+// Density at a lattice point (every 4 blocks). Pure function of its coordinates, so every client builds the same Nether.
+function netherLat(lx, ly, lz) {
+  const sm = t => t * t * (3 - 2 * t);
+  const vn = (u, v, w, s) => {
+    const iu = Math.floor(u), iv = Math.floor(v), iw = Math.floor(w);
+    const fu = sm(u - iu), fv = sm(v - iv), fw = sm(w - iw);
+    const a000 = hashRandom(iu, iw, iv, s), a100 = hashRandom(iu + 1, iw, iv, s), a010 = hashRandom(iu, iw, iv + 1, s), a110 = hashRandom(iu + 1, iw, iv + 1, s);
+    const a001 = hashRandom(iu, iw + 1, iv, s), a101 = hashRandom(iu + 1, iw + 1, iv, s), a011 = hashRandom(iu, iw + 1, iv + 1, s), a111 = hashRandom(iu + 1, iw + 1, iv + 1, s);
+    const x00 = a000 + (a100 - a000) * fu, x10 = a010 + (a110 - a010) * fu, x01 = a001 + (a101 - a001) * fu, x11 = a011 + (a111 - a011) * fu;
+    const y0 = x00 + (x10 - x00) * fv, y1 = x01 + (x11 - x01) * fv;
+    return y0 + (y1 - y0) * fw;
+  };
+  const X = lx * 4, Y = ly * 4, Z = lz * 4;
+  return 0.55 * vn(X / 22, Y / 15, Z / 22, 4101) + 0.3 * vn(X / 10, Y / 8, Z / 10, 4102) + 0.15 * hashRandom(lx, lz, ly, 4103);
+}
+// One Nether chunk: netherrack caverns between a floor and a ceiling, a lava sea at the bottom, and nether gold / quartz ore.
+function* genNetherChunk(cx, cz) {
+  const x0 = cx * CHUNK_SIZE, z0 = cz * CHUNK_SIZE, H = NETHER_CEIL - NETHER_FLOOR + 1;
+  const lx0 = Math.floor((x0 - 1) / 4), lx1 = Math.floor((x0 + CHUNK_SIZE) / 4) + 1;
+  const lz0 = Math.floor((z0 - 1) / 4), lz1 = Math.floor((z0 + CHUNK_SIZE) / 4) + 1;
+  const ly0 = Math.floor((NETHER_FLOOR - 1) / 4), ly1 = Math.floor((NETHER_CEIL + 1) / 4) + 1;
+  const nx = lx1 - lx0 + 1, nz = lz1 - lz0 + 1, ny = ly1 - ly0 + 1;
+  const lat = new Float32Array(nx * nz * ny);
+  for (let i = 0; i < nx; i++) for (let k = 0; k < nz; k++) for (let j = 0; j < ny; j++) lat[(i * nz + k) * ny + j] = netherLat(lx0 + i, ly0 + j, lz0 + k);
+  yield;
+  const G = CHUNK_SIZE + 2, solid = new Uint8Array(G * G * H);
+  const sidx = (gx, gz, y) => (gx * G + gz) * H + (y - NETHER_FLOOR);
+  for (let gx = 0; gx < G; gx++) {
+    const x = x0 - 1 + gx, fi = Math.floor(x / 4), fx = (x - fi * 4) / 4, ii = fi - lx0;
+    for (let gz = 0; gz < G; gz++) {
+      const z = z0 - 1 + gz, fk = Math.floor(z / 4), fz = (z - fk * 4) / 4, kk = fk - lz0;
+      for (let y = NETHER_FLOOR; y <= NETHER_CEIL; y++) {
+        let s = 1;
+        if (y > NETHER_FLOOR + 2 && y < NETHER_CEIL - 2) {
+          const fj = Math.floor(y / 4), fy = (y - fj * 4) / 4, jj = fj - ly0;
+          const b = (di, dk, dj) => lat[((ii + di) * nz + (kk + dk)) * ny + (jj + dj)];
+          const c00 = b(0, 0, 0) + (b(1, 0, 0) - b(0, 0, 0)) * fx, c10 = b(0, 0, 1) + (b(1, 0, 1) - b(0, 0, 1)) * fx;
+          const c01 = b(0, 1, 0) + (b(1, 1, 0) - b(0, 1, 0)) * fx, c11 = b(0, 1, 1) + (b(1, 1, 1) - b(0, 1, 1)) * fx;
+          const d0 = c00 + (c10 - c00) * fy, d1 = c01 + (c11 - c01) * fy;
+          const d = d0 + (d1 - d0) * fz;
+          const t = Math.abs(y - 10) / 38, e = Math.max(0, Math.min(1, (t - 0.45) / 0.55));   // thicker rock near the floor and the roof
+          s = d > 0.55 - 0.40 * e * e ? 1 : 0;
+        }
+        solid[sidx(gx, gz, y)] = s;
+      }
+    }
+    if (gx % 6 === 5) yield;
+  }
+  yield;
+  for (let gx = 1; gx <= CHUNK_SIZE; gx++) {
+    const x = x0 - 1 + gx;
+    for (let gz = 1; gz <= CHUNK_SIZE; gz++) {
+      const z = z0 - 1 + gz;
+      for (let y = NETHER_FLOOR; y <= NETHER_CEIL; y++) {
+        if (solid[sidx(gx, gz, y)]) {
+          let type = 'netherrack';
+          const r = hashRandom(x, z, y, 7771);
+          if (r < 0.0095) {
+            const exposed = (y >= NETHER_CEIL || !solid[sidx(gx, gz, y + 1)]) || (y > NETHER_FLOOR && !solid[sidx(gx, gz, y - 1)]) ||
+              !solid[sidx(gx + 1, gz, y)] || !solid[sidx(gx - 1, gz, y)] || !solid[sidx(gx, gz + 1, y)] || !solid[sidx(gx, gz - 1, y)];
+            if (exposed) type = r < 0.0025 ? 'nether_gold_ore' : 'nether_quartz_ore';
+            else if (r < 0.0025) type = r < 0.0008 ? 'nether_gold_ore' : 'nether_quartz_ore';
+          }
+          if (addBlock(x, y, z, type, true) && type !== 'netherrack') { const nb = world.get(key(x, y, z)); if (nb) nb.natural = true; }
+        } else if (y <= NETHER_LAVA_Y) dgPut(x, y, z, 'lava', false);
+      }
+    }
+    yield;
+  }
+  try { lavaChunkSettle(cx, cz); } catch (e) { console.warn('nether lava settle', e); }
+}
 function* generateChunkColumnsGen(cx, cz) {
+  if (cz * CHUNK_SIZE >= NETHER_MIN_Z) { yield* genNetherChunk(cx, cz); return; }
   const x0 = cx*CHUNK_SIZE, x1 = x0+CHUNK_SIZE-1;
   const z0 = cz*CHUNK_SIZE, z1 = z0+CHUNK_SIZE-1;
   const caneTops = [];   // sand columns right at water level (sugar cane candidates)
@@ -5892,6 +5995,189 @@ function updateChunkStreaming(dt) {
     }
   });
   // (no flush here: stepDirtyChunks() rebuilds one dirty chunk per frame, so a pass never does two rebuilds in one frame)
+}
+
+// ================= Nether portal =================
+// The Nether is a region of the same world far away (z >= NETHER_MIN_Z). 1 block in the Nether = 8 blocks in the Overworld.
+// Build a frame of obsidian (at least 4 wide x 5 tall, corners not needed), light it with flint and steel, stand in it for a moment.
+const NETHER_PORTAL_B64 = "data:image/png;base64,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";
+let _portalNeedExit = false, _portalTime = 0, _portalFlash = 0, _portalAnimT = 0, _portalFrame = 0, _portalFrames = 32, _portalOverlayEl = null;
+const PORTAL_WAIT = 2.5;
+const _portalImg = new Image();
+_portalImg.onload = () => { _portalFrames = Math.max(1, Math.floor(_portalImg.height / 16)); drawPortalFrame(0); };
+_portalImg.src = NETHER_PORTAL_B64;
+{ const pm = MAT_LIST[MI.nether_portal]; if (pm) { pm.opacity = 0.92; pm.depthWrite = false; pm.side = THREE.DoubleSide; } }
+function drawPortalFrame(f) {
+  try {
+    if (!_portalImg.complete || !_portalImg.naturalHeight) return;
+    const c = TEX.nether_portal.image, g = c.getContext('2d');
+    g.imageSmoothingEnabled = false; g.clearRect(0, 0, 16, 16);
+    g.drawImage(_portalImg, 0, (f % _portalFrames) * 16, 16, 16, 0, 0, 16, 16);
+    TEX.nether_portal.needsUpdate = true;
+  } catch (e) {}
+}
+function isPortalAt(x, y, z) { const b = world.get(key(Math.round(x), Math.round(y), Math.round(z))); return !!b && b.type === 'nether_portal'; }
+function portalCellFree(x, y, z) { const b = world.get(key(x, y, z)); return !b || b.type === 'fire'; }
+function portalIsObs(x, y, z) { const b = world.get(key(x, y, z)); return !!b && b.type === 'obsidian'; }
+// Looks for an obsidian frame around the empty cell (px,py,pz). axis 0: frame runs along X, axis 1: along Z. Returns the interior cells or null.
+function findPortalInterior(px, py, pz, axis) {
+  const ax = axis === 0 ? 1 : 0, az = axis === 0 ? 0 : 1;
+  if (!portalCellFree(px, py, pz)) return null;
+  let y0 = py; while (portalCellFree(px, y0 - 1, pz) && py - y0 < 22) y0--;
+  if (!portalIsObs(px, y0 - 1, pz)) return null;
+  let l = 0; while (l < 22 && portalCellFree(px - ax * (l + 1), y0, pz - az * (l + 1))) l++;
+  if (!portalIsObs(px - ax * (l + 1), y0, pz - az * (l + 1))) return null;
+  let r = 0; while (r < 22 && portalCellFree(px + ax * (r + 1), y0, pz + az * (r + 1))) r++;
+  if (!portalIsObs(px + ax * (r + 1), y0, pz + az * (r + 1))) return null;
+  const w = l + r + 1; if (w < 2 || w > 21) return null;
+  const sx = px - ax * l, sz = pz - az * l;
+  let h = 0;
+  for (;;) {
+    let ok = true;
+    for (let i = 0; i < w; i++) if (!portalCellFree(sx + ax * i, y0 + h, sz + az * i)) { ok = false; break; }
+    if (!ok) break;
+    if (!portalIsObs(sx - ax, y0 + h, sz - az) || !portalIsObs(sx + ax * w, y0 + h, sz + az * w)) return null;
+    h++; if (h > 21) return null;
+  }
+  if (h < 3) return null;
+  for (let i = 0; i < w; i++) if (!portalIsObs(sx + ax * i, y0 + h, sz + az * i) || !portalIsObs(sx + ax * i, y0 - 1, sz + az * i)) return null;
+  const cells = [];
+  for (let j = 0; j < h; j++) for (let i = 0; i < w; i++) cells.push({ x: sx + ax * i, y: y0 + j, z: sz + az * i });
+  return cells;
+}
+// Place (or replace) one block everywhere: locally, saved, and synced to other players.
+function netherPlace(x, y, z, type, meta) {
+  const k = key(x, y, z);
+  removedDiffs.delete(k);
+  if (world.has(k)) removeBlock(x, y, z);
+  addBlock(x, y, z, type, false, meta || 0);
+  markPlaced(x, y, z);
+  try { pushBlockDiff(x, y, z, type, meta || 0); } catch (e) {}
+}
+function tryLightPortal(px, py, pz) {
+  px = Math.round(px); py = Math.round(py); pz = Math.round(pz);
+  for (const axis of [0, 1]) {
+    const cells = findPortalInterior(px, py, pz, axis);
+    if (!cells) continue;
+    for (const c of cells) netherPlace(c.x, c.y, c.z, 'nether_portal', axis);
+    return true;
+  }
+  return false;
+}
+// Breaking the frame (or any portal block) switches the whole portal off.
+let _portalBreaking = false;
+function netherPortalBreak(x, y, z) {
+  if (_portalBreaking) return;
+  const q = [];
+  for (const [dx, dy, dz] of _NB6) { const nb = world.get(key(x + dx, y + dy, z + dz)); if (nb && nb.type === 'nether_portal') q.push(nb); }
+  if (!q.length) return;
+  _portalBreaking = true;
+  try {
+    const seen = new Set(), out = [];
+    while (q.length) {
+      const b = q.pop(), k = key(b.x, b.y, b.z);
+      if (seen.has(k)) continue;
+      seen.add(k); out.push(b);
+      for (const [dx, dy, dz] of _NB6) { const nb = world.get(key(b.x + dx, b.y + dy, b.z + dz)); if (nb && nb.type === 'nether_portal' && !seen.has(key(nb.x, nb.y, nb.z))) q.push(nb); }
+    }
+    for (const b of out) { removeBlock(b.x, b.y, b.z); try { pushBlockDiff(b.x, b.y, b.z, 'air'); } catch (e) {} }
+  } finally { _portalBreaking = false; }
+}
+function findPortalNear(tx, tz, R) {
+  let best = null, bd = Infinity;
+  for (const b of portalCells.values()) { const dx = b.x - tx, dz = b.z - tz, d = dx * dx + dz * dz; if (d <= R * R && d < bd) { bd = d; best = b; } }
+  if (!best) return null;
+  let y = best.y; while (portalCells.has(key(best.x, y - 1, best.z))) y--;
+  return { x: best.x, y, z: best.z };
+}
+// Natural open ledge in the Nether (4x3 floor, 4 blocks of headroom) near (tx,tz), so no digging is needed.
+function netherFindSpot(tx, tz) {
+  const solidN = (x, y, z) => { const b = world.get(key(x, y, z)); return !!b && !BLOCK_TYPES[b.type].transparent; };
+  const emptyN = (x, y, z) => !world.has(key(x, y, z));
+  const ys = []; for (let y = -19; y <= 40; y++) ys.push(y);
+  ys.sort((a, b) => Math.abs(a - 8) - Math.abs(b - 8));
+  for (let r = 0; r <= 14; r += 2) {
+    for (let dx = -r; dx <= r; dx += 2) for (let dz = -r; dz <= r; dz += 2) {
+      if (Math.max(Math.abs(dx), Math.abs(dz)) !== r) continue;
+      const cx = tx + dx, cz = tz + dz;
+      for (const y0 of ys) {
+        if (!solidN(cx, y0 - 1, cz) || !emptyN(cx, y0, cz)) continue;
+        let ok = true;
+        for (let x = cx - 1; x <= cx + 2 && ok; x++) for (let z = cz - 1; z <= cz + 1 && ok; z++) {
+          if (!solidN(x, y0 - 1, z)) ok = false;
+          for (let y = y0; y <= y0 + 3 && ok; y++) if (!emptyN(x, y, z)) ok = false;
+        }
+        if (ok) return { x: cx, y: y0, z: cz };
+      }
+    }
+  }
+  return null;
+}
+function overworldSurfaceY(x, z) {
+  for (let y = 58; y >= -20; y--) {
+    const b = world.get(key(x, y, z));
+    if (!b) continue;
+    const t = b.type;
+    if (t === 'leaves' || t === 'birch_leaves' || t === 'wood' || t === 'birch_wood' || isPlantType(t) || t === 'sapling' || t === 'fire' || t === 'sugar_cane') continue;
+    return y + 1;
+  }
+  return 12;
+}
+// Builds an obsidian portal (interior x = cx..cx+1, y = y0..y0+2, z = cz) with a small platform; clears the space around it.
+function netherBuildPortal(cx, y0, cz) {
+  const cleared = [];
+  for (let x = cx - 2; x <= cx + 3; x++) for (let z = cz - 2; z <= cz + 2; z++) {
+    for (let y = y0; y <= y0 + 4; y++) {
+      const k = key(x, y, z);
+      if (world.has(k)) { removeBlock(x, y, z); removedDiffs.add(k); cleared.push({ x, y, z }); }
+    }
+    const fb = world.get(key(x, y0 - 1, z));
+    if (!fb || BLOCK_TYPES[fb.type].transparent) netherPlace(x, y0 - 1, z, 'obsidian');
+  }
+  if (cleared.length) { try { pushBlockDiffsBatch(cleared); } catch (e) {} }
+  for (let i = 0; i < 2; i++) { netherPlace(cx + i, y0 - 1, cz, 'obsidian'); netherPlace(cx + i, y0 + 3, cz, 'obsidian'); }
+  for (let j = 0; j < 3; j++) { netherPlace(cx - 1, y0 + j, cz, 'obsidian'); netherPlace(cx + 2, y0 + j, cz, 'obsidian'); }
+  for (let j = 0; j < 3; j++) for (let i = 0; i < 2; i++) netherPlace(cx + i, y0 + j, cz, 'nether_portal', 0);
+}
+function netherTravel() {
+  const toNether = !isNetherZ(player.pos.z);
+  let tx, tz;
+  if (toNether) { tx = Math.round(player.pos.x / NETHER_SCALE); tz = Math.max(NETHER_MIN_Z + 64, Math.min(NETHER_BASE_Z + 9000, Math.round(player.pos.z / NETHER_SCALE) + NETHER_BASE_Z)); }
+  else { tx = Math.round(player.pos.x * NETHER_SCALE); tz = Math.round((player.pos.z - NETHER_BASE_Z) * NETHER_SCALE); }
+  let dest = findPortalNear(tx, tz, toNether ? 16 : 128);
+  if (dest) {
+    teleportPlayerTo(dest.x, dest.y - 0.5 + 0.05, dest.z);
+  } else {
+    ensureChunksNear(tx, tz, 2, Infinity);
+    let cx = tx, cz = tz, y0 = null;
+    if (toNether) {
+      const sp = netherFindSpot(tx, tz);
+      if (sp) { cx = sp.x; cz = sp.z; y0 = sp.y; } else y0 = 12;
+    } else y0 = overworldSurfaceY(tx, tz);
+    netherBuildPortal(cx, y0, cz);
+    teleportPlayerTo(cx, y0 - 0.5 + 0.05, cz);
+  }
+  _portalNeedExit = true; _portalFlash = 1;
+  try { flushDirtyChunks(true); } catch (e) {}
+}
+function updateNether(dt) {
+  if (portalCells.size) {
+    _portalAnimT += dt;
+    if (_portalAnimT > 0.1) { _portalAnimT = 0; _portalFrame = (_portalFrame + 1) % _portalFrames; drawPortalFrame(_portalFrame); }
+  }
+  const px = player.pos.x, py = player.pos.y, pz = player.pos.z;
+  const inP = portalCells.size > 0 && (isPortalAt(px, py + 0.1, pz) || isPortalAt(px, py + 1.0, pz));
+  if (!inP) _portalNeedExit = false;
+  if (inP && !_portalNeedExit && player.hp > 0) _portalTime += dt; else _portalTime = Math.max(0, _portalTime - dt * 3);
+  if (_portalTime >= PORTAL_WAIT) { _portalTime = 0; netherTravel(); }
+  _portalFlash = Math.max(0, _portalFlash - dt * 1.2);
+  const a = Math.max(Math.min(0.8, (_portalTime / PORTAL_WAIT) * 0.8), _portalFlash);
+  if (a > 0.01 && !_portalOverlayEl) {
+    _portalOverlayEl = document.createElement('div');
+    _portalOverlayEl.style.cssText = 'position:fixed;inset:0;pointer-events:none;z-index:40;background:radial-gradient(circle at center,rgba(130,50,230,0.35),rgba(60,0,150,0.9));opacity:0;';
+    document.body.appendChild(_portalOverlayEl);
+  }
+  if (_portalOverlayEl) _portalOverlayEl.style.opacity = a > 0.01 ? String(a) : '0';
 }
 
 // ---------- Sapling growth ----------
@@ -8412,6 +8698,13 @@ function updateDayNight(dt) {
   }
   scene.background = mixed;
   scene.fog.color = mixed;
+  if (isNetherZ(player.pos.z)) {   // Nether: no sun, dark red haze
+    const nc = _netherSky || (_netherSky = new THREE.Color(0x2b0707));
+    scene.background = nc; scene.fog.color = nc;
+    sun.intensity = 0; ambient.intensity = 0.55 * bm + lift; hemi.intensity = 0.45 * bm + lift;
+    if (!_netherFogSaved) _netherFogSaved = { n: scene.fog.near, f: scene.fog.far };
+    scene.fog.near = 4; scene.fog.far = Math.min(_netherFogSaved.f, 72);
+  } else if (_netherFogSaved) { scene.fog.near = _netherFogSaved.n; scene.fog.far = _netherFogSaved.f; _netherFogSaved = null; }
 }
 
 // ================= Player =================
@@ -11320,6 +11613,7 @@ function createMob(kind, px, py, pz, id, remote, eq) {
 }
 function spawnAnimal(x, z, surfaceY, kind) {
   kind = kind || 'pig';
+  if (isNetherZ(z)) return false;   // no overworld mobs in the Nether
   const h = surfaceY != null ? surfaceY : noise2D(x, z);
   if (h <= WATER_LEVEL) return false;
   const isZ = kind === 'zombie';
@@ -14893,12 +15187,15 @@ function jcTex(kind) {
   if (jcTexCache[kind]) return jcTexCache[kind];
   const c = document.createElement('canvas'); c.width = c.height = 32;
   const g = c.getContext('2d');
-  if (kind === 'crit') {            // 4-point sparkle
-    g.fillStyle = '#ffe56b';
-    g.beginPath();
-    g.moveTo(16, 1); g.lineTo(20, 12); g.lineTo(31, 16); g.lineTo(20, 20);
-    g.lineTo(16, 31); g.lineTo(12, 20); g.lineTo(1, 16); g.lineTo(12, 12); g.closePath(); g.fill();
-    g.fillStyle = '#fff'; g.beginPath(); g.arc(16, 16, 4, 0, 7); g.fill();
+  if (kind === 'crit') {            // critical hit star (critical_hit.png, 8x8 pixel art)
+    const CH = "ffffffff0000000000000000000000000000000000000000ffffffff0000000000000000ffffffffcececeff00000000cececeffffffffff000000000000000000000000cececeffffffffffcececeffffffffffcececeff00000000000000000000000000000000cececeffffffffffcececeff00000000000000000000000000000000cececeffffffffffcececeffffffffffcececeff000000000000000000000000ffffffffcececeff00000000cececeffffffffff0000000000000000ffffffff0000000000000000000000000000000000000000ffffffff000000000000000000000000000000000000000000000000000000000000000000000000";
+    g.imageSmoothingEnabled = false;
+    for (let i = 0; i < 64; i++) {
+      const o = i * 8, a = parseInt(CH.substr(o + 6, 2), 16);
+      if (!a) continue;
+      g.fillStyle = 'rgba(' + parseInt(CH.substr(o, 2), 16) + ',' + parseInt(CH.substr(o + 2, 2), 16) + ',' + parseInt(CH.substr(o + 4, 2), 16) + ',' + (a / 255) + ')';
+      g.fillRect((i % 8) * 4 + 2, ((i / 8) | 0) * 4 + 2, 4, 4);
+    }
   } else if (kind === 'smash') {     // solid bright disc for expanding smash ring
     const gr = g.createRadialGradient(16, 16, 2, 16, 16, 15);
     gr.addColorStop(0, 'rgba(255,255,255,1)');
@@ -16477,7 +16774,7 @@ const GIVE_ITEMS = { firework: 'firework', firework_1: 'firework', firework_2: '
 function giveResolve(name) {   // any item or block in the game (plus the short aliases above)
   const n = String(name || '').toLowerCase().replace(/^minecraft:/, '').replace(/[\s-]+/g, '_');
   if (GIVE_ITEMS[n]) return GIVE_ITEMS[n];
-  if (n === 'air' || n === 'water' || n === 'lava' || n === 'fire' || n === 'spawner') return null;   // spawners: /give <who> zombie|skeleton|breeze
+  if (n === 'air' || n === 'water' || n === 'lava' || n === 'fire' || n === 'spawner' || n === 'nether_portal') return null;   // spawners: /give <who> zombie|skeleton|breeze
   if (BLOCK_TYPES[n] || ITEM_INFO[n]) return n;
   return null;
 }
@@ -19651,7 +19948,7 @@ function updateMining(dt) {
           // otherwise: nothing drops
         } else {
           const drop = blockDropType(b.type);
-          let dropN = (b.type === 'redstone_ore' || b.type === 'lapis_ore') ? 4 + Math.floor(Math.random() * 2) : 1;   // redstone / lapis drop 4-5
+          let dropN = (b.type === 'redstone_ore' || b.type === 'lapis_ore') ? 4 + Math.floor(Math.random() * 2) : (b.type === 'nether_gold_ore' ? 2 + Math.floor(Math.random() * 5) : 1);   // redstone / lapis drop 4-5
           // Fortune: picks a random total from the table below (level I / II / III). Natural ore only —
           // ore that was mined and placed back down gets the normal drop. Pickaxe on ores, axe on logs.
           const _fl = Number(held && held.ench && held.ench.fortune) || 0;
@@ -19677,7 +19974,7 @@ function updateMining(dt) {
           if (b.type === 'spawner' && toolKind === 'pickaxe' && b.dungeon) jcAddXp(15 + Math.floor(Math.random() * 29));   // 15-43 XP
           // Mining natural ore with a pickaxe gives XP; Fortune raises it (+50% per level)
           if (toolKind === 'pickaxe' && isOreType(b.type) && b.natural === true && !b.placed) {   // (no XP when the ore was mined whole with Silk Touch — that branch above skips this)
-            const baseXp = { coal_ore: 2, iron_ore: 3, gold_ore: 4, redstone_ore: 4, lapis_ore: 4, diamond_ore: 8 }[b.type] || 2;
+            const baseXp = { coal_ore: 2, iron_ore: 3, gold_ore: 4, redstone_ore: 4, lapis_ore: 4, diamond_ore: 8, nether_gold_ore: 1, nether_quartz_ore: 3 }[b.type] || 2;
             jcAddXp(Math.max(1, Math.round(baseXp * (1 + 0.5 * Math.max(0, _fl)))));
           }
         }
@@ -21283,6 +21580,7 @@ function tryUseFlintAndSteel() {
   let used = false;
   if (b && b.type === 'tnt') used = igniteTntAt(hit.x, hit.y, hit.z, TNT_FUSE);
   else if (b && b.type === 'fire') used = false;
+  else if (b && b.type === 'obsidian' && tryLightPortal(hit.px, hit.py, hit.pz)) { used = true; flushDirtyChunks(false); }   // lights a nether portal
   else if (canFireAt(hit.px, hit.py, hit.pz)) { used = placeFire(hit.px, hit.py, hit.pz, true); if (used) flushDirtyChunks(false); }
   if (used) { tntSound('ignite'); damageHeldTool(1); }
   return true;
@@ -22137,6 +22435,7 @@ function animate() {
   updateFogPhantoms(dt);
   updateWaterFlow(dt);
   try { updateLava(dt); } catch (e) { console.warn('lava', e); }
+  try { updateNether(dt); } catch (e) { console.warn('nether', e); }
   updateWaterAnim();
   updateWaterPush(dt);
   try { updateBoats(dt); } catch (e) { console.warn('boats', e); }
