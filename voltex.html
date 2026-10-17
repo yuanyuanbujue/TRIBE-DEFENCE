@@ -1486,11 +1486,13 @@ function recordMyName(name) {
   const h = myNameHistory(); if (h.length && h[h.length - 1].n === name) return;
   h.push({ n: name, t: Date.now() }); _lsSet(NAMEHIST_KEY, h.slice(-20));
 }
+let SESSION_SINCE = 0, _kicked = false;   // when THIS tab pressed Start; the newer session of an account wins
 function presenceMeta() {
   let skin = null, touch = false;
   try { skin = mySkinData; } catch (e) {}
   try { touch = !!touchMode; } catch (e) {}
-  return { name: MY_NAME, uid: MY_UID, hist: myNameHistory().slice(-10), skin, touch };
+  let acct = null; try { acct = (typeof authUser !== 'undefined' && authUser && authUser.id) ? String(authUser.id) : null; } catch (e) {}
+  return { name: MY_NAME, uid: MY_UID, acct, since: (typeof SESSION_SINCE !== 'undefined' ? SESSION_SINCE : 0), hist: myNameHistory().slice(-10), skin, touch };
 }
 function noteSeenPlayer(uid, name, hist) {
   if (!uid || typeof uid !== 'string' || uid === MY_UID) return;
@@ -2000,6 +2002,17 @@ TEX.gold_block = makeTexture(ctx => {
     ctx.fillRect(x,y,1,1);
   }
 });
+(function () {   // custom gold block texture (16x16 png)
+  const img = new Image();
+  img.onload = () => {
+    const t = TEX.gold_block, g = t.image.getContext('2d');
+    g.imageSmoothingEnabled = false; g.clearRect(0, 0, 16, 16); g.drawImage(img, 0, 0, 16, 16);
+    t.needsUpdate = true;
+    try { for (const n of ['_tileCache', '_iconCanvasCache', '_iconUrlCache']) { const o = eval(n); for (const k in o) delete o[k]; } } catch (e) {}
+    try { if (typeof renderHotbar === 'function') renderHotbar(); } catch (e) {}
+  };
+  img.src = 'data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAABAAAAAQCAYAAAAf8/9hAAABq0lEQVR4AXyRz0oCURTGzwySOgoiCC0kKFrUoojqCdr1Kj1Gr9DCB+gBWkabClpGLUQjTfoD4aIwJBhNTZjO74x3mEIa7jf3fN+c795zzviDm7UojfH5agTmaejAfWvUdiJf9Am2DyS/WzMsbG0IQHOAG6pVWVA4Xa1iB0T+pnjtQ0MUjkXKeyL9yxidExm+tGRSb8qk25Vh+CbR6xlegx1gkb6iXCDe0n5shId6mO6saSkjIF9ZgSY5fuZzKt7HkZi5mE0+UIk3GtqNOILiojgzOhpIKvCKakZRzDNLpSzkYKYNWhqPBuJTlvWsRhZm27UdbgWY0aTXt4qo2ri+kgo0Fmcm5iZ2WjN9ZkYDdrEGNgMmbkkqsNLmNCcGmKksmyvEvxHR4T8zJvLcMInjFrQ8iDPTsxsYehrB8rpRBmlDhEHSZjQ3ML7Bbdc/QZzkKokr0MDWLMGZmTbATNk2J60WTjvJDEj6O200DnUD41aAGZ18dquApO/Hjnz1nn/9Z3RuIhEjgFMNM7IZPLRL8nRdkEY9Y7uL4fdXIs2L0EAM4Hen73J73OJc+QEAAP//MZS3HgAAAAZJREFUAwDKJyIANSJzSQAAAABJRU5ErkJggg==';
+})();
 
 TEX.lava = makeTexture(ctx => {
   for (let y = 0; y < 16; y++) for (let x = 0; x < 16; x++) {
@@ -5741,7 +5754,7 @@ const LAVA_CAVE_CHANCE = 0.30, LAVA_SURFACE_CHANCE = 0.05;
 // a small netherrack platform underneath, a loot chest, and a few gold blocks.
 // Pure functions of the region so every client builds the same structure.
 const RUINED_PORTAL_REGION = 64;
-const RUINED_PORTAL_CHANCE = 0.35;
+const RUINED_PORTAL_CHANCE = 0.04;   // was 0.35 - far rarer now
 const _ruinedPortalCache = new Map();
 function ruinedPortalAt(gx, gz) {
   const ck = gx + ',' + gz;
@@ -6173,6 +6186,7 @@ function updateChunkStreaming(dt) {
   streamTimer -= dt;
   if (streamTimer > 0) return;
   streamTimer = 0.1; // throttle: several times a second
+  try { streamWorldDiffs(); waterWake(); } catch (e) { console.warn('stream diffs/water', e); }
   { // stale-mesh check: redraw any nearby chunk whose blocks changed since its mesh was built
     const hx = Math.floor(player.pos.x / CHUNK_SIZE), hz = Math.floor(player.pos.z / CHUNK_SIZE), hr = Math.min(RENDER_CHUNKS, 7);
     for (let dx = -hr; dx <= hr; dx++) for (let dz = -hr; dz <= hr; dz++) {
@@ -6618,6 +6632,7 @@ function snapshotSave() {
   return snap;
 }
 function saveLocalPlayer() {
+  if (_kicked) return;   // a newer session of this account took over: never overwrite its save
   try { localStorage.setItem(SAVE_KEY, JSON.stringify(snapshotSave())); } catch(e) { /* storage may be unavailable; fail silently */ }
   scheduleCloudSave();
 }
@@ -6720,10 +6735,11 @@ function loadLocalPlayer() {
 // keeps using the per-account local save and never complains.
 let authUser = null, cloudSaveOk = true, cloudSaveTimer = null;
 function scheduleCloudSave() {
+  if (_kicked) return;
   if (!authUser || !cloudSaveOk || cloudSaveTimer) return;
   cloudSaveTimer = setTimeout(async () => {
     cloudSaveTimer = null;
-    if (!authUser || !cloudSaveOk) return;
+    if (!authUser || !cloudSaveOk || _kicked) return;
     try {
       const { error } = await sb.from('voltex_saves').upsert({ user_id: authUser.id, data: snapshotSave(), updated_at: new Date().toISOString() });
       if (error) { cloudSaveOk = false; console.warn('Cloud save unavailable, using local save only:', error.message); }
@@ -6773,6 +6789,7 @@ function applyBlockDiff(row, skipMark) {
     const rowB = { type, x, y, z, meta, placed: isOreType(type) };
     if (type === 'spawner') { rowB.spawnKind = spawnerKindFromBlock(rowB, x, y, z); placedSpawnerKeys.add(k); }
     world.set(k, rowB);   // saved/synced non-air rows are player placements
+    if (type === 'water') _wDiffAdd(x, y, z);   // flowing water isn't saved, so wake this source later so it flows again
   }
   // (each helper is guarded: if one of them throws, the block is already in `world` and the chunk MUST still be redrawn,
   //  otherwise other players' blocks stay invisible until you mine something in that chunk)
@@ -6782,20 +6799,72 @@ function applyBlockDiff(row, skipMark) {
   if (!skipMark) markChunkDirty(x,z);
 }
 
-// Read the entire diff table once at startup and lay it on top of the
-// locally-generated base terrain.
-async function loadWorldDiffs() {
+// ---- Saved water sources: flowing water is never saved, so after joining / walking into a chunk the sources are
+// re-started (only chunks near the player, a few at a time) and the water runs again.
+const _wDiffSrc = new Map();   // "cx,cz" -> [x,y,z, x,y,z, ...]
+function _wDiffAdd(x, y, z) {
+  const ck = Math.floor(x / CHUNK_SIZE) + ',' + Math.floor(z / CHUNK_SIZE);
+  let a = _wDiffSrc.get(ck);
+  if (!a) _wDiffSrc.set(ck, a = []);
+  if (a.length < 3000) a.push(x, y, z);
+}
+function waterWake() {
+  if (!_wDiffSrc.size) return;
+  const pcx = Math.floor(player.pos.x / CHUNK_SIZE), pcz = Math.floor(player.pos.z / CHUNK_SIZE), R = RENDER_CHUNKS + 1;
+  for (const [ck, a] of _wDiffSrc) {
+    if (_wfQ.length - _wfHead > 300) return;            // let the flow queue drain first
+    if (!generatedChunks.has(ck)) continue;
+    const [cx, cz] = ck.split(',').map(Number);
+    if ((cx - pcx) * (cx - pcx) + (cz - pcz) * (cz - pcz) > R * R) continue;
+    for (let i = 0; i < a.length; i += 3) { const b = world.get(key(a[i], a[i + 1], a[i + 2])); if (b && b.type === 'water' && !b.flow) waterEnq(a[i], a[i + 1], a[i + 2]); }
+    _wDiffSrc.delete(ck);
+  }
+}
+
+// ---- Load the saved world only around the player (chunk rectangle), then more as you walk, instead of the whole table.
+const _diffLoaded = new Set(), _diffLoading = new Set();
+let _diffRetryAt = 0;
+function _diffRadius() { return (typeof RENDER_CHUNKS === 'number' ? RENDER_CHUNKS : 5) + 3; }
+async function loadDiffsRect(cx0, cz0, cx1, cz1, skipMark) {
+  const x0 = cx0 * CHUNK_SIZE, x1 = (cx1 + 1) * CHUNK_SIZE - 1, z0 = cz0 * CHUNK_SIZE, z1 = (cz1 + 1) * CHUNK_SIZE - 1;
   let from = 0;
   const pageSize = 1000;
   for (;;) {
-    const { data, error } = await sb.from('world_blocks').select('x,y,z,type').range(from, from + pageSize - 1);
-    if (error) { console.error('loadWorldDiffs', error); break; }
+    const { data, error } = await sb.from('world_blocks').select('x,y,z,type')
+      .gte('x', x0).lte('x', x1).gte('z', z0).lte('z', z1)
+      .order('x').order('y').order('z').range(from, from + pageSize - 1);
+    if (error) { console.error('loadWorldDiffs', error); return false; }
     if (!data || data.length === 0) break;
-    data.forEach(row => applyBlockDiff(row, true));
+    data.forEach(row => applyBlockDiff(row, skipMark));
     if (data.length < pageSize) break;
     from += pageSize;
   }
+  return true;
+}
+async function loadWorldDiffs() {
+  const pcx = Math.floor(player.pos.x / CHUNK_SIZE), pcz = Math.floor(player.pos.z / CHUNK_SIZE), R = _diffRadius();
+  const ok = await loadDiffsRect(pcx - R, pcz - R, pcx + R, pcz + R, true);
+  if (ok) for (let dx = -R; dx <= R; dx++) for (let dz = -R; dz <= R; dz++) _diffLoaded.add((pcx + dx) + ',' + (pcz + dz));
   updateTorchShadows(); // rank once, now that every torch from the saved world is in — see syncBlockLight's deferRerank
+}
+// Called from updateChunkStreaming: fetch saved changes for the nearest chunk that hasn't been loaded yet.
+function streamWorldDiffs() {
+  if (typeof sb === 'undefined' || !sb || _diffLoading.size >= 2 || performance.now() < _diffRetryAt) return;
+  const pcx = Math.floor(player.pos.x / CHUNK_SIZE), pcz = Math.floor(player.pos.z / CHUNK_SIZE), R = _diffRadius();
+  let best = null, bd = 1e9;
+  for (let dx = -R; dx <= R; dx++) for (let dz = -R; dz <= R; dz++) {
+    const d2 = dx * dx + dz * dz; if (d2 > R * R || d2 >= bd) continue;
+    const ck = (pcx + dx) + ',' + (pcz + dz);
+    if (_diffLoaded.has(ck) || _diffLoading.has(ck)) continue;
+    best = [pcx + dx, pcz + dz, ck]; bd = d2;
+  }
+  if (!best) return;
+  const [cx, cz, ck] = best;
+  _diffLoading.add(ck);
+  loadDiffsRect(cx, cz, cx, cz, false).then(ok => {
+    _diffLoading.delete(ck);
+    if (ok) { _diffLoaded.add(ck); markOne(cx, cz); } else _diffRetryAt = performance.now() + 5000;
+  }, () => { _diffLoading.delete(ck); _diffRetryAt = performance.now() + 5000; });
 }
 
 // Push this player's block change to Supabase so every other connected
@@ -6816,6 +6885,7 @@ function isOwnWriteEcho(row) {
   return !isNaN(ms) && _ownStamps.has(ms);
 }
 async function pushBlockDiff(x, y, z, type, meta) {
+  if (_kicked) return;
   // Keep removedDiffs in step right now. It used to be updated only when our own write echoed back from the
   // server; since those echoes are skipped now (see ownStamp), do it here at the moment the change is made.
   { const rk = key(x, y, z); if (type === 'air') removedDiffs.add(rk); else removedDiffs.delete(rk); }
@@ -14319,11 +14389,71 @@ function killSpokeMinions() {
   }
   if (n > 0) addChatLine('System', 'Spoke\'s Null forces fell with him. (' + n + ')', true);
 }
+// ================= Mob death: turn red -> tip over onto the ground -> vanish in a puff of smoke =================
+const dyingMobs = [], smokePuffs = [];
+const SMOKE_FRAMES = ['0000000000000000000000000000000000001000000000000000000000000000','0000000000000000000000000001000000001000000000000000000000000000','0000000000000000000000000001000000001100000000000000100000000000','0000000000000000000001000001000000001100000111000000100000000000','0000000000000000000101000001100000001100000111100000100000000000','0000000000000000000101000001101000101100000111100010100000000000','0000000000001000001101000001101101101100000111100010101000010000','0001000001001110001101001001101101101100010111100010101100110100'];   // 8x8 masks of generic_0..7 (smoke puff animation)
+let _smokeMats = null;
+function smokeFrameMats() {
+  if (_smokeMats) return _smokeMats;
+  _smokeMats = SMOKE_FRAMES.map(m => {
+    const c = document.createElement('canvas'); c.width = c.height = 8;
+    const g = c.getContext('2d'); g.fillStyle = '#fff';
+    for (let i = 0; i < 64; i++) if (m[i] === '1') g.fillRect(i % 8, (i / 8) | 0, 1, 1);
+    const t = new THREE.CanvasTexture(c); t.magFilter = THREE.NearestFilter; t.minFilter = THREE.NearestFilter; t.generateMipmaps = false;
+    return t;
+  });
+  return _smokeMats;
+}
+function spawnSmokePuff(x, y, z, size) {
+  const tex = smokeFrameMats();
+  const mat = new THREE.SpriteMaterial({ map: tex[0], color: 0x8c8c8c, transparent: true, depthWrite: false });
+  const sp = new THREE.Sprite(mat);
+  sp.position.set(x, y, z); sp.scale.set(size, size, size);
+  scene.add(sp);
+  smokePuffs.push({ sp, mat, age: 0, life: 0.55 + Math.random() * 0.35, vx: (Math.random() - 0.5) * 0.8, vy: 0.5 + Math.random() * 0.9, vz: (Math.random() - 0.5) * 0.8, size });
+}
+function startMobDeath(group) {
+  if (!group || group.userData._dying) { return false; }
+  group.userData._dying = true;
+  try { clearTimeout(group.userData._flashTimer); } catch (e) {}
+  const mats = [];
+  group.traverse(o => {   // own copy of every material so other mobs of this kind don't turn red too
+    if (!o.isMesh || !o.material) return;
+    const cl = m => { if (!m || !m.color) return m; const c = m.clone(); c.color.set(0xff2020); mats.push(c); return c; };
+    o.material = Array.isArray(o.material) ? o.material.map(cl) : cl(o.material);
+  });
+  if (!group.parent) scene.add(group);
+  dyingMobs.push({ g: group, t: 0, mats, rz0: group.rotation.z, side: Math.random() < 0.5 ? 1 : -1 });
+  return true;
+}
+function updateMobDeaths(dt) {
+  for (let i = dyingMobs.length - 1; i >= 0; i--) {
+    const d = dyingMobs[i]; d.t += dt;
+    const fall = Math.min(1, d.t / 0.18);                     // 0 -> 1 : tipping over
+    d.g.rotation.z = d.rz0 + d.side * (Math.PI / 2) * (fall * fall);
+    if (!d.smoked) { d.smoked = true; const p0 = d.g.position; for (let k = 0; k < 7; k++) spawnSmokePuff(p0.x + (Math.random() - 0.5) * 0.8, p0.y + 0.3 + Math.random() * 0.8, p0.z + (Math.random() - 0.5) * 0.8, 0.5 + Math.random() * 0.5); }   // smoke starts the instant it dies
+    if (d.t >= 0.5) {                                         // lying on the ground, now poof
+      const p = d.g.position;
+      for (let k = 0; k < 9; k++) spawnSmokePuff(p.x + (Math.random() - 0.5) * 0.9, p.y + 0.2 + Math.random() * 0.5, p.z + (Math.random() - 0.5) * 0.9, 0.55 + Math.random() * 0.5);
+      try { scene.remove(d.g); } catch (e) {}
+      for (const m of d.mats) { try { m.dispose(); } catch (e) {} }
+      dyingMobs.splice(i, 1);
+    }
+  }
+  for (let i = smokePuffs.length - 1; i >= 0; i--) {
+    const q = smokePuffs[i]; q.age += dt;
+    if (q.age >= q.life) { scene.remove(q.sp); q.mat.dispose(); smokePuffs.splice(i, 1); continue; }
+    const u = q.age / q.life, tex = smokeFrameMats();
+    q.mat.map = tex[Math.min(7, (u * 8) | 0)]; q.mat.opacity = u < 0.6 ? 0.9 : 0.9 * (1 - (u - 0.6) / 0.4);
+    q.sp.position.x += q.vx * dt; q.sp.position.y += q.vy * dt; q.sp.position.z += q.vz * dt;
+    const sc = q.size * (0.8 + u * 0.7); q.sp.scale.set(sc, sc, sc);
+  }
+}
 function killAnimal(animal, by) {
   try { bossClearRoof(animal); } catch (e) {}
   const wasSpoke = animal && animal.kind === 'spoke';
   animal.alive = false;
-  scene.remove(animal.group);
+  if (!startMobDeath(animal.group)) scene.remove(animal.group);
   if (wasSpoke) killSpokeMinions();
   if (!by || by === MY_ID) {
     try { registerAnimalKill(animal.kind); } catch (e) {}
@@ -16322,6 +16452,32 @@ function updatePlayerCountHUD() {
   if (el) el.textContent = 'Players online: ' + (otherPlayers.size + 1);
 }
 
+// ---- one session per account: when the same account joins from another tab / device, the OLDER session is kicked ----
+function checkDuplicateSession(state) {
+  if (_kicked || !gameStarted || !SESSION_SINCE) return;
+  let myAcct = null; try { myAcct = (authUser && authUser.id) ? String(authUser.id) : null; } catch (e) {}
+  for (const id of Object.keys(state)) {
+    if (id === MY_ID) continue;
+    const m = (state[id] && state[id][0]) || {};
+    const same = (myAcct && m.acct && m.acct === myAcct) || (!myAcct && !m.acct && m.uid && m.uid === MY_UID);
+    if (!same || !m.since) continue;
+    if (m.since > SESSION_SINCE || (m.since === SESSION_SINCE && id > MY_ID)) { kickThisSession(); return; }   // theirs is newer -> we leave
+  }
+}
+function kickThisSession() {
+  if (_kicked) return;
+  _kicked = true;
+  try { clearTimeout(cloudSaveTimer); cloudSaveTimer = null; } catch (e) {}
+  try { if (document.pointerLockElement) document.exitPointerLock(); } catch (e) {}
+  try { playersChannel.untrack(); } catch (e) {}
+  try { playersChannel.unsubscribe(); } catch (e) {}
+  try { sb.removeAllChannels(); } catch (e) {}
+  const o = document.createElement('div');
+  o.style.cssText = 'position:fixed;inset:0;z-index:2147483647;background:#0b0f1a;color:#fff;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:16px;font-family:Segoe UI,Arial,sans-serif;text-align:center;padding:24px;';
+  o.innerHTML = '<div style="font-size:26px;font-weight:700">You were kicked</div><div style="max-width:420px;opacity:.85">This account joined the game from another tab or device, so this session was closed to prevent duplicating items. Nothing from this session was saved after that.</div><button id="kickReload" style="padding:12px 26px;font-size:17px;border:0;border-radius:10px;background:#4c8cff;color:#fff;cursor:pointer">Play here instead</button>';
+  document.body.appendChild(o);
+  document.getElementById('kickReload').onclick = () => location.reload();
+}
 const playersChannel = sb.channel('game_room', { config: { presence: { key: MY_ID } } });
 { // every PvP hit carries the name of the item we hit with (if it was renamed at an anvil), so the death message can say "using <name>"
   const _pcSend = playersChannel.send.bind(playersChannel);
@@ -16334,6 +16490,8 @@ playersChannel
   .on('presence', { event: 'sync' }, () => {
     const state = playersChannel.presenceState();
     const seen = new Set(Object.keys(state));
+    try { checkDuplicateSession(state); } catch (e) { console.warn('dupe check', e); }
+    if (_kicked) return;
     const firstSync = !_presenceSynced; _presenceSynced = true;   // players already online when you arrive don't spam "joined"
     seen.forEach(id => {
       if (id === MY_ID) return;
@@ -19117,6 +19275,7 @@ function startGame() {
   recordMyName(MY_NAME);
   startScreen.style.display = 'none';
   gameStarted = true;
+  SESSION_SINCE = Date.now();
   if (touchMode) {
     enterFullscreen(); // must run inside the Start tap (user gesture)
     setMobileVisible(true);
@@ -21950,6 +22109,7 @@ function spawnExplosionFx(c) {
   }
 }
 
+const EXPLODE_DMG_MULT = 2.5;   // all explosion damage (TNT, creepers, TNT minecarts) is multiplied by this
 function explodeTnt(t) {
   const c = new THREE.Vector3(t.pos.x, t.pos.y + 0.5, t.pos.z);
   const R = TNT_RADIUS;
@@ -21968,7 +22128,7 @@ function explodeTnt(t) {
       const blocked = d > 1 && castVoxelRay(c, dirv, Math.max(0, d - 0.6));
       if (blocked && t.fullBlock) { /* TNT minecart: a block in the way blocks all damage + knockback */ } else {
       let imp = (1 - d / reach) * (blocked ? 0.45 : 1);
-      const dmg = Math.round(imp * imp * 24 + imp * 4);
+      const dmg = Math.round((imp * imp * 24 + imp * 4) * EXPLODE_DMG_MULT);
       player.vel.x += dirv.x * imp * 14; player.vel.z += dirv.z * imp * 14;
       player.vel.y = Math.max(player.vel.y, 3 + dirv.y * imp * 12 + imp * 4);
       player.onGround = false;
@@ -21985,7 +22145,7 @@ function explodeTnt(t) {
     const dirv = ac.clone().sub(c); if (dirv.lengthSq() < 1e-4) dirv.set(0, 1, 0); dirv.normalize();
     if (t.fullBlock && d > 1 && castVoxelRay(c, dirv, Math.max(0, d - 0.6))) return;
     a.vel.x += dirv.x * imp * 12; a.vel.z += dirv.z * imp * 12; a.vel.y = 4 + imp * 6;
-    damageAnimal(a, Math.round(imp * imp * 24 + imp * 4));
+    damageAnimal(a, Math.round((imp * imp * 24 + imp * 4) * EXPLODE_DMG_MULT));
   });
 
   if (!t.owner) return; // terrain changes come from the client that lit it (via world_blocks)
@@ -22661,6 +22821,7 @@ function animate() {
   try { updateBoats(dt); } catch (e) { console.warn('boats', e); }
   try { updateCarts(dt); } catch (e) { console.warn('carts', e); }
   updateDroppedItems(dt);
+  try { updateMobDeaths(dt); } catch (e) { console.warn('mob death fx', e); }
   updateBow(dt);
   updateSpearCharge(dt);
   updateMaceHud();
