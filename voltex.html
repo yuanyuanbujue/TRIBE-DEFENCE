@@ -2266,6 +2266,11 @@ const ITEM_INFO = {
   diamond_chestplate: { maxStack: 1, armor: 6, slot: 1, durability: 528 },
   diamond_leggings:   { maxStack: 1, armor: 5, slot: 2, durability: 495 },
   diamond_boots:      { maxStack: 1, armor: 2, slot: 3, durability: 429 },
+  // netherite armor: 20 pts (diamond 16), much more durable, plus knockback resistance on every piece (12% each, 48% for a full set)
+  netherite_helmet:     { maxStack: 1, armor: 4, slot: 0, durability: 520, knockRes: 0.12 },
+  netherite_chestplate: { maxStack: 1, armor: 7, slot: 1, durability: 760, knockRes: 0.12 },
+  netherite_leggings:   { maxStack: 1, armor: 6, slot: 2, durability: 710, knockRes: 0.12 },
+  netherite_boots:      { maxStack: 1, armor: 3, slot: 3, durability: 620, knockRes: 0.12 },
   raw_meat:       { food: 3 },
   raw_beef:       { food: 3 },
   raw_porkchop:   { food: 3 },
@@ -2300,6 +2305,15 @@ const ITEM_INFO = {
   iron_hoe:       { maxStack: 1, durability: 250 },
   gold_hoe:       { maxStack: 1, durability: 32 },
   diamond_hoe:    { maxStack: 1, durability: 1561 },
+  // netherite tools: roughly double diamond's durability, stronger and faster
+  netherite_sword:   { maxStack: 1, attack: 12, durability: 3122 },
+  netherite_spear:   { maxStack: 1, attack: 7, durability: 3122 },
+  netherite_pickaxe: { maxStack: 1, durability: 3122 },
+  netherite_axe:     { maxStack: 1, durability: 3122 },
+  netherite_shovel:  { maxStack: 1, durability: 3122 },
+  netherite_hoe:     { maxStack: 1, durability: 3122 },
+  netherite_scrap:   {},
+  netherite_ingot:   {},
   wheat_seeds:    {},
   wheat:          {},
   bread:          { food: 5, satRatio: 1.2 },
@@ -2341,7 +2355,8 @@ const ITEM_INFO = {
 };
 const ARMOR_TYPES = ['iron_helmet', 'iron_chestplate', 'iron_leggings', 'iron_boots',
   'gold_helmet', 'gold_chestplate', 'gold_leggings', 'gold_boots',
-  'diamond_helmet', 'diamond_chestplate', 'diamond_leggings', 'diamond_boots'];
+  'diamond_helmet', 'diamond_chestplate', 'diamond_leggings', 'diamond_boots',
+  'netherite_helmet', 'netherite_chestplate', 'netherite_leggings', 'netherite_boots'];
 function isArmor(type) { return !!(ITEM_INFO[type] && (ITEM_INFO[type].armor || ITEM_INFO[type].elytra)); }
 function maxDurability(type) {
   const info = ITEM_INFO[type];
@@ -2437,6 +2452,11 @@ function damageShield(amount) {
 // Total damage reduction from equipped armor: any iron armor pieces the
 // player is carrying in their inventory count as "worn" (simplified —
 // no separate armor slots), each reducing incoming damage by its value.
+function armorKnockRes() {   // netherite pieces each resist some knockback
+  let k = 0;
+  for (const a of armorSlots) if (a && ITEM_INFO[a.type] && ITEM_INFO[a.type].knockRes) k += ITEM_INFO[a.type].knockRes;
+  return Math.min(0.9, k);
+}
 function totalArmorReduction() {
   let total = 0, prot = 0;
   for (const a of armorSlots) if (a && isArmor(a.type)) {   // only EQUIPPED armor counts
@@ -2447,7 +2467,7 @@ function totalArmorReduction() {
   const extra = Math.min(0.8, prot * 0.04);   // each Protection level on each piece = another 4%
   return Math.min(0.9, 1 - (1 - base) * (1 - extra));
 }
-function isSword(type) { return type === 'wood_sword' || type === 'stone_sword' || type === 'iron_sword' || type === 'gold_sword' || type === 'diamond_sword'; }
+function isSword(type) { return type === 'wood_sword' || type === 'stone_sword' || type === 'iron_sword' || type === 'gold_sword' || type === 'diamond_sword' || type === 'netherite_sword'; }
 function isSpear(type) { return !!type && /_spear$/.test(type); }
 function isMace(type) { return type === 'mace'; }
 function isAxe(type) { return !!(type && type.endsWith('_axe')); }
@@ -2538,8 +2558,8 @@ function isDoorType(t) { return t === 'door' || t === 'birch_door'; }
 function isTrapType(t) { return t === 'trapdoor' || t === 'birch_trapdoor'; }
 function isLeavesType(t) { return t === 'leaves' || t === 'birch_leaves'; }
 // armor tier: 0 = iron, 1 = gold, 2 = diamond (drives the worn-armor colour)
-function armorTier(type) { return type.startsWith('gold_') ? 1 : (type.startsWith('diamond_') ? 2 : 0); }
-const ARMOR_TIER_COLOR = [0xc9d0d5, 0xf2c830, 0x4fe0f0];
+function armorTier(type) { return type.startsWith('gold_') ? 1 : (type.startsWith('diamond_') ? 2 : (type.startsWith('netherite_') ? 3 : 0)); }
+const ARMOR_TIER_COLOR = [0xc9d0d5, 0xf2c830, 0x4fe0f0, 0x4a2940];
 // Worn-armor textures from the Golden Age pack (classic 64x32 armor layout, drawn on a 64x64 canvas): iron, gold, diamond
 const ARMOR_TEX = ["data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAEAAAAAgCAYAAACinX6EAAAEEUlEQVR42u1ZTWuzTBQ9KUKFEVwYCEx2um9/gV10lf5ilwXzD7proO4UBF0IDigEfFdnuFrTptB8NM97ISSjx2Tunftx7s0C30iapoMxBgCglLLXee3l5WWBPyzOMaDNZgMAKIoCANC2LQCgLEv8dXGOBb6+viIIArt2XRe3IN8awBiDoigQBAHqurbXpTH+CQ+grNdr+5kh8Zfl7hgQY16K53mjpHizBqCSrutat/c8b1QJbj4EyrKELIW3kP0pizRNB3maPHFjzKyLH+IE8rnp/enzEntpHuEAQBzHKIpiFOtd16FpGhhjsNlssNvt0HUdfN8HANR1jb7voZSC1npUFj3Pg9Ya2+0W/H4mzaqqLPYaPMlhmauqypa5IAiwXC5tlt9utzDGIAxD5HluFe/7HsYYRFH06fnpab+9vVnDTavJxT1Abt5xHDRNY5VXSuHp6WkBAMMwDHmeW7dNkmSgckopOI6D/X4/4gs0sLxGD7uGJOoopdA0Dfq+BwA8Pz8vvmKDUubil0ZpmgZKKRhjUFXVJ/K0XC7RNM3lk+Cpf4DNFPMES+jHx8dVJMGz/XiSJMM1Zf//5ZAHSF6glILv+6Ps/vj4eNGT4/5+y5NmqXAcxwjDEMaYEQW+FonjGFEU/UovcjfH1Ha7HbIss6TGdd2rqdssq+/v76frBag8s/VX1PgSQlLF0v0rvcB3/cDcva/WJE9zsftT/E/38ZNqc0cgOT4TH9cA4Ps+tNb2i+U9mTN4P4qikQJJkgyr1epLfJIkQ5qmQ5qmQ5IkQxzHVrnNZoMoiuz+Hh4ebH+hlLL3qTxzxNG9wFzvz7UxBtw86fFqtYLW2jZLRVGg6zprda31iBWymZIxTDwAi2cz5nmedXPZRFFBxj/XEssQqev6qJB1eOLS3aQySim7pkFoJNJdUl3pfm3bIgxDeJ43Un6Kn5s6sTeZUmmutdaoqsqu9/s9giCwa9/3EQTBUSM7R554URRWAfl5qrA8vanH8Fli+O667qyHTfHsGNfrtW2X6WmUaQ/R9/3o2hT/bQhkWWbdkBsKw9BOgnzfR5ZlI4PQQPSYuq7hOA6MMWjb9uDYfIrn6Uu8LLmnpsx3HGhIhcIwRJZlI5cmMaLyWutROEzJUtd1o9fUY+TMQOLyPEee52drlxdpmg7MAXQjWVr4mUlPVgEZJseWJ/l+aLQmFT+1BzhzisxlT2kcYoiL4xi73c7GrByByeRWlqUtU5JtEj995hwjM8cYg/v7e6xWKxvnbIAYo+zluSHimSOoDE+PZUuWToaMUupo/Fn+F1BKYb1ej/7oWC6Xo0QkBxkST4WYRLlu2xZFUXxShgpPk25VVbP4s+SA6aBiGvuSJM2RprlNUoFjy9EhvJxHnkr+A1i3cyfqaHzUAAAAAElFTkSuQmCC", "data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAEAAAAAgCAYAAACinX6EAAAE3UlEQVR42u1Zv0/jSBT+PIrQySuLJkQpbBIoAkI5iaOCJsVqBZX3D2CLrbPtFdtuezrRZqtt+QOgygqlyBVJw3JSUERSJOZwsVq2iUYYlMK+wp7nGRMgSEACd6+BsZ/tee99870f0XCHOHurAXcZAMAwfbourv364ZuGZyypcZSK5UMEqCFAFQDABi4A4LTexnOXsRwQoIbL6nvo+YX4YtbCS5A7HcBdhgBV6PkFeE6fruvAf8MBSdHXS7FzaifP3gFsLKXozMviz5oKKb5YBJCRWYtg78+aSiZ48UfgtN5GnArbANr3AdBUi+bsrQZyNEXEuctGQvymmkB+Lnk/+bysO+k6IgUA8/YOAlTVs/79DKddDu4yFMuHwOAd8P0MKIS3PaePXi8Dw/RRfP1KSYv+rAkNW/hn/3eI94fptArWaZDuNNQRKZHmWKdBaU7PL8Bf2gCvHYQb3f8tdMT2MrxmPTI8TVH07Y0Rz6vR1jqfoEWOg9NXssnEESBv/nyYBrqcjDdMH/m3f2sA4Jf/DIA6wbZVWQsAoP35IDI0jbmZn/CcPhGmcPClVEMIhE0DiaYM04+gnrmztr+svlfWo3SFU4whh2GGDmCdBiGDjsnSBozu18mT4GN/QDRTgidECj3b/zoVJPhkH29V1oJpYv//5SYEyHWBYfrIFQyF3bXlvyYaObG/h0LSSBqet3dQ3F4OWTprqW3wFEjOPoJlbz5IL5IaValpgy/wmnUAGfizJhgAPWuFhdCEhbsMPj7iqroLIP04vcDx7gmADLH1baXxJKT9+YD292C9wF39wKh7t61F8TTq7N5X/777uE+2YQAwN/MTuYJBL8oVDFoDQK5goPj6Fb04VzCwuPjjGmeI+5a9qRjQqqwFudLKrfqtylrg7K0Gzt5q0KqsBfP2DhlXLB/CsjdpfyvlN8jZR7QW94m4I44YuxeYW7ze+4vWl7sMKFnqBKgUzgaMIadSV4v4gbsMDH/AsoFWhQXCAAzeKaWxJvGJhi2slOPBiz9rQut8iqtGfATrNMjAq+ouftmSot0pqWzeKeHK6VO/cisCDNNXWJ67LCS7qFY3TJ/WCgeQk3wqdWX4sYGL4vYyVspvFOOT+iLKcicqehPD9JVSWqz1/AJYp0FrkabFWqTscXqNlGwMr52QAV7Sg1kL6LZjh8giIYYiFumIv8haIxEm2mQZEZ7oFqN2WbTlImufdrny+V4vA2MYX4v1xzwCXrOuoEDeAHcZUECUFtOKDpAmxMhrNnBvHJsn9Sn6kr4u/f/YJXNKHAERce4y5LZL8Jp1cDdDUdPXS+C7IUI8px9CrHahzgvlyNyAkqQ+HTnFseND+MHqAD2/AHR5aGCzrpwpbybs78kZEloM05dmhiyxltJT7QSGmZwxRvqR40KOiFDVu3i6gchx7ULNqwn2lM8YdxmO3VBfGDRv70AbfKERV84+op/SZHI7rYccIvTDgisemdHY7Al/ektxl2Fx8Qf09RKOI4iLBuh8GDpC9PJiQ0JfRDIundNUqrJOIx6BSZA2TJ/0RbRpVgjQ5Oip+o8wDa6XlB86/KUNdWYnDTJkfWGQIFFKcwMXntNXjFeOVIJ0RdpL6j8FB2jJQUUyn8pnXb4mPyOqwl4vEyNGSkfJ++Pqnw/T10rkh5Z/AYSTIjzb6acPAAAAAElFTkSuQmCC", "data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAEAAAAAgCAYAAACinX6EAAAE60lEQVR42u1Zz08bRxT+9gcW8o4TV1akysSWrKihqLJsX5AqLKz0ktIoveYvaA9R/4BE6hHRS6Te+B96RbLIiQhkVLUXm+TQAgIU26xEkIuLxz4Q1tuD9w2z0wWMBMbQvkvydt6u5828H9/30HCOZCtLrsM5AMBgTDynZ+/y32q4wWL2Y/R26ilsfES523N6sdMGAKxubeKmS18HYOMjHr/fRjJyctmpUBi3Qc49AIdzlLscyYiGass9WYh0/hsHoEohZon/17w6cJNF78eIcl6WydERX1G8tRFATqZCYRH2k6MjiOkh0QlufQqsbm0KZ23GsIrbI1q2suTKfZ1u3OE8MMRPwwTye+q6+r5se904wgSAYiaPcpf7cn3nqAO7tguHc7ydeoofeB07RyeVv9pyodU3YDCGxMS4ry3OhC3kdIYnayXQ9wGg3OWYb+4L22HAESa1ufnmvmhzyYiGZ3fu4hVfBwDk1t7A4RzTmRyWG21o9Q2YjMHxbvHZnbv45fBv8f7OUQfPo/7b/u6vHXFwVbR93eTaI0B23mzasJsQzhuMoZL9SgOA1+6Ru9zYFmGbLi24APDqt99hMAYTwHE0jmrLxTz2fTjChyG8QxqGImoajMGu7ULzNlM5Iycfv9/26UH5S4diMwaDMTi8F10qhpgcHcHPQ9BGr7wAEZmiOkEt9Md3laEoggP78XRpwR2m6v+/nBYBMi4IwgRUEK9LaH+XFUmBXKCYyWM6k4PDOSh/j6PxoYG+5cwjzKazl8JF9CCkNsf3sNxoizaYCoVRiFlDQX4czlHsHuBF7cPVcYGVtbIvN4gLDAv7e/lrCRoA5zK5wHl8IGjtLF2tFfLvXNT+ovu4SLfR4aG3eGJMfCieGBM6AMQTY0hMjIsPxxNjcO8//FfNoPXZdNbnQLq04E49+OxM+3Rpwc1WltxsZclNlxbcYiYvnHs99TVm01mxv5++zKOceSR0db2YyQu9Ly6AaAD399Ccw7nQaQJEswFaL3e5IEoO53iifwKks3jpoUIiUzI0lolVTu85RWRsJmwJ7iCTKLrdF7UPsD/VhU62sl5tuTD7SFnTYAxxadjpcL8zBmNCJ2hLh2B7zwjqyuG32GljOpPDTNjyOa/aB02diJuYCpSm308mNHw/GhWbrihOVQB801h37WafRVC+YXJAPUHZYfn21IgBgGL3QNjMe/+mQuHACKMbVql2IWZh1XOAaDmJXds91zH1nTNTYLnR9o285Q3QR5YbbV/LqLZcmFLEyPpip33q2Fy1p9uX7VOxswlXP9IvYBMpIIdc4YHV4/1SRBRiFlbqPb3acpGMaKjVlZrQ9NPdoChR7eWUo4OlmcQggJe41GREg93shbgMghzucflIRxyGHC0GY76ZYZCuppe6TiHtcC4uoTbIgUjtj3Vf7zRh+8FCfUPkq8O5sKd3ipk85vieGHFRiyp2D3zFbXVrU7SpOb6HlbWyb2RG9WCQf3ozHc7h3n+IqZiFlbWywAHVlguz2TsI4vK0IbKnmyTobEpQlSq3GtIGYyf2UhsNsh+E6AZjKMQszIRPsP7z6D3f9CYVCmMmbImQJXtyiIoo6Yuddm/2pzhDKaUWXWp7qv0gaoCmDirUfi/nuvyM3jk+PASSn3sV7M+eA19MiFYUtC7rmq4jMTEeaG827Sun3/8Amwdmipj7rw4AAAAASUVORK5CYII="].map(uri => {
   const cv = document.createElement('canvas'); cv.width = 64; cv.height = 64;
@@ -2550,6 +2570,34 @@ const ARMOR_TEX = ["data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAEAAAAAgCAYAAA
   img.src = uri;
   return tex;
 });
+(function () {
+  const cv = document.createElement('canvas'); cv.width = 64; cv.height = 64;
+  const tex = new THREE.CanvasTexture(cv);
+  tex.magFilter = THREE.NearestFilter; tex.minFilter = THREE.NearestFilter; tex.generateMipmaps = false;
+  ARMOR_TEX[3] = tex;
+  const lerp = (a, b, t) => a.map((v, i) => v + (b[i] - v) * t);
+  const D = [24, 12, 18], M = [74, 41, 64], L = [140, 128, 140];
+  let tries = 0;
+  const build = () => {
+    const src = ARMOR_TEX[2] && ARMOR_TEX[2].image;
+    let ok = false;
+    try {
+      const sg = src.getContext('2d'), im = sg.getImageData(0, 0, 64, 64), d = im.data;
+      for (let i = 3; i < d.length; i += 4) if (d[i]) { ok = true; break; }
+      if (ok) {
+        for (let i = 0; i < d.length; i += 4) {
+          if (!d[i + 3]) continue;
+          const l = (0.3 * d[i] + 0.59 * d[i + 1] + 0.11 * d[i + 2]) / 255;
+          const c = l < 0.5 ? lerp(D, M, l * 2) : lerp(M, L, (l - 0.5) * 2);
+          d[i] = c[0]; d[i + 1] = c[1]; d[i + 2] = c[2];
+        }
+        cv.getContext('2d').putImageData(im, 0, 0); tex.needsUpdate = true;
+      }
+    } catch (e) {}
+    if (!ok && ++tries < 40) setTimeout(build, 250);
+  };
+  build();
+})();
 // ================= Block-style icons =================
 // Every block AND every item (tools, armor, food, materials) is shown as a
 // small isometric textured cube — no emoji. Blocks reuse their real world
@@ -2633,6 +2681,7 @@ const SPRITE_MAT = {
   iron:  { a:'#f4f7f9', b:'#c9d0d5', c:'#8a949b' },
   gold:  { a:'#ffe566', b:'#e6c200', c:'#a88a10' },
   diamond: { a:'#b8ffff', b:'#4fd0e8', c:'#1a8aa0' },
+  netherite: { a:'#867b86', b:'#4a2940', c:'#231012' },
 };
 // 'o' = built-in pixel outline (sword / pickaxe grids); A/B/C = wooden handle & guard
 const SPRITE_HANDLE = { h:'#6a4e1f', H:'#8f6b2a', o:'#20180a', A:'#a07a30', B:'#82622a', C:'#5e4820' };
@@ -2801,8 +2850,8 @@ const _EXTRA_SPRITES = new Set(['compressed_wool', 'paper', 'elytra', 'elytra_br
 function _spriteGridFor(type) {
   if (_EXTRA_SPRITES.has(type)) return { rows: SPRITE_GRIDS[type], pal: SPRITE_PAL[type] };
   if (type === 'string' || type === 'bow' || type === 'arrow' || type === 'trident') return { rows: SPRITE_GRIDS[type], pal: SPRITE_PAL[type] };
-  const m = /^(wood|stone|iron|gold|diamond)_(pickaxe|axe|shovel|sword|spear|hoe)$/.exec(type);
-  if (m) return { rows: SPRITE_GRIDS[m[2]], pal: { ...SPRITE_MAT[m[1]], ...SPRITE_HANDLE, ...(m[1] === 'iron' ? { o: '#262b30' } : {}) } };
+  const m = /^(wood|stone|iron|gold|diamond|netherite)_(pickaxe|axe|shovel|sword|spear|hoe)$/.exec(type);
+  if (m) return { rows: SPRITE_GRIDS[m[2]], pal: { ...SPRITE_MAT[m[1]], ...SPRITE_HANDLE, ...(m[1] === 'iron' ? { o: '#262b30' } : (m[1] === 'netherite' ? { o: '#140a0c' } : {})) } };
   if (type === 'stick' || type === 'coal' || type === 'apple') return { rows: SPRITE_GRIDS[type], pal: SPRITE_PAL[type] };
   if (type === 'iron_ingot') return { rows: SPRITE_GRIDS.ingot, pal: SPRITE_PAL.iron_ingot };
   if (type === 'gold_ingot') return { rows: SPRITE_GRIDS.ingot, pal: SPRITE_PAL.gold_ingot };
@@ -2937,6 +2986,8 @@ PACK_ITEMS.boat = "data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAABAAAAAQCAYAAAA
 PACK_ITEMS.minecart = "data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAABAAAAAQCAYAAAAf8/9hAAAAkElEQVR4nGNgGAWMDAwMDGpaev/J0Xzr2iVGFhinqamJ4d37D0RpFBIUYKirq2NgYGBggBtw5eo1BgEBAaIMePbsGZzNgizx4QNxLkAGcAPu3LlDsmYGBgYGJnSBB/fvEWTjNUBBUYkgG68BpAJGGIPUtHDr2iVGDEE1Lb3/TW1d/7EZhkuOEV0RLhvwyVEEAFsZNPXBChl3AAAAAElFTkSuQmCC";
 PACK_ITEMS.tnt_minecart = "data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAABAAAAAQCAYAAAAf8/9hAAABuUlEQVR4AXyPzyvDYRzH33NwIZSf0ZT5Hbkh5UeI/QOjtJzUojmTkxSlnRwov+KwlnCQk5hlNmq1KLJE4yJlMxfKDmqz97Oep202a5/v9/t83p/36/15svDPr74yJyor01hagDQd1ubjYGwS43nZYC8dJAnAIZY09r+UYsB2Av2QCexRS4UoAEUOMfEoEEZBRTHsxkE4tAEBiXSPpt1EASSZRia2WmzKSC3TJgLQ3dsX5RBrd2kBWS6rSOeZRrnJ8f46Fv2f6NBoUN3UIjwCwMHS6na+VHGTVKMU3bk6+QkFMBgMMEUacPP1I0RuYtlaEYmiEXssR7Wg2Tg8EjvF/wpw9+DHhNmMZ11bXEl4Jhrn52YRCgWVqgDN9TW49z0KiNyEaSyamNrYVIcz1yWKikqSAa/BELgBBwjhdbiJvq8fM9NTAkyN5rLCYrx9vCcDnny3GofjVNA5SBihXT2duPZeobJKKzSanU47rBuroIcUdQU2JITXoeg+vxDrEkLNtrcDr8eDcl0NZVEKwJOEcAOeeVcmbm+uiUTq4fC3hm/qrCQAGxSZxu90iewn1h8ARUJkpSZST6xfAAAA///KZoy1AAAABklEQVQDADEJ4yHIHn9UAAAAAElFTkSuQmCC";
 Object.assign(PACK_ITEMS, {redstone: "data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAABAAAAAQCAYAAAAf8/9hAAABFklEQVR4AcyQMYrCQBSG/xFcl4Vlm2WbPYOFnbUHsLPzAtYewdraQ9h5AAsrOxHPYGcjghgFx/fJTEhiYmNjyGPy/nn/N/OnphefNwf0G/LUs5SVETD+JVL304nvKkgpAAPGcXBtr1JT8qHNLQ+AaO7tvaY/Tktb5xfpt14OyQGimSMwA2kbpGPmf5ssg5jMuO45yYwJhZMx0rfsBsQYfDk1Puq5ODWGY3HaMDTkx0C/shsgz05e395oNKFSwDqRJkcvIJxKBG6BGRDz3OLgAg3BKgVsJLczOJCsmexosgdzcr6IWWvvbwqgYwPIyP78wrKixVPRi2b2cwAEIBTDmCi+0ShmsvUAiJsMZyvqxbUSUBys6m8AAAD//zAunpIAAAAGSURBVAMAN1JyIeXGWoIAAAAASUVORK5CYII=",wood_sword: "data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAABAAAAAQCAYAAAAf8/9hAAABKUlEQVR4AZySzUrDQBSFT4KKFaKNUC0iKAUXIiLdKIKIW1c+og/gA+iyO9GVIKLdFClFLP60EqyiQvQbnJBU06QNnMzPne/MvTPjaoRva7UYWg1tALi74etgZ07tzoeGMrCw742rE3ya3HMb9MNHtbZu73tOLoM0mBQyDQbBCQMWIiatGFcWCrI127RtnDaRQdEbExABWuD1iqfLRqD/YNZFBmfXXacbfAlouTwV0i6WJg18evViDgygX5FBPLC9NqPnn2tqPbxrEAyTMCCLxt2bgckmC/5jsL9ZCqsr06o3e8Q070+Icswg5RdlALxXnVXt4snUyzNFWSYup42WygUdHrd003x12IxXhjBhnCaTAdd3cv4YwfHFmKD4XLzvskP9t+Z4IG//GwAA///+MCFKAAAABklEQVQDAKrspORZQORHAAAAAElFTkSuQmCC",stone_sword: "data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAABAAAAAQCAYAAAAf8/9hAAABKklEQVR4AZySv2vCQBzFX1I6dEyhpRRam06ZLF1KaZcOHRrobP+DUvq3ODi4O+s/ENxcNI7+QMhkJBEHQTI5R97BhYsaEw28XO6+93n37nI6Tnhs246ljjYg+P31if+/X3ieh6MMJHz/8IhgNhXZCxtsw9VaHb7va4UMsmBGyDU4BKcMOJHioBT7T+Uy5J5lbFlnm0pgGAYIscCW8PvbK7q9PvbBnJcYOI6jRVEEQqZpxmzvbq8F3Gy1xIER2FZioBZ+KhUEYYhwscQhmEzKgCmGo5GAmSYP3jGwX67i0vkEruuyBsuywO2ITsYrSUD44/kSncFK7JfXlMoz0XnaVOnmAg1nDi9Ya1yMt4yiCftZEgn4+9rjswRWJ9OEUsfUb50ryD2rhaLfGwAAAP//A3iTuQAAAAZJREFUAwCsfqVH1HgUFgAAAABJRU5ErkJggg==",iron_sword: "data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAABAAAAAQCAYAAAAf8/9hAAABIElEQVR4AZySsU6FQBBFBzotTUyAxsaEhsbGGgiNLR/ET0DvF0DsLCBgbWUBiVgaQ2gsbWwwh4TNvhcRniQXdnbn3Jll15R/PFEUTYtONgAsy1JQ27ZyksECN02j+t5toMNBEIht2zKOo7HLQIcdx1EwbWwaHMO+78+VgZEyIBExuYg4yzJhz1Q+hslTBgSu6woQY77AwzDIGkyeMqiqyuj7XuI4FsuyJuC6rv+EDwwIFiVJImmaShiG8lvbSx5f1QEBXRRFIV3XCd1swTAHBne3l9P1+Zvkec6aeJ43b2cOVl7KANi/uZCnl8/5mLimaMvE5G+jK+tM7h8/5PX9y6AYtwxhQrymuQOO7+H5W8F6MiZIn9PHJhWWPesLe8c/AAAA//9EKgVoAAAABklEQVQDACdNovY7Kms4AAAAAElFTkSuQmCC",gold_sword: "data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAABAAAAAQCAYAAAAf8/9hAAABOklEQVR4AZySu0oDQRSG/10LY6NEjdjlDVxsBCuDVjZWFiIIioUPIVroQxgLCUQQESsbK0ErW7XRzgsqeAnxgiCIrnwLM0xCNrvJwr87Z+Z8/zmzM77aeNbmBkKjlg0AV8pPQkfn32rJwMAv1Rnbd2oDF85ld1UIenRy8eGlMnDhvmzewrSRaFAPjwfFqDIwsgYkIiaNiJfL82LPVK6HybMGBLOjvwJizBe4Ur1VHEyeNVjdfvZ2Tju0NB1qbKg7BH49KDWFawwIjPbWO3W9saX+qQU1atvk8bUdENDF5r6nz4c/0U0SDFNjMDmSCx/fM1os/rCmiSATbScKYl7WALgw3Kvjs0p0TFxTlGTi87dRfrBLpcN7Xd19eRTjliFMiOMUdcDxXd68WdhNxgS5c+7Yp4LZs7uQdvwPAAD//wjk07kAAAAGSURBVAMAMe2kj+ijUAUAAAAASUVORK5CYII=",diamond_sword: "data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAABAAAAAQCAYAAAAf8/9hAAABOUlEQVR4AZySvUoDQRSFz26hsVEREsQmFgYstdnCRgUbsVUEO0HfQZ9AsNc2PkBaEUT8K2NjIyqKaBARRRBFjDabfAszTEI2u8nC2Z07c79z7+yMry6e/ukgNOrYAHD3+FDo/+VNHRkYeKt8ZPtObeDCm8Gc1sYnVL179FIZuHBmLG9h2kg0aIavppaiysDIGpCImDQiLpR2xJ6p3AyTZw0IeuvtATHmC1y9f1IcTJ41+Dore3/15MGFWWUKoyHwe7GkdnCDAYFRbn1ZlY1tZVcX1aptk8fXdkBAF5/7J/q9fRDdJMEwDQbzQTZcGXjV9/kFa+oZyYntREHMyxoAz0wO6fTyIzomrilKMvH52yg/3KfiwbNuKj8exbhlCBPiOEUdcHx7176F3WRMkDvnjn0qmD27C2nHNQAAAP//CgQLPAAAAAZJREFUAwC+naIFUl9TgAAAAABJRU5ErkJggg==",gold_pickaxe: "data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAABAAAAAQCAYAAAAf8/9hAAABHElEQVR4AbSRu2oCQRSG/02qNCEXcqniG+TSpEti7EyRKrFTttN3EC0EH8DOTtHSVrATxRcQKztBLETQQlCwGv0HzuJldkTEZc/OZef7zpmZMxz5nE6Qid6r7TAVa6yAYLLkIpH7RvxP6WCf8+H3O5X4fVIiMwrS5ZGTjRXxH6whklroUK26FgXfbtBoj4WHUcC/lDQ7U0fCzQLORwjuzwQPV+eQx1cgC9iy7MDjBT5fqxyi0gjj6/lSb2OvgLCU3e3PHG6J29Gm1ccqIMzMhdoAhFfrd15fAeH1zOskz0LGRgFhW+bb64Dwu7dA2C8zKd5K6CUPthxvVEDYlpkAQ2D2PQFhW2YuNoUn6A3nsJ22CeacJ+A1MTh5SCwBAAD//wfvYI4AAAAGSURBVAMAIbWHIVXSgRwAAAAASUVORK5CYII=",diamond_pickaxe: "data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAABAAAAAQCAYAAAAf8/9hAAABIElEQVR4AbSRq4tCQRTGz10W1i0bhAu7YVV8/AEWg0WrCCbFpsUgGK9YrCIGq1XBbLdqNVkEQcQHBkE0CIpBufoNzsXH3BERL/ebx5n5fefMzAe9+L3P4Cfg028lKlZYAUBPo0L/pRz9aSkmjBEP+VQ9HbHp3ExosG53lEE0Q8NEliZakWm/WDGjoNdKre6S8yQ0wCpMdoOxwuUs5OlTtVI1rNH4S8UWJlMDtnpuULb995sO8SSLuOplsngc7BgPDQDzsvvTjYIj4TjM6dRIDQAjc605I8Cn/Xe/qQHgy8yXJO6Cz4UGgGWZLW475+9fAbBZZlB4lZ4/Rugxv6oAsCwzAIjDGBsGgGWZsVkkw2A035LstkUwYoYBnglC8BkdAQAA///rOwBRAAAABklEQVQDAIeEhSEqTSrgAAAAAElFTkSuQmCC"});
+Object.assign(PACK_ITEMS, {netherite_helmet: "data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAABAAAAAQCAYAAAAf8/9hAAAA3klEQVR4AcyQsQ6CQBBEFwsbA3I0NkQ02mDi//+AhbEykkijUQyNDSDExgYZkiMsdxbGQggDc3s7j1sG9OPVU8DSm5U66aZVRkBw4Xnkr9ZMwjJpIkTZhTCADA9HFvlzn2zTbvod4dDUdRUIA6AbYbzDS0hZkcHS65nXb0Bq03ooAOyFx4AgeYJzFBGEva60ADQV+aM5ATxqOmkB+IGmNabddlMLQdSSNIFlUgByXtZVLT7VGeAUXQ3Mii/D39PUkNoHB7rFMWFd8ZqbAVCVQfi2EITaNXgFgOI3+j/gDQAA//+iYHTCAAAABklEQVQDALhBYSEvc6BUAAAAAElFTkSuQmCC",netherite_chestplate: "data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAABAAAAAQCAYAAAAf8/9hAAABUklEQVR4AayRP0vDUBTFT+2igxCwRAtqFKWi4OgoxVHcHPykgqCDFEe/QShYS6Eq0sQWtQha87twg0262ZKTd3LPn7y+LOifv/kU7EZbkyKKGyvqPOPJd7B/cKidKNJKuMp8JtDw4HVDXvD1PlT6OVZYC03bW9+YGMluztHw4M3GduUFCD/jDyHyhu9qVQQBnBkaHryWzm55QWO7oZPjU9tFsBzo/OxCBAGcGUE8eLOsXXnB9c2lbu+ubPjy1FX/tW8lhOHMEPHgHQ3feJQVtB87leckqXR7PQVLiwrXNpWOUishDGeGhgcvoMEKIA62GT/EYsv1Wl0AzgzNfb6WCoJsB4BA674lAGcGPOhrqcDfwkE1j5oCcAKuwR2lAj7TIBmIQ+P/AzgzNA/6OlXAwXBIgABbB3BmAI+HWacKGLgBc6cdC8D/anBHqQCBkllAK+IXAAD//8/52CMAAAAGSURBVAMACnrnId3vE/kAAAAASUVORK5CYII=",netherite_leggings: "data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAABAAAAAQCAYAAAAf8/9hAAAA20lEQVR4AayRMQvCMBBGo7tKXVyKOrgoOIuDv8DNwd8tOnRUpFAFaWuLi0vlFU6SJhFEC487Pu5eQtpWP37/F0xG48rHIAiq5oWNG7C4XKzUZr2toYfpbK5gGIaqKTEEYk9uiYqOkcrLvEbyftCX9l2dAhaZeD4KBfQ+nAKGWdwd9gou8YnIiSWQ01m8ZlkLznHsXCa0BIScThU63Z60VnUKrKkPgSVons5uWdy9j2kJWEizlGLhyg0BJ7mGMPlyQ8AgLw70OmSgZ/SGgF+mwwDoGT2ZYAgk/Ka+AAAA//9eGsS0AAAABklEQVQDAEOGeSFo7yluAAAAAElFTkSuQmCC",netherite_boots: "data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAABAAAAAQCAYAAAAf8/9hAAAA5ElEQVR4AcyPPwuCQBjGr4aWIGhqNKjBAqM+R1tDnztqcAn6gyRCqClRtBi/gztOz4ZyKXi683me96dvWzT8/Rlg4brF2BkWn7Yio2PmpRXyx1OslmtB0SxxxyO7RBGPWiUAbngNOWrlH3zLtwA0Ro4jBv2+XoW345FVZQHSPBWdbq/aq/UoWQDMb6QBfOZk6snZ1z2Tp/mnvLk3K60nAdXhOInNWXnHA8J6JkQCaBAiiucgwNLKs5tQnuqoUAM2u61AFKMkaSFV4o7IER2VScD+dJQDlJAKqyeZKXIJ4PKrGgPeAAAA//8R0foOAAAABklEQVQDAF2reyHair7zAAAAAElFTkSuQmCC"});   // netherite armor
+Object.assign(PACK_ITEMS, {netherite_sword: "data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAABAAAAAQCAYAAAAf8/9hAAABSUlEQVR4AZySvUvDUBTFTwPiYLHS2lSRUNqK4iD6B4g4iIOjf5ero4ubmyA6OImCqBX8ioSKVUuGfhmtnTol5Tx4j6RfaRs45N3H+Z17c4mGMZ7dlS1PauQAght7O6AK5ReMFCDh2k9NzT10gITzd7fQZ3UcHuyj2PiNDBVAeGlzHYTTuayCOUZoAOHEqoFS8RPReAynx0eiM2FKBdBI8VKK9eTCNN6e7+G2Gri5OAvA9KkAFuxEiGe+CZfsAoxkCqZpdsH0qYBz6zLivNrgtxKeSLgIgwMBLKQYYterAztLr5qAF5zi/eoJzp+DtLHcd2x6pQIBa5msp081xbK4tFgqidxM3JPmXm8VQHh7MYPrj2+xLC7tv1pHWIjGhVHRuXmc5B8FzE78yyiGsO4nMUHFLaNiWQr2mxlC+e/8Z+3hy0RYFz/QeW4DAAD//9iYejkAAAAGSURBVAMA7f2p2jaoLmIAAAAASUVORK5CYII=",netherite_pickaxe: "data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAABAAAAAQCAYAAAAf8/9hAAABIklEQVR4AbSSz6sBURTHj/e2b8Eb6b3XkwYpC2EryUIW7PxdtpY2djZSysJKsbNgMTUbahSSBZI98726N3PdQck035n743w/55w780EvXu8DlOL5kyxVscoKYMxWisQVy6VISwQJ61BSD584TAnomn3PsNWjeq3K1Gk26LCaM0j8/5OOuz33kxKAXUBm+62Hy1ouGGTj+8O2kCtARNgDlJzWvGQYBoNkimWKeL9ZGw8BMBeiOg2mFqEaQDSfZmMv910AzMjcHo2Z+WIhCvgDfOh+BjBfZxYOaaCsAOavn1+SM0teNr0BwOwP6bQ2TUfZLNp+4BzwefG2p84WYEZma+LsGYHX4masiQpgRs9umRGskgDg73qmZxkiACgLkgMezc8AAAD//34nzP0AAAAGSURBVAMAY3CIIXQzWc4AAAAASUVORK5CYII=",netherite_axe: "data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAABAAAAAQCAYAAAAf8/9hAAABD0lEQVR4AaSQy+sBURTHz+9nK41XHiV5pNTII0vJQhaW/gJ/m52dsrGVlSxIIylEyiOFZD/6Tp3RjLlGmfrOmbn3fD7ndv/px+crQT1dURGrWbYCgKVGjRB8myUfBQAADvs9Qsww/oUCwKlyzgB6MxFqFgsqQI5QsDhMuUerrnCU7vstDZYb7Z9fQsHqdvnrtlukKAoxvDufSJZlSkge1VaABkicbokc65kmivgDWDZEeAJ0ZWNxtZqMaceGDKdB8I19RCgAnPdK1BmNiQFUBCDHUgDYF31N5mar+iYA7AyGaDN5TbYCec0gAIzJx/lcPzY3iqouAIwL+3YyC3XB43ozXBg32FVdgNtF7ADz/hMAAP//h8axpAAAAAZJREFUAwBe7Xkhjh6C7QAAAABJRU5ErkJggg==",netherite_hoe: "data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAABAAAAAQCAYAAAAf8/9hAAABCUlEQVR4AaSRQQvBYBjHH84OigMnTUpOIkfJwQFHn8A3cnLwAZSSq5RyUE6UkppwWMllthx2cHCY/VfPbOydlbX/nrb3/f2e92lR+vMKFLQLNZMj6iMUAKx2msTBu59EKJjKy0h/0CNE1VRbVM7nzaKUNbuVsskyoQAbrtotgownQ5JPMtXqLWrkJJorFyzbCRTYO6wHJLv1ivS7TufH0/ryvkMJcOxSIk6LxYw2B5kgZMVPAWA+NkCEYdRAAWB0Hm13nq4AOUIBYHdnBj6rrwBwMiNRUGcWfQkAx1JpOuzFx2YY1SMAjM7K6SicGZA7jgAwZg7bmSWOQDOMUDMzyNUR4P8ivBC2vgAAAP//OKpEUAAAAAZJREFUAwB55nwhwtkOzgAAAABJRU5ErkJggg==",netherite_spear: "data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAABAAAAAQCAYAAAAf8/9hAAABDUlEQVR4AZyQOw8BQRSF726h8kqIUIisUGzh1SsUolD6XVqlTkdERStRKohmI0FEIisKEYkQzcoZuRvrMR6bnJ3Znfm+O3NV+uMp6wWL85OAoUAqSvlKiabmhL4SMOhNhgiwntSp22uJs0sFDCohlwBBMGwuljTf7xSpAABgj8+PKaVTWVH5eDqLb7ykgq7RV6ztBfuIKwM+mBtRHQtSATaszytRudluEGD8u49UkNHiVi7gp3qtSqgKECPujjnyVgC4mNBoMLs1CxBgQPd5KWC4MxzZdwUECYI550nwDmbgcXQIfoUhswX/wLYAcDCm0eOdseFTVMDucISWY2fDPoG8rgLeGIaj27z4zXgFAAD//6mYHdYAAAAGSURBVAMAzJ+KEzlk9AIAAAAASUVORK5CYII=",netherite_ingot: "data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAABAAAAAQCAYAAAAf8/9hAAABUElEQVR4AbyQwUvCcBTH34aSGkp5yCwLOjizFSw6Rn93nYpu69SlrToZJZRdZq6yKFj7PPiNZZKHIOHz+7m99/m+x2z54+//AjqttQQmF/51AwRDu+0I7Ha3knzIjwAjcG90XQFnxxOrVFFvdbkp+RANoNmAAEj1el2gWqsKEAKN1noWYiPu7R/oeqxYLBSl8Pmh0+JRrLc5CHE2HXG3XTEhusHocSAdz5PaUiObZCRqzZWmGIKLQI6PDiV+juXm4V40YPgUydnpiTYhVtOVmQQEI1FHHPRvZb5cok3RgGSuLOD7voYwbVJ6Gb+pUFlY1F59SA87Raz3MZeCSBCTjESBqZVUpje8CgWiKLLs6/6dRSMFGiH/HxGCXk8lbkSg1+Y4vwyzED4O74CPhAAIBmoGDeDBhLwOI0FANgI3PdPIAigSAgjAu1l8C5jVPK3+BQAA//+N62ynAAAABklEQVQDAGqJwSGSlapXAAAAAElFTkSuQmCC",netherite_scrap: "data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAABAAAAAQCAYAAAAf8/9hAAABRUlEQVR4AaSQSWoCURRFnxmZBkJiEgcJCUEJhKwggwwSsgQXoZtzC6ITRSdORBBF7CjsERucqefBL75l2YAFt3j/vXvPby7kzO8kwO/r4wr57XUQQAjF4glB1F6ILwAjIoSK6Yzkkkn5+fsX+jZkC8AQYUQE0XI40IzjODsQF0Aw+vmlBoxIU5tfMPQgaFMK/curoETvrlesFcDi5Sks7ISBATWiNuo0apLKF6TSHUl1PA/QVwCLbK0u7V5XIQxseYP4zVwBLGi2pgsBxM4ceTibuDt+hO8FcVr8Ri6AN/iOvKsJiDkqIfrPbxEJ3dzq3IYogDBvABUTASOCnIYZJ7LvT08BqWY/wP0xIgbIrnkHbxiPAiiAVMslfUSCiD5Bcx3eiZ4tF0ATCPfnEb1BvzCZLQANjEDMcVnT36cdAEZCiPqY1gAAAP//qABAvwAAAAZJREFUAwB6otghbZT90QAAAABJRU5ErkJggg=="});   // netherite tools / ingot / scrap
 Object.keys(PACK_ITEMS).forEach(k => {
   if (__skipNewItem(k)) return;
   const img = new Image();
@@ -3038,6 +3089,7 @@ function miningTimeFor(blockType) {
     let tier = 2.5; // wood
     if (heldType.startsWith('stone_')) tier = 4;
     else if (heldType.startsWith('iron_')) tier = 6;
+    else if (heldType.startsWith('netherite_')) tier = 9.5; // best all-round digger
     else if (heldType.startsWith('diamond_')) tier = 8; // faster than iron, slower than gold
     else if (heldType.startsWith('gold_')) tier = 10; // fastest dig (weaker combat)
     speedMult = tier;
@@ -3084,7 +3136,8 @@ const RECIPES = [
   { shape: [[null,'stick','string'],['stick',null,'string'],[null,'stick','string']], out: 'bow', outCount: 1, needsTable: true },
   { shape: [['iron_ingot'],['stick'],['string']], out: 'arrow', outCount: 4, needsTable: true },
   { shape: [['planks','planks'],['planks','planks']], out: 'crafting_table', outCount: 1, needsTable: false },
-  { shape: [['iron_ingot','iron_ingot'],['planks','planks'],['planks','planks']], out: 'smithing_table', outCount: 1, needsTable: true },   // 2 iron ingots + 4 planks
+  { shape: [['iron_ingot','iron_ingot'],['planks','planks'],['planks','planks']], out: 'smithing_table', outCount: 1, needsTable: true },
+  { shape: [['netherite_scrap','gold_ingot','netherite_scrap'],['gold_ingot','netherite_scrap','gold_ingot'],['netherite_scrap','gold_ingot',null]], out: 'netherite_ingot', outCount: 1, needsTable: true },   // 4 netherite scrap + 4 gold ingots   // 2 iron ingots + 4 planks
   { shape: [['diamond','diamond','diamond'],['diamond','netherite_upgrade_smithing_template','diamond'],['diamond','diamond','diamond']], out: 'netherite_upgrade_smithing_template', outCount: 2, needsTable: true },   // duplicate: 8 diamonds + 1 template -> 2 templates
 
   { shape: [['planks','planks','planks'],[null,'stick',null],[null,'stick',null]], out: 'wood_pickaxe', outCount: 1, needsTable: true },
@@ -7763,6 +7816,7 @@ const SMELT_RECIPES = {
   raw_porkchop: { out: 'cooked_porkchop', time: 5 },
   raw_mutton: { out: 'cooked_mutton', time: 5 },
   iron_ore:  { out: 'iron_ingot',  time: 5 },
+  ancient_debris: { out: 'netherite_scrap', time: 8 },
   gold_ore:  { out: 'gold_ingot',  time: 5 },
   wood:      { out: 'charcoal',    time: 5 },
   birch_wood: { out: 'charcoal',   time: 5 },
@@ -7785,7 +7839,7 @@ let furnaceBurnLeft = 0;   // seconds of current fuel charge remaining
 let furnaceBurnTotal = 0;  // that charge's starting size, for the flame gauge
 let furnaceCookTime = 0;   // seconds accumulated smelting the current input
 // XP for each smelted item, banked while it sits in the output slot and paid out when you take it
-const SMELT_XP = { glass: 1, stone: 1, charcoal: 1, cooked_meat: 2, cooked_beef: 2, cooked_porkchop: 2, cooked_mutton: 2, iron_ingot: 3, gold_ingot: 4 };
+const SMELT_XP = { glass: 1, stone: 1, charcoal: 1, cooked_meat: 2, cooked_beef: 2, cooked_porkchop: 2, cooked_mutton: 2, iron_ingot: 3, gold_ingot: 4, netherite_scrap: 2 };
 let furnaceXpBank = 0;
 let _furnaceLastSave = 0;
 function jcFurnaceXpTaken(before, removed) {
@@ -9194,9 +9248,9 @@ function damagePlayer(amount, knockDir, knockStrength, opts) {
     //    (you keep ~HIT_KEEP_SPEED of it) instead of stopping / reversing you.
     //  - Vertical: if you're falling, the hit no longer pops you upward, so your fall (and mace smash charge) survives.
     const HIT_KEEP_SPEED = 0.6;
-    let kstr = str;
+    let kstr = str * (1 - armorKnockRes());   // netherite armor: knockback resistance
     const along = player.vel.x * d.x + player.vel.z * d.z;   // < 0: moving against the shove (toward the attacker)
-    if (along < 0) kstr = Math.min(str, Math.max(str * 0.3, -along * (1 - HIT_KEEP_SPEED)));
+    if (along < 0) kstr = Math.min(kstr, Math.max(kstr * 0.3, -along * (1 - HIT_KEEP_SPEED)));
     knockV.x = knockV.x * 0.5 + d.x * kstr;     // a fresh hit halves any old shove and adds its own (like Minecraft)
     knockV.z = knockV.z * 0.5 + d.z * kstr;
     const fallingInAir = !player.onGround && player.vel.y < -0.5;
@@ -15484,22 +15538,22 @@ function jcTryLunge() {
 // Targets get 0.5s of hurt-immunity: a hit in that window only deals the
 // extra damage over the previous one.
 const JC_DMG = {
-  sword:   { wood: 4,   stone: 5,   iron: 6,   gold: 4,   diamond: 7 },
-  axe:     { wood: 6,   stone: 7,   iron: 9,   gold: 8,   diamond: 10 },
-  pickaxe: { wood: 2,   stone: 3,   iron: 4,   gold: 2,   diamond: 5 },
-  shovel:  { wood: 2.5, stone: 3.5, iron: 4.5, gold: 2.5, diamond: 5.5 },
-  spear:   { wood: 3,   stone: 4,   iron: 5,   gold: 3,   diamond: 6 },
+  sword:   { wood: 4,   stone: 5,   iron: 6,   gold: 4,   diamond: 7, netherite: 8 },
+  axe:     { wood: 6,   stone: 7,   iron: 9,   gold: 8,   diamond: 10, netherite: 11 },
+  pickaxe: { wood: 2,   stone: 3,   iron: 4,   gold: 2,   diamond: 5, netherite: 6 },
+  shovel:  { wood: 2.5, stone: 3.5, iron: 4.5, gold: 2.5, diamond: 5.5, netherite: 6.5 },
+  spear:   { wood: 3,   stone: 4,   iron: 5,   gold: 3,   diamond: 6, netherite: 7 },
 };
 const JC_TICKS = {   // ticks to recharge fully (20 ticks = 1s)
   sword: 12.5 /* = 0.625 s */, pickaxe: 18, shovel: 20, spear: 16 /* = 0.8 s */,
-  axe: { wood: 25, stone: 25, iron: 22, gold: 20, diamond: 20 },
+  axe: { wood: 25, stone: 25, iron: 22, gold: 20, diamond: 20, netherite: 19 },
 };
 const JC_HAND = { dmg: 1, ticks: 5, kind: 'hand' };
 const JC_SWEEP_DMG = 2, JC_SWEEP_RADIUS = 2.0, JC_IFRAME_MS = 500;
 function jcStats(item) {
   if (item && item.type === 'trident') return { dmg: 9, ticks: 20, kind: 'trident' };
   if (item && item.type === 'mace') return { dmg: 6, ticks: 17 /* ~0.85 s */, kind: 'mace' };
-  const m = item && /^(wood|stone|iron|gold|diamond)_(sword|axe|pickaxe|shovel|spear)$/.exec(item.type);
+  const m = item && /^(wood|stone|iron|gold|diamond|netherite)_(sword|axe|pickaxe|shovel|spear)$/.exec(item.type);
   if (!m) return JC_HAND;
   const mat = m[1], kind = m[2];
   const t = JC_TICKS[kind];
@@ -15840,8 +15894,8 @@ let jcSwapBreach = 0;   // Breach level carried over from the tool we just swapp
 function jcTrySwapTool() {
   if (useOffHand) return;
   const cur = mainItem(); if (!cur) return;
-  const kindOf = t => t === 'mace' ? 'mace' : ((/^(?:wood|stone|iron|gold|diamond)_(sword|axe|spear)$/.exec(t) || [])[1] || null);
-  const matOf = t => (/^(wood|stone|iron|gold|diamond)_/.exec(t) || [])[1] || '';
+  const kindOf = t => t === 'mace' ? 'mace' : ((/^(?:wood|stone|iron|gold|diamond|netherite)_(sword|axe|spear)$/.exec(t) || [])[1] || null);
+  const matOf = t => (/^(wood|stone|iron|gold|diamond|netherite)_/.exec(t) || [])[1] || '';
   // Partners in priority order. A Swap mace prefers a SWORD (sword damage + the mace's Breach), then a spear.
   const PAIR = { sword: ['axe', 'mace'], axe: ['sword'], mace: ['sword', 'spear'], spear: ['mace'] };
   const ck = kindOf(cur.type); if (!ck) return;
@@ -16221,13 +16275,13 @@ function openEnchant() {
 
 // ================= Smithing table =================
 // template + item + addition -> upgraded item. Netherite Upgrade: diamond tool/armor -> netherite (placeholder: netherite gear
-// and the ingot don't exist yet, so it explains that instead). Armor trims are a future update. The template is used up.
+// + netherite ingot). Armor upgrades and trims are a future update. The template and ingot are used up.
 let smithMode = false, smithT = null, smithB = null, smithA = null, smithOut = null;
 const SMITH_NETHERITE_TPL = 'netherite_upgrade_smithing_template';
 const SMITH_GHOST = 'data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAABAAAAAQCAYAAAAf8/9hAAAAXUlEQVR4AeySUQrAMAhD3e7oKT3kxvsIpDgoo/1sIQRiTEG9Y/G1gMx8ZvA/hwAaq+qaAZ9ChgCJf/gERJwZ7J4BJ+xn6heJLuBTrW2BoozO6IKa4RaAKKMz+hdeAAAA///nujM/AAAABklEQVQDAAoDUCEtS3hZAAAAAElFTkSuQmCC';
-const _SMITH_HINT = 'Tap items in your bag: a <b>smithing template</b> goes in the first slot, the item to upgrade in the second, and the upgrade material in the third (tap a slot to take it back). Netherite Upgrade turns <b>diamond</b> tools and armor into netherite and uses up the template. Netherite gear and armor trims are coming in a future update.';
+const _SMITH_HINT = 'Tap items in your bag: a <b>smithing template</b> goes in the first slot, the item to upgrade in the second, and the upgrade material in the third (tap a slot to take it back). Netherite Upgrade: <b>netherite upgrade template + diamond tool + netherite ingot</b> gives the netherite tool or armor piece (the template and ingot are used up). Armor trims are coming in a future update.';
 function smithUpgradeResult(it) {
-  const m = it && /^diamond_(sword|pickaxe|axe|shovel|hoe|helmet|chestplate|leggings|boots)$/.exec(it.type);
+  const m = it && /^diamond_(sword|pickaxe|axe|shovel|hoe|spear|helmet|chestplate|leggings|boots)$/.exec(it.type);
   return m ? 'netherite_' + m[1] : null;
 }
 function smithCompute() {
@@ -16238,9 +16292,11 @@ function smithCompute() {
   if (!B) return { out: null, err: null, msg: 'Put the diamond tool or armor to upgrade in the second slot.' };
   const res = smithUpgradeResult(B);
   if (!res) return { out: null, err: 'Netherite Upgrade only works on diamond tools and armor.' };
-  if (!ITEM_INFO[res] || !ITEM_INFO.netherite_ingot) return { out: null, err: 'Netherite gear is coming in a future update (placeholder).' };
   if (!A || A.type !== 'netherite_ingot') return { out: null, err: 'Put a netherite ingot in the third slot.' };
-  return { out: Object.assign({}, B, { type: res, count: 1 }), err: null, msg: 'Ready: ' + displayName(res) };
+  const out = Object.assign({}, B, { type: res, count: 1 });
+  const od = ITEM_INFO[B.type] && ITEM_INFO[B.type].durability, nd = ITEM_INFO[res] && ITEM_INFO[res].durability;
+  if (typeof B.dur === 'number' && od && nd) out.dur = Math.max(1, Math.round(B.dur / od * nd));   // keep the same fraction of wear
+  return { out, err: null, msg: 'Ready: ' + displayName(res) };
 }
 function smithRefresh() {
   const r = smithCompute();
@@ -20433,12 +20489,12 @@ function updateMining(dt) {
       let canDrop = !requiresPickaxe || toolKind === 'pickaxe';
       // Iron ore needs at least a stone pickaxe (wood/bare hands just break it).
       if (canDrop && b.type === 'iron_ore') {
-        canDrop = toolKind === 'pickaxe' && (heldType.startsWith('stone_') || heldType.startsWith('iron_') || heldType.startsWith('gold_') || heldType.startsWith('diamond_'));
+        canDrop = toolKind === 'pickaxe' && (heldType.startsWith('stone_') || heldType.startsWith('iron_') || heldType.startsWith('gold_') || (heldType.startsWith('diamond_') || heldType.startsWith('netherite_')));
       }
-      if (canDrop && (b.type === 'obsidian' || b.type === 'crying_obsidian' || b.type === 'ancient_debris')) canDrop = toolKind === 'pickaxe' && heldType.startsWith('diamond_');   // obsidian / crying: diamond pickaxe only
+      if (canDrop && (b.type === 'obsidian' || b.type === 'crying_obsidian' || b.type === 'ancient_debris')) canDrop = toolKind === 'pickaxe' && (heldType.startsWith('diamond_') || heldType.startsWith('netherite_'));   // obsidian / crying: diamond pickaxe only
       // Gold / diamond ore need at least an iron pickaxe (or better: gold/diamond).
       if (canDrop && (b.type === 'gold_ore' || b.type === 'diamond_ore' || b.type === 'redstone_ore' || b.type === 'lapis_ore')) {
-        canDrop = toolKind === 'pickaxe' && (heldType.startsWith('iron_') || heldType.startsWith('gold_') || heldType.startsWith('diamond_'));
+        canDrop = toolKind === 'pickaxe' && (heldType.startsWith('iron_') || heldType.startsWith('gold_') || (heldType.startsWith('diamond_') || heldType.startsWith('netherite_')));
       }
       // Blocks are centered ON their integer coordinate (they span ±0.5 in
       // every axis around it — see FACES/solidAt), so the block's center is
