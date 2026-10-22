@@ -6470,7 +6470,7 @@ function vlMakeEnt(o) {   // o: {id, role, prof, baby, seed, x, y, z, v}
   return e;
 }
 function vlRestock(e) { if (Date.now() - e.rs > 8 * 60000) { e.uses = {}; e.rs = Date.now(); e.dirty = true; } }
-function vlSaveEnt(e) { e.lsx = e.pos.x; e.lsz = e.pos.z; e.dirty = false; entUpsert({ id: e.id, kind: e.role, x: +e.pos.x.toFixed(2), y: +e.pos.y.toFixed(2), z: +e.pos.z.toFixed(2), data: { uses: e.uses, rs: e.rs, prof: e.prof, baby: e.baby, hx: e.home.x, hz: e.home.z, seed: e.seed } }); }
+function vlSaveEnt(e) { if (e.noSave) return; e.lsx = e.pos.x; e.lsz = e.pos.z; e.dirty = false; entUpsert({ id: e.id, kind: e.role, x: +e.pos.x.toFixed(2), y: +e.pos.y.toFixed(2), z: +e.pos.z.toFixed(2), data: { uses: e.uses, rs: e.rs, prof: e.prof, baby: e.baby, hx: e.home.x, hz: e.home.z, seed: e.seed } }); }
 function vlRemove(e, save) { if (save) vlSaveEnt(e); try { scene.remove(e.group); } catch (x) {} const i = vlEnts.indexOf(e); if (i >= 0) vlEnts.splice(i, 1); }
 function vlVillageIds(v, plan) {
   const n = Math.max(3, Math.min(6, plan.buildings.length)), ids = [];
@@ -6560,11 +6560,11 @@ function vlUpdate(dt) {
   _zPathBudget = 0;
   for (let i = vlEnts.length - 1; i >= 0; i--) {
     const q = vlEnts[i];
-    if (q.role === 'trader' && Math.hypot(q.pos.x - player.pos.x, q.pos.z - player.pos.z) > 200) { vlRemove(q, true); continue; }   // unloaded, still saved
+    if ((q.role === 'trader' || !q.v) && Math.hypot(q.pos.x - player.pos.x, q.pos.z - player.pos.z) > 200) { vlRemove(q, !q.noSave); continue; }   // unloaded, still saved
     q.wait -= dt;
     if (q.wait <= 0) {   // pick somewhere new to stroll
       q.wait = 5 + Math.random() * 9;
-      if (q.role === 'trader') { const a = Math.random() * 6.283, d = Math.random() * 10; q.tx = q.home.x + Math.cos(a) * d; q.tz = q.home.z + Math.sin(a) * d; }
+      if (q.role === 'trader' || !q.v) { const a = Math.random() * 6.283, d = Math.random() * 10; q.tx = q.home.x + Math.cos(a) * d; q.tz = q.home.z + Math.sin(a) * d; }
       else {
         const plan = villagePlanOf(q.v);
         if (Math.random() < 0.5 && plan.buildings.length) { const b = plan.buildings[Math.floor(Math.random() * plan.buildings.length)]; q.tx = b.ox - b.B[0] * 2 + 0.5; q.tz = b.oz - b.B[1] * 2 + 0.5; }
@@ -19124,6 +19124,66 @@ function runChatCommand(text) {
     return;
   }
   // /spawner — print the nearest spawner room; /spawner tp — stand inside it
+  // /village [where] - teleports you to the nearest village (with "where" it only tells you the coordinates)
+  if (cmd === 'village') {
+    const px = player.pos.x, pz = player.pos.z, pgx = Math.floor(px / VILLAGE_REGION), pgz = Math.floor(pz / VILLAGE_REGION);
+    let best = null, bd = Infinity;
+    for (let gx = pgx - 8; gx <= pgx + 8; gx++) for (let gz = pgz - 8; gz <= pgz + 8; gz++) {
+      const v = villageAt(gx, gz); if (!v) continue;
+      const d = Math.hypot(v.cx - px, v.cz - pz); if (d < bd) { bd = d; best = v; }
+    }
+    if (!best) { sys('No village found nearby.'); return; }
+    const a0 = (parts[0] || '').toLowerCase();
+    if (a0 === 'where' || a0 === 'info' || a0 === 'locate') { sys('Nearest village: x ' + best.cx + ', z ' + best.cz + ' (' + Math.round(bd) + ' blocks away). Use /village to go there.'); return; }
+    const h0 = columnInfo(best.cx, best.cz).h;
+    teleportPlayerTo(best.cx + 0.5, h0 + 8, best.cz + 0.5);
+    const gy = vlGround(best.cx, best.cz, h0 + 6);
+    if (gy !== null) player.pos.y = gy + 0.1;
+    sys('Teleported to the village at ' + best.cx + ', ' + Math.round(player.pos.y) + ', ' + best.cz + ' (' + Math.round(bd) + ' blocks away).');
+    return;
+  }
+  // /summon <entity> [count] - spawns an entity in front of you (villager, pig, zombie, spoke ...)
+  if (cmd === 'summon') {
+    const ALIAS = { village: 'villager', villagers: 'villager', child: 'baby_villager', baby: 'baby_villager', wandering_trader: 'trader', flamefrags: 'flame', lettucek: 'lettuce', cow: 'cow', pig: 'pig', sheep: 'sheep' };
+    let name = (parts[0] || '').toLowerCase().replace(/^minecraft:/, '');
+    name = ALIAS[name] || name;
+    const NAMES = ['villager', 'baby_villager', 'trader', 'pig', 'cow', 'sheep', 'zombie', 'skeleton', 'creeper', 'breeze', 'spoke', 'flame', 'wemmbu', 'lettuce', 'null_commander', 'law_normal', 'law_elite', 'law_commander', 'law_leader'];
+    if (!name || !NAMES.includes(name)) { sys('Usage: /summon <entity> [count]   Entities: ' + NAMES.join(', ') + ' (village = villager)'); return; }
+    const count = Math.max(1, Math.min(20, Math.trunc(Number(parts[1])) || 1));
+    const dir = new THREE.Vector3(); camera.getWorldDirection(dir); dir.y = 0;
+    if (dir.lengthSq() < 1e-6) dir.set(0, 0, 1); dir.normalize();
+    let bx = player.pos.x + dir.x * 3, bz = player.pos.z + dir.z * 3;
+    for (const dd of [8, 7, 6, 5, 4, 3]) {
+      const tx = player.pos.x + dir.x * dd, tz = player.pos.z + dir.z * dd;
+      if (!checkCollision(tx, player.pos.y + 0.1, tz, 0.42, 1.8)) { bx = tx; bz = tz; break; }
+    }
+    let made = 0, hostOnly = false;
+    for (let i = 0; i < count; i++) {
+      const sx = bx + (i ? (Math.random() - 0.5) * 3 : 0), sz = bz + (i ? (Math.random() - 0.5) * 3 : 0), sy = player.pos.y + 0.1;
+      if (name === 'villager' || name === 'baby_villager' || name === 'trader') {
+        const gy = vlGround(Math.round(sx), Math.round(sz), Math.round(sy)), fy = gy !== null ? gy : sy;
+        const seed = Math.floor(Math.random() * 4294967295), rid = Math.random().toString(36).slice(2, 10);
+        if (name === 'trader') { const e = vlMakeEnt({ id: 'tr_' + rid, role: 'trader', prof: 'trader', seed, x: sx, y: fy, z: sz }); vlTraderCount++; vlSaveEnt(e); }
+        else { const e = vlMakeEnt({ id: 'sv_' + rid, role: 'villager', prof: VL_PROFS[Math.floor(Math.random() * VL_PROFS.length)], baby: name === 'baby_villager', seed, x: sx, y: fy, z: sz, v: null, hx: sx, hz: sz, fresh: false }); e.noSave = true; }
+        made++;
+      } else if (name === 'spoke' || name === 'flame' || name === 'wemmbu' || name === 'lettuce') {
+        const fn = { spoke: summonSpoke, flame: summonFlame, wemmbu: summonWemmbu, lettuce: summonLettuceManual }[name];
+        if (isMobHost()) fn(sx, sy, sz); else playersChannel.send({ type: 'broadcast', event: name + (name === 'lettuce' ? '_summon' : '_summon'), payload: { x: sx, y: sy, z: sz } });
+        made++;
+      } else if (name === 'null_commander' || name.startsWith('law_')) {
+        if (!isMobHost()) { hostOnly = true; break; }
+        ({ null_commander: summonNullCommander, law_normal: summonLawNormal, law_elite: summonLawElite, law_commander: summonLawCommander, law_leader: summonLawLeader })[name](sx, sy, sz);
+        made++;
+      } else {
+        const isZ = name === 'zombie', isS = name === 'skeleton';
+        const e = createMob(name, sx, sy + ((isZ || isS || name === 'creeper') ? 0 : 0.5), sz, null, false, isZ ? rollZombieGear() : (isS ? rollSkeletonGear(Math.floor(sx), Math.floor(sz)) : 0));
+        if (e) { if (!isMobHost()) e.localOnly = true; made++; }
+      }
+    }
+    if (hostOnly) sys('Only the mob host can summon ' + name + '.');
+    else sys('Summoned ' + (made > 1 ? made + ' ' : '') + name.replace(/_/g, ' ') + '.');
+    return;
+  }
   if (cmd === 'spawner') {
     const px = Math.floor(player.pos.x), pz = Math.floor(player.pos.z), pgx = Math.floor(px / SPAWNER_REGION), pgz = Math.floor(pz / SPAWNER_REGION);
     let best = null, bd = Infinity;
@@ -19294,7 +19354,7 @@ function runChatCommand(text) {
     sys('Given Null Totem (10 uses, Null I).');
     return;
   }
-  if (cmd === 'help') { sys('/shop | /list | /tpa <player> | /tpaccept | /wanted [on|off] | /xp <player|@s|@a> <amount>[L] | /swap | /tp @s <x> <y> <z> | /tp @s <player> | /tp <player> @s | /biome | /spawner [tp] | /give <@s|@a|player> <zombie|skeleton|breeze|firework|elytra|mace|golden_apple|wind_charge> [count] | /nulltotem | /spoke | /lettuce | /flame | /wemmbu | /kill <player|@s|@e> | /gojo <player|@s> | /rain on|off|auto | /fog [on|off] | /weather clear|rain|fog|auto | /fill <x1> <y1> <z1> <x2> <y2> <z2> <block> [replace|hollow|keep] [filter] | /update [message]'); return; }
+  if (cmd === 'help') { sys('/shop | /list | /tpa <player> | /tpaccept | /wanted [on|off] | /xp <player|@s|@a> <amount>[L] | /swap | /tp @s <x> <y> <z> | /tp @s <player> | /tp <player> @s | /biome | /spawner [tp] | /village [where] | /summon <entity> [count] | /give <@s|@a|player> <zombie|skeleton|breeze|firework|elytra|mace|golden_apple|wind_charge> [count] | /nulltotem | /spoke | /lettuce | /flame | /wemmbu | /kill <player|@s|@e> | /gojo <player|@s> | /rain on|off|auto | /fog [on|off] | /weather clear|rain|fog|auto | /fill <x1> <y1> <z1> <x2> <y2> <z2> <block> [replace|hollow|keep] [filter] | /update [message]'); return; }
   sys('Unknown command: /' + cmd + ' (try /help)');
 }
 
@@ -24032,6 +24092,36 @@ window.addEventListener('mouseup', e => {
   clearTimeout(cpDown.timer); clearTimeout(cpDown.show); const fired = cpDown.fired; cpDown = null; cpHold('');
   if (!fired) cpSummon('diamond');
 }, true);
+// ================= Push-around: the player shoves every entity (mobs, bosses, villagers, traders, bots) =================
+function pushEntitiesTick(dt) {
+  if (!player || !(player.hp > 0)) return;
+  const px = player.pos.x, py = player.pos.y, pz = player.pos.z, pr = player.radius || 0.3, ph = player.height || 1.7;
+  const speed = player.vel ? Math.hypot(player.vel.x, player.vel.z) : 0;
+  const pushOne = (e, r, h) => {   // e.pos = {x,y,z}; returns [dx,dz] actually moved, or null
+    const p = e.pos;
+    if (py > p.y + h || py + ph < p.y) return null;          // not at the same height
+    let dx = p.x - px, dz = p.z - pz;
+    const d = Math.hypot(dx, dz), need = pr + r;
+    if (d >= need) return null;
+    if (d < 1e-4) { const a = Math.random() * 6.283; dx = Math.cos(a); dz = Math.sin(a); } else { dx /= d; dz /= d; }
+    const amt = Math.min((need - d) * 0.8 + speed * dt * 0.7, 0.35);   // softer when you stroll, stronger when you run into them
+    const ox = p.x, oz = p.z, nx = p.x + dx * amt, nz = p.z + dz * amt;
+    if (!checkCollision(nx, p.y, p.z, r, h)) p.x = nx;
+    if (!checkCollision(p.x, p.y, nz, r, h)) p.z = nz;
+    return (p.x !== ox || p.z !== oz) ? [p.x - ox, p.z - oz] : null;
+  };
+  for (const a of animals) {
+    if (!a.alive || !a.pos) continue;
+    const m = pushOne(a, a.radius || 0.4, a.height || 1.0);
+    if (m) {
+      if (a.remote && a.target) { a.target.x += m[0]; a.target.z += m[1]; }   // keep the host's stream from snapping it back
+      else if (a.vel) { a.vel.x += m[0] / Math.max(dt, 0.001) * 0.12; a.vel.z += m[1] / Math.max(dt, 0.001) * 0.12; }
+    }
+  }
+  for (const q of vlEnts) { if (pushOne(q, q.radius || 0.3, q.height || 1.9)) q.dirty = true; }
+  for (const b of cpBots) pushOne(b, b.radius || 0.3, b.height || 1.8);
+}
+
 function animate() {
   if (_afkKicked) return;   // AFK kick: the game loop stops for good until the page is refreshed
   requestAnimationFrame(animate);
@@ -24078,6 +24168,7 @@ function animate() {
   updateAnimals(dt);
   try { cpUpdate(dt); } catch (e) { console.warn('clownpierce', e); }
   try { vlUpdate(dt); } catch (e) { console.warn('villagers', e); }
+  try { pushEntitiesTick(dt); } catch (e) { console.warn('push', e); }
   try { updateGojo(dt); } catch (e) {}
   updateAnimalSpawning(dt);
   try { updateLawHunters(dt); } catch (e) {}
