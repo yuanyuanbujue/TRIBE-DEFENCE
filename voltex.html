@@ -6456,6 +6456,25 @@ function vlMakeOffers(seed, role, prof) {
 }
 // ---- entities ----
 const vlEnts = [];
+const vlDeadUntil = new Map();   // killed village villagers: id -> time they move back in (5 min)
+function vlHurt(q, dmg, fromPos, kbMul) {   // the player (or an explosion) hits a villager / trader
+  if (!q.alive) return;
+  q.hp -= dmg; q.hurtAgo = 0; flashRed(q.group);
+  const fp = fromPos || player.pos;
+  const dx = q.pos.x - fp.x, dz = q.pos.z - fp.z, d = Math.hypot(dx, dz) || 1, k = 12 * (kbMul == null ? 1 : kbMul);
+  q.kbx = dx / d * k; q.kbz = dz / d * k; q.kbT = 0.5; q.vy = Math.max(q.vy || 0, 6);
+  if (q.hp <= 0) vlKill(q);
+}
+function vlKill(q) {
+  if (!q.alive) return; q.alive = false;
+  try { startMobDeath(q.group); } catch (e) { try { scene.remove(q.group); } catch (x) {} }
+  const i = vlEnts.indexOf(q); if (i >= 0) vlEnts.splice(i, 1);
+  if (!q.noSave) {
+    entDelete(q.id);
+    if (q.v) { vlDeadUntil.set(q.id, Date.now() + 5 * 60000); if (q.v.vlRows) q.v.vlRows.delete(q.id); }   // the village slowly gets a new person
+    if (q.role === 'trader') vlTraderCount = Math.max(0, vlTraderCount - 1);
+  }
+}
 let vlScan = 0, vlTraderT = 30, vlTraderSyncT = 6, vlTraderCount = 0;
 function vlGround(x, z, y0) { for (let cy = y0 + 4; cy > y0 - 8; cy--) if (solidAt(x, cy, z) && !solidAt(x, cy + 1, z) && !solidAt(x, cy + 2, z)) return cy + 0.5; return null; }
 function vlMakeEnt(o) {   // o: {id, role, prof, baby, seed, x, y, z, v}
@@ -6465,6 +6484,7 @@ function vlMakeEnt(o) {   // o: {id, role, prof, baby, seed, x, y, z, v}
   const e = { id: o.id, role: o.role, prof: o.prof, baby: !!o.baby, seed: o.seed, v: o.v || null, model, group: model.group,
     pos: { x: o.x, y: o.y, z: o.z }, vy: 0, radius: 0.3, height: o.baby ? 1.0 : 1.9, yaw: Math.random() * 6.28, moving: false, walk: 0,
     home: { x: o.hx != null ? o.hx : o.x, z: o.hz != null ? o.hz : o.z }, tx: o.x, tz: o.z, wait: 1 + Math.random() * 4, lx: o.x, lz: o.z, stuck: 0,
+    isVillager: true, alive: true, hp: o.baby ? 10 : 20, maxHp: o.baby ? 10 : 20, hurtAgo: 99, kbT: 0, kbx: 0, kbz: 0,
     offers: (o.baby ? [] : vlMakeOffers(o.seed, o.role, o.prof)), uses: (o.uses || {}), rs: o.rs || Date.now(), lsx: o.x, lsz: o.z, dirty: !!o.fresh };
   if (!o.baby) { e.nameSpr = makeNameSprite(o.role === 'trader' ? 'Wandering Trader' : 'Villager'); e.nameSpr.userData.isPlayerName = true; e.group.add(e.nameSpr); }
   vlEnts.push(e);
@@ -6501,7 +6521,7 @@ function vlTick() {
     if (v._vlState !== 'ready' || !cpChunkReady(v.cx, v.cz)) continue;
     const plan = villagePlanOf(v); if (!plan.buildings.length) continue;
     for (const o of vlVillageIds(v, plan)) {
-      if (vlEnts.some(e => e.id === o.id)) continue;
+      if (vlEnts.some(e => e.id === o.id) || (vlDeadUntil.get(o.id) || 0) > Date.now()) continue;
       const row = v.vlRows.get(o.id), dat = (row && row.data) || {};
       const b = plan.buildings[(o.i * 7 + 3) % plan.buildings.length];
       let x = b.ox - b.B[0] * 2 + 0.5, z = b.oz - b.B[1] * 2 + 0.5, y = null;
@@ -6562,6 +6582,8 @@ function vlUpdate(dt) {
   for (let i = vlEnts.length - 1; i >= 0; i--) {
     const q = vlEnts[i];
     if ((q.role === 'trader' || !q.v) && Math.hypot(q.pos.x - player.pos.x, q.pos.z - player.pos.z) > 200) { vlRemove(q, !q.noSave); continue; }   // unloaded, still saved
+    q.hurtAgo = (q.hurtAgo || 0) + dt;
+    if (q.hp < q.maxHp && q.hurtAgo > 3) q.hp = Math.min(q.maxHp, q.hp + dt);   // regenerates 1 HP/s once it has been left alone for 3 s
     q.wait -= dt;
     if (q.wait <= 0) {   // pick somewhere new to stroll
       q.wait = 5 + Math.random() * 9;
@@ -6573,7 +6595,8 @@ function vlUpdate(dt) {
       }
     }
     const far = Math.hypot(q.tx - q.pos.x, q.tz - q.pos.z);
-    if (far > 1.2) {
+    if (q.kbT > 0) { q.kbT -= dt; const df = Math.pow(0.94, dt * 60); q.kbx *= df; q.kbz *= df; q.moving = false; cpPhysics(q, dt, q.kbx * dt, q.kbz * dt); }   // knocked back: no strolling
+    else if (far > 1.2) {
       cpStep(q, q.tx, q.tz, q.pos.y, q.baby ? 2.4 : 1.9, dt, 1.0);
       q.stuck = (Math.hypot(q.pos.x - q.lx, q.pos.z - q.lz) < 0.2 * dt) ? q.stuck + dt : 0;
       if (q.stuck > 2.5) { q.wait = 0; q.stuck = 0; }   // blocked: choose a new goal
@@ -15128,6 +15151,7 @@ function updateAnimalSpawning(dt) {
 }
 
 function damageAnimal(animal, dmg, fromPos, kbMul) {
+  if (animal.isVillager) { vlHurt(animal, dmg, fromPos, kbMul); return; }
   if (animal.remote) {
     // the host owns this mob: show feedback locally and ask the host to apply the hit
     flashRed(animal.group);
@@ -15977,7 +16001,7 @@ function findTargetAnimal() {
   camera.getWorldDirection(dir);
   let best = null, bestDist = Infinity;
   const R = jcReach();
-  animals.forEach(a => {
+  animals.concat(vlEnts).forEach(a => {
     if (!a.alive) return;
     const center = new THREE.Vector3(a.pos.x, a.pos.y + (a.kind === 'zombie' ? 0.4 : a.height * 0.5), a.pos.z);
     const toA = center.clone().sub(camera.position);
@@ -16491,7 +16515,7 @@ function jcSweep(r, primary) {
   jcSweepFx();
   const px = primary.x, pz = primary.z, py = primary.y;
   const _se = r.sweepEdge | 0, _sRad = JC_SWEEP_RADIUS + 0.6 * _se, _sDmg = JC_SWEEP_DMG + 1.5 * _se;   // Sweeping Edge I-III: +0.6 radius, +1.5 dmg per level
-  animals.forEach(a => {
+  animals.concat(vlEnts).forEach(a => {
     if (!a.alive || a === primary.ref) return;
     if (Math.hypot(a.pos.x - px, a.pos.z - pz) > _sRad || Math.abs(a.pos.y - py) > 1.5) return;
     const d = jcIframe(a, _sDmg);
@@ -16653,7 +16677,7 @@ function jcPickTarget(ray, reach, pad, minReach) {
     const score = Math.min(minMiss / (radius + pad), ang / 0.45) + minDist * 0.02;
     if (score < bestScore) { bestScore = score; best = { kind, ref }; }
   };
-  animals.forEach(a => { if (a.alive) consider('animal', a, a.pos.x, a.pos.y, a.pos.z, a.radius || 0.45, a.height || 1.0); });
+  animals.concat(vlEnts).forEach(a => { if (a.alive) consider('animal', a, a.pos.x, a.pos.y, a.pos.z, a.radius || 0.45, a.height || 1.0); });
   otherPlayers.forEach((entry, id) => {
     if (!entry || !entry.group) return;
     const g = entry.group.position;
@@ -17589,6 +17613,7 @@ playersChannel
     if (!payload || payload.from === MY_ID || payload.name !== 'Yuan') return; // only the creator can force an update
     doForcedUpdate(filterText(String(payload.text || 'The game was updated! Refreshing the page...').slice(0, 120)));
   })
+  .on('broadcast', { event: 'cp_bots' }, ({ payload }) => { try { cpGhostRecv(payload); } catch (e) { console.warn('cp ghosts', e); } })
   .on('broadcast', { event: 'flame_summon' }, ({ payload }) => {
     if (!payload || !isMobHost()) return;
     const x = Number(payload.x), y = Number(payload.y), z = Number(payload.z);
@@ -23722,6 +23747,8 @@ function cpJobText(b) {
   if (b.following) return 'Following you';
   if (b.job === 'soldier') return 'Soldier: ' + (b.mode === 'searcher' ? 'searcher' + (b.targetName ? ' (' + b.targetName + ')' : '') : b.mode);
   if (b.job === 'miner') return 'Miner'; if (b.job === 'lumberjack') return 'Lumberjack';
+  if (b.job === 'demolisher') return 'Demolisher';
+  if (b.job === 'builder') return 'Builder' + (b.plan ? ' (' + b.plan.kind + ' ' + Math.min(100, Math.round(b.plan.i / Math.max(1, b.plan.cells.length) * 100)) + '%)' : '');
   return 'Idle';
 }
 function cpRelabel(b) {
@@ -23747,7 +23774,7 @@ function cpSummon(tier) {
   model.group.position.set(x, y, z); scene.add(model.group);
   const b = { id: cpNextId++, tier, T, model, group: model.group, pos: { x, y, z }, vy: 0, hp: T.hp, maxHp: T.hp, radius: 0.3, height: 1.8,
     following: true, job: null, mode: null, home: null, leader: false, squad: false, target: null, targetName: null,
-    storage: new Array(27).fill(null), atkCd: 0, hurtCd: 0, swingT: 0, walk: 0, moving: false, work: null, workT: 0, scanT: 0, bl: new Map(), stuck: 0, lx: x, lz: z };
+    heldState: { heldType: undefined, heldMesh: null }, plan: null, storage: new Array(27).fill(null), atkCd: 0, hurtCd: 0, swingT: 0, walk: 0, moving: false, work: null, workT: 0, scanT: 0, bl: new Map(), stuck: 0, lx: x, lz: z };
   cpBots.push(b); cpRelabel(b);
   cpSay('Summoned a ' + T.label + ' (it follows you; right click it with the Clownpierce to give it a job).');
 }
@@ -23768,6 +23795,7 @@ function cpPhysics(b, dt, dx, dz) {
 }
 // walk toward (tx,tz) (feet height tyFeet) using the zombie path finder; returns the distance left
 function cpStep(b, tx, tz, tyFeet, speed, dt, stopDist) {
+  b.gx = tx; b.gz = tz; b.gy = tyFeet;
   const far = Math.hypot(tx - b.pos.x, tz - b.pos.z);
   if (far <= stopDist) { b.moving = false; cpPhysics(b, dt, 0, 0); return far; }
   const wp = zombieWaypoint(b, { x: tx, y: tyFeet, z: tz }, dt);
@@ -23833,14 +23861,15 @@ function cpStandCell(b, x, y, z) {
   return best;
 }
 function cpFindWork(b) {
-  const lumber = b.job === 'lumberjack', R = lumber ? 14 : 8, DY = lumber ? 8 : 5;
+  const lumber = b.job === 'lumberjack', demo = b.job === 'demolisher', R = lumber ? 14 : 8, DY = lumber ? 8 : 5;
   const L = cpLeader(), cen = (b.squad && L && L !== b) ? L.pos : b.pos;   // squad members work around their leader
   const px = Math.round(cen.x), py = Math.round(cen.y + 0.5), pz = Math.round(cen.z), now = performance.now();
   let best = null, bd = 1e12;
   for (let x = px - R; x <= px + R; x++) for (let z = pz - R; z <= pz + R; z++) for (let y = py - DY; y <= py + DY; y++) {
     const blk = world.get(key(x, y, z)); if (!blk) continue;
     const t = blk.type; let bias = 0;
-    if (lumber) { if (!cpIsLog(t)) continue; }
+    if (demo) { if (CP_NO_BREAK.test(t) || cpOwnColumn(b, x, y, z)) continue; bias = -y * 4; }   // anything goes, top first
+    else if (lumber) { if (!cpIsLog(t)) continue; }
     else if (/_ore$/.test(t)) bias = -60; else if (t !== 'stone' && t !== 'deepslate' && t !== 'netherrack') continue;
     const k = key(x, y, z); if (b.bl.has(k) && b.bl.get(k) > now) continue;
     const d = (x - b.pos.x) ** 2 + (y - b.pos.y) ** 2 + (z - b.pos.z) ** 2 + bias;
@@ -23875,7 +23904,7 @@ function cpWork(b, dt) {
   if (reach <= 3.6) {   // in reach: face it and chop
     b.moving = false; cpPhysics(b, dt, 0, 0); cpFaceTo(b, w.x, w.z); b.swingT = Math.max(b.swingT, 0.2);
     b.workT += dt;
-    if (b.workT >= b.T.mine) { cpBreak(b, w); b.work = null; b.workT = 0; b.scanT = 0; }
+    if (b.workT >= cpDigTime(b, w)) { cpBreak(b, w); b.work = null; b.workT = 0; b.scanT = 0; }
     return;
   }
   b.stuck += dt;
@@ -23895,7 +23924,7 @@ function cpThink(b, dt) {
   if (b.following) { cpStep(b, ox, oz, oy, dOwner > 9 ? 6 : 4.4, dt, 2.4); return; }
   if (b.squad && L && L !== b) {   // squad member: stays with the leader and does the job the leader ordered
     const dL = Math.hypot(L.pos.x - b.pos.x, L.pos.z - b.pos.z);
-    if (b.job === 'miner' || b.job === 'lumberjack') {
+    if (b.job === 'miner' || b.job === 'lumberjack' || b.job === 'demolisher') {
       if (dL > 18) { cpStep(b, L.pos.x, L.pos.z, L.pos.y, 6, dt, 3); return; }
       b.home = { x: L.pos.x, z: L.pos.z }; cpWork(b, dt); return;
     }
@@ -23926,17 +23955,223 @@ function cpThink(b, dt) {
       cpStep(b, ox, oz, oy, dOwner > 9 ? 6 : 4.4, dt, 3.2); return;
     }
   }
-  if (b.job === 'miner' || b.job === 'lumberjack') { cpWork(b, dt); return; }
+  if (b.job === 'miner' || b.job === 'lumberjack' || b.job === 'demolisher') { cpWork(b, dt); return; }
+  if (b.job === 'builder') { cpBuild(b, dt); return; }
   b.moving = false; cpPhysics(b, dt, 0, 0);   // idle
 }
+// ---- Clownpierce upgrade: build / demolish, escaping, tools in hand, and being visible to other players ----
+const CP_NO_BREAK = /^(air|bedrock|water|lava|fire|nether_portal|chest|ender_chest|shulker_box|spawner|furnace)$/;
+function cpOwnColumn(b, x, y, z) {   // the block a player / bot stands on is never broken
+  const under = (px, py, pz) => x === Math.round(px) && z === Math.round(pz) && y <= Math.round(py - 0.5);
+  if (under(player.pos.x, player.pos.y, player.pos.z)) return true;
+  for (const q of cpBots) if (under(q.pos.x, q.pos.y, q.pos.z)) return true;
+  return false;
+}
+function cpDigTime(b, w) {
+  if (b.job !== 'demolisher') return b.T.mine;
+  const h = (BLOCK_TYPES[w.type] || {}).hardness;
+  return b.T.mine * Math.min(3, Math.max(0.7, h == null ? 1 : h));
+}
+function cpPlace(x, y, z, type) {
+  const k = key(x, y, z); removedDiffs.delete(k);
+  if (world.has(k) || !addBlock(x, y, z, type, false)) return false;
+  markPlaced(x, y, z); try { flushDirtyChunks(false); } catch (e) {}
+  try { pushBlockDiff(x, y, z, type, 0); } catch (e) {}
+  return true;
+}
+function cpHasMat(b, type) { return b.storage.some(q => q && q.type === type) || cpCount(type) > 0; }
+function cpTakeMat(b, type) {   // its own storage first, then your inventory
+  for (let i = 0; i < 27; i++) { const q = b.storage[i]; if (q && q.type === type) { q.count--; if (q.count <= 0) b.storage[i] = null; return true; } }
+  if (cpCount(type) > 0) { cpTake(type, 1); return true; }
+  return false;
+}
+function cpBuildType(b) {
+  let t = null; try { t = currentBlockType(); } catch (e) {}
+  if (t && BLOCK_TYPES[t] && isPlaceable(t) && !/^(torch|water|lava|fire)$/.test(t)) return t;
+  for (const q of b.storage) if (q && BLOCK_TYPES[q.type] && isPlaceable(q.type)) return q.type;
+  for (const p of ['cobblestone', 'stone_bricks', 'planks', 'stone', 'bricks', 'dirt']) if (BLOCK_TYPES[p] && cpCount(p) > 0) return p;
+  return null;
+}
+function cpBlueprint(kind) {   // block cells in front of you, bottom layer first
+  let fx = 0, fz = 0; const dir = new THREE.Vector3(); camera.getWorldDirection(dir);
+  if (Math.abs(dir.x) >= Math.abs(dir.z)) fx = Math.sign(dir.x) || 1; else fz = Math.sign(dir.z) || 1;
+  const sx = -fz, sz = fx, y0 = Math.round(player.pos.y - 0.5) + 1, ox = Math.round(player.pos.x), oz = Math.round(player.pos.z);
+  const cells = [], at = (a, c, l) => cells.push([ox + fx * a + sx * c, y0 + l, oz + fz * a + sz * c]);
+  if (kind === 'house') {
+    for (let l = 0; l <= 4; l++) for (let a = 3; a <= 7; a++) for (let c = -2; c <= 2; c++) {
+      if (l === 4) { at(a, c, l); continue; }                                  // roof
+      if (!(a === 3 || a === 7 || Math.abs(c) === 2)) continue;                // walls only
+      if (a === 3 && c === 0 && l <= 1) continue;                              // the door faces you
+      at(a, c, l);
+    }
+  } else { for (let l = 0; l <= 3; l++) for (let c = -4; c <= 4; c++) at(4, c, l); }
+  return cells;
+}
+function cpStartBuild(b, kind) {
+  const type = cpBuildType(b);
+  if (!type) { cpSay('Hold the block you want built (or put blocks in the player\'s storage), then choose again.'); return; }
+  b.job = 'builder'; b.mode = null; b.following = false; b.squad = false; b.work = null; b.target = null; b.home = { x: b.pos.x, z: b.pos.z };
+  b.plan = { type, kind, cells: cpBlueprint(kind), i: 0, t: 0, warned: false, skips: 0 };
+  cpRelabel(b); cpCloseMenu();
+  cpSay(b.T.label + ' builds a ' + kind + ' out of ' + displayName(type) + ' (its storage first, then your inventory).');
+}
+function cpBuilderMenu(b) {
+  cpShowMenu('Builder', 'Hold the block you want in your hand first', [
+    { t: 'Build a house (5x5, door facing you)', f: () => cpStartBuild(b, 'house') },
+    { t: 'Build a wall (9 wide, 4 high)', f: () => cpStartBuild(b, 'wall') },
+    { t: '\u25C2 Back', f: () => cpBotMenu(b) },
+  ]);
+}
+function cpCellBlocked(c) {   // would the block land inside somebody?
+  const hit = (px, py, pz) => Math.abs(px - c[0]) < 0.8 && Math.abs(pz - c[2]) < 0.8 && py < c[1] + 0.5 && py + 1.8 > c[1] - 0.5;
+  if (hit(player.pos.x, player.pos.y, player.pos.z)) return true;
+  for (const q of cpBots) if (hit(q.pos.x, q.pos.y, q.pos.z)) return true;
+  return false;
+}
+function cpBuild(b, dt) {
+  const P = b.plan;
+  if (!P || P.i >= P.cells.length) { b.job = null; b.plan = null; b.following = true; cpRelabel(b); cpSay(b.T.label + ' finished building.'); return; }
+  const c = P.cells[P.i];
+  if (world.has(key(c[0], c[1], c[2]))) { P.i++; return; }
+  if (!cpHasMat(b, P.type)) {
+    if (!P.warned) { P.warned = true; cpSay(b.T.label + ' needs more ' + displayName(P.type) + ' (put some in your inventory or in its storage).'); }
+    cpStep(b, player.pos.x, player.pos.z, player.pos.y, 4.4, dt, 3); return;
+  }
+  P.warned = false;
+  if (cpCellBlocked(c)) { P.cells.push(P.cells.splice(P.i, 1)[0]); if (++P.skips > P.cells.length * 3) P.i++; return; }
+  const d = Math.hypot(c[0] - b.pos.x, c[1] - (b.pos.y + 0.9), c[2] - b.pos.z);
+  if (d <= 4.2) {
+    b.moving = false; cpPhysics(b, dt, 0, 0); cpFaceTo(b, c[0], c[2]); b.swingT = Math.max(b.swingT, 0.2);
+    P.t += dt;
+    if (P.t >= 0.28) { P.t = 0; P.skips = 0; if (cpTakeMat(b, P.type)) { if (!cpPlace(c[0], c[1], c[2], P.type)) { /* spot refused: skip it */ } } P.i++; if (P.i % 4 === 0) cpRelabel(b); }
+    return;
+  }
+  cpStep(b, c[0], c[2], b.pos.y, 4.2, dt, 2.5);
+}
+// ---- getting out of holes / walls ----
+function cpDigCell(b, x, y, z) {
+  const blk = world.get(key(x, y, z)); if (!blk || CP_NO_BREAK.test(blk.type)) return false;
+  cpBreak(b, { x, y, z, type: blk.type }); return true;
+}
+function cpPillarItem(b) { for (const q of b.storage) if (q && BLOCK_TYPES[q.type] && isPlaceable(q.type) && !/^(torch|water|lava|fire)$/.test(q.type)) return q.type; return null; }
+function cpEscapeTick(b, dt) {
+  if (!cpChunkReady(b.pos.x, b.pos.z)) return;
+  const ox = player.pos.x, oz = player.pos.z;
+  if (checkCollision(b.pos.x, b.pos.y + 0.05, b.pos.z, b.radius - 0.08, b.height - 0.15)) {   // buried inside a block: pop out
+    let ok = false;
+    for (let dy = 1; dy <= 14 && !ok; dy++) if (!checkCollision(b.pos.x, b.pos.y + dy, b.pos.z, b.radius, b.height)) { b.pos.y += dy; b.vy = 0; ok = true; }
+    if (!ok) { b.pos.x = ox + 1.5; b.pos.z = oz; b.pos.y = player.pos.y + 0.5; b.vy = 0; }
+    return;
+  }
+  if (b.pil) {   // pillar up: jump, then put a block under its feet
+    const P = b.pil; P.age = (P.age || 0) + dt;
+    if (b.pos.y >= P.base + 1.5 && b.vy < 1) { if (!world.has(key(P.x, P.base + 1, P.z)) && cpTakeMat(b, P.type)) cpPlace(P.x, P.base + 1, P.z, P.type); b.pil = null; b.stuckT = 2; }
+    else if (P.age > 1.6) b.pil = null;
+    return;
+  }
+  b.escAcc = (b.escAcc || 0) + dt;
+  if (b.escAcc >= 0.5) {
+    const mv = Math.hypot(b.pos.x - (b.ex == null ? b.pos.x : b.ex), b.pos.z - (b.ez == null ? b.pos.z : b.ez)) + Math.abs(b.pos.y - (b.ey == null ? b.pos.y : b.ey));
+    b.ex = b.pos.x; b.ez = b.pos.z; b.ey = b.pos.y; b.escAcc = 0;
+    b.stuckT = (b.moving && mv < 0.12) ? (b.stuckT || 0) + 0.5 : 0;
+  }
+  const st = b.stuckT || 0; if (st < 1.5) return;
+  b.digT = (b.digT || 0) - dt;
+  const gx = b.gx == null ? b.pos.x : b.gx, gz = b.gz == null ? b.pos.z : b.gz, gy = b.gy == null ? b.pos.y : b.gy;
+  const dx = gx - b.pos.x, dz = gz - b.pos.z;
+  const ax = Math.abs(dx) >= Math.abs(dz) ? Math.sign(dx) : 0, az = ax ? 0 : Math.sign(dz);
+  const bx = Math.round(b.pos.x), bz = Math.round(b.pos.z), fx = bx + ax, fz = bz + az, fy = Math.round(b.pos.y - 0.5) + 1;
+  const up = gy > b.pos.y + 0.8;
+  let dug = false;
+  if (b.digT <= 0) {   // dig the way out toward where it wants to go (a climbing ramp when the goal is higher)
+    const cells = up ? [[fx, fy + 1, fz], [fx, fy + 2, fz], [bx, fy + 2, bz]] : [[fx, fy + 1, fz], [fx, fy, fz]];
+    for (const c of cells) if (cpDigCell(b, c[0], c[1], c[2])) { dug = true; break; }
+    if (dug) { b.digT = Math.max(0.35, b.T.mine); b.swingT = 0.3; cpFaceTo(b, fx, fz); }
+  }
+  if (!dug && up && st >= 3.5 && cpGrounded(b)) {   // nothing left to dig: pillar up with what it collected
+    const t = cpPillarItem(b);
+    if (t) { b.pil = { base: Math.round(b.pos.y - 0.5), type: t, x: bx, z: bz, age: 0 }; b.vy = 9.5; return; }
+  }
+  if (st >= 9) {   // really stuck: it gets back to you
+    b.stuckT = 0; b.pil = null;
+    if (Math.hypot(ox - b.pos.x, oz - b.pos.z) < 90) { b.pos.x = ox + 1.5; b.pos.z = oz; b.pos.y = player.pos.y + 0.5; b.vy = 0; }
+  }
+}
+// ---- tools in hand ----
+function cpWantTool(b) {
+  const pre = b.tier === 'netherite' ? 'netherite_' : 'diamond_';
+  if (b.job === 'builder' && b.plan && b.plan.i < b.plan.cells.length) return b.plan.type;
+  if (b.work) { const tl = (BLOCK_TYPES[b.work.type] || {}).tool; return pre + (b.job === 'lumberjack' || tl === 'axe' ? 'axe' : (tl === 'shovel' ? 'shovel' : 'pickaxe')); }
+  if (b.job === 'miner' || b.job === 'demolisher') return pre + 'pickaxe';
+  if (b.job === 'lumberjack') return pre + 'axe';
+  return pre + 'sword';
+}
+function cpHeldTick(b) {
+  const want = cpWantTool(b);
+  if (b.heldKey !== want) { b.heldKey = want; setHeldVisual(b.heldState, b.model.handAnchor, want); }
+  const it = b.model.handAnchor.children[0];
+  if (it) { const m = it.userData.heldMain || it; b.model.handAnchor.quaternion.copy(holdQuat(false, !!(m.userData && m.userData.isTool), m)); }
+}
+// ---- other players see your army ----
+let cpBcT = 0, cpSentAny = false;
+function cpBroadcast(force, dt) {
+  cpBcT -= dt || 0; if (!force && cpBcT > 0) return; cpBcT = 0.15;
+  const list = cpBots.map(b => ({ i: b.id, t: b.tier === 'netherite' ? 1 : 0, x: +b.pos.x.toFixed(2), y: +b.pos.y.toFixed(2), z: +b.pos.z.toFixed(2), r: +(b.yaw || 0).toFixed(2), m: b.moving ? 1 : 0, s: b.swingT > 0 ? 1 : 0, h: b.heldKey || '', n: cpJobText(b), l: b.leader ? 1 : 0 }));
+  cpSentAny = list.length > 0;
+  try { playersChannel.send({ type: 'broadcast', event: 'cp_bots', payload: { o: MY_ID, name: MY_NAME, bots: list } }); } catch (e) {}
+}
+const cpGhosts = new Map();
+function cpGhostRemove(k) { const g = cpGhosts.get(k); if (!g) return; try { scene.remove(g.group); } catch (e) {} cpGhosts.delete(k); }
+function cpGhostRecv(p) {
+  if (!p || p.o === MY_ID || !Array.isArray(p.bots)) return;
+  const now = performance.now(), seen = new Set(), owner = String(p.name || 'Player').slice(0, 16);
+  for (const d of p.bots.slice(0, 24)) {
+    const x = +d.x, y = +d.y, z = +d.z; if (![x, y, z].every(Number.isFinite)) continue;
+    const k = p.o + '#' + d.i; seen.add(k);
+    const tier = d.t ? 'netherite' : 'diamond', T = CP_TIERS[tier];
+    let g = cpGhosts.get(k);
+    if (g && g.tier !== tier) { cpGhostRemove(k); g = null; }
+    if (!g) {
+      const model = buildHumanoid(new THREE.Color(T.color));
+      for (let s2 = 0; s2 < 4; s2++) { model.armor[s2].forEach(m => { m.visible = true; }); if (model.armor.mats && model.armor.mats[s2]) { model.armor.mats[s2].map = ARMOR_TEX[T.armorTex]; model.armor.mats[s2].needsUpdate = true; } }
+      model.group.position.set(x, y, z); scene.add(model.group);
+      g = { owner: p.o, tier, model, group: model.group, heldState: { heldType: undefined, heldMesh: null }, walk: 0, held: '', heldKey: null, label: null, nameSpr: null };
+      cpGhosts.set(k, g);
+    }
+    g.tx = x; g.ty = y; g.tz = z; g.yaw = +d.r || 0; g.moving = !!d.m; g.swing = !!d.s; g.seen = now;
+    g.held = (typeof d.h === 'string' && (BLOCK_TYPES[d.h] || ITEM_INFO[d.h])) ? d.h : '';
+    const lab = (d.l ? '\u2605 ' : '') + owner + '\'s ' + T.label + ' \u00b7 ' + String(d.n || '').slice(0, 40);
+    if (g.label !== lab) { g.label = lab; if (g.nameSpr) g.group.remove(g.nameSpr); g.nameSpr = makeNameSprite(lab); g.nameSpr.userData.isPlayerName = true; g.group.add(g.nameSpr); }
+  }
+  for (const [k, g] of cpGhosts) if (g.owner === p.o && !seen.has(k)) cpGhostRemove(k);
+}
+function cpGhostTick(dt) {
+  if (!cpGhosts.size) return;
+  const now = performance.now(), f = Math.min(1, dt * 10);
+  for (const [k, g] of cpGhosts) {
+    if (now - g.seen > 3000) { cpGhostRemove(k); continue; }
+    const p = g.group.position;
+    if (Math.hypot(g.tx - p.x, g.tz - p.z) > 8 || Math.abs(g.ty - p.y) > 8) p.set(g.tx, g.ty, g.tz);
+    else { p.x += (g.tx - p.x) * f; p.y += (g.ty - p.y) * f; p.z += (g.tz - p.z) * f; }
+    let df = g.yaw + Math.PI - g.group.rotation.y; df = Math.atan2(Math.sin(df), Math.cos(df)); g.group.rotation.y += df * f;
+    g.walk += g.moving ? dt * 9 : 0;
+    const sw = g.moving ? Math.sin(g.walk) * 0.7 : 0, m = g.model;
+    m.legL.rotation.x = sw; m.legR.rotation.x = -sw; m.armL.rotation.x = -sw;
+    m.armR.rotation.x = g.swing ? -1.3 - Math.sin(now / 1000 * 20) * 0.7 : sw * 0.4 + HOLD_ARM_X;
+    if (g.heldKey !== g.held) { g.heldKey = g.held; setHeldVisual(g.heldState, m.handAnchor, g.held || null); }
+    const it = m.handAnchor.children[0];
+    if (it) { const hm = it.userData.heldMain || it; m.handAnchor.quaternion.copy(holdQuat(false, !!(hm.userData && hm.userData.isTool), hm)); }
+  }
+}
 function cpUpdate(dt) {
-  if (!cpBots.length) return;
+  if (!cpBots.length) { if (cpSentAny) { cpSentAny = false; cpBroadcast(true, 0); } return; }
   dt = Math.min(dt, 0.05);
   cpPathTurn++;
   for (let i = cpBots.length - 1; i >= 0; i--) {
     const b = cpBots[i];
     _zPathBudget = (i === cpPathTurn % cpBots.length) ? 1 : 0;
     cpThink(b, dt);
+    try { cpEscapeTick(b, dt); } catch (e) { console.warn('cp escape', e); }
     if (b.pos.y < -110) { b.pos.x = player.pos.x + 1; b.pos.z = player.pos.z; b.pos.y = player.pos.y + 0.5; b.vy = 0; }
     for (const a of animals) {   // hostile mobs that reach a bot hurt it
       if (!a.alive || !CP_HOSTILE.has(a.kind) || a.kind === 'creeper' || b.hurtCd > 0) continue;
@@ -23946,7 +24181,8 @@ function cpUpdate(dt) {
     b.walk += (b.moving ? dt * 9 : 0);
     const s = b.moving ? Math.sin(b.walk) * 0.7 : 0;
     b.model.legL.rotation.x = s; b.model.legR.rotation.x = -s; b.model.armL.rotation.x = -s;
-    if (b.swingT > 0) { b.swingT -= dt; b.model.armR.rotation.x = -1.3 - Math.sin(b.swingT * 20) * 0.7; } else b.model.armR.rotation.x = s;
+    if (b.swingT > 0) { b.swingT -= dt; b.model.armR.rotation.x = -1.3 - Math.sin(b.swingT * 20) * 0.7; } else b.model.armR.rotation.x = s * 0.4 + HOLD_ARM_X;
+    try { cpHeldTick(b); } catch (e) {}
     if (b.hp <= 0) {
       cpSay('Your ' + b.T.label + ' died.');
       for (const q of b.storage) if (q) spawnDroppedItem(q.type, q.count, new THREE.Vector3(b.pos.x, b.pos.y + 0.5, b.pos.z), new THREE.Vector3(0, 3, 0));   // what it carried falls out
@@ -23955,6 +24191,7 @@ function cpUpdate(dt) {
       cpBots.splice(i, 1);
     }
   }
+  cpBroadcast(false, dt);
 }
 // ---- aiming + menus ----
 function cpAimedBot(maxD) {
@@ -24042,6 +24279,8 @@ function cpBotMenu(b) {
   rows.push({ t: 'Job: Soldier \u25B8', f: () => cpSoldierMenu(b) });
   rows.push({ t: 'Job: Miner' + (b.job === 'miner' ? '  \u2713' : ''), on: b.job === 'miner', f: () => cpSetJob(b, 'miner') });
   rows.push({ t: 'Job: Lumberjack' + (b.job === 'lumberjack' ? '  \u2713' : ''), on: b.job === 'lumberjack', f: () => cpSetJob(b, 'lumberjack') });
+  rows.push({ t: 'Job: Demolisher (breaks every block near)' + (b.job === 'demolisher' ? '  \u2713' : ''), on: b.job === 'demolisher', f: () => cpSetJob(b, 'demolisher') });
+  rows.push({ t: 'Job: Builder \u25B8', on: b.job === 'builder', f: () => cpBuilderMenu(b) });
   rows.push({ t: 'No job (stand still)', f: () => cpSetJob(b, null) });
   rows.push({ t: b.leader ? 'Remove leader' : 'Make leader', on: b.leader, f: () => cpSetLeader(b, !b.leader) });
   if (!b.leader) rows.push({ t: b.squad ? 'Stop following the leader' : 'Follow the leader', on: b.squad, f: () => { if (!cpLeader()) { cpSay('Set a leader first.'); return; } b.squad = !b.squad; if (b.squad) b.following = false; cpRelabel(b); cpCloseMenu(); cpSay(b.squad ? 'It follows the leader and does the leader\'s orders.' : 'It acts on its own again.'); } });
@@ -24050,6 +24289,7 @@ function cpBotMenu(b) {
     rows.push({ t: 'Squad order: Soldiers (fight beside me)', f: () => cpOrderSquad('soldier') });
     rows.push({ t: 'Squad order: Miners (dig near me)', f: () => cpOrderSquad('miner') });
     rows.push({ t: 'Squad order: Lumberjacks (chop near me)', f: () => cpOrderSquad('lumberjack') });
+    rows.push({ t: 'Squad order: Demolishers (break everything near me)', f: () => cpOrderSquad('demolisher') });
     rows.push({ t: 'Squad order: Just follow me', f: () => cpOrderSquad(null) });
   }
   rows.push({ t: 'Teleport to me', f: () => { b.pos.x = player.pos.x + 1; b.pos.z = player.pos.z; b.pos.y = player.pos.y + 0.5; b.vy = 0; cpCloseMenu(); } });
@@ -24170,6 +24410,7 @@ function animate() {
   try { cpUpdate(dt); } catch (e) { console.warn('clownpierce', e); }
   try { vlUpdate(dt); } catch (e) { console.warn('villagers', e); }
   try { pushEntitiesTick(dt); } catch (e) { console.warn('push', e); }
+  try { cpGhostTick(dt); } catch (e) { console.warn('cp ghost', e); }
   try { updateGojo(dt); } catch (e) {}
   updateAnimalSpawning(dt);
   try { updateLawHunters(dt); } catch (e) {}
