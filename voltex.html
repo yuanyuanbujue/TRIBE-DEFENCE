@@ -15151,6 +15151,11 @@ function updateAnimalSpawning(dt) {
 }
 
 function damageAnimal(animal, dmg, fromPos, kbMul) {
+  if (animal.isCpBot) { cpHurt(animal, dmg, fromPos || player.pos, kbMul); return; }
+  if (animal.isCpGhost) {   // another player's army member: ask its owner to apply the hit
+    try { flashRed(animal.group); const fp = fromPos || player.pos; playersChannel.send({ type: 'broadcast', event: 'cp_hit', payload: { o: animal.owner, i: animal.cid, dmg: Math.min(40, dmg), by: MY_ID, kx: fp.x - animal.pos.x, kz: fp.z - animal.pos.z } }); } catch (e) {}
+    return;
+  }
   if (animal.isVillager) { vlHurt(animal, dmg, fromPos, kbMul); return; }
   if (animal.remote) {
     // the host owns this mob: show feedback locally and ask the host to apply the hit
@@ -16001,7 +16006,7 @@ function findTargetAnimal() {
   camera.getWorldDirection(dir);
   let best = null, bestDist = Infinity;
   const R = jcReach();
-  animals.concat(vlEnts).forEach(a => {
+  animals.concat(vlEnts, cpTargets()).forEach(a => {
     if (!a.alive) return;
     const center = new THREE.Vector3(a.pos.x, a.pos.y + (a.kind === 'zombie' ? 0.4 : a.height * 0.5), a.pos.z);
     const toA = center.clone().sub(camera.position);
@@ -16515,7 +16520,7 @@ function jcSweep(r, primary) {
   jcSweepFx();
   const px = primary.x, pz = primary.z, py = primary.y;
   const _se = r.sweepEdge | 0, _sRad = JC_SWEEP_RADIUS + 0.6 * _se, _sDmg = JC_SWEEP_DMG + 1.5 * _se;   // Sweeping Edge I-III: +0.6 radius, +1.5 dmg per level
-  animals.concat(vlEnts).forEach(a => {
+  animals.concat(vlEnts, cpTargets()).forEach(a => {
     if (!a.alive || a === primary.ref) return;
     if (Math.hypot(a.pos.x - px, a.pos.z - pz) > _sRad || Math.abs(a.pos.y - py) > 1.5) return;
     const d = jcIframe(a, _sDmg);
@@ -16677,7 +16682,7 @@ function jcPickTarget(ray, reach, pad, minReach) {
     const score = Math.min(minMiss / (radius + pad), ang / 0.45) + minDist * 0.02;
     if (score < bestScore) { bestScore = score; best = { kind, ref }; }
   };
-  animals.concat(vlEnts).forEach(a => { if (a.alive) consider('animal', a, a.pos.x, a.pos.y, a.pos.z, a.radius || 0.45, a.height || 1.0); });
+  animals.concat(vlEnts, cpTargets()).forEach(a => { if (a.alive) consider('animal', a, a.pos.x, a.pos.y, a.pos.z, a.radius || 0.45, a.height || 1.0); });
   otherPlayers.forEach((entry, id) => {
     if (!entry || !entry.group) return;
     const g = entry.group.position;
@@ -17614,6 +17619,7 @@ playersChannel
     doForcedUpdate(filterText(String(payload.text || 'The game was updated! Refreshing the page...').slice(0, 120)));
   })
   .on('broadcast', { event: 'cp_bots' }, ({ payload }) => { try { cpGhostRecv(payload); } catch (e) { console.warn('cp ghosts', e); } })
+  .on('broadcast', { event: 'cp_hit' }, ({ payload }) => { try { if (payload && payload.o === MY_ID && payload.by !== MY_ID) { const b = cpBots.find(q => q.id === payload.i); if (b) cpHurt(b, Math.min(40, +payload.dmg || 0), { x: b.pos.x - (+payload.kx || 0), z: b.pos.z - (+payload.kz || 0) }, 1); } } catch (e) {} })
   .on('broadcast', { event: 'flame_summon' }, ({ payload }) => {
     if (!payload || !isMobHost()) return;
     const x = Number(payload.x), y = Number(payload.y), z = Number(payload.z);
@@ -23738,6 +23744,29 @@ const CP_TIERS = {
 };
 const CP_MAX_BOTS = 12, CP_HOSTILE = new Set(['zombie', 'skeleton', 'breeze', 'creeper']);
 const cpBots = []; let cpNextId = 1, cpLeaderId = null, cpPathTurn = 0, cpOwnerHit = null;
+// ONE big shared storage for the whole army: every bot puts what it mines / chops in here
+const CP_STASH_SIZE = 108, CP_STASH_KEY = 'voltex_cp_stash';
+const cpStash = new Array(CP_STASH_SIZE).fill(null);
+try { const a = _lsGet(CP_STASH_KEY, null); if (Array.isArray(a)) for (let i = 0; i < CP_STASH_SIZE; i++) { const q = a[i]; if (q && q.type && q.count > 0) cpStash[i] = { type: String(q.type), count: q.count | 0 }; } } catch (e) {}
+let _cpStashDirty = false;
+function cpStashSave() { _cpStashDirty = true; }
+setInterval(() => { if (_cpStashDirty) { _cpStashDirty = false; _lsSet(CP_STASH_KEY, cpStash); } }, 2000);
+window.addEventListener('beforeunload', () => { if (_cpStashDirty) _lsSet(CP_STASH_KEY, cpStash); });
+const cpStashBot = { isStash: true, T: { label: 'Army' }, storage: cpStash };
+// everything the melee / sweep / targeting code can hit: your bots + other players' bots
+function cpTargets() { const r = cpBots.slice(); for (const g of cpGhosts.values()) if (g.ref) r.push(g.ref); return r; }
+function cpHurt(b, dmg, from, kb) {
+  if (!(dmg > 0) || b.hp <= 0) return;
+  b.hp -= dmg * (b.tier === 'netherite' ? 0.45 : 0.6);
+  try { flashRed(b.group); } catch (e) {}
+  if (from) {
+    let dx = b.pos.x - from.x, dz = b.pos.z - from.z; const d = Math.hypot(dx, dz) || 1; dx /= d; dz /= d;
+    const k = 0.7 * (kb == null ? 1 : kb);
+    if (!checkCollision(b.pos.x + dx * k, b.pos.y, b.pos.z, b.radius, b.height)) b.pos.x += dx * k;
+    if (!checkCollision(b.pos.x, b.pos.y, b.pos.z + dz * k, b.radius, b.height)) b.pos.z += dz * k;
+    b.vy = Math.max(b.vy, 4);
+  }
+}
 function cpSay(msg) { try { addChatLine('System', msg, true, true); } catch (e) {} }
 function cpCount(type) { let n = 0; for (let i = 0; i < INV_SIZE; i++) { const s = inventory[i]; if (s && s.type === type) n += s.count; } return n; }
 function cpTake(type, n) { for (let i = 0; i < INV_SIZE && n > 0; i++) { const s = inventory[i]; if (s && s.type === type) { const t = Math.min(n, s.count); s.count -= t; n -= t; if (s.count <= 0) inventory[i] = null; } } try { renderHotbar(); } catch (e) {} }
@@ -23772,9 +23801,9 @@ function cpSummon(tier) {
     if (model.armor.mats && model.armor.mats[s]) { model.armor.mats[s].map = ARMOR_TEX[T.armorTex]; model.armor.mats[s].needsUpdate = true; }
   }
   model.group.position.set(x, y, z); scene.add(model.group);
-  const b = { id: cpNextId++, tier, T, model, group: model.group, pos: { x, y, z }, vy: 0, hp: T.hp, maxHp: T.hp, radius: 0.3, height: 1.8,
+  const b = { id: cpNextId++, isCpBot: true, kind: 'cpbot', get alive() { return this.hp > 0; }, filter: null, mineSet: null, tier, T, model, group: model.group, pos: { x, y, z }, vy: 0, hp: T.hp, maxHp: T.hp, radius: 0.3, height: 1.8,
     following: true, job: null, mode: null, home: null, leader: false, squad: false, target: null, targetName: null,
-    heldState: { heldType: undefined, heldMesh: null }, plan: null, storage: new Array(27).fill(null), atkCd: 0, hurtCd: 0, swingT: 0, walk: 0, moving: false, work: null, workT: 0, scanT: 0, bl: new Map(), stuck: 0, lx: x, lz: z };
+    heldState: { heldType: undefined, heldMesh: null }, plan: null, storage: cpStash, atkCd: 0, hurtCd: 0, swingT: 0, walk: 0, moving: false, work: null, workT: 0, scanT: 0, bl: new Map(), stuck: 0, lx: x, lz: z };
   cpBots.push(b); cpRelabel(b);
   cpSay('Summoned a ' + T.label + ' (it follows you; right click it with the Clownpierce to give it a job).');
 }
@@ -23881,8 +23910,9 @@ function cpFindWork(b) {
 }
 function cpStore(b, type, count) {   // put a stack into the bot's 27-slot storage; returns what didn't fit
   const ms = maxStackFor(type);
-  for (let i = 0; i < 27 && count > 0; i++) { const q = b.storage[i]; if (q && q.type === type && q.count < ms) { const a = Math.min(ms - q.count, count); q.count += a; count -= a; } }
-  for (let i = 0; i < 27 && count > 0; i++) { if (!b.storage[i]) { const a = Math.min(ms, count); b.storage[i] = { type, count: a }; count -= a; } }
+  for (let i = 0; i < b.storage.length && count > 0; i++) { const q = b.storage[i]; if (q && q.type === type && q.count < ms) { const a = Math.min(ms - q.count, count); q.count += a; count -= a; } }
+  for (let i = 0; i < b.storage.length && count > 0; i++) { if (!b.storage[i]) { const a = Math.min(ms, count); b.storage[i] = { type, count: a }; count -= a; } }
+  cpStashSave();
   return count;
 }
 function cpStoredCount(b) { let n = 0; for (const q of b.storage) if (q) n += q.count; return n; }
@@ -23894,7 +23924,70 @@ function cpBreak(b, w) {
   let drop = blockDropType(t); if (drop === undefined) drop = t;
   if (drop && cpStore(b, drop, 1) > 0) spawnDroppedItem(drop, 1, new THREE.Vector3(w.x, w.y + 0.2, w.z), new THREE.Vector3((Math.random() - 0.5) * 2, 3, (Math.random() - 0.5) * 2));   // storage full: it falls on the ground
 }
+function cpLavaNear(x, y, z) {
+  for (const [dx, dy, dz] of [[1, 0, 0], [-1, 0, 0], [0, 1, 0], [0, -1, 0], [0, 0, 1], [0, 0, -1]]) { const q = world.get(key(x + dx, y + dy, z + dz)); if (q && q.type === 'lava') return true; }
+  return false;
+}
+function cpMinerFind(b) {
+  const L = cpLeader(), cen = (b.squad && L && L !== b) ? L.pos : b.pos;
+  const px = Math.round(cen.x), py = Math.round(cen.y), pz = Math.round(cen.z), now = performance.now(), R = 12, DY = 12;
+  const ppx = Math.round(player.pos.x), ppz = Math.round(player.pos.z), ppy = Math.round(player.pos.y - 0.5);
+  const ex = b.pos.x, ey = b.pos.y + 1.5, ez = b.pos.z;
+  let best = null, bd = 1e12;
+  for (let x = px - R; x <= px + R; x++) for (let z = pz - R; z <= pz + R; z++) for (let y = py - DY; y <= py + DY; y++) {
+    const blk = world.get(key(x, y, z)); if (!blk) continue;
+    const t = blk.type; if (CP_NO_BREAK.test(t) || !cpMinerWants(b, t)) continue;
+    if (x === ppx && z === ppz && y <= ppy) continue;            // never dig out from under you
+    const k = key(x, y, z); if (b.bl.has(k) && b.bl.get(k) > now) continue;
+    let d = (x - ex) ** 2 + (y - ey) ** 2 + (z - ez) ** 2;
+    if (!(b.mineSet && b.mineSet.size) && /_ore$/.test(t)) d -= 60;   // default: ores first
+    if (d < bd) { bd = d; best = { x, y, z, type: t, k }; }
+  }
+  return best;
+}
+function cpMinerWork(b, dt) {
+  b.scanT -= dt;
+  if (b.work && (!world.has(b.work.k) || world.get(b.work.k).type !== b.work.type)) { b.work = null; b.workT = 0; b.scanT = 0; }
+  if (!b.work && b.scanT <= 0) { b.scanT = 1; b.work = cpMinerFind(b); b.workT = 0; b.stuck = 0; }
+  if (!b.work) { b.moving = false; cpStep(b, b.home ? b.home.x : b.pos.x, b.home ? b.home.z : b.pos.z, b.pos.y, 3.5, dt, 1.5); return; }
+  const w = b.work, ex = b.pos.x, ey = b.pos.y + 1.5, ez = b.pos.z;
+  const bad = () => { b.bl.set(w.k, performance.now() + 60000); b.work = null; b.workT = 0; b.stuck = 0; };
+  // tunnel: the first solid block on the line from its eyes to the target is what it digs (so it digs its own way down / in)
+  let dig = w; const dx = w.x - ex, dy = w.y - ey, dz = w.z - ez, dist = Math.hypot(dx, dy, dz) || 1;
+  for (let t = 0.3; t < dist; t += 0.2) {
+    const x = Math.round(ex + dx / dist * t), y = Math.round(ey + dy / dist * t), z = Math.round(ez + dz / dist * t);
+    if (x === w.x && y === w.y && z === w.z) break;
+    const bk = world.get(key(x, y, z)); if (!bk || bk.type === 'air') continue;
+    if (CP_NO_BREAK.test(bk.type)) { bad(); return; }               // bedrock / water / lava / chest in the way: pick another
+    dig = { x, y, z, type: bk.type, k: key(x, y, z), blocker: true }; break;
+  }
+  if (cpLavaNear(dig.x, dig.y, dig.z)) { bad(); return; }
+  const ppx = Math.round(player.pos.x), ppz = Math.round(player.pos.z);
+  if (dig.x === ppx && dig.z === ppz && dig.y <= Math.round(player.pos.y - 0.5)) { bad(); return; }
+  const reach = Math.hypot(dig.x - ex, dig.y - ey, dig.z - ez);
+  if (reach <= 4.6) {
+    b.moving = false; cpPhysics(b, dt, 0, 0); cpFaceTo(b, dig.x, dig.z); b.swingT = Math.max(b.swingT, 0.2); b.stuck = 0;
+    if (b.digK !== dig.k) { b.digK = dig.k; b.workT = 0; }
+    b.workT += dt;
+    const h = (BLOCK_TYPES[dig.type] || {}).hardness;
+    if (b.workT >= b.T.mine * Math.min(2.2, Math.max(0.6, h == null ? 1 : h * 0.5))) {
+      const blk = world.get(dig.k);
+      if (blk && blk.type === dig.type) {
+        removeBlock(dig.x, dig.y, dig.z);
+        try { pushBlockDiff(dig.x, dig.y, dig.z, 'air'); } catch (e) {}
+        let drop = blockDropType(dig.type); if (drop === undefined) drop = dig.type;
+        if (drop && (!dig.blocker || cpMinerWants(b, dig.type)) && cpStore(b, drop, 1) > 0) spawnDroppedItem(drop, 1, new THREE.Vector3(dig.x, dig.y + 0.2, dig.z), new THREE.Vector3((Math.random() - 0.5) * 2, 3, (Math.random() - 0.5) * 2));
+      }
+      b.workT = 0; b.digK = null; b.scanT = 0;
+    }
+    return;
+  }
+  b.stuck += dt;
+  if (b.stuck > 9) { bad(); return; }
+  cpStep(b, w.x, w.z, w.y + 0.5, 4.2, dt, 0.9);
+}
 function cpWork(b, dt) {
+  if (b.job === 'miner') { cpMinerWork(b, dt); return; }
   b.scanT -= dt;
   if (b.work && (!world.has(b.work.k) || world.get(b.work.k).type !== b.work.type)) { b.work = null; b.workT = 0; }
   if (!b.work && b.scanT <= 0) { b.scanT = 1.2; b.work = cpFindWork(b); b.workT = 0; b.stuck = 0; }
@@ -23981,7 +24074,7 @@ function cpPlace(x, y, z, type) {
 }
 function cpHasMat(b, type) { return b.storage.some(q => q && q.type === type) || cpCount(type) > 0; }
 function cpTakeMat(b, type) {   // its own storage first, then your inventory
-  for (let i = 0; i < 27; i++) { const q = b.storage[i]; if (q && q.type === type) { q.count--; if (q.count <= 0) b.storage[i] = null; return true; } }
+  for (let i = 0; i < b.storage.length; i++) { const q = b.storage[i]; if (q && q.type === type) { q.count--; if (q.count <= 0) b.storage[i] = null; cpStashSave(); return true; } }
   if (cpCount(type) > 0) { cpTake(type, 1); return true; }
   return false;
 }
@@ -24135,7 +24228,7 @@ function cpGhostRecv(p) {
       const model = buildHumanoid(new THREE.Color(T.color));
       for (let s2 = 0; s2 < 4; s2++) { model.armor[s2].forEach(m => { m.visible = true; }); if (model.armor.mats && model.armor.mats[s2]) { model.armor.mats[s2].map = ARMOR_TEX[T.armorTex]; model.armor.mats[s2].needsUpdate = true; } }
       model.group.position.set(x, y, z); scene.add(model.group);
-      g = { owner: p.o, tier, model, group: model.group, heldState: { heldType: undefined, heldMesh: null }, walk: 0, held: '', heldKey: null, label: null, nameSpr: null };
+      g = { owner: p.o, ref: { isCpGhost: true, kind: 'cpghost', alive: true, owner: p.o, cid: d.i, pos: model.group.position, group: model.group, height: 1.8, radius: 0.3 }, tier, model, group: model.group, heldState: { heldType: undefined, heldMesh: null }, walk: 0, held: '', heldKey: null, label: null, nameSpr: null };
       cpGhosts.set(k, g);
     }
     g.tx = x; g.ty = y; g.tz = z; g.yaw = +d.r || 0; g.moving = !!d.m; g.swing = !!d.s; g.seen = now;
@@ -24185,7 +24278,7 @@ function cpUpdate(dt) {
     try { cpHeldTick(b); } catch (e) {}
     if (b.hp <= 0) {
       cpSay('Your ' + b.T.label + ' died.');
-      for (const q of b.storage) if (q) spawnDroppedItem(q.type, q.count, new THREE.Vector3(b.pos.x, b.pos.y + 0.5, b.pos.z), new THREE.Vector3(0, 3, 0));   // what it carried falls out
+         // what it carried falls out
       if (cpLeaderId === b.id) cpLeaderId = null;
       if (!startMobDeath(b.group)) scene.remove(b.group);
       cpBots.splice(i, 1);
@@ -24253,31 +24346,32 @@ function cpChestMenu(b) {   // chest-style view of what a worker collected
   o.style.cssText = 'position:fixed;inset:0;z-index:99998;background:rgba(0,0,0,.45);display:flex;align-items:center;justify-content:center;font-family:Segoe UI,Arial,sans-serif;';
   const box = document.createElement('div');
   box.style.cssText = 'background:#1b1f2a;color:#fff;border:2px solid #ff4a5a;border-radius:12px;padding:16px;max-width:96vw;max-height:90vh;overflow:auto;display:flex;flex-direction:column;gap:8px;';
-  const h = document.createElement('div'); h.textContent = b.T.label + ' \u2013 storage'; h.style.cssText = 'font-size:20px;font-weight:700;'; box.appendChild(h);
-  const sub = document.createElement('div'); sub.textContent = 'Click an item to take it. Workers put what they mine or chop in here.'; sub.style.cssText = 'font-size:13px;opacity:.75;'; box.appendChild(sub);
+  const h = document.createElement('div'); h.textContent = b.isStash ? 'Army storage (shared by all players)' : b.T.label + ' \u2013 storage'; h.style.cssText = 'font-size:20px;font-weight:700;'; box.appendChild(h);
+  const sub = document.createElement('div'); sub.textContent = 'Click an item to take it. The whole army puts what it mines or chops in here.'; sub.style.cssText = 'font-size:13px;opacity:.75;'; box.appendChild(sub);
   const grid = document.createElement('div'); grid.style.cssText = 'display:grid;grid-template-columns:repeat(9,52px);gap:5px;'; box.appendChild(grid);
   const take = i => {
     const it = b.storage[i]; if (!it) return;
     const left = addItemToInventory(it.type, it.count, it.ench, it.dur, it.spawnKind, it.meta, it.name);
-    if (left > 0) { it.count = left; cpSay('Your inventory is full.'); } else b.storage[i] = null;
+    if (left > 0) { it.count = left; cpSay('Your inventory is full.'); } else b.storage[i] = null; cpStashSave();
     try { renderHotbar(); } catch (e) {}
     draw();
   };
-  const draw = () => { grid.innerHTML = ''; for (let i = 0; i < 27; i++) { const idx = i; grid.appendChild(makeSlotEl(() => b.storage[idx], () => take(idx), () => take(idx), null, null)); } sub.textContent = cpStoredCount(b) + ' items stored. Click an item to take it.'; };
+  const draw = () => { grid.innerHTML = ''; for (let i = 0; i < b.storage.length; i++) { const idx = i; grid.appendChild(makeSlotEl(() => b.storage[idx], () => take(idx), () => take(idx), null, null)); } sub.textContent = cpStoredCount(b) + ' items stored. Click an item to take it.'; };
   const bar = document.createElement('div'); bar.style.cssText = 'display:flex;gap:8px;';
   const mk = (t, f, bg) => { const x = document.createElement('button'); x.textContent = t; x.style.cssText = 'flex:1;padding:9px 12px;font-size:15px;border:0;border-radius:8px;cursor:pointer;color:#fff;background:' + bg + ';'; x.onclick = f; bar.appendChild(x); };
-  mk('Take all', () => { for (let i = 0; i < 27; i++) take(i); }, '#2f8f46');
-  mk('Back', () => cpBotMenu(b), '#33405c');
+  mk('Take all', () => { for (let i = 0; i < b.storage.length; i++) take(i); }, '#2f8f46');
+  mk('Back', () => (b.isStash ? cpMainMenu() : cpBotMenu(b)), '#33405c');
   mk('Close', cpCloseMenu, '#555');
   box.appendChild(bar); o.appendChild(box); o.addEventListener('mousedown', e => { if (e.target === o) cpCloseMenu(); });
   document.body.appendChild(o); cpMenuEl = o; draw();
 }
 function cpBotMenu(b) {
   const rows = [];
-  rows.push({ t: '\uD83D\uDCE6 Open storage (' + cpStoredCount(b) + ' items)', f: () => cpChestMenu(b) });
+  rows.push({ t: '\uD83D\uDCE6 Army storage (' + cpStoredCount(cpStashBot) + ' items)', f: () => cpChestMenu(cpStashBot) });
   rows.push({ t: b.following ? 'Continue job (stop following)' : 'Follow me', on: b.following, f: () => { b.following = !b.following; cpRelabel(b); cpBotMenu(b); } });
   rows.push({ t: 'Job: Soldier \u25B8', f: () => cpSoldierMenu(b) });
   rows.push({ t: 'Job: Miner' + (b.job === 'miner' ? '  \u2713' : ''), on: b.job === 'miner', f: () => cpSetJob(b, 'miner') });
+  rows.push({ t: '\u26CF Miner filter: ' + cpFilterText(b) + ' \u25B8', f: () => cpMinerMenu(b) });
   rows.push({ t: 'Job: Lumberjack' + (b.job === 'lumberjack' ? '  \u2713' : ''), on: b.job === 'lumberjack', f: () => cpSetJob(b, 'lumberjack') });
   rows.push({ t: 'Job: Demolisher (breaks every block near)' + (b.job === 'demolisher' ? '  \u2713' : ''), on: b.job === 'demolisher', f: () => cpSetJob(b, 'demolisher') });
   rows.push({ t: 'Job: Builder \u25B8', on: b.job === 'builder', f: () => cpBuilderMenu(b) });
@@ -24293,8 +24387,27 @@ function cpBotMenu(b) {
     rows.push({ t: 'Squad order: Just follow me', f: () => cpOrderSquad(null) });
   }
   rows.push({ t: 'Teleport to me', f: () => { b.pos.x = player.pos.x + 1; b.pos.z = player.pos.z; b.pos.y = player.pos.y + 0.5; b.vy = 0; cpCloseMenu(); } });
-  rows.push({ t: 'Dismiss', danger: true, f: () => { for (const q of b.storage) if (q) spawnDroppedItem(q.type, q.count, new THREE.Vector3(b.pos.x, b.pos.y + 0.5, b.pos.z), new THREE.Vector3(0, 3, 0)); scene.remove(b.group); const i = cpBots.indexOf(b); if (i >= 0) cpBots.splice(i, 1); if (cpLeaderId === b.id) cpLeaderId = null; cpCloseMenu(); } });
+  rows.push({ t: 'Dismiss', danger: true, f: () => {  scene.remove(b.group); const i = cpBots.indexOf(b); if (i >= 0) cpBots.splice(i, 1); if (cpLeaderId === b.id) cpLeaderId = null; cpCloseMenu(); } });
   cpShowMenu(b.T.label + (b.leader ? ' (leader)' : ''), cpJobText(b) + '  \u00b7  HP ' + Math.ceil(b.hp) + '/' + b.maxHp, rows);
+}
+const CP_MINE_CHOICES = [['coal_ore', 'Coal'], ['iron_ore', 'Iron'], ['gold_ore', 'Gold'], ['diamond_ore', 'Diamond'], ['redstone_ore', 'Redstone'], ['lapis_ore', 'Lapis'], ['emerald_ore', 'Emerald'], ['nether_gold_ore', 'Nether gold'], ['nether_quartz_ore', 'Nether quartz'], ['stone', 'Stone'], ['cobblestone', 'Cobblestone'], ['deepslate', 'Deepslate'], ['netherrack', 'Netherrack'], ['dirt', 'Dirt'], ['sand', 'Sand']];
+function cpFilterText(b) { return (b.mineSet && b.mineSet.size) ? (b.mineSet.size + ' type' + (b.mineSet.size > 1 ? 's' : '')) : 'ores + stone'; }
+function cpMinerWants(b, t) {
+  const L = cpLeader(), src = (b.squad && L && L !== b) ? L : b, set = src.mineSet;
+  if (set && set.size) { for (const n of set) if (t === n || t === 'deepslate_' + n) return true; return false; }
+  return /_ore$/.test(t) || t === 'stone' || t === 'deepslate' || t === 'netherrack';
+}
+function cpMinerMenu(b) {
+  const rows = [];
+  rows.push({ t: 'Default: all ores + stone' + (!(b.mineSet && b.mineSet.size) ? '  \u2713' : ''), on: !(b.mineSet && b.mineSet.size), f: () => { b.mineSet = null; b.work = null; cpMinerMenu(b); } });
+  rows.push({ t: 'Ores only', f: () => { b.mineSet = new Set(CP_MINE_CHOICES.filter(c => /_ore$/.test(c[0])).map(c => c[0])); b.work = null; cpMinerMenu(b); } });
+  for (const [id, label] of CP_MINE_CHOICES) {
+    const on = !!(b.mineSet && b.mineSet.has(id));
+    rows.push({ t: (on ? '\u2713 ' : '\u2610 ') + label, on, f: () => { if (!b.mineSet) b.mineSet = new Set(); if (on) b.mineSet.delete(id); else b.mineSet.add(id); b.work = null; b.scanT = 0; cpMinerMenu(b); } });
+  }
+  rows.push({ t: (b.job === 'miner' ? 'Start mining now' : 'Make it a Miner') , on: b.job === 'miner', f: () => cpSetJob(b, 'miner') });
+  rows.push({ t: '\u25C2 Back', f: () => cpBotMenu(b) });
+  cpShowMenu('Miner filter', 'Tick what it should mine. (Squad miners use the leader\'s filter.)', rows);
 }
 function cpSoldierMenu(b) {
   const rows = [
@@ -24307,11 +24420,12 @@ function cpSoldierMenu(b) {
   cpShowMenu('Soldier mode', b.T.label, rows);
 }
 function cpMainMenu() {
-  const rows = cpBots.map((b, i) => ({ t: (i + 1) + '. ' + (b.leader ? '\u2605 ' : '') + b.T.label + ' \u2013 ' + cpJobText(b) + ' (' + Math.ceil(b.hp) + ' HP)', f: () => cpBotMenu(b) }));
+  const rows = [{ t: '\uD83D\uDCE6 Army storage (' + cpStoredCount(cpStashBot) + ' items, shared)', f: () => cpChestMenu(cpStashBot) }];
+  cpBots.forEach((b, i) => rows.push({ t: (i + 1) + '. ' + (b.leader ? '\u2605 ' : '') + b.T.label + ' \u2013 ' + cpJobText(b) + ' (' + Math.ceil(b.hp) + ' HP)', f: () => cpBotMenu(b) }));
   rows.push({ t: 'Everyone: follow me', f: () => { cpBots.forEach(b => { b.following = true; cpRelabel(b); }); cpCloseMenu(); } });
   rows.push({ t: 'Everyone: continue their jobs', f: () => { cpBots.forEach(b => { b.following = false; cpRelabel(b); }); cpCloseMenu(); } });
   rows.push({ t: 'Everyone: follow the leader', f: () => { if (!cpLeader()) { cpSay('Set a leader first.'); return; } cpOrderSquad(null, false); } });
-  rows.push({ t: 'Dismiss everyone', danger: true, f: () => { cpBots.forEach(b => { for (const q of b.storage) if (q) spawnDroppedItem(q.type, q.count, new THREE.Vector3(b.pos.x, b.pos.y + 0.5, b.pos.z), new THREE.Vector3(0, 3, 0)); scene.remove(b.group); }); cpBots.length = 0; cpLeaderId = null; cpCloseMenu(); } });
+  rows.push({ t: 'Dismiss everyone', danger: true, f: () => { cpBots.forEach(b => {  scene.remove(b.group); }); cpBots.length = 0; cpLeaderId = null; cpCloseMenu(); } });
   cpShowMenu('Clownpierce', 'Left click: Diamond player (1 diamond) \u00b7 Hold left click: Netherite player (5 diamonds) \u00b7 Right click a player: its menu', rows);
 }
 // ---- input while holding the item ----
