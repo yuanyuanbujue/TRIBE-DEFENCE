@@ -23826,8 +23826,9 @@ function cpPhysics(b, dt, dx, dz) {
 function cpStep(b, tx, tz, tyFeet, speed, dt, stopDist) {
   b.gx = tx; b.gz = tz; b.gy = tyFeet;
   const far = Math.hypot(tx - b.pos.x, tz - b.pos.z);
-  if (far <= stopDist) { b.moving = false; cpPhysics(b, dt, 0, 0); return far; }
-  const wp = zombieWaypoint(b, { x: tx, y: tyFeet, z: tz }, dt);
+  if (far <= stopDist) { b.moving = false; b.npath = null; cpPhysics(b, dt, 0, 0); return far; }
+  const wp = cpNavWaypoint(b, tx, tz, tyFeet, dt);
+  if (wp === 'busy') return far;   // digging / placing a block on its way: stands still
   const gx = wp ? wp.x : tx, gz = wp ? wp.z : tz;
   const dx = gx - b.pos.x, dz = gz - b.pos.z, d = Math.hypot(dx, dz) || 1;
   const st = Math.min(d, speed * dt);
@@ -23835,14 +23836,158 @@ function cpStep(b, tx, tz, tyFeet, speed, dt, stopDist) {
   cpPhysics(b, dt, dx / d * st, dz / d * st);
   return far;
 }
+// ================= Bot path finding: walk, jump, drop - and DIG through rock, BRIDGE gaps, PILLAR up =================
+function cpDiggable(x, y, z) {
+  const q = world.get(key(x, y, z)); if (!q || CP_NO_BREAK.test(q.type)) return false;
+  if (x === Math.round(player.pos.x) && z === Math.round(player.pos.z) && y <= Math.round(player.pos.y - 0.5)) return false;   // never the ground under you
+  return !cpLavaNear(x, y, z);
+}
+function cpBridgeItem(b) {
+  for (const p of ['cobblestone', 'dirt', 'stone', 'netherrack', 'planks', 'sand']) if (BLOCK_TYPES[p] && isPlaceable(p) && b.storage.some(q => q && q.type === p && q.count > 0)) return p;
+  for (const q of b.storage) if (q && q.count > 0 && BLOCK_TYPES[q.type] && isPlaceable(q.type) && !/_ore$|^(torch|water|lava|fire|chest|ender_chest|tnt|bed|spawner|furnace|crafting_table|diamond_block|gold_block|iron_block|emerald_block|netherite_block)$/.test(q.type)) return q.type;
+  return null;
+}
+function cpFindPath(sx, sy, sz, gx, gy, gz, maxNodes, canDig, canPlace) {
+  const open = [], g = new Map(), from = new Map(), info = new Map(), nodeOf = new Map();
+  const h = (x, y, z) => (Math.abs(x - gx) + Math.abs(z - gz) + Math.abs(y - gy) * 0.5) * 1.15;
+  const push = (f, x, y, z) => { open.push([f, x, y, z]); let i = open.length - 1; while (i > 0) { const p = (i - 1) >> 1; if (open[p][0] <= open[i][0]) break; const t = open[p]; open[p] = open[i]; open[i] = t; i = p; } };
+  const pop = () => { const top = open[0], last = open.pop(); if (open.length) { open[0] = last; let i = 0; for (;;) { let l = i * 2 + 1, r = l + 1, m = i; if (l < open.length && open[l][0] < open[m][0]) m = l; if (r < open.length && open[r][0] < open[m][0]) m = r; if (m === i) break; const t = open[m]; open[m] = open[i]; open[i] = t; i = m; } } return top; };
+  const sk = _zKey(sx, sy, sz);
+  g.set(sk, 0); nodeOf.set(sk, [sx, sy, sz]); push(h(sx, sy, sz), sx, sy, sz);
+  let best = sk, bestH = h(sx, sy, sz), goalK = null, n = 0;
+  const relax = (ck, cg, nx, ny, nz, cost, inf) => {
+    if (ny < -60 || ny > 300) return;
+    const nk = _zKey(nx, ny, nz), ng = cg + cost;
+    if (g.has(nk) && g.get(nk) <= ng) return;
+    g.set(nk, ng); from.set(nk, ck); nodeOf.set(nk, [nx, ny, nz]); if (inf) info.set(nk, inf); else info.delete(nk);
+    const hh = h(nx, ny, nz); push(ng + hh, nx, ny, nz); if (hh < bestH) { bestH = hh; best = nk; }
+  };
+  const solidCells = (list) => { const r = []; for (const c of list) if (solidAt(c[0], c[1], c[2])) { if (!cpDiggable(c[0], c[1], c[2])) return null; r.push(c); } return r; };
+  while (open.length && n < maxNodes) {
+    const [, x, y, z] = pop(), ck = _zKey(x, y, z); n++;
+    if (Math.abs(x - gx) + Math.abs(z - gz) <= 1 && Math.abs(y - gy) <= 1) { goalK = ck; break; }
+    const cg = g.get(ck);
+    for (const [dx, dz] of _Z_DIRS) {
+      const nx = x + dx, nz = z + dz; let done = false;
+      if (_zWalk(nx, y, nz)) { relax(ck, cg, nx, y, nz, 1); done = true; }
+      else if (_zWalk(nx, y + 1, nz) && !solidAt(x, y + 2, z)) { relax(ck, cg, nx, y + 1, nz, 1.6); done = true; }
+      else if (!solidAt(nx, y, nz) && !solidAt(nx, y + 1, nz)) {
+        for (let d = 1; d <= 4; d++) { if (solidAt(nx, y - d + 1, nz)) break; if (_zWalk(nx, y - d, nz)) { relax(ck, cg, nx, y - d, nz, 1 + 0.4 * d); done = true; break; } }
+        if (!done && canPlace && !solidAt(nx, y - 1, nz)) relax(ck, cg, nx, y, nz, 3, { place: [nx, y - 1, nz] });   // bridge: put a floor block there
+      }
+      if (!done && canDig) {
+        if (solidAt(nx, y - 1, nz)) {                                                   // tunnel straight on
+          const c = solidCells([[nx, y, nz], [nx, y + 1, nz]]);
+          if (c && c.length) relax(ck, cg, nx, y, nz, 1 + 3 * c.length, { dig: c });
+        }
+        if (solidAt(nx, y, nz)) {                                                       // tunnel up one (stair)
+          const c = solidCells([[x, y + 2, z], [nx, y + 1, nz], [nx, y + 2, nz]]);
+          if (c && c.length) relax(ck, cg, nx, y + 1, nz, 1.6 + 3 * c.length, { dig: c });
+        }
+        if (solidAt(nx, y - 2, nz)) {                                                   // tunnel down one (stair)
+          const c = solidCells([[nx, y + 1, nz], [nx, y, nz], [nx, y - 1, nz]]);
+          if (c && c.length) relax(ck, cg, nx, y - 1, nz, 1.6 + 3 * c.length, { dig: c });
+        }
+      }
+    }
+    if (canPlace && !solidAt(x, y + 2, z)) relax(ck, cg, x, y + 1, z, 3.5, { pillar: [x, y, z] });   // pillar up on the spot
+  }
+  let endK = goalK != null ? goalK : best;
+  const path = [];
+  while (endK !== undefined && endK !== sk) { const p = nodeOf.get(endK), inf = info.get(endK); path.push(inf ? Object.assign({ x: p[0], y: p[1], z: p[2] }, inf) : { x: p[0], y: p[1], z: p[2] }); endK = from.get(endK); }
+  path.reverse();
+  return { path, reached: goalK != null };
+}
+function cpNavBreak(b, c, type) {
+  removeBlock(c[0], c[1], c[2]);
+  try { pushBlockDiff(c[0], c[1], c[2], 'air'); } catch (e) {}
+  let drop = blockDropType(type); if (drop === undefined) drop = type;
+  if (drop && cpMinerWants(b, type) && cpStore(b, drop, 1) > 0) spawnDroppedItem(drop, 1, new THREE.Vector3(c[0], c[1] + 0.2, c[2]), new THREE.Vector3((Math.random() - 0.5) * 2, 3, (Math.random() - 0.5) * 2));
+}
+function cpNavWaypoint(b, tx, tz, ty, dt) {
+  const now = performance.now();
+  b.npT = (b.npT || 0) + dt; b.npBusy = false;
+  if (Math.hypot(tx - b.pos.x, tz - b.pos.z) < 2.2 && Math.abs(ty - b.pos.y) < 1.6) { b.npath = null; return null; }
+  if (zClearLine(b, tx, ty, tz)) { b.npath = null; return null; }
+  b.npS = (b.npS || 0) + dt;
+  if (b.npS >= 0.6) { const mv = Math.hypot(b.pos.x - (b.npX == null ? b.pos.x : b.npX), b.pos.z - (b.npZ == null ? b.pos.z : b.npZ)) + Math.abs(b.pos.y - (b.npY == null ? b.pos.y : b.npY)); b.npX = b.pos.x; b.npZ = b.pos.z; b.npY = b.pos.y; b.npS = 0; b.npStuck = (mv < 0.1 && b.moving) ? (b.npStuck || 0) + 0.6 : 0; }
+  const goalMoved = b.npGoal && Math.hypot(tx - b.npGoal[0], tz - b.npGoal[1]) > 2.5;
+  if ((!b.npath || b.npT > 1.8 || goalMoved || (b.npStuck || 0) >= 1.8) && _zPathBudget > 0) {
+    _zPathBudget--; b.npT = Math.random() * 0.4; b.npStuck = 0; b.pilUp = false;
+    const sx = Math.round(b.pos.x), sz = Math.round(b.pos.z); let sy = Math.round(b.pos.y + 0.5);
+    if (!_zWalk(sx, sy, sz)) { if (_zWalk(sx, sy + 1, sz)) sy++; else if (_zWalk(sx, sy - 1, sz)) sy--; }
+    const canDig = b.job === 'miner' || b.job === 'demolisher', canPlace = now > (b.noPlaceUntil || 0) && !!cpBridgeItem(b);
+    const gx = Math.round(tx), gz = Math.round(tz); let gy = Math.round(ty + 0.5);
+    if (!canDig) for (let d = 0; d < 5 && !_zWalk(gx, gy, gz); d++) gy--;
+    let res = cpFindPath(sx, sy, sz, gx, gy, gz, 900, false, false);
+    if (!res.reached && (canDig || canPlace)) res = cpFindPath(sx, sy, sz, gx, gy, gz, 3500, canDig, canPlace);
+    b.npath = res.path; b.nidx = 0; b.npGoal = [tx, tz];
+  }
+  if (!b.npath || !b.npath.length) return null;
+  while (b.nidx < b.npath.length) {
+    const n = b.npath[b.nidx];
+    if (!n.dig && !n.place && !n.pillar && Math.hypot(n.x - b.pos.x, n.z - b.pos.z) < 0.4 && Math.abs((n.y - 0.5) - b.pos.y) < 1.2) b.nidx++; else break;
+  }
+  if (b.nidx >= b.npath.length) { b.npath = null; return null; }
+  const n = b.npath[b.nidx];
+  const stand = () => { b.moving = false; b.npBusy = true; b.swingT = Math.max(b.swingT, 0.2); };
+  if (n.dig) {
+    const c = n.dig.find(q => solidAt(q[0], q[1], q[2]) && world.has(key(q[0], q[1], q[2])));
+    if (!c) n.dig = null;
+    else {
+      if (!cpDiggable(c[0], c[1], c[2]) || Math.hypot(c[0] - b.pos.x, c[1] - (b.pos.y + 1.5), c[2] - b.pos.z) > 5) { b.npath = null; return null; }
+      stand(); cpPhysics(b, dt, 0, 0); cpFaceTo(b, c[0], c[2]);
+      const k = key(c[0], c[1], c[2]); if (b.nK !== k) { b.nK = k; b.nW = 0; }
+      b.nW += dt; const bl = world.get(k), hd = (BLOCK_TYPES[bl.type] || {}).hardness;
+      if (b.nW >= b.T.mine * Math.min(2.2, Math.max(0.6, hd == null ? 1 : hd * 0.5))) { cpNavBreak(b, c, bl.type); b.nW = 0; b.nK = null; }
+      return 'busy';
+    }
+  }
+  if (n.place) {
+    const c = n.place;
+    if (world.has(key(c[0], c[1], c[2]))) n.place = null;
+    else {
+      const t = cpBridgeItem(b); if (!t) { b.noPlaceUntil = now + 8000; b.npath = null; return null; }
+      stand(); cpPhysics(b, dt, 0, 0); cpFaceTo(b, c[0], c[2]);
+      b.nPT = (b.nPT || 0) + dt;
+      if (b.nPT >= 0.25 && !cpCellBlocked(c)) { b.nPT = 0; if (cpTakeMat(b, t)) cpPlace(c[0], c[1], c[2], t); else { b.noPlaceUntil = now + 8000; b.npath = null; return null; } }
+      return 'busy';
+    }
+  }
+  if (n.pillar) {
+    const c = n.pillar;
+    if (world.has(key(c[0], c[1], c[2]))) { n.pillar = null; b.pilUp = false; }
+    else {
+      const t = cpBridgeItem(b); if (!t) { b.noPlaceUntil = now + 8000; b.npath = null; return null; }
+      stand();
+      const f = Math.min(1, dt * 10), nx = b.pos.x + (c[0] - b.pos.x) * f, nz = b.pos.z + (c[2] - b.pos.z) * f;
+      if (!checkCollision(nx, b.pos.y, nz, b.radius, b.height)) { b.pos.x = nx; b.pos.z = nz; }
+      cpPhysics(b, dt, 0, 0);
+      if (!b.pilUp) { if (cpGrounded(b)) { b.vy = 9.5; b.pilUp = true; b.pilT = 0; } }
+      else {
+        b.pilT += dt;
+        if (b.pos.y >= (c[1] - 0.5) + 1.35 && b.vy < 1) { if (cpTakeMat(b, t)) cpPlace(c[0], c[1], c[2], t); b.pilUp = false; n.pillar = null; }
+        else if (b.pilT > 1.6) { b.pilUp = false; b.npath = null; return null; }
+      }
+      return 'busy';
+    }
+  }
+  return { x: n.x, z: n.z };
+}
 function cpFaceTo(b, x, z) { b.yaw = Math.atan2(x - b.pos.x, z - b.pos.z); }
 // ---- targets ----
-function cpTP(t) { return t.kind === 'mob' ? t.a.pos : t.entry.group.position; }
-function cpAlive(t) { return t && (t.kind === 'mob' ? t.a.alive : otherPlayers.has(t.id)); }
+function cpTP(t) { return t.kind === 'cpg' ? t.ref.pos : (t.kind === 'mob' ? t.a.pos : t.entry.group.position); }
+function cpAlive(t) { return t && (t.kind === 'cpg' ? cpGhosts.has(t.ref.owner + '#' + t.ref.cid) : (t.kind === 'mob' ? t.a.alive : otherPlayers.has(t.id))); }
+function cpArmyNear(b, cx, cz, r) {   // the nearest bot of ANOTHER player's army
+  let best = null, bd = r * r;
+  for (const g of cpGhosts.values()) { if (!g.ref) continue; const p = g.ref.pos, d = (p.x - cx) ** 2 + (p.z - cz) ** 2; if (d < bd && Math.abs(p.y - b.pos.y) < 8) { bd = d; best = { kind: 'cpg', ref: g.ref }; } }
+  return best;
+}
 function cpEnemyNear(b, cx, cz, r, withPlayers) {
   let best = null, bd = r * r;
   for (const a of animals) { if (!a.alive || !CP_HOSTILE.has(a.kind)) continue; const d = (a.pos.x - cx) ** 2 + (a.pos.z - cz) ** 2; if (d < bd && Math.abs(a.pos.y - b.pos.y) < 8) { bd = d; best = { kind: 'mob', a }; } }
   if (withPlayers) otherPlayers.forEach((entry, id) => { const p = entry.group.position; const d = (p.x - cx) ** 2 + (p.z - cz) ** 2; if (d < bd) { bd = d; best = { kind: 'player', id, entry }; } });
+  { const e = cpArmyNear(b, cx, cz, Math.sqrt(bd)); if (e) best = e; }   // enemy armies count as enemies too
   return best;
 }
 function cpFindPlayerTarget(b) {
@@ -23859,7 +24004,8 @@ function cpAttack(b, t) {
   cpFaceTo(b, p.x, p.z);
   if (d > 2.6 || Math.abs(p.y - b.pos.y) > 2.6 || b.atkCd > 0) return d;
   b.atkCd = 0.65; b.swingT = 0.3;
-  if (t.kind === 'mob') damageAnimal(t.a, b.T.dmg, new THREE.Vector3(b.pos.x, b.pos.y, b.pos.z), 1);
+  if (t.kind === 'cpg') damageAnimal(t.ref, b.T.dmg, new THREE.Vector3(b.pos.x, b.pos.y, b.pos.z), 1);
+  else if (t.kind === 'mob') damageAnimal(t.a, b.T.dmg, new THREE.Vector3(b.pos.x, b.pos.y, b.pos.z), 1);
   else { try { playersChannel.send({ type: 'broadcast', event: 'hit', payload: { targetId: t.id, amount: b.T.dmg, attackerId: MY_ID, kx: p.x - b.pos.x, kz: p.z - b.pos.z, knock: 6 } }); } catch (e) {} flashRed(t.entry.group); }
   return d;
 }
@@ -23940,7 +24086,7 @@ function cpMinerFind(b) {
     if (x === ppx && z === ppz && y <= ppy) continue;            // never dig out from under you
     const k = key(x, y, z); if (b.bl.has(k) && b.bl.get(k) > now) continue;
     let d = (x - ex) ** 2 + (y - ey) ** 2 + (z - ez) ** 2;
-    if (!(b.mineSet && b.mineSet.size) && /_ore$/.test(t)) d -= 60;   // default: ores first
+    if (!b.wantFn && !(b.mineSet && b.mineSet.size) && /_ore$/.test(t)) d -= 60;   // default: ores first
     if (d < bd) { bd = d; best = { x, y, z, type: t, k }; }
   }
   return best;
@@ -24014,6 +24160,7 @@ function cpThink(b, dt) {
     b.pos.x = ox + 1.5; b.pos.z = oz; b.pos.y = oy + 0.5; b.vy = 0; return;
   }
   const L = cpLeader();
+  { const e = cpArmyNear(b, b.pos.x, b.pos.z, 5); if (e) { b.target = e; const p = cpTP(e); cpStep(b, p.x, p.z, p.y, 5, dt, 1.8); cpAttack(b, e); return; } }   // any bot defends itself against an enemy army
   if (b.following) { cpStep(b, ox, oz, oy, dOwner > 9 ? 6 : 4.4, dt, 2.4); return; }
   if (b.squad && L && L !== b) {   // squad member: stays with the leader and does the job the leader ordered
     const dL = Math.hypot(L.pos.x - b.pos.x, L.pos.z - b.pos.z);
@@ -24121,11 +24268,28 @@ function cpCellBlocked(c) {   // would the block land inside somebody?
   for (const q of cpBots) if (hit(q.pos.x, q.pos.y, q.pos.z)) return true;
   return false;
 }
+let _cpSrcMap = null;
+function cpSourcesFor(type) {   // which blocks drop this item when mined?
+  if (!_cpSrcMap) { _cpSrcMap = {}; for (const t of Object.keys(BLOCK_TYPES)) { if (CP_NO_BREAK.test(t)) continue; let d; try { d = blockDropType(t); } catch (e) { continue; } if (d === undefined) d = t; if (d && typeof d === 'string') (_cpSrcMap[d] = _cpSrcMap[d] || new Set()).add(t); } }
+  return _cpSrcMap[type] || null;
+}
+function cpStashCount(type) { let n = 0; for (const q of cpStash) if (q && q.type === type) n += q.count; return n; }
+function cpGatherFor(b, dt, P) {   // out of material: go and mine it (a stone wall -> it mines stone for cobblestone)
+  const src = cpSourcesFor(P.type); if (!src || (P.gatherFail || 0) >= 3) return false;
+  b.wantFn = t => src.has(t);
+  if (!b.work && b.scanT <= 0) { b.scanT = 1; b.work = cpMinerFind(b); b.workT = 0; b.stuck = 0; P.gatherFail = b.work ? 0 : (P.gatherFail || 0) + 1; }
+  cpMinerWork(b, dt);
+  return true;
+}
 function cpBuild(b, dt) {
-  const P = b.plan;
+  const P = b.plan; b.wantFn = null;
   if (!P || P.i >= P.cells.length) { b.job = null; b.plan = null; b.following = true; cpRelabel(b); cpSay(b.T.label + ' finished building.'); return; }
   const c = P.cells[P.i];
   if (world.has(key(c[0], c[1], c[2]))) { P.i++; return; }
+  { const left = P.cells.length - P.i, need = Math.min(64, left), have = cpStashCount(P.type) + cpCount(P.type);
+    if (P.gathering && have >= need) { P.gathering = false; b.work = null; }
+    if (!P.gathering && have <= 0 && cpSourcesFor(P.type) && (P.gatherFail || 0) < 3) { P.gathering = true; P.warned = false; cpSay(b.T.label + ' goes to mine ' + displayName(P.type) + ' for the build.'); }
+    if (P.gathering) { if (cpGatherFor(b, dt, P)) return; P.gathering = false; } }
   if (!cpHasMat(b, P.type)) {
     if (!P.warned) { P.warned = true; cpSay(b.T.label + ' needs more ' + displayName(P.type) + ' (put some in your inventory or in its storage).'); }
     cpStep(b, player.pos.x, player.pos.z, player.pos.y, 4.4, dt, 3); return;
@@ -24139,7 +24303,7 @@ function cpBuild(b, dt) {
     if (P.t >= 0.28) { P.t = 0; P.skips = 0; if (cpTakeMat(b, P.type)) { if (!cpPlace(c[0], c[1], c[2], P.type)) { /* spot refused: skip it */ } } P.i++; if (P.i % 4 === 0) cpRelabel(b); }
     return;
   }
-  cpStep(b, c[0], c[2], b.pos.y, 4.2, dt, 2.5);
+  cpStep(b, c[0], c[2], (c[1] - (b.pos.y + 0.9) > 2.5) ? c[1] - 1.5 : b.pos.y, 4.2, dt, 2.5);   // too high to reach: path up (stairs / pillar)
 }
 // ---- getting out of holes / walls ----
 function cpDigCell(b, x, y, z) {
@@ -24323,7 +24487,7 @@ function cpShowMenu(title, sub, rows) {
 window.addEventListener('keydown', e => { if (cpMenuOpen && e.key === 'Escape') { e.stopPropagation(); cpCloseMenu(); } }, true);
 function cpSetJob(b, job, mode, targetName) {
   b.job = job; b.mode = mode || null; b.following = false; b.home = { x: b.pos.x, z: b.pos.z };
-  b.work = null; b.workT = 0; b.target = null; b.targetName = targetName || null;
+  b.work = null; b.workT = 0; b.target = null; b.targetName = targetName || null; b.wantFn = null; b.npath = null;
   cpRelabel(b); cpCloseMenu(); cpSay(b.T.label + ': ' + cpJobText(b) + '.');
 }
 function cpSetLeader(b, on) {
@@ -24393,6 +24557,7 @@ function cpBotMenu(b) {
 const CP_MINE_CHOICES = [['coal_ore', 'Coal'], ['iron_ore', 'Iron'], ['gold_ore', 'Gold'], ['diamond_ore', 'Diamond'], ['redstone_ore', 'Redstone'], ['lapis_ore', 'Lapis'], ['emerald_ore', 'Emerald'], ['nether_gold_ore', 'Nether gold'], ['nether_quartz_ore', 'Nether quartz'], ['stone', 'Stone'], ['cobblestone', 'Cobblestone'], ['deepslate', 'Deepslate'], ['netherrack', 'Netherrack'], ['dirt', 'Dirt'], ['sand', 'Sand']];
 function cpFilterText(b) { return (b.mineSet && b.mineSet.size) ? (b.mineSet.size + ' type' + (b.mineSet.size > 1 ? 's' : '')) : 'ores + stone'; }
 function cpMinerWants(b, t) {
+  if (b.wantFn) return b.wantFn(t);
   const L = cpLeader(), src = (b.squad && L && L !== b) ? L : b, set = src.mineSet;
   if (set && set.size) { for (const n of set) if (t === n || t === 'deepslate_' + n) return true; return false; }
   return /_ore$/.test(t) || t === 'stone' || t === 'deepslate' || t === 'netherrack';
