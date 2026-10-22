@@ -6375,7 +6375,7 @@ function entHostTick(dt, anchors) {
   if (entLoadT <= 0) { entLoadT = 9; entLoadAnimals(anchors); }
 }
 // ---- trade values ----
-const VL_EXCLUDE = /^(air|water|lava|fire|spawner|nether_portal|bedrock|clownpierce|null_totem|emerald)$|portal|command/;
+const VL_EXCLUDE = /^(air|water|lava|fire|nether_portal|emerald)$/;   // everything else (bedrock, spawners, command items...) can be sold
 let _vlPool = null, _vlGear = null;
 function vlItemPool() {
   if (_vlPool) return _vlPool;
@@ -6384,13 +6384,14 @@ function vlItemPool() {
   _vlGear = _vlPool.filter(t => { try { return !!jcEnchInfo(t); } catch (e) { return false; } });
   return _vlPool;
 }
-const VL_MAT = { wood: 1, stone: 1, leather: 2, iron: 3, gold: 3, chainmail: 3, diamond: 7, netherite: 16 };
+const VL_MAT = { wood: 1, stone: 1, leather: 2, iron: 3, gold: 3, chainmail: 3, diamond: 7, netherite: 40 };
 const VL_PIECE = { helmet: 1, chestplate: 1, leggings: 1, boots: 1, sword: 0.95, pickaxe: 1.05, axe: 1.05, shovel: 0.7, hoe: 0.7, spear: 0.9 };
-const VL_VALUE = { diamond: 5, iron_ingot: 0.4, gold_ingot: 0.6, coal: 0.12, netherite_scrap: 6, netherite_ingot: 20, ancient_debris: 12, netherite_upgrade_smithing_template: 16, elytra: 24, mace: 20, trident: 14, golden_apple: 5, bow: 3, crossbow: 4, shield: 3, arrow: 0.1, bucket: 2, bread: 0.35, apple: 0.3, wheat: 0.07, wheat_seeds: 0.05, torch: 0.05, tnt: 2, obsidian: 1.5, crying_obsidian: 2.5, enchanting_table: 8, anvil: 6, brewing_stand: 5, ender_chest: 10, chest: 0.5, furnace: 0.3, crafting_table: 0.3, smithing_table: 2, bed: 1.5, firework: 0.4, redstone: 0.15, lapis: 0.2, emerald_ore: 3, diamond_ore: 8, string: 0.1, leather: 0.3, paper: 0.1, sugar: 0.1 };
+const VL_VALUE = { diamond: 5, iron_ingot: 0.4, gold_ingot: 0.6, coal: 0.12, netherite_scrap: 15, netherite_ingot: 50, ancient_debris: 30, netherite_upgrade_smithing_template: 40, bedrock: 40, spawner: 40, clownpierce: 30, null_totem: 50, elytra: 24, mace: 20, trident: 14, golden_apple: 5, bow: 3, crossbow: 4, shield: 3, arrow: 0.1, bucket: 2, bread: 0.35, apple: 0.3, wheat: 0.07, wheat_seeds: 0.05, torch: 0.05, tnt: 2, obsidian: 1.5, crying_obsidian: 2.5, enchanting_table: 8, anvil: 6, brewing_stand: 5, ender_chest: 10, chest: 0.5, furnace: 0.3, crafting_table: 0.3, smithing_table: 2, bed: 1.5, firework: 0.4, redstone: 0.15, lapis: 0.2, emerald_ore: 3, diamond_ore: 8, string: 0.1, leather: 0.3, paper: 0.1, sugar: 0.1 };
 function vlUnit(type) {   // emeralds for ONE of this item (fractional for cheap things)
   const m = /^(wood|stone|leather|iron|gold|chainmail|diamond|netherite)_(helmet|chestplate|leggings|boots|sword|pickaxe|axe|shovel|hoe|spear)$/.exec(type);
   if (m) { let v = VL_MAT[m[1]] * VL_PIECE[m[2]]; if (m[1] === 'diamond' && !/helmet|chestplate|leggings|boots/.test(m[2])) v *= 0.85; return Math.max(1, v); }
   if (VL_VALUE[type] != null) return VL_VALUE[type];
+  if (/netherite/.test(type)) return 45;   // any other netherite thing is expensive too
   if (/_ore$/.test(type)) return 1.2;
   if (BLOCK_TYPES[type]) return 0.08;   // plain blocks: about 12 for an emerald
   return 1.5;
@@ -6432,9 +6433,9 @@ const VL_STOCK = {
 function vlMakeOffers(seed, role, prof) {
   const rng = mulberry32(seed >>> 0), out = [], have = t => !!(BLOCK_TYPES[t] || ITEM_INFO[t]);
   vlItemPool();
-  if (role === 'trader') {   // exactly 5 offers, anything in the game at about its value; a low chance of enchants
+  if (role === 'trader') {   // 8 offers, anything in the game at about its value; a low chance of enchants
     const seen = new Set();
-    for (let tries = 0; out.length < 5 && tries < 80; tries++) {
+    for (let tries = 0; out.length < 8 && tries < 120; tries++) {
       const type = rng() < 0.45 && _vlGear.length ? vlPick(rng, _vlGear) : vlPick(rng, _vlPool);
       if (seen.has(type)) continue; seen.add(type);
       out.push(vlSellOffer(rng, type, 0.12, 1 + Math.floor(rng() * 3)));
