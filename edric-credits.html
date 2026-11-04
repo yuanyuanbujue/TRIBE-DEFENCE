@@ -5,65 +5,106 @@
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <title>Edric's Credits - Fortressed</title>
 <style>
+:root { --accent: #4da6ff; --bg: #121212; --panel: #1c1c1c; --line: #2e2e2e; --text: #e8e8e8; --muted: #9a9a9a; }
 * { margin: 0; padding: 0; box-sizing: border-box; }
+html { color-scheme: dark; }
 body {
-    font-family: Arial, Helvetica, sans-serif;
-    background: linear-gradient(135deg, #111, #1b1b1b, #222);
-    color: white;
-    text-align: center;
+    font-family: "Segoe UI", system-ui, -apple-system, Roboto, Arial, sans-serif;
+    background: radial-gradient(900px 420px at 0% 0%, color-mix(in srgb, var(--accent) 16%, transparent), transparent 70%), var(--bg);
+    background-repeat: no-repeat;
+    color: var(--text);
+    line-height: 1.6;
     min-height: 100vh;
 }
-header {
-    padding: 50px 20px;
-    background: linear-gradient(180deg, #2c2c2c, #181818);
-    box-shadow: 0 5px 20px rgba(0,0,0,0.5);
+.wrap { width: min(720px, 90%); margin: 0 auto; }
+header { padding: 28px 0 36px; }
+.home { display: inline-block; color: var(--muted); text-decoration: none; font-size: 15px; padding: 6px 0; }
+.home:hover, .home:focus-visible { color: var(--accent); }
+h1 {
+    margin-top: 28px;
+    font-size: clamp(56px, 15vw, 112px);
+    line-height: 0.95;
+    font-weight: 800;
+    letter-spacing: -0.04em;
+    color: var(--accent);
+    text-shadow: 0 0 40px color-mix(in srgb, var(--accent) 45%, transparent);
 }
-header h1 { color: #4da6ff; font-size: 48px; letter-spacing: 2px; }
-header p { margin-top: 10px; color: #d6d6d6; font-size: 18px; }
-section {
-    width: 80%; max-width: 700px; margin: 40px auto;
-    background: #2a2a2a; padding: 35px; border-radius: 15px;
-    box-shadow: 0 10px 25px rgba(0,0,0,0.4);
+.sub { margin-top: 14px; font-size: 18px; color: var(--muted); }
+section { padding: 30px 0; border-top: 1px solid var(--line); }
+h2 { font-size: 22px; font-weight: 700; margin-bottom: 16px; color: var(--text); }
+.shelf { list-style: none; display: grid; grid-template-columns: repeat(auto-fill, minmax(220px, 1fr)); gap: 10px; }
+.shelf li {
+    background: var(--panel);
+    border-left: 5px solid var(--c);
+    border-radius: 4px 12px 12px 4px;
+    padding: 14px 16px;
+    font-size: 17px;
+    font-weight: 600;
 }
-h2 { color: #4da6ff; margin-bottom: 20px; }
-ul { list-style: none; }
-li { font-size: 18px; padding: 8px 0; color: #ddd; }
-section p { font-size: 17px; line-height: 1.6; color: #ccc; }
-.comment { min-height: 60px; text-align: left; }
+section p { font-size: 17px; color: #cfcfcf; max-width: 62ch; }
+blockquote { border-left: 4px solid var(--accent); background: var(--panel); padding: 20px 22px; border-radius: 4px 14px 14px 4px; }
+blockquote .comment { min-height: 48px; font-size: 18px; font-style: italic; color: #e2e2e2; }
+blockquote footer { padding: 12px 0 0; margin: 0; font-size: 15px; color: var(--muted); }
 .back {
-    display: inline-block; margin: 10px 0 40px;
-    background: black; color: #4da6ff; border: 3px solid #4da6ff;
-    padding: 12px 30px; font-size: 17px; border-radius: 10px;
-    cursor: pointer; transition: 0.3s;
+    display: inline-block; margin: 10px 0 56px;
+    background: transparent; color: var(--accent); border: 2px solid var(--accent);
+    padding: 12px 28px; font-size: 16px; font-weight: 600; border-radius: 10px;
+    cursor: pointer; transition: background .2s, color .2s;
 }
-.back:hover { background: #4da6ff; color: black; box-shadow: 0 0 20px #4da6ff; }
+.back:hover, .back:focus-visible { background: var(--accent); color: #111; }
+a:focus-visible, button:focus-visible { outline: 3px solid var(--accent); outline-offset: 3px; }
+
+/* availability */
+.status-banner { padding: 14px 18px; border-radius: 10px; margin-bottom: 16px; font-size: 17px; font-weight: 600; }
+.status-banner.checking { background: #3a3622; color: #ffd966; }
+.status-banner.ok { background: #14301f; color: #4dffa4; }
+.status-banner.down { background: #3a1616; color: #ff7b7b; }
+.game-row { display: flex; align-items: center; justify-content: space-between; gap: 12px; padding: 12px 14px; margin: 8px 0; background: var(--panel); border-radius: 10px; text-align: left; }
+.game-row .name { font-size: 17px; font-weight: 600; }
+.game-row .detail { font-size: 14px; color: var(--muted); margin-top: 2px; }
+.badge { white-space: nowrap; font-size: 14px; font-weight: 700; padding: 6px 12px; border-radius: 20px; }
+.badge.checking { background: #3a3622; color: #ffd966; }
+.badge.ok { background: #14301f; color: #4dffa4; }
+.badge.down { background: #3a1616; color: #ff7b7b; }
+.badge.na { background: #2b2b2b; color: #bbb; }
+.recheck { margin-top: 12px; background: transparent; color: var(--accent); border: 2px solid var(--accent); padding: 8px 20px; border-radius: 10px; cursor: pointer; font-size: 15px; font-weight: 600; }
+.recheck:hover:not(:disabled) { background: var(--accent); color: #111; }
+.recheck:disabled { opacity: .5; cursor: not-allowed; }
+.small-note { margin-top: 12px; font-size: 14px !important; color: var(--muted) !important; }
+@media (prefers-reduced-motion: reduce) { * { transition: none !important; } }
 </style>
 </head>
 <body>
+<div class="wrap">
 <header>
-    <h1>EDRIC</h1>
-    <p>Credits</p>
+    <a class="home" href="index.html">&larr; Fortressed</a>
+    <h1>Edric</h1>
+    <p class="sub">6 games on Fortressed</p>
 </header>
 <section>
-    <h2>Games Created</h2>
-    <ul>
-        <li>Tribe Defence</li>
-        <li>BUCKSHOT ROULETTE</li>
-        <li>SILENCIO</li>
-        <li>Drift Bloom</li>
-        <li>Gem Hunter</li>
-        <li>CHERO</li>
+    <h2>Games created</h2>
+    <ul class="shelf">
+        <li style="--c:#4da6ff">Tribe Defence</li>
+        <li style="--c:#ff0000">BUCKSHOT ROULETTE</li>
+        <li style="--c:#ff0088">SILENCIO</li>
+        <li style="--c:#4dffa4">Drift Bloom</li>
+        <li style="--c:#94fff9">Gem Hunter</li>
+        <li style="--c:#90ee90">CHERO</li>
     </ul>
 </section>
 <section>
-    <h2>Special Thanks</h2>
+    <h2>Special thanks</h2>
     <p>Edric designed the new game buttons on the main page.</p>
 </section>
 <section>
     <h2>Comment from Yuan</h2>
-    <!-- Type your comment between the <p> tags below -->
-    <p class="comment">this creator,idk why but he does not want new creator to join this website,maybe one day he will change his idea</p>
+    <blockquote>
+        <!-- Type your comment between the <p> tags below -->
+        <p class="comment">this creator,idk why but he does not want new creator to join this website,maybe one day he will change his idea</p>
+        <footer>Yuan</footer>
+    </blockquote>
 </section>
 <button class="back" onclick="location.href='index.html'">&larr; Back to Fortressed</button>
+</div>
 </body>
 </html>
