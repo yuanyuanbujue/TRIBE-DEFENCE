@@ -44,6 +44,7 @@ h2 { font-size: 22px; font-weight: 700; margin-bottom: 16px; color: var(--text);
 section p { font-size: 17px; color: #cfcfcf; max-width: 62ch; }
 blockquote { border-left: 4px solid var(--accent); background: var(--panel); padding: 20px 22px; border-radius: 4px 14px 14px 4px; }
 blockquote .comment { min-height: 48px; font-size: 18px; font-style: italic; color: #e2e2e2; }
+.comment:empty::before { content: "No comment yet."; color: #777; font-style: normal; }
 blockquote footer { padding: 12px 0 0; margin: 0; font-size: 15px; color: var(--muted); }
 .back {
     display: inline-block; margin: 10px 0 56px;
@@ -103,6 +104,22 @@ a:focus-visible, button:focus-visible { outline: 3px solid var(--accent); outlin
 <section>
     <h2>Special thanks</h2>
     <p>Benjamin for giving the idea of Voltex.</p>
+</section>
+<section>
+    <h2>Comment from Yuan</h2>
+    <blockquote>
+        <!-- Type your comment between the <p> tags below -->
+        <p class="comment">you may wonder,how come fortressed has change so much,and why i sooo long never update,that's because i'm lazy</p>
+        <footer>Yuan</footer>
+    </blockquote>
+</section>
+<section>
+    <h2>Comment from Edric</h2>
+    <blockquote>
+        <!-- Type your comment between the <p> tags below -->
+        <p class="comment"></p>
+        <footer>Edric</footer>
+    </blockquote>
 </section>
 <button class="back" onclick="location.href='index.html'">&larr; Back to Fortressed</button>
 </div>
