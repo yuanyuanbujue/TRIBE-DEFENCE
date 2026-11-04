@@ -1,622 +1,351 @@
 <!DOCTYPE html>
 <html lang="en">
-
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-
 <title>Fortressed</title>
 
 <style>
-
-/* =========================
-   BASIC PAGE SETTINGS
-========================= */
-
-* {
-    margin: 0;
-    padding: 0;
-    box-sizing: border-box;
+:root {
+    --wall-top: #2c2c2c;
+    --wall-bottom: #181818;
+    --text: #f0f0f0;
+    --muted: #b5b5b5;
+    --gold: gold;
 }
+
+* { margin: 0; padding: 0; box-sizing: border-box; }
+html { color-scheme: dark; }
 
 body {
-    font-family: Arial, Helvetica, sans-serif;
+    font-family: "Segoe UI", system-ui, -apple-system, Roboto, Arial, sans-serif;
     background: linear-gradient(135deg, #111, #1b1b1b, #222);
-    color: white;
-    text-align: center;
+    background-attachment: fixed;
+    color: var(--text);
+    line-height: 1.6;
+    min-height: 100vh;
 }
 
-
-/* =========================
-   HEADER
-========================= */
-
+/* ---------- Header ---------- */
 header {
-    padding: 60px 20px;
-    background: linear-gradient(180deg, #2c2c2c, #181818);
-    box-shadow: 0 5px 20px rgba(0, 0, 0, 0.5);
+    position: relative;
+    padding: 70px 6vw 56px;
+    text-align: center;
+    /* castle wall: soft gold glow, stone bricks, dark gradient */
+    background:
+        radial-gradient(ellipse 60% 70% at 50% 40%, rgba(255, 215, 0, 0.16), transparent 70%),
+        url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='80' height='40'%3E%3Cpath d='M0 0H80M0 20H80M0 0V20M40 20V40' stroke='black' stroke-opacity='0.3' stroke-width='2' fill='none'/%3E%3C/svg%3E"),
+        linear-gradient(180deg, var(--wall-top), var(--wall-bottom));
+    box-shadow: 0 10px 34px rgba(0, 0, 0, 0.65), inset 0 -30px 40px rgba(0, 0, 0, 0.35);
+}
+
+/* gold line under the header */
+header::after {
+    content: "";
+    position: absolute;
+    left: 0; right: 0; bottom: 0;
+    height: 4px;
+    background: linear-gradient(90deg, transparent, var(--gold) 20%, var(--gold) 80%, transparent);
 }
 
 header h1 {
+    font-family: "Palatino Linotype", Palatino, Georgia, serif;
+    font-size: clamp(44px, 11vw, 88px);
+    font-weight: 800;
+    letter-spacing: 0.07em;
+    line-height: 1.05;
+    background: linear-gradient(180deg, #fff3a6 0%, gold 45%, #b8860b 100%);
+    -webkit-background-clip: text;
+    background-clip: text;
+    -webkit-text-fill-color: transparent;
     color: gold;
-    font-size: 60px;
-    letter-spacing: 3px;
 }
 
-header p {
-    margin-top: 10px;
-    font-size: 20px;
-    color: #d6d6d6;
+header p { margin-top: 12px; font-size: 19px; color: #d6d6d6; }
+header p b { color: var(--gold); }
+
+/* ---------- Main ---------- */
+main { width: min(1000px, 92%); margin: 0 auto; padding: 50px 0 20px; }
+
+main h2 {
+    font-family: "Palatino Linotype", Palatino, Georgia, serif;
+    font-size: 30px;
+    color: var(--gold);
+    margin-bottom: 6px;
 }
 
+main .intro { color: var(--muted); margin-bottom: 28px; }
 
-/* =========================
-   MAIN SECTION
-========================= */
+/* ---------- Creator filter buttons ---------- */
+.filters { display: flex; flex-wrap: wrap; gap: 12px; margin-bottom: 24px; }
 
-section {
-    width: 80%;
-    max-width: 900px;
-    margin: 50px auto;
-    background: #2a2a2a;
-    padding: 40px;
-    border-radius: 15px;
-    box-shadow: 0 10px 25px rgba(0, 0, 0, 0.4);
-}
-
-h2 {
-    color: gold;
-    margin-bottom: 20px;
-}
-
-section p {
-    font-size: 18px;
-    line-height: 1.6;
-    color: #dddddd;
-}
-
-
-/* =========================
-   BUTTON AREA
-========================= */
-
-.buttons {
-    margin-top: 40px;
-}
-
-
-/* =========================
-   BASIC BUTTON
-========================= */
-
-.baseBtn {
-    background: black;
-    color: #00ff66;
-    border: 3px solid #FF000094FFF9;
-    padding: 15px 35px;
-    font-size: 18px;
-    border-radius: 10px;
+.filter-btn {
+    background: linear-gradient(180deg, #2c2c2c, #1b1b1b);
+    color: var(--gold);
+    border: 2px solid var(--gold);
+    padding: 10px 24px;
+    font-size: 16px;
+    font-weight: 600;
+    border-radius: 999px;
     cursor: pointer;
-    margin: 15px;
-    transition: 0.3s;
+    transition: background .2s, color .2s, box-shadow .2s, transform .2s;
 }
 
-.baseBtn:hover {
-    background: #00ff66;
+.filter-btn:hover { box-shadow: 0 0 14px rgba(255, 215, 0, 0.5); transform: translateY(-2px); }
+
+.filter-btn.active {
+    background: linear-gradient(180deg, #fff3a6, gold 50%, #b8860b);
     color: black;
-    box-shadow: 0 0 20px #00ff66;
-    transform: translateY(-4px);
+    box-shadow: 0 0 18px rgba(255, 215, 0, 0.6);
 }
 
-
-/* =========================
-   SILENCIO BUTTON
-========================= */
-
-.SILENCIOBtn {
-    background: black;
-    color: #ff0088;
-    border: 3px solid #FF000094FFF9;
-    padding: 15px 35px;
-    font-size: 18px;
-    border-radius: 10px;
-    cursor: pointer;
-    margin: 15px;
-    transition: 0.3s;
+/* ---------- Game cards ---------- */
+.games {
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(230px, 1fr));
+    gap: 18px;
 }
 
-.SILENCIOBtn:hover {
-    background: #ff0088;
-    color: black;
-    box-shadow: 0 0 20px #ff0088;
-    transform: translateY(-4px);
+.game {
+    position: relative;
+    display: flex;
+    flex-direction: column;
+    gap: 6px;
+    min-height: 124px;
+    padding: 20px 18px 16px;
+    overflow: hidden;
+    background: linear-gradient(150deg, color-mix(in srgb, var(--c) 24%, #2a2a2a) 0%, #222 55%, #181818 100%);
+    border: 1px solid color-mix(in srgb, var(--c) 45%, transparent);
+    border-radius: 14px;
+    color: var(--text);
+    text-decoration: none;
+    box-shadow: 0 6px 18px rgba(0, 0, 0, 0.4);
+    transition: transform .2s, box-shadow .2s, border-color .2s;
 }
 
-
-/* =========================
-   TRIBE DEFENCE BUTTON
-========================= */
-
-.tribeBtn {
-    background: black;
-    color: #4da6ff;
-    border: 3px solid #FF000094FFF9;
-    padding: 15px 35px;
-    font-size: 18px;
-    border-radius: 10px;
-    cursor: pointer;
-    margin: 15px;
-    transition: 0.3s;
+.game::before {
+    content: "";
+    position: absolute;
+    left: 0; right: 0; top: 0;
+    height: 5px;
+    background: linear-gradient(90deg, var(--c), color-mix(in srgb, var(--c) 20%, transparent));
 }
 
-.tribeBtn:hover {
-    background: #4da6ff;
-    color: black;
-    box-shadow: 0 0 20px #4da6ff;
-    transform: translateY(-4px);
+.game:hover,
+.game:focus-visible {
+    transform: translateY(-5px);
+    border-color: var(--c);
+    box-shadow: 0 0 22px color-mix(in srgb, var(--c) 55%, transparent), 0 10px 24px rgba(0, 0, 0, 0.5);
 }
 
+.game .name { font-size: 21px; font-weight: 700; color: var(--c); }
+.game .by { font-size: 14px; color: var(--muted); }
 
-/* =========================
-   BUCKSHOT BUTTON
-========================= */
-
-.buckshotBtn {
-    background: black;
-    color: #ff0000;
-    border: 3px solid #FF000094FFF9;
-    padding: 15px 35px;
-    font-size: 18px;
-    border-radius: 10px;
-    cursor: pointer;
-    margin: 15px;
-    transition: 0.3s;
+.game .tag {
+    align-self: flex-start;
+    margin-top: auto;
+    padding: 2px 11px;
+    border-radius: 999px;
+    background: color-mix(in srgb, var(--c) 18%, transparent);
+    border: 1px solid var(--c);
+    color: var(--c);
+    font-size: 13px;
+    font-weight: 600;
 }
 
-.buckshotBtn:hover {
-    background: #ff0000;
-    color: black;
-    box-shadow: 0 0 20px #ff0000;
-    transform: translateY(-4px);
-}
+a:focus-visible, button:focus-visible { outline: 3px solid var(--gold); outline-offset: 3px; }
 
-
-/* =========================
-   GEM HUNTER BUTTON
-========================= */
-
-.gemhunterBtn {
-    background: black;
-    color: #94fff9;
-    border: 3px solid #FF000094FFF9;
-    padding: 15px 35px;
-    font-size: 18px;
-    border-radius: 10px;
-    cursor: pointer;
-    margin: 15px;
-    transition: 0.3s;
-}
-
-.gemhunterBtn:hover {
-    background: #94fff9;
-    color: black;
-    box-shadow: 0 0 20px #94fff9;
-    transform: translateY(-4px);
-}
-
-
-/* =========================
-   OUT BREAK BUTTON
-========================= */
-
-.breakBtn {
-    background: black;
-    color: #336600;
-    border: 3px solid #FF000094FFF9;
-    padding: 15px 35px;
-    font-size: 18px;
-    border-radius: 10px;
-    cursor: pointer;
-    margin: 15px;
-    transition: 0.3s;
-}
-
-.breakBtn:hover {
-    background: #336600;
-    color: black;
-    box-shadow: 0 0 20px #336600;
-    transform: translateY(-4px);
-}
-
-
-/* =========================
-   DRIFT BLOOM BUTTON
-========================= */
-
-.driftBtn {
-    background: black;
-    color: #4dffa4;
-    border: 3px solid #FF000094FFF9;
-    padding: 15px 35px;
-    font-size: 18px;
-    border-radius: 10px;
-    cursor: pointer;
-    margin: 15px;
-    transition: 0.3s;
-}
-
-.driftBtn:hover {
-    background: #4dffa4;
-    color: black;
-    box-shadow: 0 0 20px #4dffa4;
-    transform: translateY(-4px);
-}
-
-
-/* =========================
-   1V1 SHOWDOWN BUTTON
-========================= */
-
-.l1v1Btn {
-    background: white;
-    color: black;
-    border: 3px solid #FF000094FFF9;
-    padding: 15px 35px;
-    font-size: 18px;
-    border-radius: 10px;
-    cursor: pointer;
-    margin: 15px;
-    transition: 0.3s;
-}
-
-.l1v1Btn:hover {
-    background: black;
-    color: white;
-    box-shadow: 0 0 20px white;
-    transform: translateY(-4px);
-}
-
-
-/* =========================
-   CARTRIDGE BUTTON
-========================= */
-
-.cartBtn {
-    background: black;
-    color: #90ee90;
-    border: 3px solid FF000094FFF9;
-    padding: 15px 35px;
-    font-size: 18px;
-    border-radius: 10px;
-    cursor: pointer;
-    margin: 15px;
-    transition: 0.3s;
-}
-
-.cartBtn:hover {
-    background: #90ee90;
-    color: black;
-    box-shadow: 0 0 20px #90ee90;
-    transform: translateY(-4px);
-}
-
-
-/* =========================
-   VOLTEX BUTTON
-========================= */
-
-.voltexBtn {
-    background: black;
-    color: #90ee90;
-    border: 3px solid #FF000094FFF9;
-    padding: 15px 35px;
-    font-size: 18px;
-    border-radius: 10px;
-    cursor: pointer;
-    margin: 15px;
-    transition: 0.3s;
-}
-
-.voltexBtn:hover {
-    background: #27f527;
-    color: black;
-    box-shadow: 0 0 20px #27f527;
-    transform: translateY(-4px);
-}
-
-
-/* =========================
-   CHESS BUTTON
-========================= */
-
-.chessBtn {
-    background: black;
-    color: #90ee90;
-    border: 3px solid #FF000094FFF9;
-    padding: 15px 35px;
-    font-size: 18px;
-    border-radius: 10px;
-    cursor: pointer;
-    margin: 15px;
-    transition: 0.3s;
-}
-
-.chessBtn:hover {
-    background: #D6D6D6;
-    color: black;
-    box-shadow: 0 0 20px #D6D6D6;
-    transform: translateY(-4px);
-}
-
-/* =========================
-   CHERO BUTTON
-========================= */
-
-.cheroBtn {
-    background: black;
-    color: #90ee90;
-    border: 3px solid #FF000094FFF9;
-    padding: 15px 35px;
-    font-size: 18px;
-    border-radius: 10px;
-    cursor: pointer;
-    margin: 15px;
-    transition: 0.3s;
-}
-
-.cheroBtn:hover {
-    background: #D6D6D6;
-    color: black;
-    box-shadow: 0 0 20px #D6D6D6;
-    transform: translateY(-4px);
-}
-
-
-/* =========================
-   CREDITS
-========================= */
-
-.credits {
-    width: 80%;
-    max-width: 900px;
-    margin: 30px auto;
-    background: #202020;
-    padding: 30px;
-    border-radius: 15px;
-    box-shadow: 0 5px 20px rgba(0, 0, 0, 0.4);
-}
-
-.credits h2 {
-    color: gold;
-    margin-bottom: 20px;
-}
-
-.credits p {
-    margin: 10px;
-    font-size: 17px;
-    color: #cccccc;
-}
-
-
-/* =========================
-   FOOTER
-========================= */
-
+/* ---------- Footer ---------- */
 footer {
-    margin-top: 50px;
-    padding: 20px;
+    margin-top: 44px;
+    padding: 26px 20px 36px;
+    text-align: center;
     color: gray;
+    font-size: 14px;
+    border-top: 1px solid #2f2f2f;
 }
 
-
-/* =========================
-   TOP RIGHT CREDITS MENU
-========================= */
-
-.credit-menu {
-    position: fixed;
-    top: 15px;
-    right: 15px;
-    z-index: 1000;
-    text-align: right;
-}
+/* ---------- Top-right credits menu (fixed) ---------- */
+.credit-menu { position: fixed; top: 12px; right: 12px; z-index: 1000; text-align: right; }
 
 .credit-toggle {
     background: black;
-    color: gold;
-    border: 2px solid gold;
-    padding: 10px 20px;
-    font-size: 16px;
+    color: var(--gold);
+    border: 2px solid var(--gold);
+    padding: 9px 18px;
+    font-size: 15px;
+    font-weight: 600;
     border-radius: 10px;
     cursor: pointer;
-    transition: 0.3s;
+    transition: background .2s, color .2s, box-shadow .2s;
 }
 
-.credit-toggle:hover {
-    background: gold;
-    color: black;
-    box-shadow: 0 0 15px gold;
-}
+.credit-toggle:hover { background: var(--gold); color: black; box-shadow: 0 0 16px gold; }
 
-.credit-options {
-    display: none;
-    flex-direction: column;
-    gap: 8px;
-    margin-top: 8px;
-}
+.credit-options { display: none; flex-direction: column; gap: 8px; margin-top: 8px; }
+.credit-options.open { display: flex; }
 
-.credit-options.open {
-    display: flex;
-}
-
-.credit-options button {
-    background: #1b1b1b;
-    color: white;
-    border: 2px solid gold;
-    padding: 10px 20px;
+.credit-options a {
+    display: block;
+    background: linear-gradient(180deg, #2c2c2c, #1b1b1b);
+    color: var(--text);
+    text-decoration: none;
+    border: 2px solid var(--gold);
+    padding: 9px 18px;
     font-size: 15px;
     border-radius: 10px;
-    cursor: pointer;
-    transition: 0.3s;
+    transition: background .2s, color .2s;
 }
 
-.credit-options button:hover {
-    background: gold;
-    color: black;
-    transform: translateX(-4px);
-}
+.credit-options a:hover, .credit-options a:focus-visible { background: var(--gold); color: black; }
 
+@media (prefers-reduced-motion: reduce) { * { transition: none !important; animation: none !important; } }
 </style>
 </head>
 
-
 <body>
 
-
-<!-- =========================
-     HEADER
-========================= -->
-
-<header>
-
-    <h1>FORTRESSED</h1>
-
-    <p><strong>Future Project</strong></p>
-
-    <p>Choose your adventure and defend your legacy.</p>
-
-</header>
-
-
-<!-- =========================
-     MAIN CONTENT
-========================= -->
-
-<section>
-
-    <h2>Welcome</h2>
-
-    <p>
-        <b>Fortressed</b> - More games and updates will be added in the future.
-    </p>
-
-
-    <!-- =========================
-         GAME BUTTONS
-    ========================= -->
-
-    <div class="buttons">
-
-        <button class="baseBtn"
-        onclick="location.href='base-siege.html'">
-            Base Siege
-        </button>
-
-
-        <button class="tribeBtn"
-        onclick="location.href='tribe-defence.html'">
-            Tribe Defence
-        </button>
-
-
-        <button class="buckshotBtn"
-        onclick="location.href='BUCKSHOT-ROULETTE.html'">
-            BUCKSHOT ROULETTE
-        </button>
-
-
-        <button class="breakBtn"
-        onclick="location.href='out-break.html'">
-            Out Break
-        </button>
-
-
-        <button class="SILENCIOBtn"
-        onclick="location.href='silencio.html'">
-            SILENCIO
-        </button>
-
-
-        <button class="driftBtn"
-        onclick="location.href='drift-bloom.html'">
-            Drift Bloom
-        </button>
-
-
-        <button class="l1v1Btn"
-        onclick="location.href='1v1-showdown.html'">
-            1v1 Showdown
-        </button>
-
-
-        <button class="cartBtn"
-        onclick="location.href='cartridge.html'">
-            Cartridge
-        </button>
-
-
-        <button class="gemhunterBtn"
-        onclick="location.href='gem-hunter.html'">
-            Gem Hunter (PRE-RELEASE)
-        </button>
-
-
-        <button class="voltexBtn"
-        onclick="location.href='voltex-choice.html'">
-            Voltex (Incomplete)
-        </button>
-   
-        <button class="chessBtn"
-        onclick="location.href='chess.html'">
-            chess arena
-        </button>
-
-           <button class="cheroBtn"
-        onclick="location.href='chero.html'">
-            CHERO
-        </button>
-
-    </div>
-
-</section>
-
-
-<!-- =========================
-     FOOTER
-========================= -->
-
-<footer>
-
-    © 2026 Fortressed | Future Project
-
-</footer>
-
-
-
-<!-- =========================
-     TOP RIGHT CREDITS MENU
-========================= -->
-
+<!-- Fixed top-right credits menu (filled in by the script below) -->
 <div class="credit-menu">
-    <button class="credit-toggle" id="creditToggle">Credits &#9662;</button>
-    <div class="credit-options" id="creditOptions">
-        <button onclick="location.href='yuan-credits.html'">Yuan's Credits</button>
-        <button onclick="location.href='edric-credits.html'">Edric's Credits</button>
-    </div>
+    <button class="credit-toggle" id="creditToggle" aria-expanded="false">Credits &#9662;</button>
+    <div class="credit-options" id="creditOptions"></div>
 </div>
 
+<header>
+    <h1>FORTRESSED</h1>
+    <p><b>Future Project</b> - choose your adventure and defend your legacy.</p>
+</header>
+
+<main>
+    <h2>Choose your game</h2>
+    <p class="intro">More games and updates will be added in the future.</p>
+
+    <div class="filters" id="filters"></div>
+
+    <div class="games" id="games">
+        <noscript>Turn on JavaScript to see the game list.</noscript>
+    </div>
+</main>
+
+<footer>&copy; 2026 Fortressed | Future Project</footer>
+
+
 <script>
-    const creditToggle = document.getElementById('creditToggle');
-    const creditOptions = document.getElementById('creditOptions');
+/* =====================================================================
+   HOW TO ADD A NEW GAME
+   Copy one line in GAMES below, paste it at the bottom of the list and
+   change the values:
 
-    creditToggle.addEventListener('click', function (e) {
-        e.stopPropagation();
-        creditOptions.classList.toggle('open');
-    });
+     name  = the name shown on the card
+     file  = the page the card opens
+     color = the card's colour (any hex colour)
+     by    = the creator's name
+     tag   = small label on the card (use "" for none), e.g. "Pre-release"
 
-    document.addEventListener('click', function () {
-        creditOptions.classList.remove('open');
+   Example:
+     { name: "My New Game", file: "my-new-game.html", color: "#ff8800", by: "Edric", tag: "" },
+   ===================================================================== */
+
+const GAMES = [
+    { name: "Base Siege",        file: "base-siege.html",        color: "#00ff66", by: "Yuan",  tag: "" },
+    { name: "Tribe Defence",     file: "tribe-defence.html",     color: "#4da6ff", by: "Edric", tag: "" },
+    { name: "BUCKSHOT ROULETTE", file: "BUCKSHOT-ROULETTE.html", color: "#ff0000", by: "Edric", tag: "" },
+    { name: "Out Break",         file: "out-break.html",         color: "#336600", by: "Yuan",  tag: "" },
+    { name: "SILENCIO",          file: "silencio.html",          color: "#ff0088", by: "Edric", tag: "" },
+    { name: "Drift Bloom",       file: "drift-bloom.html",       color: "#4dffa4", by: "Edric", tag: "" },
+    { name: "1v1 Showdown",      file: "1v1-showdown.html",      color: "#ffffff", by: "Yuan",  tag: "" },
+    { name: "Cartridge",         file: "cartridge.html",         color: "#90ee90", by: "Yuan",  tag: "" },
+    { name: "Gem Hunter",        file: "gem-hunter.html",        color: "#94fff9", by: "Edric", tag: "Pre-release" },
+    { name: "Voltex",            file: "voltex-choice.html",     color: "#27f527", by: "Yuan",  tag: "Incomplete" },
+    { name: "Chess Arena",       file: "chess.html",             color: "#d6d6d6", by: "Yuan",  tag: "" },
+    { name: "CHERO",             file: "chero.html",             color: "#90ee90", by: "Edric", tag: "" }
+];
+
+/* Credits menu (top-right). One line per creator. */
+const CREDITS = [
+    { label: "Yuan's Credits",  file: "yuan-credits.html" },
+    { label: "Edric's Credits", file: "edric-credits.html" }
+];
+
+/* ---------------- Nothing below needs to change ---------------- */
+
+const gamesBox = document.getElementById('games');
+const filtersBox = document.getElementById('filters');
+let activeCreator = null;   // null = show everyone's games
+
+function makeCard(g) {
+    const a = document.createElement('a');
+    a.className = 'game';
+    a.href = g.file;
+    a.style.setProperty('--c', g.color);
+
+    const name = document.createElement('span');
+    name.className = 'name';
+    name.textContent = g.name;
+    a.appendChild(name);
+
+    if (g.by) {
+        const by = document.createElement('span');
+        by.className = 'by';
+        by.textContent = 'by ' + g.by;
+        a.appendChild(by);
+    }
+    if (g.tag) {
+        const tag = document.createElement('span');
+        tag.className = 'tag';
+        tag.textContent = g.tag;
+        a.appendChild(tag);
+    }
+    return a;
+}
+
+function renderGames() {
+    const shown = GAMES.filter(function (g) { return !activeCreator || g.by === activeCreator; });
+    gamesBox.replaceChildren(...shown.map(makeCard));
+
+    filtersBox.querySelectorAll('.filter-btn').forEach(function (btn) {
+        const on = btn.dataset.creator === activeCreator;
+        btn.classList.toggle('active', on);
+        btn.setAttribute('aria-pressed', on ? 'true' : 'false');
     });
+}
+
+// One button per creator found in GAMES (click again to show all games).
+const creators = [...new Set(GAMES.map(function (g) { return g.by; }).filter(Boolean))];
+filtersBox.replaceChildren(...creators.map(function (name) {
+    const btn = document.createElement('button');
+    btn.className = 'filter-btn';
+    btn.dataset.creator = name;
+    btn.textContent = name + "'s Games";
+    btn.addEventListener('click', function () {
+        activeCreator = (activeCreator === name) ? null : name;
+        renderGames();
+    });
+    return btn;
+}));
+
+renderGames();
+
+const creditToggle = document.getElementById('creditToggle');
+const creditOptions = document.getElementById('creditOptions');
+
+creditOptions.replaceChildren(...CREDITS.map(function (c) {
+    const a = document.createElement('a');
+    a.href = c.file;
+    a.textContent = c.label;
+    return a;
+}));
+
+creditToggle.addEventListener('click', function (e) {
+    e.stopPropagation();
+    const open = creditOptions.classList.toggle('open');
+    creditToggle.setAttribute('aria-expanded', open ? 'true' : 'false');
+});
+
+document.addEventListener('click', function () {
+    creditOptions.classList.remove('open');
+    creditToggle.setAttribute('aria-expanded', 'false');
+});
 </script>
 
 </body>
