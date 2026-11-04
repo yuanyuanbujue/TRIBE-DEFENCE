@@ -408,6 +408,64 @@ footer {
     color: gray;
 }
 
+
+/* =========================
+   TOP RIGHT CREDITS MENU
+========================= */
+
+.credit-menu {
+    position: fixed;
+    top: 15px;
+    right: 15px;
+    z-index: 1000;
+    text-align: right;
+}
+
+.credit-toggle {
+    background: black;
+    color: gold;
+    border: 2px solid gold;
+    padding: 10px 20px;
+    font-size: 16px;
+    border-radius: 10px;
+    cursor: pointer;
+    transition: 0.3s;
+}
+
+.credit-toggle:hover {
+    background: gold;
+    color: black;
+    box-shadow: 0 0 15px gold;
+}
+
+.credit-options {
+    display: none;
+    flex-direction: column;
+    gap: 8px;
+    margin-top: 8px;
+}
+
+.credit-options.open {
+    display: flex;
+}
+
+.credit-options button {
+    background: #1b1b1b;
+    color: white;
+    border: 2px solid gold;
+    padding: 10px 20px;
+    font-size: 15px;
+    border-radius: 10px;
+    cursor: pointer;
+    transition: 0.3s;
+}
+
+.credit-options button:hover {
+    background: gold;
+    color: black;
+    transform: translateX(-4px);
+}
+
 </style>
 </head>
 
@@ -524,30 +582,6 @@ footer {
 
 
 <!-- =========================
-     CREDITS
-========================= -->
-
-<section class="credits">
-
-    <h2>Credits</h2>
-
-    <!-- Change the names below -->
-
-    <p>
-        <b>creator:</b>Zi Yuan & Edric
-    </p>
-
-    <p>
-        <b>Game Designer:</b>Zi Yuan,game created:Base siege,Out break,1v1 showdown,cartridge,Voltex,chess areana <br>Edric,game created:Tribe defence,BUCKSHOT ROULTTE,SILENCIO,Driftbloom,Gem hunter,CHERO
-    </p>
-
-    <p>
-        <b>Special Thanks:</b>Edric for the new design of game button<br>Benjamin for giving the idea of voltex
-    </p>
-</section>
-
-
-<!-- =========================
      FOOTER
 ========================= -->
 
@@ -557,6 +591,33 @@ footer {
 
 </footer>
 
+
+
+<!-- =========================
+     TOP RIGHT CREDITS MENU
+========================= -->
+
+<div class="credit-menu">
+    <button class="credit-toggle" id="creditToggle">Credits &#9662;</button>
+    <div class="credit-options" id="creditOptions">
+        <button onclick="location.href='yuan-credits.html'">Yuan's Credits</button>
+        <button onclick="location.href='edric-credits.html'">Edric's Credits</button>
+    </div>
+</div>
+
+<script>
+    const creditToggle = document.getElementById('creditToggle');
+    const creditOptions = document.getElementById('creditOptions');
+
+    creditToggle.addEventListener('click', function (e) {
+        e.stopPropagation();
+        creditOptions.classList.toggle('open');
+    });
+
+    document.addEventListener('click', function () {
+        creditOptions.classList.remove('open');
+    });
+</script>
 
 </body>
 </html>
