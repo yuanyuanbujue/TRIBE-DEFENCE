@@ -1,11 +1,21 @@
 <!DOCTYPE html>
-<html lang="en">
+<html lang="en" data-style="new">
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <title>Fortressed</title>
 
+<!-- Remember the chosen style before the page draws (no flash) -->
+<script>
+try {
+    var s = localStorage.getItem('fortressed-style');
+    if (s === 'old' || s === 'new') document.documentElement.setAttribute('data-style', s);
+} catch (e) {}
+</script>
+
 <style>
+* { margin: 0; padding: 0; box-sizing: border-box; }
+
 :root {
     --wall-top: #2c2c2c;
     --wall-bottom: #181818;
@@ -14,24 +24,33 @@
     --gold: gold;
 }
 
-* { margin: 0; padding: 0; box-sizing: border-box; }
-html { color-scheme: dark; }
-
 body {
-    font-family: "Segoe UI", system-ui, -apple-system, Roboto, Arial, sans-serif;
     background: linear-gradient(135deg, #111, #1b1b1b, #222);
     background-attachment: fixed;
-    color: var(--text);
-    line-height: 1.6;
+    color: white;
     min-height: 100vh;
 }
 
-/* ---------- Header ---------- */
-header {
+/* only one style is on screen at a time */
+html[data-style="old"] #newView { display: none; }
+html:not([data-style="old"]) #oldView { display: none; }
+
+a:focus-visible, button:focus-visible { outline: 3px solid gold; outline-offset: 3px; }
+
+/* =====================================================================
+   NEW STYLE  (everything is inside #newView)
+   ===================================================================== */
+
+#newView {
+    font-family: "Segoe UI", system-ui, -apple-system, Roboto, Arial, sans-serif;
+    color: var(--text);
+    line-height: 1.6;
+}
+
+#newView header {
     position: relative;
     padding: 70px 6vw 56px;
     text-align: center;
-    /* castle wall: soft gold glow, stone bricks, dark gradient */
     background:
         radial-gradient(ellipse 60% 70% at 50% 40%, rgba(255, 215, 0, 0.16), transparent 70%),
         url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='80' height='40'%3E%3Cpath d='M0 0H80M0 20H80M0 0V20M40 20V40' stroke='black' stroke-opacity='0.3' stroke-width='2' fill='none'/%3E%3C/svg%3E"),
@@ -39,8 +58,7 @@ header {
     box-shadow: 0 10px 34px rgba(0, 0, 0, 0.65), inset 0 -30px 40px rgba(0, 0, 0, 0.35);
 }
 
-/* gold line under the header */
-header::after {
+#newView header::after {
     content: "";
     position: absolute;
     left: 0; right: 0; bottom: 0;
@@ -48,7 +66,8 @@ header::after {
     background: linear-gradient(90deg, transparent, var(--gold) 20%, var(--gold) 80%, transparent);
 }
 
-header h1 {
+#newView header h1 {
+    margin-bottom: 12px;
     font-family: "Palatino Linotype", Palatino, Georgia, serif;
     font-size: clamp(44px, 11vw, 88px);
     font-weight: 800;
@@ -61,22 +80,22 @@ header h1 {
     color: gold;
 }
 
-header p { margin-top: 12px; font-size: 19px; color: #d6d6d6; }
-header p b { color: var(--gold); }
+#newView header p { display: inline; font-size: 19px; color: #d6d6d6; }
+#newView header .fp b { color: var(--gold); }
+#newView header .fp::after { content: " -"; }
 
-/* ---------- Main ---------- */
-main { width: min(1000px, 92%); margin: 0 auto; padding: 50px 0 20px; }
+#newView main { width: min(1000px, 92%); margin: 0 auto; padding: 50px 0 20px; }
 
-main h2 {
+#newView main h2 {
     font-family: "Palatino Linotype", Palatino, Georgia, serif;
     font-size: 30px;
     color: var(--gold);
     margin-bottom: 6px;
 }
 
-main .intro { color: var(--muted); margin-bottom: 28px; }
+#newView main .intro { color: var(--muted); margin-bottom: 28px; }
 
-/* ---------- Creator filter buttons ---------- */
+/* creator filter buttons */
 .filters { display: flex; flex-wrap: wrap; gap: 12px; margin-bottom: 24px; }
 
 .filter-btn {
@@ -99,7 +118,7 @@ main .intro { color: var(--muted); margin-bottom: 28px; }
     box-shadow: 0 0 18px rgba(255, 215, 0, 0.6);
 }
 
-/* ---------- Game cards ---------- */
+/* game cards */
 .games {
     display: grid;
     grid-template-columns: repeat(auto-fill, minmax(230px, 1fr));
@@ -153,10 +172,7 @@ main .intro { color: var(--muted); margin-bottom: 28px; }
     font-weight: 600;
 }
 
-a:focus-visible, button:focus-visible { outline: 3px solid var(--gold); outline-offset: 3px; }
-
-/* ---------- Footer ---------- */
-footer {
+#newView footer {
     margin-top: 44px;
     padding: 26px 20px 36px;
     text-align: center;
@@ -165,13 +181,94 @@ footer {
     border-top: 1px solid #2f2f2f;
 }
 
-/* ---------- Top-right credits menu (fixed) ---------- */
+/* =====================================================================
+   OLD STYLE  (the original page, copied as it was; inside #oldView)
+   ===================================================================== */
+
+#oldView {
+    font-family: Arial, Helvetica, sans-serif;
+    color: white;
+    text-align: center;
+}
+
+#oldView header {
+    padding: 60px 20px;
+    background: linear-gradient(180deg, #2c2c2c, #181818);
+    box-shadow: 0 5px 20px rgba(0, 0, 0, 0.5);
+}
+
+#oldView header h1 { color: gold; font-size: 60px; letter-spacing: 3px; }
+#oldView header p { margin-top: 10px; font-size: 20px; color: #d6d6d6; }
+
+#oldView section {
+    width: 80%;
+    max-width: 900px;
+    margin: 50px auto;
+    background: #2a2a2a;
+    padding: 40px;
+    border-radius: 15px;
+    box-shadow: 0 10px 25px rgba(0, 0, 0, 0.4);
+}
+
+#oldView h2 { color: gold; margin-bottom: 20px; }
+#oldView section p { font-size: 18px; line-height: 1.6; color: #dddddd; }
+#oldView .buttons { margin-top: 40px; }
+
+/* the game buttons: black with coloured text, fill with the colour on hover.
+   Exactly like the original page: plain black, default button border. */
+.oldBtn {
+    background: black;
+    color: var(--t);
+    padding: 15px 35px;
+    font-size: 18px;
+    border-radius: 10px;
+    cursor: pointer;
+    margin: 15px;
+    transition: 0.3s;
+}
+
+.oldBtn:hover {
+    background: var(--h);
+    color: black;
+    box-shadow: 0 0 20px var(--h);
+    transform: translateY(-4px);
+}
+
+/* 1v1 Showdown was a white button that turns black */
+.oldBtn.invert { background: white; color: black; }
+.oldBtn.invert:hover { background: black; color: white; box-shadow: 0 0 20px white; }
+
+#oldView footer { margin-top: 50px; padding: 20px; color: gray; }
+
+/* old style: page background behaves like the original page */
+html[data-style="old"] body { background-attachment: scroll; min-height: 0; }
+
+/* =====================================================================
+   Shared: style switch (bottom) and top-right credits menu
+   ===================================================================== */
+
+.style-switch { margin-bottom: 14px; display: flex; justify-content: center; align-items: center; gap: 8px; }
+.style-switch span { color: #bbb; font-size: 15px; }
+
+.style-switch button {
+    background: black;
+    color: gold;
+    border: 2px solid gold;
+    padding: 6px 16px;
+    font-size: 14px;
+    font-weight: 600;
+    border-radius: 8px;
+    cursor: pointer;
+    transition: background .2s, color .2s;
+}
+.style-switch button:hover, .style-switch button.on { background: gold; color: black; }
+
 .credit-menu { position: fixed; top: 12px; right: 12px; z-index: 1000; text-align: right; }
 
 .credit-toggle {
     background: black;
-    color: var(--gold);
-    border: 2px solid var(--gold);
+    color: gold;
+    border: 2px solid gold;
     padding: 9px 18px;
     font-size: 15px;
     font-weight: 600;
@@ -179,8 +276,7 @@ footer {
     cursor: pointer;
     transition: background .2s, color .2s, box-shadow .2s;
 }
-
-.credit-toggle:hover { background: var(--gold); color: black; box-shadow: 0 0 16px gold; }
+.credit-toggle:hover { background: gold; color: black; box-shadow: 0 0 16px gold; }
 
 .credit-options { display: none; flex-direction: column; gap: 8px; margin-top: 8px; }
 .credit-options.open { display: flex; }
@@ -188,18 +284,17 @@ footer {
 .credit-options a {
     display: block;
     background: linear-gradient(180deg, #2c2c2c, #1b1b1b);
-    color: var(--text);
+    color: #f0f0f0;
     text-decoration: none;
-    border: 2px solid var(--gold);
+    border: 2px solid gold;
     padding: 9px 18px;
     font-size: 15px;
     border-radius: 10px;
     transition: background .2s, color .2s;
 }
+.credit-options a:hover, .credit-options a:focus-visible { background: gold; color: black; }
 
-.credit-options a:hover, .credit-options a:focus-visible { background: var(--gold); color: black; }
-
-@media (prefers-reduced-motion: reduce) { * { transition: none !important; animation: none !important; } }
+@media (prefers-reduced-motion: reduce) { * { transition: none !important; } }
 </style>
 </head>
 
@@ -211,27 +306,82 @@ footer {
     <div class="credit-options" id="creditOptions"></div>
 </div>
 
-<header>
-    <h1>FORTRESSED</h1>
-    <p><b>Future Project</b> - choose your adventure and defend your legacy.</p>
-</header>
 
-<main>
-    <h2>Choose your game</h2>
-    <p class="intro">More games and updates will be added in the future.</p>
+<!-- =========================
+     NEW STYLE
+========================= -->
+<div id="newView">
 
-    <div class="filters" id="filters"></div>
+    <header>
+        <h1>FORTRESSED</h1>
+        <p class="fp"><b>Future Project</b></p>
+        <p class="tagline">Choose your adventure and defend your legacy.</p>
+    </header>
 
-    <div class="games" id="games">
-        <noscript>Turn on JavaScript to see the game list.</noscript>
+    <main>
+        <h2>Choose your game</h2>
+        <p class="intro">More games and updates will be added in the future.</p>
+
+        <div class="filters" id="filters"></div>
+
+        <div class="games" id="games">
+            <noscript>Turn on JavaScript to see the game list.</noscript>
+        </div>
+    </main>
+
+    <footer>
+    <div class="style-switch">
+        <span>Style:</span>
+        <button type="button" data-style-btn="new">New</button>
+        <button type="button" data-style-btn="old">Old</button>
     </div>
-</main>
+        &copy; 2026 Fortressed | Future Project
+    </footer>
 
-<footer>&copy; 2026 Fortressed | Future Project</footer>
+</div>
 
 
-<script>
-/* =====================================================================
+<!-- =========================
+     OLD STYLE (the original page)
+========================= -->
+<div id="oldView">
+
+    <header>
+
+        <h1>FORTRESSED</h1>
+
+        <p><strong>Future Project</strong></p>
+
+        <p>Choose your adventure and defend your legacy.</p>
+
+    </header>
+
+    <section>
+
+        <h2>Welcome</h2>
+
+        <p>
+            <b>Fortressed</b> - More games and updates will be added in the future.
+        </p>
+
+        <div class="buttons" id="oldButtons"></div>
+
+    </section>
+
+
+    <footer>
+    <div class="style-switch">
+        <span>Style:</span>
+        <button type="button" data-style-btn="new">New</button>
+        <button type="button" data-style-btn="old">Old</button>
+    </div>
+        &copy; 2026 Fortressed | Future Project
+    </footer>
+
+</div>
+
+
+<script>/* =====================================================================
    HOW TO ADD A NEW GAME
    Copy one line in GAMES below, paste it at the bottom of the list and
    change the values:
@@ -244,6 +394,12 @@ footer {
 
    Example:
      { name: "My New Game", file: "my-new-game.html", color: "#ff8800", by: "Edric", tag: "" },
+
+   OLD STYLE uses the same line. Only if the old button must look different
+   from the card, add these optional values to the line:
+     oldName = the text on the old button (default: name + tag)
+     oldText = the old button's text colour (default: color)
+     oldHover = the colour it fills with on hover (default: oldText)
    ===================================================================== */
 
 const GAMES = [
@@ -253,12 +409,12 @@ const GAMES = [
     { name: "Out Break",         file: "out-break.html",         color: "#336600", by: "Yuan",  tag: "" },
     { name: "SILENCIO",          file: "silencio.html",          color: "#ff0088", by: "Edric", tag: "" },
     { name: "Drift Bloom",       file: "drift-bloom.html",       color: "#4dffa4", by: "Edric", tag: "" },
-    { name: "1v1 Showdown",      file: "1v1-showdown.html",      color: "#ffffff", by: "Yuan",  tag: "" },
+    { name: "1v1 Showdown",      file: "1v1-showdown.html",      color: "#ffffff", by: "Yuan",  tag: "", oldInvert: true },
     { name: "Cartridge",         file: "cartridge.html",         color: "#90ee90", by: "Yuan",  tag: "" },
-    { name: "Gem Hunter",        file: "gem-hunter.html",        color: "#94fff9", by: "Edric", tag: "Pre-release" },
-    { name: "Voltex",            file: "voltex-choice.html",     color: "#27f527", by: "Yuan",  tag: "Incomplete" },
-    { name: "Chess Arena",       file: "chess.html",             color: "#d6d6d6", by: "Yuan",  tag: "" },
-    { name: "CHERO",             file: "chero.html",             color: "#90ee90", by: "Edric", tag: "" }
+    { name: "Gem Hunter",        file: "gem-hunter.html",        color: "#94fff9", by: "Edric", tag: "Pre-release", oldName: "Gem Hunter (PRE-RELEASE)" },
+    { name: "Voltex",            file: "voltex-choice.html",     color: "#27f527", by: "Yuan",  tag: "Incomplete", oldName: "Voltex (Incomplete)", oldText: "#90ee90", oldHover: "#27f527" },
+    { name: "Chess Arena",       file: "chess.html",             color: "#d6d6d6", by: "Yuan",  tag: "", oldName: "chess arena", oldText: "#90ee90", oldHover: "#D6D6D6" },
+    { name: "CHERO",             file: "chero.html",             color: "#90ee90", by: "Edric", tag: "", oldText: "#90ee90", oldHover: "#D6D6D6" }
 ];
 
 /* Credits menu (top-right). One line per creator. */
@@ -271,7 +427,8 @@ const CREDITS = [
 
 const gamesBox = document.getElementById('games');
 const filtersBox = document.getElementById('filters');
-let activeCreator = null;   // null = show everyone's games
+const oldButtons = document.getElementById('oldButtons');
+let activeCreator = null;   // null = show everyone's games (New style)
 
 function makeCard(g) {
     const a = document.createElement('a');
@@ -299,6 +456,18 @@ function makeCard(g) {
     return a;
 }
 
+function makeOldButton(g) {
+    const b = document.createElement('button');
+    b.type = 'button';
+    b.className = 'oldBtn' + (g.oldInvert ? ' invert' : '');
+    const text = g.oldText || g.color;
+    b.style.setProperty('--t', text);
+    b.style.setProperty('--h', g.oldHover || text);
+    b.textContent = g.oldName || (g.tag ? g.name + ' (' + g.tag + ')' : g.name);
+    b.addEventListener('click', function () { location.href = g.file; });
+    return b;
+}
+
 function renderGames() {
     const shown = GAMES.filter(function (g) { return !activeCreator || g.by === activeCreator; });
     gamesBox.replaceChildren(...shown.map(makeCard));
@@ -310,7 +479,7 @@ function renderGames() {
     });
 }
 
-// One button per creator found in GAMES (click again to show all games).
+// New style: one filter button per creator found in GAMES (click again to show all).
 const creators = [...new Set(GAMES.map(function (g) { return g.by; }).filter(Boolean))];
 filtersBox.replaceChildren(...creators.map(function (name) {
     const btn = document.createElement('button');
@@ -325,6 +494,15 @@ filtersBox.replaceChildren(...creators.map(function (name) {
 }));
 
 renderGames();
+
+// Old style: every game, no filter.
+// (a space between buttons, like the original HTML, so spacing/wrapping match)
+const oldNodes = [];
+GAMES.forEach(function (g) {
+    oldNodes.push(makeOldButton(g));
+    oldNodes.push(document.createTextNode(' '));
+});
+oldButtons.replaceChildren(...oldNodes);
 
 const creditToggle = document.getElementById('creditToggle');
 const creditOptions = document.getElementById('creditOptions');
@@ -346,6 +524,25 @@ document.addEventListener('click', function () {
     creditOptions.classList.remove('open');
     creditToggle.setAttribute('aria-expanded', 'false');
 });
+
+/* ---------- Style switch (New / Old), remembered in this browser ---------- */
+const styleButtons = document.querySelectorAll('[data-style-btn]');
+
+function applyStyle(style) {
+    document.documentElement.setAttribute('data-style', style);
+    try { localStorage.setItem('fortressed-style', style); } catch (e) {}
+    styleButtons.forEach(function (b) {
+        const on = b.dataset.styleBtn === style;
+        b.classList.toggle('on', on);
+        b.setAttribute('aria-pressed', on ? 'true' : 'false');
+    });
+}
+
+styleButtons.forEach(function (b) {
+    b.addEventListener('click', function () { applyStyle(b.dataset.styleBtn); });
+});
+
+applyStyle(document.documentElement.getAttribute('data-style') || 'new');
 </script>
 
 </body>
