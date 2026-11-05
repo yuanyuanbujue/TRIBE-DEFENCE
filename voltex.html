@@ -19081,9 +19081,12 @@ function creativeNames() {
 function buildCreativeBox() {
   const box = document.createElement('div');
   box.style.cssText = 'position:fixed;inset:5% 8%;z-index:2147482000;background:rgba(18,24,40,.96);color:#fff;border:1px solid #7ea6ff;border-radius:12px;display:none;flex-direction:column;gap:8px;padding:12px;font-family:Segoe UI,Arial,sans-serif';
-  box.innerHTML = '<div style="display:flex;gap:8px;align-items:center"><b style="font-size:16px">Creative items</b><input id="cbSearch" placeholder="Search blocks and items\u2026" style="flex:1;padding:7px;border-radius:7px;border:1px solid #555;background:#0e1424;color:#fff"><button id="cbClose" style="padding:7px 12px;border-radius:7px;border:0;cursor:pointer">Close (G)</button></div><div id="cbGrid" style="flex:1;overflow:auto;display:grid;grid-template-columns:repeat(auto-fill,minmax(130px,1fr));gap:6px;align-content:start"></div><div style="font-size:12px;opacity:.75">Click an item to put a stack in your inventory. Double-tap Space to fly. No damage, no hunger, unlimited blocks.</div>';
+  box.innerHTML = '<div style="display:flex;gap:8px;align-items:center"><b style="font-size:16px">Creative items</b><input id="cbSearch" placeholder="Search blocks and items\u2026" style="flex:1;padding:7px;border-radius:7px;border:1px solid #555;background:#0e1424;color:#fff"><button id="cbClose" style="padding:7px 12px;border-radius:7px;border:0;cursor:pointer">Close (G)</button></div><div id="cbGrid" style="flex:1;overflow:auto;display:grid;grid-template-columns:repeat(auto-fill,minmax(56px,1fr));gap:6px;align-content:start"></div><div style="font-size:12px;opacity:.75">Hover an item to see its name. Click to get a stack (tools and armor give 1). Double-tap Space to fly. No damage, no hunger, unlimited blocks.</div>';
   document.body.appendChild(box);
   const inp = box.querySelector('#cbSearch'), grid = box.querySelector('#cbGrid');
+  const tip = document.createElement('div');
+  tip.style.cssText = 'position:fixed;display:none;z-index:2147483000;pointer-events:none;padding:4px 9px;border-radius:6px;background:rgba(10,6,22,.96);border:1px solid #7ea6ff;color:#fff;font:600 13px Segoe UI,Arial,sans-serif;white-space:nowrap';
+  document.body.appendChild(tip); box._tip = tip;
   ['keydown', 'keyup', 'keypress'].forEach(ev => inp.addEventListener(ev, e => { e.stopPropagation(); if (ev === 'keydown' && e.code === 'Escape') toggleCreativePanel(false); }));
   function render() {
     const q = inp.value.trim().toLowerCase().replace(/\s+/g, '_');
@@ -19091,9 +19094,16 @@ function buildCreativeBox() {
     grid.innerHTML = '';
     list.forEach(n => {
       const b = document.createElement('button');
-      b.textContent = n.replace(/_/g, ' ');
-      b.style.cssText = 'padding:8px 4px;border-radius:7px;border:1px solid #3d4b73;background:#1d2742;color:#fff;cursor:pointer;font-size:12px';
-      b.onclick = () => { try { givePlayerItem(n, 64); b.style.background = '#2f6b3a'; setTimeout(() => { b.style.background = '#1d2742'; }, 250); } catch (e) {} };
+      const nice = n.replace(/_/g, ' ').replace(/\b\w/g, c => c.toUpperCase());
+      let ic = ''; try { ic = iconFor(n); } catch (e) { ic = ''; }
+      b.innerHTML = ic || ('<span style="font-size:10px">' + nice + '</span>');
+      b.setAttribute('aria-label', nice);
+      b.style.cssText = 'height:56px;display:flex;align-items:center;justify-content:center;border-radius:7px;border:1px solid #3d4b73;background:#1d2742;color:#fff;cursor:pointer;padding:2px';
+      const im = b.querySelector('img'); if (im) { im.style.cssText = 'width:42px;height:42px;image-rendering:pixelated;pointer-events:none'; }
+      b.onmouseenter = () => { tip.textContent = nice; tip.style.display = 'block'; b.style.borderColor = '#9fc0ff'; };
+      b.onmousemove = ev => { tip.style.left = Math.min(innerWidth - tip.offsetWidth - 6, ev.clientX + 14) + 'px'; tip.style.top = (ev.clientY + 16) + 'px'; };
+      b.onmouseleave = () => { tip.style.display = 'none'; b.style.borderColor = '#3d4b73'; };
+      b.onclick = () => { try { givePlayerItem(n, maxStackFor(n) === 1 ? 1 : maxStackFor(n)); b.style.background = '#2f6b3a'; setTimeout(() => { b.style.background = '#1d2742'; }, 250); } catch (e) {} };
       grid.appendChild(b);
     });
   }
@@ -19106,7 +19116,7 @@ function toggleCreativePanel(force) {
   if (!isCreative() && force !== false) return;
   if (!creativeBox) creativeBox = buildCreativeBox();
   const show = force != null ? force : creativeBox.style.display === 'none';
-  creativeBox.style.display = show ? 'flex' : 'none';
+  creativeBox.style.display = show ? 'flex' : 'none'; if (!show && creativeBox._tip) creativeBox._tip.style.display = 'none';
   if (show) { creativeBox._render(); try { document.exitPointerLock(); } catch (e) {} setTimeout(() => creativeBox._inp.focus(), 60); }
 }
 document.addEventListener('keydown', e => {
@@ -19212,12 +19222,23 @@ function runChatCommand(text) {
     sys('Players online (' + names.length + '): ' + names.join(', '));
     return;
   }
-  if (cmd === 'help' && MY_NAME !== 'Yuan') {
+  const _isWorldOwner = !!(window.__VX && window.__VX.setWorld);
+  if (cmd === 'help' && MY_NAME !== 'Yuan' && !_isWorldOwner) {
     sys('/shop | /list | /tpa <player> | /tpaccept | /wanted [on|off] | /rain on|off|auto | /fog [on|off] | /weather clear|rain|fog|auto');
     return;
   }
   // Creator-only: only the player named Yuan may run any remaining commands
-  if (MY_NAME !== 'Yuan') { sys('Commands are restricted to the creator (Yuan).'); return; }
+  if (MY_NAME !== 'Yuan' && !_isWorldOwner) { sys('Commands are restricted to the world owner.'); return; }
+  if (cmd === 'kick') {
+    if (!_isWorldOwner) { sys('Only the world owner can kick players.'); return; }
+    const t = parts[0];
+    if (!t) { sys('Usage: /kick <player>'); return; }
+    const N = window.__VXNET;
+    if (!N || N.role !== 'host') { sys('Nobody can be kicked: you are not hosting. Open Settings > Host and start hosting first.'); return; }
+    const r = N.kick(t);
+    sys(r ? 'Kicked ' + r + '.' : 'No player found: ' + t);
+    return;
+  }
   if (cmd === 'tp' || cmd === 'teleport') {
     let args = parts.slice();
     // /tp <player> @s   or  /tp <player> me  → teleport that player TO you
@@ -19484,7 +19505,7 @@ function runChatCommand(text) {
     sys('Given Null Totem (10 uses, Null I).');
     return;
   }
-  if (cmd === 'help') { sys('/shop | /list | /tpa <player> | /tpaccept | /wanted [on|off] | /xp <player|@s|@a> <amount>[L] | /swap | /tp @s <x> <y> <z> | /tp @s <player> | /tp <player> @s | /biome | /spawner [tp] | /village [where] | /summon <entity> [count] | /give <@s|@a|player> <zombie|skeleton|breeze|firework|elytra|mace|golden_apple|wind_charge> [count] | /nulltotem | /spoke | /lettuce | /flame | /wemmbu | /kill <player|@s|@e> | /gojo <player|@s> | /rain on|off|auto | /fog [on|off] | /weather clear|rain|fog|auto | /fill <x1> <y1> <z1> <x2> <y2> <z2> <block> [replace|hollow|keep] [filter] | /update [message]'); return; }
+  if (cmd === 'help') { sys('/kick <player> | /shop | /list | /tpa <player> | /tpaccept | /wanted [on|off] | /xp <player|@s|@a> <amount>[L] | /swap | /tp @s <x> <y> <z> | /tp @s <player> | /tp <player> @s | /biome | /spawner [tp] | /village [where] | /summon <entity> [count] | /give <@s|@a|player> <zombie|skeleton|breeze|firework|elytra|mace|golden_apple|wind_charge> [count] | /nulltotem | /spoke | /lettuce | /flame | /wemmbu | /kill <player|@s|@e> | /gojo <player|@s> | /rain on|off|auto | /fog [on|off] | /weather clear|rain|fog|auto | /fill <x1> <y1> <z1> <x2> <y2> <z2> <block> [replace|hollow|keep] [filter] | /update [message]'); return; }
   sys('Unknown command: /' + cmd + ' (try /help)');
 }
 
@@ -25875,6 +25896,15 @@ NET.hostAccept = async function (code) {
   p.pc.onconnectionstatechange = function () { if (p.pc.connectionState === 'failed' || p.pc.connectionState === 'closed') dropPeer(p); };
   setTimeout(function () { if (!p.open) { try { p.pc.close(); } catch (e) {} if (NET.ui) NET.ui('Could not connect to ' + p.name + '. Check you are on the same WiFi and try a new invite.'); } }, 45000);
 };
+NET.kick = function (name) {
+  var q = String(name || '').toLowerCase(), hit = null;
+  NET.peers.forEach(function (p) { if (!hit && String(p.name).toLowerCase() === q) hit = p; });
+  if (!hit) NET.peers.forEach(function (p) { if (!hit && String(p.name).toLowerCase().indexOf(q) === 0) hit = p; });
+  if (!hit) return null;
+  try { dcSend(hit.dc, { t: 'kick' }); } catch (e) {}
+  var h = hit; setTimeout(function () { dropPeer(h); }, 400);
+  return hit.name;
+};
 function dropPeer(p) {
   var had = NET.peers.delete(p.id);
   try { p.pc.close(); } catch (e) {}
@@ -25919,7 +25949,8 @@ NET.join = async function (code, name) {
 };
 function clientOnMsg(dc, m, resolveReady, to) {
   if (!m) return;
-  if (m.t === 'hello') { clearTimeout(to); NET.role = 'client'; NET.up = dc; resolveReady(m); }
+  if (m.t === 'kick') NET.kicked = true;
+  else if (m.t === 'hello') { clearTimeout(to); NET.role = 'client'; NET.up = dc; resolveReady(m); }
   else if (m.t === 'r') { var f = NET.rq[m.i]; if (f) { delete NET.rq[m.i]; f(m.r); } }
   else if (m.t === 'bc') NET.deliver(m.c, m.e, m.p);
   else if (m.t === 'ps') { NET.pres[m.c] = m.s || {}; NET.firePres(m.c); }
@@ -25932,7 +25963,7 @@ NET.onLost = function () {
   try { if (document.pointerLockElement) document.exitPointerLock(); } catch (e) {}
   var o = document.createElement('div');
   o.style.cssText = 'position:fixed;inset:0;z-index:2147483647;background:#0b0f1a;color:#fff;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:16px;font-family:Segoe UI,Arial,sans-serif;text-align:center';
-  o.innerHTML = '<div style="font-size:26px;font-weight:700">Disconnected</div><div style="opacity:.85">The host closed the world or the connection was lost.</div><button style="padding:10px 22px;font-size:16px;border-radius:8px;border:0;cursor:pointer" onclick="location.reload()">Back to menu</button>';
+  o.innerHTML = '<div style="font-size:26px;font-weight:700">' + (NET.kicked ? 'Kicked' : 'Disconnected') + '</div><div style="opacity:.85">' + (NET.kicked ? 'You were kicked by the world owner.' : 'The host closed the world or the connection was lost.') + '</div><button style="padding:10px 22px;font-size:16px;border-radius:8px;border:0;cursor:pointer" onclick="location.reload()">Back to menu</button>';
   document.body.appendChild(o);
 };
 
