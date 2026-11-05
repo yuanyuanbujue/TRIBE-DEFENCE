@@ -1449,6 +1449,12 @@
       <button id="hostStart" class="slotBtn">Start hosting</button>
       <div id="hostPanel" style="display:none">
         <div id="hostStatus" style="font-weight:700;margin:6px 0"></div>
+        <div style="padding:8px;border:1px solid rgba(255,255,255,.2);border-radius:8px;margin-bottom:8px">
+          <button id="hostRoom" class="slotBtn">\u26A1 Get short join code (5 letters)</button>
+          <div id="hostRoomCode" style="display:none;font:800 34px monospace;letter-spacing:8px;text-align:center;margin:8px 0;user-select:all"></div>
+          <div id="hostRoomNote" style="font-size:12px;opacity:.85">Friends type this code on the WiFi / Device screen. Needs internet.</div>
+        </div>
+        <div style="font-size:12px;opacity:.7">Or use long codes (works with no internet on the same WiFi):</div>
         <button id="hostInvite" class="slotBtn">1. Create invite code (auto-copies)</button>
         <textarea id="hostInviteOut" readonly rows="3" placeholder="Your invite code appears here. Send it to your friend." style="width:100%;box-sizing:border-box;margin-top:6px;font:11px monospace"></textarea>
         <button id="hostCopy" class="slotBtn">Copy invite code</button>
@@ -25770,7 +25776,71 @@ NET.hostStart = function () {
   Object.keys(NET.chans).forEach(function (n) { NET.chans[n].forEach(function (ch) { if (ch.myMeta && ch.presKey) (NET.pres[n] = NET.pres[n] || {})[ch.presKey] = [ch.myMeta]; }); });
   return true;
 };
+var ROOM_CHARS = 'ABCDEFGHJKLMNPQRSTUVWXYZ23456789';
+function roomCodeGen() { var c = ''; for (var i = 0; i < 5; i++) c += ROOM_CHARS[Math.floor(Math.random() * ROOM_CHARS.length)]; return c; }
+function roomNorm(t) { return String(t || '').toUpperCase().replace(/[^A-Z0-9]/g, '').replace(/O/g, '0').replace(/0/g, 'O').replace(/[1I]/g, 'I'); }
+function roomNorm2(t) { return String(t || '').toUpperCase().replace(/[^A-Z0-9]/g, ''); }
+function roomClient() { return root.supabase.createClient(SB_URL, SB_KEY, { realtime: { params: { eventsPerSecond: 10 } } }); }
+NET.roomStart = async function () {
+  if (NET.role !== 'host') throw new Error('Start hosting first.');
+  NET.roomStop();
+  await loadSupabaseLib();
+  var code = roomCodeGen(), cl = roomClient(), queue = Promise.resolve();
+  var ch = cl.channel('vxroom-' + code, { config: { broadcast: { self: false } } });
+  function handleJoin(pl) {
+    return (async function () {
+      if (NET.role !== 'host' || !pl || !pl.id) return;
+      if (NET.peers.size >= 7) return;
+      var offer = await NET.hostInvite();
+      var acc = new Promise(function (res) { NET._roomWait = { id: pl.id, done: res }; setTimeout(res, 40000); });
+      ch.send({ type: 'broadcast', event: 'offer', payload: { to: pl.id, code: offer } });
+      await acc;
+    })().catch(function (e) { console.error(e); });
+  }
+  ch.on('broadcast', { event: 'join' }, function (m) { queue = queue.then(function () { return handleJoin(m.payload); }); });
+  ch.on('broadcast', { event: 'answer' }, async function (m) {
+    var pl = m.payload || {};
+    try { await NET.hostAccept(pl.code); } catch (e) { if (NET.ui) NET.ui(e && e.message || 'Bad join reply.'); }
+    if (NET._roomWait && NET._roomWait.id === pl.to) NET._roomWait.done();
+  });
+  await new Promise(function (res, rej) {
+    var t = setTimeout(function () { rej(new Error('Could not reach the room server. Check your internet.')); }, 12000);
+    ch.subscribe(function (st) { if (st === 'SUBSCRIBED') { clearTimeout(t); res(); } else if (st === 'CHANNEL_ERROR' || st === 'TIMED_OUT') { clearTimeout(t); rej(new Error('Could not reach the room server.')); } });
+  });
+  NET.room = { code: code, cl: cl, ch: ch };
+  return code;
+};
+NET.roomStop = function () {
+  if (NET.room) { try { NET.room.cl.removeChannel(NET.room.ch); } catch (e) {} NET.room = null; }
+};
+NET.joinRoom = async function (codeRaw, name) {
+  var code = roomNorm2(codeRaw);
+  await loadSupabaseLib();
+  var cl = roomClient(), myId = 'c' + Math.random().toString(36).slice(2, 9);
+  var ch = cl.channel('vxroom-' + code, { config: { broadcast: { self: false } } });
+  var cleanup = function () { try { cl.removeChannel(ch); } catch (e) {} };
+  var readyP = new Promise(function (resolve, reject) {
+    var gotOffer = false;
+    var noHost = setTimeout(function () { cleanup(); reject(new Error('No host answered to code ' + code + '. Check the code and that the host pressed \u201CGet short join code\u201D.')); }, 20000);
+    ch.on('broadcast', { event: 'offer' }, async function (m) {
+      var pl = m.payload || {};
+      if (pl.to !== myId || gotOffer) return;
+      gotOffer = true; clearTimeout(noHost);
+      try {
+        var j = await NET.join(pl.code, name);
+        ch.send({ type: 'broadcast', event: 'answer', payload: { to: myId, code: j.answer } });
+        j.ready.then(function (h) { cleanup(); resolve(h); }, function (e) { cleanup(); reject(e); });
+      } catch (e) { cleanup(); reject(e); }
+    });
+    ch.subscribe(function (st) {
+      if (st === 'SUBSCRIBED') ch.send({ type: 'broadcast', event: 'join', payload: { id: myId, name: name } });
+      else if (st === 'CHANNEL_ERROR' || st === 'TIMED_OUT') { clearTimeout(noHost); cleanup(); reject(new Error('Could not reach the room server. Check your internet.')); }
+    });
+  });
+  return { ready: readyP };
+};
 NET.hostStop = function () {
+  NET.roomStop();
   NET.peers.forEach(function (p) { try { p.pc.close(); } catch (e) {} });
   NET.peers.clear();
   if (NET.pending) { try { NET.pending.pc.close(); } catch (e) {} NET.pending = null; }
@@ -26187,12 +26257,26 @@ function copyText(txt, ta) {
 var TA_STYLE = 'width:100%;box-sizing:border-box;margin:6px 0;font:11px monospace;border-radius:8px;padding:8px;';
 function screenLanJoin(note) {
   show(logoHtml('WiFi / Device') +
-    '<div class="vxFine">Ask the host for their invite code (<b>Settings \u2192 Host</b>) and paste it here. That\u2019s it.</div>' +
+    '<div class="vxFine">Type the host\u2019s <b>5-letter code</b> (from <b>Settings \u2192 Host</b>):</div>' +
+    '<input id="vxShort" maxlength="5" autocomplete="off" autocapitalize="characters" placeholder="ABCDE" style="text-align:center;font:800 28px monospace;letter-spacing:8px;text-transform:uppercase">' +
+    '<button class="vxBtn pri" id="vxShortGo">Join with code</button>' +
+    '<div class="vxFine" style="margin-top:10px">No internet? Paste a long invite code instead:</div>' +
     '<textarea id="vxCodeIn" rows="4" style="' + TA_STYLE + '" placeholder="Paste the host\u2019s invite code here"></textarea>' +
     '<button class="vxBtn pri" id="vxLanGo">Join</button>' +
     '<div id="vxMsg">' + esc(note || '') + '</div>' +
     '<button class="vxLink" id="vxMB">\u2190 Back</button>');
   $('vxMB').onclick = screenMulti;
+  async function goShort() {
+    var c = roomNorm2($('vxShort').value);
+    if (c.length !== 5) return msg('The code has 5 letters or numbers.');
+    msg('Looking for the host\u2026', true); busy($('vxShortGo'), true);
+    var j;
+    try { j = await NET.joinRoom(c, S.user.display); }
+    catch (e) { busy($('vxShortGo'), false); return msg(e && e.message || 'Could not join.'); }
+    j.ready.then(function (h) { bootLan(h); }, function (e) { screenLanJoin(e && e.message || 'Connection failed.'); });
+  }
+  $('vxShortGo').onclick = goShort;
+  $('vxShort').addEventListener('input', function () { this.value = this.value.toUpperCase().replace(/[^A-Z0-9]/g, ''); if (this.value.length === 5) goShort(); });
   $('vxCodeIn').addEventListener('input', function () { if (/VX2o-\S{20,}/.test($('vxCodeIn').value)) setTimeout(function () { var b = $('vxLanGo'); if (b && !b.disabled) b.onclick(); }, 120); });
   $('vxLanGo').onclick = async function () {
     msg('Preparing your reply code\u2026', true); busy($('vxLanGo'), true);
@@ -26251,6 +26335,7 @@ function lanStoreFor(user) {
     var names = []; NET.peers.forEach(function (p) { names.push(p.name); });
     g('hostPeers').textContent = names.length ? 'Connected: ' + names.join(', ') : '';
     g('hostMsg').textContent = note;
+    if (!NET.room) g('hostRoomCode').style.display = 'none';
   }
   NET.ui = ui;
   var tabBtn = document.querySelector('.stabs button[data-tab="host"]');
@@ -26262,6 +26347,12 @@ function lanStoreFor(user) {
     try { g('hostInviteOut').value = await NET.hostInvite(); note = copyText(g('hostInviteOut').value, g('hostInviteOut')) ? 'Invite code copied! Send it to your friend, then paste their reply code below.' : 'Send this invite code to your friend, then paste their reply code below.'; }
     catch (e) { note = e && e.message || 'Failed to create invite.'; }
     b.disabled = false; ui();
+  };
+  g('hostRoom').onclick = async function () {
+    var b = g('hostRoom'); b.disabled = true; g('hostRoomNote').textContent = 'Creating code\u2026';
+    try { var c = await NET.roomStart(); g('hostRoomCode').textContent = c; g('hostRoomCode').style.display = 'block'; g('hostRoomNote').textContent = 'Tell friends this code. They choose Multiplayer \u2192 WiFi / Device and type it. You can keep it open for many friends.'; }
+    catch (e) { g('hostRoomNote').textContent = e && e.message || 'Failed.'; }
+    b.disabled = false;
   };
   g('hostCopy').onclick = function () { if (g('hostInviteOut').value) { copyText(g('hostInviteOut').value, g('hostInviteOut')); note = 'Invite code copied.'; ui(); } };
   g('hostAnswerIn').addEventListener('input', function () { if (/VX2a-\S{20,}/.test(g('hostAnswerIn').value)) setTimeout(function () { g('hostConnect').onclick(); }, 120); });
