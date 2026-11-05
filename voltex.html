@@ -1436,11 +1436,11 @@
       <button id="hostStart" class="slotBtn">Start hosting</button>
       <div id="hostPanel" style="display:none">
         <div id="hostStatus" style="font-weight:700;margin:6px 0"></div>
-        <button id="hostInvite" class="slotBtn">1. Create invite code</button>
+        <button id="hostInvite" class="slotBtn">1. Create invite code (auto-copies)</button>
         <textarea id="hostInviteOut" readonly rows="3" placeholder="Your invite code appears here. Send it to your friend." style="width:100%;box-sizing:border-box;margin-top:6px;font:11px monospace"></textarea>
         <button id="hostCopy" class="slotBtn">Copy invite code</button>
-        <textarea id="hostAnswerIn" rows="3" placeholder="2. Paste your friend's reply code here" style="width:100%;box-sizing:border-box;margin-top:8px;font:11px monospace"></textarea>
-        <button id="hostConnect" class="slotBtn">3. Connect friend</button>
+        <textarea id="hostAnswerIn" rows="3" placeholder="2. Paste your friend's reply code here. It connects by itself." style="width:100%;box-sizing:border-box;margin-top:8px;font:11px monospace"></textarea>
+        <button id="hostConnect" class="slotBtn" style="display:none">Connect friend</button>
         <div id="hostPeers" style="font-size:13px;margin-top:6px"></div>
         <button id="hostStop" class="slotBtn" style="margin-top:6px">Stop hosting</button>
       </div>
@@ -25555,17 +25555,36 @@ function dcReader(onMsg) {
 function b64u(bytes) { var s = ''; for (var i = 0; i < bytes.length; i += 8192) s += String.fromCharCode.apply(null, bytes.subarray(i, i + 8192)); return btoa(s).replace(/\+/g, '-').replace(/\//g, '_').replace(/=+$/, ''); }
 function unb64u(t) { t = t.replace(/-/g, '+').replace(/_/g, '/'); while (t.length % 4) t += '='; var s = atob(t), b = new Uint8Array(s.length); for (var i = 0; i < s.length; i++) b[i] = s.charCodeAt(i); return b; }
 async function encodeCode(kind, desc, extra) {
-  var raw = utf8(JSON.stringify({ k: kind, s: desc.sdp, x: extra || null })), z = await gz(raw);
-  return 'VX1' + (z ? 'z' : 'r') + '.' + b64u(z || raw);
+  var sdp = desc.sdp, g = function (re) { var m = re.exec(sdp); return m ? m[1] : ''; };
+  var uf = g(/a=ice-ufrag:(\S+)/), pw = g(/a=ice-pwd:(\S+)/), fp = g(/a=fingerprint:sha-256 (\S+)/);
+  var fb = new Uint8Array(fp.split(':').map(function (h) { return parseInt(h, 16); }));
+  var cs = [], seen = {};
+  sdp.split(/\r?\n/).forEach(function (l) {
+    var m = /^a=candidate:\S+ 1 udp \d+ (\S+) (\d+) typ (host|srflx)/i.exec(l);
+    if (!m) return;
+    var c = m[1] + '|' + m[2] + '|' + (m[3] === 'host' ? 'h' : 's'); if (seen[c]) return; seen[c] = 1; cs.push(c);
+  });
+  cs.sort(function (x, y) { var ax = /^[0-9.]+\|/.test(x) || /\.local\|/.test(x) ? 0 : 1, ay = /^[0-9.]+\|/.test(y) || /\.local\|/.test(y) ? 0 : 1; return ax - ay; });
+  var nm = extra && extra.name ? b64u(utf8(String(extra.name).slice(0, 16))) : '';
+  return 'VX2' + kind + '-' + [uf, pw, b64u(fb), cs.slice(0, 4).join(','), nm].join('~');
 }
 async function decodeCode(t, kind) {
   t = String(t || '').replace(/\s+/g, '');
-  var m = /^VX1([zr])\.([A-Za-z0-9_-]+)$/.exec(t);
+  var m = /^VX2([oa])-(.+)$/.exec(t);
   if (!m) throw new Error('That is not a Voltex code. Copy the whole code and try again.');
-  var b = unb64u(m[2]); if (m[1] === 'z') b = await gunz(b);
-  var o = JSON.parse(TD.decode(b));
-  if (o.k !== kind) throw new Error(kind === 'o' ? 'That is a reply code. Paste the host\u2019s invite code here.' : 'That is an invite code. Paste your friend\u2019s reply code here.');
-  return o;
+  if (m[1] !== kind) throw new Error(kind === 'o' ? 'That is a reply code. Paste the host\u2019s invite code here.' : 'That is an invite code. Paste your friend\u2019s reply code here.');
+  var f = m[2].split('~');
+  if (f.length < 4 || !f[0] || !f[1]) throw new Error('That code looks cut off. Copy the whole code.');
+  var fp = Array.prototype.map.call(unb64u(f[2]), function (x) { return ('0' + x.toString(16)).slice(-2).toUpperCase(); }).join(':');
+  var L = ['v=0', 'o=- 1 1 IN IP4 127.0.0.1', 's=-', 't=0 0', 'a=group:BUNDLE 0', 'a=msid-semantic: WMS', 'm=application 9 UDP/DTLS/SCTP webrtc-datachannel', 'c=IN IP4 0.0.0.0',
+    'a=ice-ufrag:' + f[0], 'a=ice-pwd:' + f[1], 'a=fingerprint:sha-256 ' + fp, 'a=setup:' + (kind === 'o' ? 'actpass' : 'active'), 'a=mid:0', 'a=sctp-port:5000', 'a=max-message-size:262144'];
+  f[3].split(',').filter(Boolean).forEach(function (c, i) {
+    var q = c.split('|'), h = q[2] === 'h';
+    L.push('a=candidate:' + (i + 1) + ' 1 udp ' + (h ? 2113937151 - i : 1677729535 - i) + ' ' + q[0] + ' ' + q[1] + ' typ ' + (h ? 'host' : 'srflx raddr 0.0.0.0 rport 0'));
+  });
+  L.push('a=end-of-candidates');
+  var name = ''; try { name = f[4] ? TD.decode(unb64u(f[4])) : ''; } catch (e) {}
+  return { k: kind, s: L.join('\r\n') + '\r\n', x: name ? { name: name } : null };
 }
 function waitIce(pc) {
   return new Promise(function (res) {
@@ -26040,24 +26059,25 @@ function copyText(txt, ta) {
 var TA_STYLE = 'width:100%;box-sizing:border-box;margin:6px 0;font:11px monospace;border-radius:8px;padding:8px;';
 function screenLanJoin(note) {
   show(logoHtml('WiFi / Device') +
-    '<div class="vxFine">Ask the host to open <b>Settings \u2192 Host</b> in their world, press <b>Start hosting</b> then <b>Create invite code</b>, and send you the code.</div>' +
+    '<div class="vxFine">Ask the host for their invite code (<b>Settings \u2192 Host</b>) and paste it here. That\u2019s it.</div>' +
     '<textarea id="vxCodeIn" rows="4" style="' + TA_STYLE + '" placeholder="Paste the host\u2019s invite code here"></textarea>' +
     '<button class="vxBtn pri" id="vxLanGo">Join</button>' +
     '<div id="vxMsg">' + esc(note || '') + '</div>' +
     '<button class="vxLink" id="vxMB">\u2190 Back</button>');
   $('vxMB').onclick = screenMulti;
+  $('vxCodeIn').addEventListener('input', function () { if (/VX2o-\S{20,}/.test($('vxCodeIn').value)) setTimeout(function () { var b = $('vxLanGo'); if (b && !b.disabled) b.onclick(); }, 120); });
   $('vxLanGo').onclick = async function () {
     msg('Preparing your reply code\u2026', true); busy($('vxLanGo'), true);
     var j;
     try { j = await NET.join($('vxCodeIn').value, S.user.display); }
     catch (e) { busy($('vxLanGo'), false); return msg(e && e.message || 'Could not use that code.'); }
     show(logoHtml('WiFi / Device') +
-      '<div class="vxFine"><b>Send this reply code to the host</b>. They paste it into their Host settings and press Connect.</div>' +
+      '<div class="vxFine">Reply code copied. <b>Send it to the host</b>; they paste it and you\u2019ll join automatically.</div>' +
       '<textarea id="vxAns" rows="4" readonly style="' + TA_STYLE + '"></textarea>' +
       '<button class="vxBtn pri" id="vxCp">Copy reply code</button>' +
       '<div id="vxMsg" class="ok">Waiting for the host to connect\u2026</div>' +
       '<button class="vxLink" id="vxMB">Cancel</button>');
-    $('vxAns').value = j.answer;
+    $('vxAns').value = j.answer; if (copyText(j.answer, $('vxAns'))) $('vxCp').textContent = 'Copied \u2714 (copy again)';
     $('vxCp').onclick = function () { copyText(j.answer, $('vxAns')); $('vxCp').textContent = 'Copied \u2714'; };
     $('vxMB').onclick = function () { location.reload(); };
     j.ready.then(function (h) { bootLan(h); }, function (e) { screenLanJoin(e && e.message || 'Connection failed.'); });
@@ -26111,11 +26131,12 @@ function lanStoreFor(user) {
   g('hostStop').onclick = function () { note = 'Hosting stopped.'; NET.hostStop(); ui(); };
   g('hostInvite').onclick = async function () {
     var b = g('hostInvite'); b.disabled = true; note = 'Creating invite\u2026'; ui();
-    try { g('hostInviteOut').value = await NET.hostInvite(); note = 'Send this invite code to your friend, then paste their reply code below.'; }
+    try { g('hostInviteOut').value = await NET.hostInvite(); note = copyText(g('hostInviteOut').value, g('hostInviteOut')) ? 'Invite code copied! Send it to your friend, then paste their reply code below.' : 'Send this invite code to your friend, then paste their reply code below.'; }
     catch (e) { note = e && e.message || 'Failed to create invite.'; }
     b.disabled = false; ui();
   };
   g('hostCopy').onclick = function () { if (g('hostInviteOut').value) { copyText(g('hostInviteOut').value, g('hostInviteOut')); note = 'Invite code copied.'; ui(); } };
+  g('hostAnswerIn').addEventListener('input', function () { if (/VX2a-\S{20,}/.test(g('hostAnswerIn').value)) setTimeout(function () { g('hostConnect').onclick(); }, 120); });
   g('hostConnect').onclick = async function () {
     try { note = 'Connecting\u2026'; ui(); await NET.hostAccept(g('hostAnswerIn').value); g('hostAnswerIn').value = ''; g('hostInviteOut').value = ''; note = 'Connecting\u2026 the friend should appear in a few seconds.'; }
     catch (e) { note = e && e.message || 'Could not use that code.'; }
