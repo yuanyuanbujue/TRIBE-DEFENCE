@@ -1332,7 +1332,7 @@
 <div id="settingsOverlay">
   <div id="settingsBox">
     <h3>⚙️ Settings</h3>
-    <div class="stabs"><button data-tab="controls" class="on">Controls</button><button data-tab="graphics">Graphics</button><button data-tab="gameplay">Gameplay</button><button data-tab="keys">Keybinds</button><button data-tab="host">Host</button></div>
+    <div class="stabs"><button data-tab="controls" class="on">Controls</button><button data-tab="graphics">Graphics</button><button data-tab="gameplay">Gameplay</button><button data-tab="keys">Keybinds</button><button data-tab="host">Host</button><button data-tab="world">World</button></div>
     <div class="stab on" data-tab="controls">
     <h4>Controls</h4>
     <div class="settingRow">
@@ -1427,6 +1427,19 @@
       Torch shadows
       <input type="checkbox" id="torchShadowsToggle">
     </label>
+    </div>
+    <div class="stab" data-tab="world">
+    <h4>World settings</h4>
+    <div id="worldNA" style="display:none;font-size:13px;opacity:.9"></div>
+    <div id="worldMain">
+      <label class="settingRow" for="wsMode">Game mode
+        <select id="wsMode"><option value="survival">Survival</option><option value="creative">Creative</option></select>
+      </label>
+      <label class="settingRow" for="wsCheats">Allow cheats / commands
+        <input type="checkbox" id="wsCheats">
+      </label>
+      <div id="wsNote" style="font-size:12px;opacity:.8;margin-top:6px">Creative: double-tap Space to fly, no damage or hunger, unlimited blocks, press G for every item. With cheats off, nobody (even the owner) can type commands like /give, /tp or /gamemode.</div>
+    </div>
     </div>
     <div class="stab" data-tab="host">
     <h4>Host (WiFi / device)</h4>
@@ -2397,6 +2410,7 @@ function makeDurableItem(type, extra) {
  * `onBreak` called if it breaks (dur hits 0); returns true if broken.
  */
 function damageItemRef(item, amount, onBreak) {
+  if (window.__VX && window.__VX.mode === 'creative') return false;
   if (!item || !isDurableItem(item.type)) return false;
   ensureDur(item);
   const n = Math.max(1, amount | 0);
@@ -7728,6 +7742,7 @@ let useOffHand = false;
 // Always removes from the MAIN hand slot, even while `useOffHand` is set by a held right-click
 // (removeFromCurrentSlot would take the item out of the off hand instead).
 function removeFromMainSlot(n) {
+  if (window.__VX && window.__VX.mode === 'creative') return;
   const s = inventory[currentSlot];
   if (!s) return;
   s.count -= (n || 1);
@@ -7770,6 +7785,7 @@ function addItemToInventory(type, count, ench, dur, spawnKind, meta, iname) {
   return count;
 }
 function removeFromCurrentSlot(n) {
+  if (window.__VX && window.__VX.mode === 'creative') return;
   const s = currentItem();
   if (!s) return;
   // Admin/special stacks: negative counts (e.g. -1 coal set in Supabase) stay in
@@ -9892,6 +9908,7 @@ function isShieldBlockingFront(knockDir) {
   return dot > 0.25; // roughly ±75° front cone
 }
 function damagePlayer(amount, knockDir, knockStrength, opts) {
+  if (window.__VX && window.__VX.mode === 'creative') return;
   if (amount <= 0 || player.hp <= 0) return;
   opts = opts || {};
   if (!opts.bypassArmor) lastDamageCause = null;
@@ -10260,6 +10277,7 @@ let hungerExhaust = 0; // accumulates exhaustion; every 4 points drains 1 satura
 let regenTimer = 0;
 let starveTimer = 0;
 function addExhaustion(amount) {
+  if (window.__VX && window.__VX.mode === 'creative') return;
   hungerExhaust += amount;
   while (hungerExhaust >= 4) {
     hungerExhaust -= 4;
@@ -19028,11 +19046,94 @@ document.addEventListener('keydown', e => {
 });
 document.addEventListener('keyup', e => { if (e.code === 'Tab') plHide(); });
 window.addEventListener('blur', plHide);
+// ================= Creative mode + cheats (world settings) =================
+const isCreative = () => !!(window.__VX && window.__VX.mode === 'creative');
+const cheatsOn = () => !(window.__VX && window.__VX.cheats === false);
+let cFlying = false, _cfPrev = false, _cfTap = 0;
+function creativeFlyUpdate(dt) {
+  if (!isCreative()) { cFlying = false; return false; }
+  const j = isPlaying() && (keyDown('jump') || mobile.jump);
+  if (j && !_cfPrev) { const n = performance.now(); if (n - _cfTap < 300) { cFlying = !cFlying; _cfTap = 0; if (cFlying) player.vel.y = 0; } else _cfTap = n; }
+  _cfPrev = j;
+  if (!cFlying) return false;
+  const down = isPlaying() && keyDown('sneak');
+  const target = j ? 9 : (down ? -9 : 0);
+  player.vel.y += (target - player.vel.y) * Math.min(1, 10 * dt);
+  player.fallDist = 0; player.fallPeakY = player.pos.y;
+  if (down && player.onGround) cFlying = false;
+  return true;
+}
+let creativeBox = null, creativeBtn = null;
+function creativeNames() {
+  if (!creativeNames._c) {
+    const set = new Set();
+    Object.keys(BLOCK_TYPES).concat(Object.keys(ITEM_INFO)).forEach(n => { if (!/^(air|water|lava|fire|nether_portal|spawner|null_totem)$/.test(n)) set.add(n); });
+    creativeNames._c = Array.from(set).sort();
+  }
+  return creativeNames._c;
+}
+function buildCreativeBox() {
+  const box = document.createElement('div');
+  box.style.cssText = 'position:fixed;inset:5% 8%;z-index:2147482000;background:rgba(18,24,40,.96);color:#fff;border:1px solid #7ea6ff;border-radius:12px;display:none;flex-direction:column;gap:8px;padding:12px;font-family:Segoe UI,Arial,sans-serif';
+  box.innerHTML = '<div style="display:flex;gap:8px;align-items:center"><b style="font-size:16px">Creative items</b><input id="cbSearch" placeholder="Search blocks and items\u2026" style="flex:1;padding:7px;border-radius:7px;border:1px solid #555;background:#0e1424;color:#fff"><button id="cbClose" style="padding:7px 12px;border-radius:7px;border:0;cursor:pointer">Close (G)</button></div><div id="cbGrid" style="flex:1;overflow:auto;display:grid;grid-template-columns:repeat(auto-fill,minmax(130px,1fr));gap:6px;align-content:start"></div><div style="font-size:12px;opacity:.75">Click an item to put a stack in your inventory. Double-tap Space to fly. No damage, no hunger, unlimited blocks.</div>';
+  document.body.appendChild(box);
+  const inp = box.querySelector('#cbSearch'), grid = box.querySelector('#cbGrid');
+  ['keydown', 'keyup', 'keypress'].forEach(ev => inp.addEventListener(ev, e => { e.stopPropagation(); if (ev === 'keydown' && e.code === 'Escape') toggleCreativePanel(false); }));
+  function render() {
+    const q = inp.value.trim().toLowerCase().replace(/\s+/g, '_');
+    const list = creativeNames().filter(n => !q || n.indexOf(q) >= 0).slice(0, 400);
+    grid.innerHTML = '';
+    list.forEach(n => {
+      const b = document.createElement('button');
+      b.textContent = n.replace(/_/g, ' ');
+      b.style.cssText = 'padding:8px 4px;border-radius:7px;border:1px solid #3d4b73;background:#1d2742;color:#fff;cursor:pointer;font-size:12px';
+      b.onclick = () => { try { givePlayerItem(n, 64); b.style.background = '#2f6b3a'; setTimeout(() => { b.style.background = '#1d2742'; }, 250); } catch (e) {} };
+      grid.appendChild(b);
+    });
+  }
+  inp.addEventListener('input', render);
+  box.querySelector('#cbClose').onclick = () => toggleCreativePanel(false);
+  box._render = render; box._inp = inp;
+  return box;
+}
+function toggleCreativePanel(force) {
+  if (!isCreative() && force !== false) return;
+  if (!creativeBox) creativeBox = buildCreativeBox();
+  const show = force != null ? force : creativeBox.style.display === 'none';
+  creativeBox.style.display = show ? 'flex' : 'none';
+  if (show) { creativeBox._render(); try { document.exitPointerLock(); } catch (e) {} setTimeout(() => creativeBox._inp.focus(), 60); }
+}
+document.addEventListener('keydown', e => {
+  if (e.code !== 'KeyG' || e.repeat || !gameStarted || chatOpen || !isCreative()) return;
+  if (creativeBox && creativeBox.style.display !== 'none') return;
+  e.preventDefault(); toggleCreativePanel(true);
+});
+(function creativeHud() {
+  creativeBtn = document.createElement('button');
+  creativeBtn.textContent = '\uD83C\uDF92 Creative (G)';
+  creativeBtn.style.cssText = 'position:fixed;left:10px;bottom:70px;z-index:2147481000;display:none;padding:7px 11px;border-radius:8px;border:1px solid #7ea6ff;background:rgba(18,24,40,.85);color:#fff;cursor:pointer;font:600 13px Segoe UI,Arial,sans-serif';
+  creativeBtn.onclick = e => { e.stopPropagation(); toggleCreativePanel(true); };
+  document.body.appendChild(creativeBtn);
+  setInterval(() => {
+    const on = gameStarted && isCreative();
+    creativeBtn.style.display = on ? 'block' : 'none';
+    if (!on && creativeBox && creativeBox.style.display !== 'none') creativeBox.style.display = 'none';
+    if (!on) cFlying = false;
+  }, 500);
+})();
 let pendingTpa = null, tpaSent = null;   // /tpa: request I received / request I sent
 function runChatCommand(text) {
   const parts = text.slice(1).trim().split(/\s+/);
   const cmd = (parts.shift() || '').toLowerCase();
   const sys = msg => addChatLine('System', msg, true, true);  // command feedback always visible
+  if (!cheatsOn() && !['shop', 'market', 'tpa', 'tpaccept', 'list', 'players', 'help', 'biome'].includes(cmd)) { sys('Cheats are disabled in this world. The world owner can enable them in Settings > World.'); return; }
+  if (cmd === 'gamemode' || cmd === 'gm') {
+    const a = (parts[0] || '').toLowerCase();
+    const m = (a === 'c' || a === '1' || a === 'creative') ? 'creative' : (a === 's' || a === '0' || a === 'survival') ? 'survival' : null;
+    if (!m) { sys('Usage: /gamemode <survival|creative>'); return; }
+    if (!window.__VX || !window.__VX.setWorld) { sys('Only the world owner can change the game mode.'); return; }
+    window.__VX.setWorld('mode', m); sys('Game mode: ' + m); return;
+  }
   // ---- public commands (everyone) ----
   if (cmd === 'shop' || cmd === 'market') { setTimeout(openShop, 80); return; }   // small delay: chat just closed and re-requested pointer lock
   if (cmd === 'tpa') {
@@ -24455,7 +24556,8 @@ function animate() {
   // Gravity, swimming, and jumping always run — this is what previously
   // only happened while pointer-locked, which made the player float in
   // place (ignoring gravity) whenever chat or the inventory was open.
-  if (inWater) {
+  const _cFly = creativeFlyUpdate(dt);
+  if (_cFly) { /* creative flight handled */ } else if (inWater) {
     player.vel.y -= 2.5*dt;                       // sink slowly
     if (player.vel.y < -1.2) player.vel.y += (-1.2 - player.vel.y) * Math.min(1, 8*dt);   // soak up a fast fall quickly
     if (isPlaying() && (keyDown('jump') || mobile.jump)) player.vel.y = 4.5;
@@ -25424,7 +25526,7 @@ async function flush(force) {
   saving = true; W.dirty = false;
   try {
     W.meta.updated = Date.now();
-    var bytes = await packFile({ name: W.meta.name, index: W.meta.index, seed: W.meta.seed, owner: W.meta.owner, player: S.user.display, created: W.meta.created, updated: W.meta.updated }, buildData());
+    var bytes = await packFile({ name: W.meta.name, index: W.meta.index, seed: W.meta.seed, owner: W.meta.owner, player: S.user.display, created: W.meta.created, updated: W.meta.updated, mode: W.meta.mode, cheats: W.meta.cheats }, buildData());
     await Disk.write(W.file, bytes);
     saveNote('\uD83D\uDCBE World saved');
   } catch (e) { W.dirty = true; console.error('save failed', e); saveNote('\u26A0 Could not save world: ' + (e && e.message || e), true); }
@@ -25695,7 +25797,7 @@ NET.hostAccept = async function (code) {
   p.dc.onmessage = dcReader(function (m) { hostOnMsg(p, m); });
   p.dc.onopen = function () {
     p.open = true; NET.peers.set(p.id, p);
-    dcSend(p.dc, { t: 'hello', seed: NET.hello.seed, mix: NET.hello.mix, world: NET.hello.world, host: NET.hello.host });
+    dcSend(p.dc, { t: 'hello', seed: NET.hello.seed, mix: NET.hello.mix, world: NET.hello.world, host: NET.hello.host, mode: root.__VX.mode, cheats: root.__VX.cheats });
     Object.keys(NET.pres).forEach(function (c) { dcSend(p.dc, { t: 'ps', c: c, s: NET.pres[c] }); });
     if (NET.ui) NET.ui(p.name + ' joined!');
   };
@@ -25752,6 +25854,7 @@ function clientOnMsg(dc, m, resolveReady, to) {
   else if (m.t === 'bc') NET.deliver(m.c, m.e, m.p);
   else if (m.t === 'ps') { NET.pres[m.c] = m.s || {}; NET.firePres(m.c); }
   else if (m.t === 'pc') NET.applyPg(m.op, m.rows || []);
+  else if (m.t === 'ws') { var V = root.__VX; if (V) { V.mode = m.mode === 'creative' ? 'creative' : 'survival'; V.cheats = m.cheats !== false; if (V.onWorld) { try { V.onWorld(); } catch (e) {} } if (NET.wsUi) NET.wsUi(); } }
 }
 NET.onLost = function () {
   if (NET.role !== 'client') return;
@@ -25810,12 +25913,14 @@ function screenAuth(mode, note) {
     '<input id="vxPass" type="password" maxlength="72" placeholder="Password (min 6)" minlength="6" autocomplete="' + (signup ? 'new-password' : 'current-password') + '" required>' +
     (signup ? '<input id="vxPass2" type="password" maxlength="72" placeholder="Repeat password" autocomplete="new-password" required>' : '') +
     '<button class="vxBtn pri" id="vxGo" type="submit">' + (signup ? 'Create account' : 'Log in') + '</button></form>' +
+    '<div class="vxFine" style="text-align:center;margin:4px 0">or</div><button class="vxBtn" id="vxGuest" type="button">\uD83D\uDC64 Play as Guest (no login)</button>' +
     '<div id="vxMsg">' + esc(note || '') + '</div>' +
     '<button class="vxLink" id="vxMenu" type="button">\u2190 Back to menu</button>' +
     '<div class="vxFine">' + (signup ? 'Username: 3-16 letters, numbers or _. Your account is saved online, so you can log in from any device.'
       : 'Forgot your password? Ask the creator (' + CREATOR_EMAIL + ') to reset it for you.') + '</div>');
   card.querySelectorAll('.vxTabs button').forEach(function (b) { b.onclick = function () { screenAuth(b.getAttribute('data-m')); }; });
   $('vxMenu').onclick = screenMode;
+  $('vxGuest').onclick = guestLogin;
   $('vxAuthForm').onsubmit = async function (e) {
     e.preventDefault();
     var u = $('vxUser').value.trim(), p = $('vxPass').value, go = $('vxGo');
@@ -25827,6 +25932,15 @@ function screenAuth(mode, note) {
     S.pass = p; await acceptSession(r);
   };
   setTimeout(function () { var i = $('vxUser'); if (i) i.focus(); }, 30);
+}
+function guestLogin() {
+  S.token = null; S.pass = '';
+  S.user = { username: 'guest', display: 'Guest', key: 'guest', isCreator: false, mustChange: false, isGuest: true };
+  Disk.userKey = 'guest';
+  if (MODE === 'multi') { S.user = null; return screenAuth('login', 'Online multiplayer needs an account. Guests can play single-player and WiFi worlds.'); }
+  if (MODE === 'lan') return screenLanJoin();
+  Disk.useVirtual();
+  return screenWorlds('Playing as Guest. Worlds are kept in this browser only (use Export to back them up).');
 }
 async function acceptSession(r) {
   S.token = r.token;
@@ -25907,17 +26021,17 @@ async function screenWorlds(note) {
     '<div class="vxFine">\uD83D\uDCC1 Folder: <b>' + esc(Disk.rootName) + '</b> <button class="vxLink" id="vxFold">change</button></div>' +
     '<div class="vxList">' + (rows || '<div class="vxFine">You have no worlds yet. Create your first one below!</div>') + '</div>' +
     '<form id="vxNewForm" class="vxNew"><input id="vxWName" maxlength="24" placeholder="New world name" required>' +
-    '<input id="vxWSeed" maxlength="32" placeholder="Seed (optional)"><button class="vxBtn pri" type="submit">\u2795 Create world</button></form>' +
+    '<input id="vxWSeed" maxlength="32" placeholder="Seed (optional)"><select id="vxWMode" title="Game mode"><option value="survival">Survival</option><option value="creative">Creative</option></select><label class="vxFine" style="display:flex;gap:6px;align-items:center;margin:2px 0"><input type="checkbox" id="vxWCheat" checked> Allow cheats / commands</label><button class="vxBtn pri" type="submit">\u2795 Create world</button></form>' +
     '<div id="vxMsg">' + esc(note || '') + '</div>' +
     '<div class="vxRow"><label class="vxBtn sm">\uD83D\uDCE5 Import world<input type="file" id="vxImp" accept=".vltx" hidden></label>' +
-    '<button class="vxBtn sm" id="vxPw">\uD83D\uDD11 Change password</button>' +
+    (S.user.isGuest ? '' : '<button class="vxBtn sm" id="vxPw">\uD83D\uDD11 Change password</button>') +
     (S.user.isCreator ? '<button class="vxBtn sm gold" id="vxAdm">\uD83D\uDC51 Creator panel</button>' : '') +
-    '<button class="vxBtn sm" id="vxOut">Log out</button>' +
+    '<button class="vxBtn sm" id="vxOut">' + (S.user.isGuest ? 'Leave guest mode' : 'Log out') + '</button>' +
     '<button class="vxBtn sm" id="vxMenu">\u2190 Menu</button></div>');
   $('vxMenu').onclick = screenMode;
   $('vxFold').onclick = function () { screenFolder(true); };
   $('vxOut').onclick = logout;
-  $('vxPw').onclick = function () { screenChangePw(false); };
+  if ($('vxPw')) $('vxPw').onclick = function () { screenChangePw(false); };
   if (S.user.isCreator) $('vxAdm').onclick = screenAdmin;
   card.querySelectorAll('.vxWorld button').forEach(function (b) {
     b.onclick = async function () {
@@ -25927,7 +26041,7 @@ async function screenWorlds(note) {
       if (a === 'export') { try { var bytes = await Disk.read(f); var u = URL.createObjectURL(new Blob([bytes], { type: 'application/octet-stream' })); var l = document.createElement('a'); l.href = u; l.download = f; document.body.appendChild(l); l.click(); l.remove(); setTimeout(function () { URL.revokeObjectURL(u); }, 4000); } catch (e) { msg('Export failed'); } }
     };
   });
-  $('vxNewForm').onsubmit = function (e) { e.preventDefault(); createWorld($('vxWName').value, $('vxWSeed').value, list); };
+  $('vxNewForm').onsubmit = function (e) { e.preventDefault(); createWorld($('vxWName').value, $('vxWSeed').value, list, { mode: $('vxWMode').value, cheats: $('vxWCheat').checked }); };
   $('vxImp').onchange = async function () {
     var f = this.files && this.files[0]; this.value = '';
     if (!f) return;
@@ -25941,12 +26055,13 @@ async function screenWorlds(note) {
   };
 }
 function nextIndex(list) { var m = 0; list.forEach(function (x) { m = Math.max(m, parseInt(x.meta && x.meta.index, 10) || 0); }); return m + 1; }
-async function createWorld(nameRaw, seedRaw, list) {
+async function createWorld(nameRaw, seedRaw, list, opts) {
+  opts = opts || {};
   var name = safeWorld(nameRaw); if (!name) return msg('Give your world a name (letters and numbers).');
   var seed = String(seedRaw || '').trim() ? (/^-?\d{1,9}$/.test(seedRaw.trim()) ? parseInt(seedRaw.trim(), 10) : hashSeed(seedRaw.trim())) : ((Math.random() * 2147483646) | 0) + 1;
   if (!seed) seed = 1;
   var idx = nextIndex(list), file = idx + '-' + name.replace(/ /g, '_') + '-' + S.user.key + FILE_EXT;
-  W = newWorldState({ name: name, index: idx, seed: seed, owner: S.user.username, created: Date.now(), file: file });
+  W = newWorldState({ name: name, index: idx, seed: seed, owner: S.user.username, created: Date.now(), file: file, mode: opts.mode === 'creative' ? 'creative' : 'survival', cheats: opts.cheats !== false });
   show(logoHtml() + '<div class="vxFine">Creating your world\u2026</div>');
   try { await flush(true); } catch (e) {}
   if (W.dirty) { W = null; return screenWorlds('Could not write the world file. Check the folder permission.'); }
@@ -25957,7 +26072,7 @@ async function openWorld(file) {
   try {
     var r = await unpackFile(await Disk.read(file));
     if (r.meta.owner !== S.user.username) return screenWorlds('That world belongs to a different account.');
-    W = newWorldState({ name: r.meta.name, index: r.meta.index, seed: r.meta.seed | 0, owner: r.meta.owner, created: r.meta.created || Date.now(), file: file });
+    W = newWorldState({ name: r.meta.name, index: r.meta.index, seed: r.meta.seed | 0, owner: r.meta.owner, created: r.meta.created || Date.now(), file: file, mode: r.meta.mode === 'creative' ? 'creative' : 'survival', cheats: r.meta.cheats !== false });
     W.meta.seed = r.data.world.seed != null ? (r.data.world.seed | 0) : W.meta.seed;
     loadWorldData(r.data);
     boot();
@@ -25986,7 +26101,7 @@ async function screenAdmin(note) {
 }
 
 async function logout() {
-  try { await rpc('vx_logout', { p_token: S.token }); } catch (e) {}
+  try { if (S.token) await rpc('vx_logout', { p_token: S.token }); } catch (e) {}
   try { localStorage.removeItem('vx_session'); } catch (e) {}
   S.token = null; S.user = null; S.pass = '';
   if (W) { try { await flush(true); } catch (e) {} }
@@ -25995,10 +26110,23 @@ async function logout() {
 }
 
 // ---------------------------------------------------------------- boot the actual game once a world is chosen
+function setWorldOpt(k, v) {
+  var V = root.__VX; if (!W || !V) return false;
+  if (k === 'mode') W.meta.mode = v === 'creative' ? 'creative' : 'survival';
+  else if (k === 'cheats') W.meta.cheats = !!v;
+  else return false;
+  V.mode = W.meta.mode; V.cheats = W.meta.cheats !== false;
+  markDirty();
+  if (NET.role === 'host') NET.peers.forEach(function (p) { dcSend(p.dc, { t: 'ws', mode: V.mode, cheats: V.cheats }); });
+  if (V.onWorld) { try { V.onWorld(); } catch (e) {} }
+  if (NET.wsUi) NET.wsUi();
+  return true;
+}
 function boot() {
   var seed = W.meta.seed | 0;
   startGameScripts({
     booted: true, seed: seed, mix: (Math.imul(seed, 0x9E3779B1) | 0), store: store, makeSb: makeSb,
+    mode: W.meta.mode === 'creative' ? 'creative' : 'survival', cheats: W.meta.cheats !== false, setWorld: setWorldOpt,
     username: S.user.username, playerName: S.user.display, playerKey: S.user.key, worldName: W.meta.name,
     flush: function () { return flush(true); },
     saveAndExit: async function () { try { await flush(true); } catch (e) {} location.reload(); },
@@ -26085,7 +26213,7 @@ function screenLanJoin(note) {
 }
 function bootLan(h) {
   startGameScripts({
-    booted: true, net: true, seed: h.seed | 0, mix: h.mix | 0, store: lanStoreFor(S.user),
+    booted: true, net: true, mode: h.mode === 'creative' ? 'creative' : 'survival', cheats: h.cheats !== false, seed: h.seed | 0, mix: h.mix | 0, store: lanStoreFor(S.user),
     makeSb: makeNetSb,
     username: S.user.username, playerName: S.user.display, playerKey: S.user.key, worldName: (h.world || 'World') + ' (host: ' + (h.host || '?') + ')',
     flush: function () { return Promise.resolve(); },
@@ -26143,6 +26271,27 @@ function lanStoreFor(user) {
     ui();
   };
 })();
+
+(function worldSettingsUI() {
+  function g(id) { return document.getElementById(id); }
+  if (!g('wsMode')) return;
+  function ui() {
+    var V = root.__VX, ok = !!(V && V.booted);
+    g('worldNA').style.display = ok ? 'none' : 'block';
+    g('worldMain').style.display = ok ? 'block' : 'none';
+    if (!ok) { g('worldNA').textContent = 'Open a world to change its settings.'; return; }
+    var owner = !!V.setWorld;
+    g('wsMode').value = V.mode === 'creative' ? 'creative' : 'survival';
+    g('wsCheats').checked = V.cheats !== false;
+    g('wsMode').disabled = !owner; g('wsCheats').disabled = !owner;
+    g('wsNote').textContent = owner ? 'Creative: double-tap Space to fly, no damage or hunger, unlimited blocks, press G for every item. With cheats off, nobody (even the owner) can type commands like /give, /tp or /gamemode.' : 'Only the world owner can change these settings.';
+  }
+  NET.wsUi = ui;
+  var tb = document.querySelector('.stabs button[data-tab="world"]');
+  if (tb) tb.addEventListener('click', ui);
+  g('wsMode').onchange = function () { if (root.__VX && root.__VX.setWorld) root.__VX.setWorld('mode', g('wsMode').value); };
+  g('wsCheats').onchange = function () { if (root.__VX && root.__VX.setWorld) root.__VX.setWorld('cheats', g('wsCheats').checked); };
+})();
 function screenMode() {
   show(logoHtml('Choose how to play') +
     '<button class="vxBtn pri" id="vxSP">\uD83C\uDFAE Single Player</button>' +
@@ -26193,7 +26342,7 @@ async function bootMulti() {
   try { await loadSupabaseLib(); }
   catch (e) { show(logoHtml('Multiplayer') + '<div class="vxFine warn">' + esc(e.message || e) + '</div><button class="vxBtn pri" id="vxMR">Try again</button><button class="vxLink" id="vxMB">\u2190 Back to menu</button>'); $('vxMR').onclick = bootMulti; $('vxMB').onclick = screenMode; return; }
   startGameScripts({
-    booted: true, multi: true, seed: 1337, mix: 0, store: mpStoreFor(S.user),
+    booted: true, multi: true, mode: 'survival', cheats: true, seed: 1337, mix: 0, store: mpStoreFor(S.user),
     makeSb: function () { return root.supabase.createClient(SB_URL, SB_KEY, { realtime: { params: { eventsPerSecond: 20 } } }); },
     username: S.user.username, playerName: S.user.display, playerKey: S.user.key, worldName: 'Online World',
     flush: function () { return Promise.resolve(); },
