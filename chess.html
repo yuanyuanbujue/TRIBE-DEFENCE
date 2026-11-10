@@ -279,6 +279,44 @@
   /* Promotion choices should face downward for player 2, just like their board pieces. */
   #promoModal .promo-btn .piece.p2{rotate:180deg;}
   .promo-btn .piece.fchess{display:inline-flex;}
+
+  /* ---- Matchmaking search overlay ---- */
+  #searchOverlay{position:fixed; inset:0; z-index:1000; display:none; align-items:center; justify-content:center; flex-direction:column; padding:20px; text-align:center;
+    background:radial-gradient(circle at 50% 40%, rgba(35,41,60,.96), rgba(10,12,18,.98)); color:#e9ecf5; opacity:0; transition:opacity .25s;}
+  #searchOverlay.show{opacity:1;}
+  #searchOverlay h2{margin:26px 0 4px; font-size:1.5em; letter-spacing:.02em;}
+  #searchOverlay .sub{opacity:.75; font-size:.92em; min-height:1.4em; max-width:420px; line-height:1.5;}
+  #searchOverlay .dots span{animation:sDot 1.2s infinite; opacity:.2;}
+  #searchOverlay .dots span:nth-child(2){animation-delay:.2s;} #searchOverlay .dots span:nth-child(3){animation-delay:.4s;}
+  @keyframes sDot{0%,100%{opacity:.2;}40%{opacity:1;}}
+  #searchTimer{margin-top:14px; font-variant-numeric:tabular-nums; font-size:1.25em; color:var(--p1); letter-spacing:.08em;}
+  #searchOverlay .sbtn{margin-top:24px; padding:12px 28px; border-radius:12px; border:1px solid #6b3a3a; background:#3a2020; color:#ffd9d9; font-size:1em; cursor:pointer;}
+  #searchOverlay .sbtn:hover{background:#4a2828;}
+  .radar{position:relative; width:230px; height:230px; border-radius:50%;
+    background:radial-gradient(circle, rgba(89,209,138,.10) 0%, rgba(89,209,138,.04) 60%, transparent 72%);
+    border:1.5px solid rgba(89,209,138,.45); box-shadow:0 0 40px rgba(89,209,138,.18), inset 0 0 40px rgba(89,209,138,.12);}
+  .radar::before,.radar::after{content:""; position:absolute; border-radius:50%; border:1px dashed rgba(89,209,138,.25); inset:25%; }
+  .radar::after{inset:48%; border-style:solid;}
+  .radar .sweep{position:absolute; inset:0; border-radius:50%; background:conic-gradient(from 0deg, rgba(89,209,138,0) 0deg, rgba(89,209,138,0) 270deg, rgba(89,209,138,.55) 360deg); animation:sSpin 2.4s linear infinite;}
+  .radar .ring{position:absolute; inset:0; border-radius:50%; border:2px solid rgba(89,209,138,.6); animation:sPing 2.8s ease-out infinite; opacity:0;}
+  .radar .ring:nth-child(2){animation-delay:.93s;} .radar .ring:nth-child(3){animation-delay:1.86s;}
+  @keyframes sPing{0%{transform:scale(.2); opacity:.9;}100%{transform:scale(1.35); opacity:0;}}
+  @keyframes sSpin{to{transform:rotate(360deg);}}
+  .radar .core{position:absolute; left:50%; top:50%; width:74px; height:74px; margin:-37px 0 0 -37px; border-radius:50%; display:flex; align-items:center; justify-content:center;
+    font-size:2.4em; background:radial-gradient(circle at 35% 30%, #3b4560, #1b2030); border:2px solid var(--p1); box-shadow:0 0 22px rgba(232,193,76,.45); animation:sBeat 1.6s ease-in-out infinite;}
+  @keyframes sBeat{0%,100%{transform:scale(1);}50%{transform:scale(1.09);}}
+  .radar .orbit{position:absolute; inset:0; animation:sSpin 14s linear infinite;}
+  .radar .slot{position:absolute; left:50%; top:50%; width:0; height:0; transform:rotate(var(--a)) translateX(124px);}
+  .radar .slot span{position:absolute; width:34px; height:34px; margin:-17px 0 0 -17px; border-radius:50%; display:flex; align-items:center; justify-content:center; font-size:1.15em;
+    background:#232935; border:1px solid rgba(255,255,255,.18); animation:sUnspin 14s linear infinite;}
+  @keyframes sUnspin{from{transform:rotate(calc(-1 * var(--a)));}to{transform:rotate(calc(-1 * var(--a) - 360deg));}}
+  /* match found state */
+  #searchOverlay.found .radar{border-color:var(--p1); box-shadow:0 0 60px rgba(232,193,76,.35), inset 0 0 40px rgba(232,193,76,.15);}
+  #searchOverlay.found .sweep,#searchOverlay.found .ring{display:none;}
+  #searchOverlay.found .core{animation:sPop .5s ease-out; border-color:var(--ok); box-shadow:0 0 30px rgba(89,209,138,.7);}
+  #searchOverlay.found h2{color:var(--ok);} #searchOverlay.found #searchTimer{display:none;}
+  @keyframes sPop{0%{transform:scale(.6);}70%{transform:scale(1.2);}100%{transform:scale(1);}}
+  @media (prefers-reduced-motion: reduce){ .radar *,#searchOverlay .dots span{animation-duration:20s !important;} }
 </style>
 </head>
 <body>
@@ -293,10 +331,10 @@
 
     <div class="faction-grid" style="grid-template-columns:1fr 1fr; margin:14px 0;">
       <div class="faction-btn chosen" id="modeLocalBtn">👥<br>Local Pass-and-Play</div>
-      <div class="faction-btn locked" id="modeOnlineBtn">🔒<br>Online Multiplayer<div style="font-size:.75em;color:#f99;margin-top:3px;">Locked</div></div>
+      <div class="faction-btn" id="modeOnlineBtn">🌐<br>Online Multiplayer<div style="font-size:.75em;color:#9fd;margin-top:3px;">💀 Hardcore</div></div>
     </div>
 
-    <div id="lockMsg" style="display:none; margin:-4px 0 12px; padding:10px; border-radius:10px; background:#3a2020; font-size:.9em;">🔒 Online multiplayer is locked right now (server credit ran out). Local pass-and-play and bots still work.</div>
+    
     <div id="localSetup">
       <h3 style="margin:0 0 6px;">Game Mode</h3>
       <div class="faction-grid" style="grid-template-columns:1fr 1fr; margin:8px 0 14px;">
@@ -355,6 +393,7 @@
     </div>
 
     <div id="onlineSetup" style="display:none;">
+      <div style="margin:0 0 10px; padding:8px 10px; border-radius:10px; background:#2a2236; font-size:.88em; text-align:center;">💀 Online matches are always <b>Hardcore</b>: no check warnings, check isn't enforced — you lose only when your King is captured.</div>
       <h3>Choose Your Chess Type</h3>
       <div class="faction-grid" id="onlineGrid"></div>
       <div id="onlineArea">
@@ -411,10 +450,21 @@
   </div>
 </div>
 
+<div id="searchOverlay" role="dialog" aria-live="polite" aria-label="Searching for an opponent">
+  <div class="radar">
+    <div class="ring"></div><div class="ring"></div><div class="ring"></div>
+    <div class="sweep"></div>
+    <div class="orbit" id="searchOrbit"></div>
+    <div class="core" id="searchCore">♞</div>
+  </div>
+  <h2 id="searchTitle">Searching for an opponent<span class="dots"><span>.</span><span>.</span><span>.</span></span></h2>
+  <div class="sub" id="searchStatus">Hang tight — you can wait or cancel anytime.</div>
+  <div id="searchTimer">0:00</div>
+  <button class="sbtn" id="searchCancelBtn" type="button">✖ Cancel Search</button>
+</div>
 <script>
-// ---- Login removed. Online multiplayer is LOCKED (Supabase credit used up). ----
-// To re-enable later: set MULTIPLAYER_LOCKED=false, load the supabase-js script and set window.sbClient = supabase.createClient(URL, KEY).
-const MULTIPLAYER_LOCKED = true;
+// ---- Online multiplayer runs on a new Supabase project via plain REST + polling (no realtime). ----
+const MULTIPLAYER_LOCKED = false;
 window.myUserId = null; window.isGuest = true;
 let ROWS=10, COLS=9, mapType='xiangqi';
 const FACTIONS = {
@@ -539,7 +589,6 @@ modeLocalBtn.onclick = ()=>{
   leaveRoom();
 };
 modeOnlineBtn.onclick = ()=>{
-  if(MULTIPLAYER_LOCKED){ document.getElementById('lockMsg').style.display=''; return; }
   modeOnlineBtn.classList.add('chosen'); modeLocalBtn.classList.remove('chosen');
   localSetup.style.display='none'; onlineSetup.style.display='';
   refreshOnlineLevels();
@@ -623,7 +672,6 @@ window.onlineActive = false;   // true while a synced online match is in progres
 window.myRole = null;          // 1 (host) or 2 (guest) in online mode
 window.roomCode = null;
 window.roomSeq = 0;
-let pollTimer = null;
 let lobbySearching = false;
 if(!localStorage.getItem('tca_pid')) localStorage.setItem('tca_pid', Math.random().toString(36).slice(2)+Date.now().toString(36));
 const myPid = localStorage.getItem('tca_pid');
@@ -671,41 +719,50 @@ const LOBBY_STALE_MS = 25000; // if a global-lobby host hasn't been refreshed in
 
 function roomKey(code){ return 'tca_room_'+code; }
 
-function sbc(){
-  // The script block that creates the Supabase client only exposes it on window.sbClient —
-  // there is no bare `sb` in this script's scope, so we must always go through window.sbClient.
-  return window.sbClient;
-}
+// ---- Supabase (REST only — NO realtime/websockets, so it stays cheap) ----
+const SB_URL = 'https://dcnzhfbxebrvlgwsswdq.supabase.co';
+const SB_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImRjbnpoZmJ4ZWJydmxnd3Nzd2RxIiwicm9sZSI6ImFub24iLCJpYXQiOjE3OTQyOTY1OTksImV4cCI6MjEwOTg3MjU5OX0.rmjs_m-p-gL8VxNOmkKp9wkFJzveaR6mMl-UBNibcBI';
+const KV = SB_URL + '/rest/v1/chess_kv';
+const SB_HEADERS = { apikey: SB_KEY, Authorization: 'Bearer ' + SB_KEY, 'Content-Type': 'application/json' };
+function sbc(){ return SB_URL; }   // always "ready" (plain fetch, no client to wait for)
+const sleep = ms => new Promise(r=>setTimeout(r, ms));
+
 async function kvGet(key){
   try{
-    const client = sbc();
-    if(!client){ console.error('[kv] Supabase client not ready yet'); return null; }
-    const { data, error } = await client.from('chess_kv').select('value').eq('key', key).maybeSingle();
-    if(error){ console.error('[kv] get error', key, error); return null; }
-    if(!data || data.value===undefined || data.value===null) return null;
-    return JSON.parse(data.value);
+    const r = await fetch(`${KV}?select=value&key=eq.${encodeURIComponent(key)}`, { headers: SB_HEADERS });
+    if(!r.ok){ console.error('[kv] get error', key, r.status); return null; }
+    const rows = await r.json();
+    if(!rows.length) return null;
+    return JSON.parse(rows[0].value);
   }catch(e){ console.error('[kv] get threw', key, e); return null; }
 }
-async function kvSet(key, obj){
+async function kvSet(key, obj, meta){
   try{
-    const client = sbc();
-    if(!client){ console.error('[kv] Supabase client not ready yet'); return false; }
-    if(obj===null || obj===undefined){
-      await kvDelete(key);
-      return true;
-    }
-    const { error } = await client.from('chess_kv').upsert({ key, value: JSON.stringify(obj), updated_at: new Date().toISOString() });
-    if(error){ console.error('[kv] set error', key, error); return false; }
+    if(obj===null || obj===undefined){ await kvDelete(key); return true; }
+    const r = await fetch(`${KV}?on_conflict=key&select=updated_at`, {
+      method: 'POST',
+      headers: { ...SB_HEADERS, Prefer: 'resolution=merge-duplicates,return=representation' },
+      body: JSON.stringify({ key, value: JSON.stringify(obj), meta: meta||'' })
+    });
+    if(!r.ok){ console.error('[kv] set error', key, r.status, await r.text()); return false; }
+    const rows = await r.json();
+    // remember our own write's stamp so the poller doesn't re-download what we just wrote
+    if(window.roomCode && key===roomKey(window.roomCode) && rows[0]) window.roomStamp = rows[0].updated_at;
     return true;
   }catch(e){ console.error('[kv] set threw', key, e); return false; }
 }
 async function kvDelete(key){
   try{
-    const client = sbc();
-    if(!client) return;
-    const { error } = await client.from('chess_kv').delete().eq('key', key);
-    if(error) console.error('[kv] delete error', key, error);
+    const r = await fetch(`${KV}?key=eq.${encodeURIComponent(key)}`, { method:'DELETE', headers: SB_HEADERS });
+    if(!r.ok) console.error('[kv] delete error', key, r.status);
   }catch(e){ console.error('[kv] delete threw', key, e); }
+}
+// housekeeping: drop rooms/heartbeats nobody has touched in 6 hours
+async function cleanupOldRooms(){
+  try{
+    const cutoff = new Date(Date.now() - 6*3600*1000).toISOString();
+    await fetch(`${KV}?key=like.tca_room_*&updated_at=lt.${encodeURIComponent(cutoff)}`, { method:'DELETE', headers: SB_HEADERS });
+  }catch(e){}
 }
 
 function genCode(){
@@ -713,86 +770,109 @@ function genCode(){
   let s=''; for(let i=0;i<6;i++) s+=chars[Math.floor(Math.random()*chars.length)];
   return s;
 }
-function setOnlineStatus(html){ document.getElementById('onlineStatus').innerHTML = html; }
+function setOnlineStatus(html){
+  document.getElementById('onlineStatus').innerHTML = html;
+  const ss = document.getElementById('searchStatus');
+  if(ss && lobbySearching) ss.innerHTML = html;
+}
 
-// ---- Realtime sync: subscribe to live changes on our room row so moves apply instantly
-// instead of waiting for the next poll. Polling stays on underneath as a slower safety-net
-// in case the realtime socket drops. ----
-let roomChannel = null;
-window.realtimeConnected = false;
-function subscribeRoomRealtime(code){
-  unsubscribeRoomRealtime();
-  const client = sbc();
-  if(!client) return;
-  roomChannel = client
-    .channel('room-'+code)
-    .on('postgres_changes', {event:'*', schema:'public', table:'chess_kv', filter:`key=eq.${roomKey(code)}`}, payload=>{
-      const row = payload.new;
-      if(!row || row.value===undefined || row.value===null) return;
-      try{ handleRoomUpdate(JSON.parse(row.value)); }catch(e){ /* ignore malformed row */ }
-    })
-    .subscribe(status=>{
-      window.realtimeConnected = (status==='SUBSCRIBED');
-      updateConnBadge();
-    });
-}
-function unsubscribeRoomRealtime(){
-  const client = sbc();
-  if(roomChannel && client){ client.removeChannel(roomChannel); }
-  roomChannel = null;
-  window.realtimeConnected = false;
-  updateConnBadge();
-}
+window.connOk = false;
+window.roomData = null;     // last known full room object (so we don't re-read it before every write)
+window.roomStamp = null;    // server updated_at of the room row we last saw/wrote
+let oppHbStamp = null, oppSeenAt = 0, oppIdle = false, lastPollAt = 0;
 function updateConnBadge(){
   const el = document.getElementById('connBadge');
   if(!el) return;
   if(!window.onlineActive && !window.roomCode){ el.style.display='none'; return; }
   el.style.display='';
-  el.textContent = window.realtimeConnected ? '🟢 Live' : '📡 Syncing…';
+  el.textContent = window.connOk ? '🟢 Connected' : '📡 Reconnecting…';
 }
 
+let searchTick = null, searchStart = 0, searchFound = false, searchHideTimer = null;
+function fmtElapsed(ms){ const t=Math.floor(ms/1000); return Math.floor(t/60)+':'+String(t%60).padStart(2,'0'); }
+function buildSearchOrbit(){
+  const orbit = document.getElementById('searchOrbit');
+  if(orbit.childElementCount) return;
+  const keys = Object.keys(FACTIONS);
+  orbit.innerHTML = keys.map((k,i)=>`<div class="slot" style="--a:${Math.round(i*360/keys.length)}deg"><span>${FACTIONS[k].emoji}</span></div>`).join('');
+}
+function showSearchOverlay(){
+  const ov = document.getElementById('searchOverlay');
+  clearTimeout(searchHideTimer);
+  buildSearchOrbit();
+  searchFound = false;
+  ov.classList.remove('found');
+  document.getElementById('searchCore').textContent = (window.onlinePick && FACTIONS[window.onlinePick]) ? FACTIONS[window.onlinePick].emoji : '♞';
+  document.getElementById('searchTitle').innerHTML = 'Searching for an opponent<span class="dots"><span>.</span><span>.</span><span>.</span></span>';
+  document.getElementById('searchStatus').textContent = 'Hang tight — you can wait or cancel anytime.';
+  searchStart = Date.now();
+  const timerEl = document.getElementById('searchTimer');
+  timerEl.textContent = '0:00';
+  clearInterval(searchTick);
+  searchTick = setInterval(()=>{
+    const el = Date.now()-searchStart;
+    timerEl.textContent = fmtElapsed(el);
+    if(!searchFound && el>30000 && el<31200){
+      document.getElementById('searchStatus').textContent = 'Still looking — no one else is searching yet. You can keep waiting (a friend can hit Find Player too) or cancel.';
+    }
+  }, 500);
+  ov.style.display = 'flex';
+  requestAnimationFrame(()=>ov.classList.add('show'));
+}
+function hideSearchOverlay(){
+  const ov = document.getElementById('searchOverlay');
+  clearInterval(searchTick); searchTick = null;
+  ov.classList.remove('show');
+  clearTimeout(searchHideTimer);
+  searchHideTimer = setTimeout(()=>{ if(!lobbySearching) ov.style.display='none'; }, 260);
+}
+// Called the moment an opponent is found: flash a "match found" state before the board appears.
+function showMatchFound(oppName){
+  searchFound = true;
+  const ov = document.getElementById('searchOverlay');
+  ov.classList.add('found');
+  document.getElementById('searchTitle').textContent = '⚔️ Opponent found!';
+  document.getElementById('searchStatus').innerHTML = `Matched with <b>${oppName||'a challenger'}</b> — starting the battle…`;
+}
 function setSearchingUI(isSearching){
+  const wasSearching = lobbySearching;
   lobbySearching = isSearching;
   document.getElementById('findPlayerBtn').style.display = isSearching ? 'none' : '';
   document.getElementById('cancelSearchBtn').style.display = isSearching ? '' : 'none';
+  if(isSearching && !wasSearching) showSearchOverlay();
+  else if(!isSearching && wasSearching){
+    if(searchFound){ setTimeout(hideSearchOverlay, 1100); }  // let the "Opponent found!" moment land
+    else hideSearchOverlay();
+  }
 }
+document.getElementById('searchCancelBtn').onclick = ()=>document.getElementById('cancelSearchBtn').click();
+document.addEventListener('keydown', e=>{
+  if(e.key==='Escape' && lobbySearching && !searchFound) document.getElementById('cancelSearchBtn').click();
+});
 
 // ---- Global Room: click "Find Player" to be matched into a random open room, no code needed ----
-document.getElementById('findPlayerBtn').onclick = async ()=>{
-  if(!window.onlinePick) return;
-  if(!sbc()){
-    setOnlineStatus('⚠️ Not connected to the server yet — please wait a moment and try again.');
-    return;
-  }
-  setSearchingUI(true);
-  setOnlineStatus('Searching the global room for an opponent…');
-
+async function tryJoinLobby(){
   const lobby = await kvGet(LOBBY_KEY);
-  const now = Date.now();
-
-  if(lobby && lobby.hostPid!==myPid && (now-lobby.ts) < LOBBY_STALE_MS){
-    // Someone is already waiting in the global room — try to join them.
-    const room = await kvGet(roomKey(lobby.code));
-    if(room && room.status==='waiting'){
-      await kvSet(LOBBY_KEY, null); // clear the lobby slot now that it's taken
-      room.guestName = myUsername(); room.guestFaction = window.onlinePick; room.guestPid = myPid;
-      room.guestLevel = getLevel(window.onlinePick);
-      room.status = 'ready';
-      const joined = await kvSet(roomKey(room.code), room);
-      if(!joined){
-        setSearchingUI(false);
-        setOnlineStatus('⚠️ Could not join that room (connection issue). Please try again.');
-        return;
-      }
-      window.roomCode = room.code; window.myRole = 2;
-      setOnlineStatus(`Matched with <b>${room.hostName}</b>! Waiting for the battle to start…`);
-      subscribeRoomRealtime(room.code);
-      startPolling();
-      return;
-    }
-  }
-
-  // No one waiting (or the previous host vanished) — become the host of the global room.
+  if(!lobby || lobby.hostPid===myPid || (Date.now()-lobby.ts) >= LOBBY_STALE_MS) return false;
+  const room = await kvGet(roomKey(lobby.code));
+  if(!room || room.status!=='waiting') return false;
+  room.guestName = myUsername(); room.guestFaction = window.onlinePick; room.guestPid = myPid;
+  room.guestLevel = getLevel(window.onlinePick);
+  room.status = 'ready';
+  window.roomCode = room.code;                       // (so kvSet records the stamp)
+  if(!(await kvSet(roomKey(room.code), room))){ window.roomCode = null; return false; }
+  // two guests may grab the same room at once — wait a moment and make sure we're the one who stuck
+  await sleep(1200);
+  const check = await kvGet(roomKey(room.code));
+  if(!check || check.guestPid!==myPid){ window.roomCode = null; return false; }
+  await kvSet(LOBBY_KEY, null);
+  window.roomCode = room.code; window.myRole = 2;
+  showMatchFound(room.hostName);
+  startPolling();
+  return true;
+}
+async function hostGlobalRoom(){
+  cleanupOldRooms();
   const code = genCode();
   const room = {
     code, status:'waiting', isGlobal:true,
@@ -800,17 +880,43 @@ document.getElementById('findPlayerBtn').onclick = async ()=>{
     guestName: null, guestFaction: null, guestPid: null, guestLevel: null,
     seq:0
   };
+  window.roomCode = code;
   const roomSaved = await kvSet(roomKey(code), room);
-  const lobbySaved = roomSaved && await kvSet(LOBBY_KEY, {code, hostPid: myPid, hostName: myUsername(), ts: now});
+  const lobbySaved = roomSaved && await kvSet(LOBBY_KEY, {code, hostPid: myPid, hostName: myUsername(), ts: Date.now()});
   if(!roomSaved || !lobbySaved){
+    window.roomCode = null;
     setSearchingUI(false);
     setOnlineStatus('⚠️ Could not reach the server to open a room. Check your connection and try again.');
     return;
   }
-  window.roomCode = code; window.myRole = 1;
+  window.myRole = 1;
+  window.roomData = room;
   setOnlineStatus('Waiting for a random opponent to join the global room…');
-  subscribeRoomRealtime(code);
   startPolling();
+  // keep our lobby slot fresh; if two hosts appeared at once, the higher code gives up and joins the lower one
+  const refreshTimer = setInterval(async ()=>{
+    if(!lobbySearching || window.roomCode!==code || window.onlineActive){ clearInterval(refreshTimer); return; }
+    const lobby = await kvGet(LOBBY_KEY);
+    if(window.roomCode!==code || window.onlineActive) { clearInterval(refreshTimer); return; }
+    if(lobby && lobby.code!==code && lobby.hostPid!==myPid && (Date.now()-lobby.ts)<LOBBY_STALE_MS && lobby.code<code){
+      clearInterval(refreshTimer);
+      const mine = await kvGet(roomKey(code));
+      if(mine && mine.status==='waiting'){
+        await kvDelete(roomKey(code));
+        stopPolling(); window.roomCode=null; window.myRole=null;
+        if(!(await tryJoinLobby())) await hostGlobalRoom();
+      }
+      return;
+    }
+    if(!lobby || lobby.code===code) await kvSet(LOBBY_KEY, {code, hostPid: myPid, hostName: myUsername(), ts: Date.now()});
+  }, 10000);
+}
+document.getElementById('findPlayerBtn').onclick = async ()=>{
+  if(!window.onlinePick) return;
+  setSearchingUI(true);
+  setOnlineStatus('Searching the global room for an opponent…');
+  if(await tryJoinLobby()) return;
+  await hostGlobalRoom();
 };
 
 document.getElementById('cancelSearchBtn').onclick = async ()=>{
@@ -824,53 +930,60 @@ document.getElementById('cancelSearchBtn').onclick = async ()=>{
   setOnlineStatus('Search cancelled.');
 };
 
+// ---- Polling (replaces realtime). One tiny request returns only {key, updated_at, meta} for the
+// room row + both heartbeat rows (~200 bytes). The full room is downloaded only when it changed. ----
+let pollTimer = null;
 function startPolling(){
   stopPolling();
-  pollTimer = setInterval(pollRoom, 2000);
-  pollRoom();
-  // While waiting as the global-room host, keep our lobby entry fresh so we're not
-  // treated as abandoned by another searching player.
-  if(window.myRole===1){
-    const refreshTimer = setInterval(async ()=>{
-      if(!lobbySearching || !window.roomCode){ clearInterval(refreshTimer); return; }
-      const lobby = await kvGet(LOBBY_KEY);
-      if(lobby && lobby.code===window.roomCode){ lobby.ts = Date.now(); await kvSet(LOBBY_KEY, lobby); }
-      else clearInterval(refreshTimer);
-    }, 10000);
-  }
-};
+  window.pollOn = true;
+  schedulePoll(0);
+}
 function stopPolling(){
-  if(pollTimer){ clearInterval(pollTimer); pollTimer=null; }
+  window.pollOn = false;
+  if(pollTimer){ clearTimeout(pollTimer); pollTimer = null; }
+}
+function nextPollDelay(){
+  if(document.hidden) return 8000;
+  if(window.onlineActive && !gameOver && currentPlayer===window.myRole) return 5000; // my turn: nothing to wait for
+  return 2000;                                                                         // waiting on opponent
+}
+function schedulePoll(ms){
+  if(!window.pollOn) return;
+  pollTimer = setTimeout(async ()=>{
+    await pollRoom();
+    if(window.onlineActive && gameOver){ stopPolling(); return; }   // match finished & result synced
+    schedulePoll(nextPollDelay());
+  }, ms);
 }
 function leaveRoom(){
+  restoreSavedMode();
   stopPolling();
   stopHeartbeat();
-  unsubscribeRoomRealtime();
   window.onlineActive = false;
   window.myRole = null;
   window.roomCode = null;
   window.roomSeq = 0;
+  window.roomData = null; window.roomStamp = null; window.connOk = false;
+  oppHbStamp = null; oppIdle = false;
   setSearchingUI(false);
   updateConnBadge();
 }
 
-// ---- Presence: heartbeats let each side detect if the opponent closed the tab (declares
-// a forfeit win after a period of silence) versus just switched tabs (shown as "idling"). ----
-const HEARTBEAT_MS = 3000;
-const FORFEIT_TIMEOUT_MS = 10000;
+// ---- Presence: each player writes a tiny heartbeat row (separate from the board, so it can never
+// overwrite a move). Missing heartbeats for a while = opponent left = forfeit win. ----
+const HEARTBEAT_MS = 6000;
+const FORFEIT_TIMEOUT_MS = 30000;      // opponent silent this long (tab open/active) -> forfeit
+const FORFEIT_IDLE_TIMEOUT_MS = 120000; // opponent's tab is in background (browsers throttle timers) -> be lenient
 let heartbeatTimer = null;
 window.myIdle = false;
 document.addEventListener('visibilitychange', ()=>{
   window.myIdle = document.hidden;
   if(window.onlineActive) sendHeartbeat();
-});
-// Best-effort: if the tab is actually being closed/navigated away from, try to push one
-// last update immediately so the opponent doesn't have to wait out the full timeout.
-window.addEventListener('pagehide', ()=>{
-  if(window.onlineActive && window.roomCode) sendHeartbeat();
+  if(!document.hidden && window.pollOn){ clearTimeout(pollTimer); schedulePoll(0); }  // catch up right away
 });
 function startHeartbeat(){
   stopHeartbeat();
+  oppSeenAt = Date.now(); oppHbStamp = null;
   sendHeartbeat();
   heartbeatTimer = setInterval(sendHeartbeat, HEARTBEAT_MS);
 }
@@ -879,36 +992,65 @@ function stopHeartbeat(){
 }
 async function sendHeartbeat(){
   if(!window.onlineActive || !window.roomCode || !window.myRole) return;
-  const room = await kvGet(roomKey(window.roomCode));
-  if(!room) return;
-  const now = Date.now();
-  if(window.myRole===1){ room.hostLastSeen = now; room.hostIdle = !!window.myIdle; }
-  else { room.guestLastSeen = now; room.guestIdle = !!window.myIdle; }
-  await kvSet(roomKey(window.roomCode), room);
+  await kvSet(roomKey(window.roomCode)+'_hb'+window.myRole, 1, window.myIdle ? 'idle' : '');
 }
 function checkOpponentForfeit(room){
   if(!window.onlineActive || room.status!=='active' || gameOver) return;
-  const now = Date.now();
-  const oppLastSeen = window.myRole===1 ? room.guestLastSeen : room.hostLastSeen;
+  const limit = oppIdle ? FORFEIT_IDLE_TIMEOUT_MS : FORFEIT_TIMEOUT_MS;
+  if(Date.now()-oppSeenAt < limit) return;
   const oppName = window.myRole===1 ? room.guestName : room.hostName;
-  if(!oppLastSeen || (now-oppLastSeen) < FORFEIT_TIMEOUT_MS) return;
   const winMsg = `🏆 ${myUsername()} wins — ${oppName||'opponent'} left the match!`;
   gameOver = true;
   gameOverMsg = winMsg; render();
   room.gameOver = true; room.status = 'over'; room.winnerMsg = winMsg;
-  room.seq = (room.seq||0) + 1; window.roomSeq = room.seq;
+  room.seq = Math.max(room.seq||0, window.roomSeq||0) + 1; window.roomSeq = room.seq;
   kvSet(roomKey(window.roomCode), room);
   stopHeartbeat();
 }
 
 async function pollRoom(){
-  if(!window.roomCode) return;
-  const room = await kvGet(roomKey(window.roomCode));
-  if(!room) return;
-  handleRoomUpdate(room);
+  const code = window.roomCode;
+  if(!code) return;
+  const rk = roomKey(code);
+  let rows;
+  try{
+    const r = await fetch(`${KV}?select=key,updated_at,meta&key=like.${rk}*`, { headers: SB_HEADERS });
+    if(!r.ok) throw new Error('HTTP '+r.status);
+    rows = await r.json();
+    window.connOk = true;
+  }catch(e){ window.connOk = false; updateConnBadge(); return; }
+  updateConnBadge();
+  if(code!==window.roomCode) return;
+
+  const now = Date.now();
+  if(now-lastPollAt > 20000) oppSeenAt = now;   // our own tab was asleep — don't blame the opponent
+  lastPollAt = now;
+  const oppRole = window.myRole===1 ? 2 : 1;
+  const hb = rows.find(x=>x.key===rk+'_hb'+oppRole);
+  if(hb){
+    if(hb.updated_at!==oppHbStamp){ oppHbStamp = hb.updated_at; oppSeenAt = now; }
+    oppIdle = hb.meta==='idle';
+  }
+  const roomRow = rows.find(x=>x.key===rk);
+  if(!roomRow) return;
+  if(roomRow.updated_at!==window.roomStamp){
+    const room = await kvGet(rk);
+    if(!room || code!==window.roomCode) return;
+    window.roomStamp = roomRow.updated_at;
+    handleRoomUpdate(room);
+  }else if(window.roomData){
+    decorateIdle(window.roomData);
+    checkOpponentForfeit(window.roomData);
+    if(window.onlineActive) updateMatchupHeader(window.roomData);
+  }
+}
+function decorateIdle(room){
+  if(window.myRole===1) room.guestIdle = oppIdle; else room.hostIdle = oppIdle;
 }
 
 function handleRoomUpdate(room){
+  window.roomData = room;
+  decorateIdle(room);
   // Host: guest has joined but battle not yet started -> auto-start and become authoritative
   if(window.myRole===1 && room.status==='ready'){
     beginOnlineBattle(room);
@@ -927,14 +1069,19 @@ function handleRoomUpdate(room){
   if((room.status==='active' || room.status==='over') && room.seq > window.roomSeq){
     applyOnlineState(room);
   } else if(room.status==='active'){
-    // Even when no new move has come in, keep watching for the opponent going quiet and
-    // refresh the idling badge in the header so it isn't stuck showing stale info.
     checkOpponentForfeit(room);
     if(window.onlineActive) updateMatchupHeader(room);
   }
 }
 
+// Online matches are always Hardcore (check not enforced, lose only when your King is captured).
+// This is not saved, so your local Classic/Hardcore choice comes back after the match.
+function forceOnlineHardcore(){ gameMode='hardcore'; }
+function restoreSavedMode(){ try{ gameMode = localStorage.getItem(MODE_KEY)==='hardcore' ? 'hardcore' : 'classic'; }catch(e){ gameMode='classic'; } }
+
 function beginOnlineBattle(room){
+  forceOnlineHardcore();
+  if(lobbySearching) showMatchFound(room.guestName);
   mapType = getMapType(room.hostFaction, room.guestFaction);
   setDims(); gameOverMsg=''; lastTurn=null; chainActive=false; hands={1:{},2:{}}; dropSel=null; resetStyleStats(); userArrows=[]; userMarks=[];
   emptyBoard();
@@ -952,6 +1099,7 @@ function beginOnlineBattle(room){
   room.gameOver=false; room.winnerMsg=''; room.seq=1;
   room.hostLastSeen=Date.now(); room.hostIdle=false;
   room.guestLastSeen=Date.now(); room.guestIdle=false;
+  window.roomData = room;
   kvSet(roomKey(room.code), room);
   enterOnlineGameUI(room);
   startHeartbeat();
@@ -979,6 +1127,8 @@ function updateMatchupHeader(room){
 }
 
 function applyOnlineState(room){
+  forceOnlineHardcore();
+  window.roomData = room;
   mapType = room.mapType; ROWS = room.ROWS; COLS = room.COLS;
   board = room.board; currentPlayer = room.currentPlayer; buffs = room.buffs;
   window.factions = {1:room.hostFaction, 2:room.guestFaction};
@@ -997,18 +1147,25 @@ function applyOnlineState(room){
 
 async function pushOnlineState(extra){
   if(!window.onlineActive || !window.roomCode) return;
-  const room = await kvGet(roomKey(window.roomCode));
+  // Use the cached room (no read before every write) and retry so a hiccup never loses a move.
+  const room = window.roomData || await kvGet(roomKey(window.roomCode));
   if(!room) return;
   room.board = board; room.currentPlayer = currentPlayer; room.buffs = {...buffs};
   room.mapType = mapType; room.ROWS = ROWS; room.COLS = COLS;
   room.gameOver = gameOver;
   room.winnerMsg = gameOverMsg || '';
   room.status = gameOver ? 'over' : 'active';
+  delete room.hostIdle; delete room.guestIdle;
   if(window.myRole===1) room.hostLevel = getLevel(window.factions[1]);
   else if(window.myRole===2) room.guestLevel = getLevel(window.factions[2]);
-  room.seq = (room.seq||0) + 1;
+  room.seq = Math.max(room.seq||0, window.roomSeq||0) + 1;
   window.roomSeq = room.seq;
-  await kvSet(roomKey(window.roomCode), room);
+  window.roomData = room;
+  for(let i=0;i<4;i++){
+    if(await kvSet(roomKey(window.roomCode), room)) return;
+    await sleep(800*(i+1));
+  }
+  console.error('[online] could not push move after retries');
 }
 
 const p1nameInput = document.getElementById('p1nameInput');
