@@ -43,6 +43,11 @@
   #robotChat .robot-line{font-size:.82em;line-height:1.35;color:#eef4ff;overflow-wrap:anywhere}
   #robotChat .robot-meta{font-size:.66em;color:#aab7cc;margin-top:6px;line-height:1.3}
   #gameMain{min-width:0;}
+  /* Long player names or status text must wrap, never widen the page (a wider page makes the board look smaller). */
+  html,body{overflow-x:hidden;}
+  #matchupHeader,#turn-indicator,#status,#connBadge,#topbar>*{min-width:0; max-width:100%; overflow-wrap:anywhere; word-break:break-word;}
+  #boardWrap{min-width:0; flex:none;}
+  #board{max-width:100%;}
   @media(max-width:760px){
     body{padding:10px;align-items:flex-start;}
     #app{max-width:100%;}
@@ -425,6 +430,7 @@
       <div id="gameMain">
     <div id="matchupHeader" style="display:none; text-align:center; font-size:1.05em; font-weight:700; margin-bottom:4px;"></div>
     <div id="connBadge" style="display:none; text-align:center; font-size:.8em; color:#9aa; margin-bottom:10px;"></div>
+    <div id="presenceBanner" style="display:none; text-align:center; font-size:.9em; font-weight:600; padding:8px 10px; margin-bottom:8px; border-radius:10px; overflow-wrap:anywhere;"></div>
     <div id="topbar">
       <div id="turn-indicator"></div>
       <div id="status"></div>
@@ -675,6 +681,9 @@ window.roomSeq = 0;
 let lobbySearching = false;
 if(!localStorage.getItem('tca_pid')) localStorage.setItem('tca_pid', Math.random().toString(36).slice(2)+Date.now().toString(36));
 const myPid = localStorage.getItem('tca_pid');
+// Matchmaking identity is unique PER TAB (myPid is shared by every tab of this browser and is only used for XP),
+// so two tabs/windows on one device can match each other and a tab never mistakes another tab's room for its own.
+const myTabId = Math.random().toString(36).slice(2) + Date.now().toString(36);
 
 // ---------------- Faction XP / Levels ----------------
 // Each move made in an online multiplayer match earns 1 XP for whichever faction the
@@ -853,10 +862,10 @@ document.addEventListener('keydown', e=>{
 // ---- Global Room: click "Find Player" to be matched into a random open room, no code needed ----
 async function tryJoinLobby(){
   const lobby = await kvGet(LOBBY_KEY);
-  if(!lobby || lobby.hostPid===myPid || (Date.now()-lobby.ts) >= LOBBY_STALE_MS) return false;
+  if(!lobby || lobby.hostPid===myTabId || (Date.now()-lobby.ts) >= LOBBY_STALE_MS) return false;
   const room = await kvGet(roomKey(lobby.code));
   if(!room || room.status!=='waiting') return false;
-  room.guestName = myUsername(); room.guestFaction = window.onlinePick; room.guestPid = myPid;
+  room.guestName = myUsername(); room.guestFaction = window.onlinePick; room.guestPid = myTabId;
   room.guestLevel = getLevel(window.onlinePick);
   room.status = 'ready';
   window.roomCode = room.code;                       // (so kvSet records the stamp)
@@ -864,7 +873,7 @@ async function tryJoinLobby(){
   // two guests may grab the same room at once — wait a moment and make sure we're the one who stuck
   await sleep(1200);
   const check = await kvGet(roomKey(room.code));
-  if(!check || check.guestPid!==myPid){ window.roomCode = null; return false; }
+  if(!check || check.guestPid!==myTabId){ window.roomCode = null; return false; }
   await kvSet(LOBBY_KEY, null);
   window.roomCode = room.code; window.myRole = 2;
   showMatchFound(room.hostName);
@@ -876,13 +885,13 @@ async function hostGlobalRoom(){
   const code = genCode();
   const room = {
     code, status:'waiting', isGlobal:true,
-    hostName: myUsername(), hostFaction: window.onlinePick, hostPid: myPid, hostLevel: getLevel(window.onlinePick),
+    hostName: myUsername(), hostFaction: window.onlinePick, hostPid: myTabId, hostLevel: getLevel(window.onlinePick),
     guestName: null, guestFaction: null, guestPid: null, guestLevel: null,
     seq:0
   };
   window.roomCode = code;
   const roomSaved = await kvSet(roomKey(code), room);
-  const lobbySaved = roomSaved && await kvSet(LOBBY_KEY, {code, hostPid: myPid, hostName: myUsername(), ts: Date.now()});
+  const lobbySaved = roomSaved && await kvSet(LOBBY_KEY, {code, hostPid: myTabId, hostName: myUsername(), ts: Date.now()});
   if(!roomSaved || !lobbySaved){
     window.roomCode = null;
     setSearchingUI(false);
@@ -898,7 +907,7 @@ async function hostGlobalRoom(){
     if(!lobbySearching || window.roomCode!==code || window.onlineActive){ clearInterval(refreshTimer); return; }
     const lobby = await kvGet(LOBBY_KEY);
     if(window.roomCode!==code || window.onlineActive) { clearInterval(refreshTimer); return; }
-    if(lobby && lobby.code!==code && lobby.hostPid!==myPid && (Date.now()-lobby.ts)<LOBBY_STALE_MS && lobby.code<code){
+    if(lobby && lobby.code!==code && lobby.hostPid!==myTabId && (Date.now()-lobby.ts)<LOBBY_STALE_MS && lobby.code<code){
       clearInterval(refreshTimer);
       const mine = await kvGet(roomKey(code));
       if(mine && mine.status==='waiting'){
@@ -908,7 +917,7 @@ async function hostGlobalRoom(){
       }
       return;
     }
-    if(!lobby || lobby.code===code) await kvSet(LOBBY_KEY, {code, hostPid: myPid, hostName: myUsername(), ts: Date.now()});
+    if(!lobby || lobby.code===code) await kvSet(LOBBY_KEY, {code, hostPid: myTabId, hostName: myUsername(), ts: Date.now()});
   }, 10000);
 }
 document.getElementById('findPlayerBtn').onclick = async ()=>{
@@ -964,45 +973,133 @@ function leaveRoom(){
   window.roomCode = null;
   window.roomSeq = 0;
   window.roomData = null; window.roomStamp = null; window.connOk = false;
-  oppHbStamp = null; oppIdle = false;
+  oppHbStamp = null; oppIdle = false; oppMeta = '';
   setSearchingUI(false);
   updateConnBadge();
 }
 
 // ---- Presence: each player writes a tiny heartbeat row (separate from the board, so it can never
-// overwrite a move). Missing heartbeats for a while = opponent left = forfeit win. ----
+// overwrite a move). The row's `meta` says what state the player is in:
+//   ''     = active          'afk'  = tab open but no mouse/touch/keyboard for a while
+//   'idle' = tab in background   'left' = tab is being closed/reloaded
+// The opponent reads it and (a) shows a warning banner, (b) awards a forfeit win when the player
+// has left, gone silent, or sat AFK on their own turn for too long. ----
 const HEARTBEAT_MS = 6000;
-const FORFEIT_TIMEOUT_MS = 30000;      // opponent silent this long (tab open/active) -> forfeit
-const FORFEIT_IDLE_TIMEOUT_MS = 120000; // opponent's tab is in background (browsers throttle timers) -> be lenient
-let heartbeatTimer = null;
+const FORFEIT_TIMEOUT_MS = 30000;        // no heartbeat at all for this long (tab open/active) -> left
+const FORFEIT_IDLE_TIMEOUT_MS = 120000;  // same, but the opponent's tab is in the background (timers get throttled)
+const AFK_AFTER_MS = 60000;              // no input this long = AFK
+const AFK_TURN_FORFEIT_MS = 90000;       // AFK this long ON THEIR TURN -> forfeit (so ~2.5 min without touching anything)
+const IDLE_TURN_FORFEIT_MS = 150000;     // tab in background this long ON THEIR TURN -> forfeit
+const LEFT_GRACE_MS = 12000;             // tab closed/reloaded: wait this long in case they come straight back
+let heartbeatTimer = null, presenceTicker = null;
+let lastInputAt = Date.now(), lastSentState = '';
+let oppMeta = '', oppMetaChangedAt = 0;
+let trackedTurn = null, turnStartedAt = 0, myInactiveSince = 0, myStatePrev = '';
 window.myIdle = false;
+
+function myPresenceState(){
+  if(document.hidden) return 'idle';
+  if(Date.now()-lastInputAt > AFK_AFTER_MS) return 'afk';
+  return '';
+}
+['pointerdown','keydown','mousemove','touchstart','wheel'].forEach(ev=>
+  document.addEventListener(ev, ()=>{
+    lastInputAt = Date.now();
+    if(lastSentState==='afk' && window.onlineActive) sendHeartbeat();   // tell the opponent we're back right away
+  }, {passive:true}));
 document.addEventListener('visibilitychange', ()=>{
   window.myIdle = document.hidden;
   if(window.onlineActive) sendHeartbeat();
   if(!document.hidden && window.pollOn){ clearTimeout(pollTimer); schedulePoll(0); }  // catch up right away
 });
+// Tab closing / reloading: fire one last heartbeat marked 'left' (keepalive lets it finish while the page unloads).
+// On phones, 'pagehide' also fires when you merely switch apps, so there we only trust 'beforeunload' and otherwise
+// fall back to the silence timers above.
+const IS_MOBILE = /Mobi|Android|iPhone|iPad|iPod/i.test(navigator.userAgent||'');
+function sendLeftSignal(){
+  if(!window.onlineActive || !window.roomCode || !window.myRole || gameOver) return;
+  try{
+    fetch(`${KV}?on_conflict=key`, { method:'POST', keepalive:true,
+      headers:{ ...SB_HEADERS, Prefer:'resolution=merge-duplicates,return=minimal' },
+      body: JSON.stringify({ key: roomKey(window.roomCode)+'_hb'+window.myRole, value:'1', meta:'left' }) });
+  }catch(err){}
+}
+window.addEventListener('beforeunload', sendLeftSignal);
+window.addEventListener('pagehide', e=>{ if(e && e.persisted) return; if(!IS_MOBILE) sendLeftSignal(); });
+window.addEventListener('pageshow', e=>{ if(e && e.persisted && window.onlineActive){ lastInputAt = Date.now(); sendHeartbeat(); } });
+
 function startHeartbeat(){
   stopHeartbeat();
-  oppSeenAt = Date.now(); oppHbStamp = null;
+  oppSeenAt = Date.now(); oppHbStamp = null; oppMeta = ''; oppMetaChangedAt = Date.now();
+  trackedTurn = null; lastInputAt = Date.now(); myStatePrev = ''; myInactiveSince = 0;
   sendHeartbeat();
   heartbeatTimer = setInterval(sendHeartbeat, HEARTBEAT_MS);
+  presenceTicker = setInterval(presenceTick, 1000);
 }
 function stopHeartbeat(){
   if(heartbeatTimer){ clearInterval(heartbeatTimer); heartbeatTimer=null; }
+  if(presenceTicker){ clearInterval(presenceTicker); presenceTicker=null; }
+  const bn = document.getElementById('presenceBanner'); if(bn) bn.style.display='none';
 }
 async function sendHeartbeat(){
   if(!window.onlineActive || !window.roomCode || !window.myRole) return;
-  await kvSet(roomKey(window.roomCode)+'_hb'+window.myRole, 1, window.myIdle ? 'idle' : '');
+  lastSentState = myPresenceState();
+  await kvSet(roomKey(window.roomCode)+'_hb'+window.myRole, 1, lastSentState);
+}
+function fmtClock(ms){ const t=Math.max(0,Math.ceil(ms/1000)); return Math.floor(t/60)+':'+String(t%60).padStart(2,'0'); }
+// Runs every second: tracks whose turn it is, shows the warning banner, and enforces forfeits.
+function presenceTick(){
+  if(!window.onlineActive || gameOver){ const bn=document.getElementById('presenceBanner'); if(bn) bn.style.display='none'; return; }
+  const now = Date.now();
+  if(currentPlayer!==trackedTurn){ trackedTurn = currentPlayer; turnStartedAt = now; }
+  const st = myPresenceState();
+  if(st!==myStatePrev){ myStatePrev = st; myInactiveSince = st ? now : 0; }
+  const room = window.roomData;
+  const oppRole = window.myRole===1 ? 2 : 1;
+  const oppName = (window.playerNames && window.playerNames[oppRole]) || 'Opponent';
+  let msg = '', level = '';
+  if(oppMeta==='left'){
+    msg = `⚠️ ${oppName} disconnected — they forfeit in ${fmtClock(LEFT_GRACE_MS-(now-oppMetaChangedAt))} unless they come back`; level='bad';
+  }else if(oppIdle && currentPlayer===oppRole){
+    const lim = oppMeta==='afk' ? AFK_TURN_FORFEIT_MS : IDLE_TURN_FORFEIT_MS;
+    const since = Math.max(oppMetaChangedAt, turnStartedAt);
+    msg = `⏰ ${oppName} looks ${oppMeta==='afk'?'AFK':'away'} — forfeit in ${fmtClock(lim-(now-since))} if they don't move`; level='warn';
+  }else if(oppIdle){
+    msg = `💤 ${oppName} is ${oppMeta==='afk'?'AFK':'away'} right now`; level='info';
+  }else if(st && currentPlayer===window.myRole){
+    const lim = st==='afk' ? AFK_TURN_FORFEIT_MS : IDLE_TURN_FORFEIT_MS;
+    const since = Math.max(myInactiveSince, turnStartedAt);
+    msg = `⏰ It's your move! You look ${st==='afk'?'AFK':'away'} — you'll forfeit in ${fmtClock(lim-(now-since))}`; level='warn';
+  }
+  const bn = document.getElementById('presenceBanner');
+  if(bn){
+    if(msg){ bn.style.display=''; bn.textContent = msg; bn.style.background = level==='bad'?'#4a2020':level==='warn'?'#4a3a18':'#232a38'; }
+    else bn.style.display='none';
+  }
+  if(room) checkOpponentForfeit(room);
 }
 function checkOpponentForfeit(room){
   if(!window.onlineActive || room.status!=='active' || gameOver) return;
-  const limit = oppIdle ? FORFEIT_IDLE_TIMEOUT_MS : FORFEIT_TIMEOUT_MS;
-  if(Date.now()-oppSeenAt < limit) return;
+  const now = Date.now();
+  const oppRole = window.myRole===1 ? 2 : 1;
+  let reason = null;
+  if(oppMeta==='left'){
+    if(now-oppMetaChangedAt >= LEFT_GRACE_MS) reason = 'left';
+  }else if(now-oppSeenAt >= (oppIdle ? FORFEIT_IDLE_TIMEOUT_MS : FORFEIT_TIMEOUT_MS)){
+    reason = 'left';
+  }else if(oppIdle && currentPlayer===oppRole){
+    const lim = oppMeta==='afk' ? AFK_TURN_FORFEIT_MS : IDLE_TURN_FORFEIT_MS;
+    if(now-Math.max(oppMetaChangedAt, turnStartedAt) >= lim) reason = 'afk';
+  }
+  if(!reason) return;
   const oppName = window.myRole===1 ? room.guestName : room.hostName;
-  const winMsg = `🏆 ${myUsername()} wins — ${oppName||'opponent'} left the match!`;
+  const winMsg = reason==='afk'
+    ? `🏆 ${myUsername()} wins — ${oppName||'opponent'} was AFK too long!`
+    : `🏆 ${myUsername()} wins — ${oppName||'opponent'} left the match!`;
   gameOver = true;
   gameOverMsg = winMsg; render();
   room.gameOver = true; room.status = 'over'; room.winnerMsg = winMsg;
+  delete room.hostIdle; delete room.guestIdle;
   room.seq = Math.max(room.seq||0, window.roomSeq||0) + 1; window.roomSeq = room.seq;
   kvSet(roomKey(window.roomCode), room);
   stopHeartbeat();
@@ -1029,7 +1126,9 @@ async function pollRoom(){
   const hb = rows.find(x=>x.key===rk+'_hb'+oppRole);
   if(hb){
     if(hb.updated_at!==oppHbStamp){ oppHbStamp = hb.updated_at; oppSeenAt = now; }
-    oppIdle = hb.meta==='idle';
+    const m = hb.meta || '';
+    if(m!==oppMeta){ oppMeta = m; oppMetaChangedAt = now; }
+    oppIdle = (m==='idle' || m==='afk');
   }
   const roomRow = rows.find(x=>x.key===rk);
   if(!roomRow) return;
@@ -1129,7 +1228,11 @@ function updateMatchupHeader(room){
 function applyOnlineState(room){
   forceOnlineHardcore();
   window.roomData = room;
-  mapType = room.mapType; ROWS = room.ROWS; COLS = room.COLS;
+  mapType = room.mapType; setDims();                       // dimensions always come from the map type, never from stale numbers
+  if(!Array.isArray(room.board) || room.board.length!==ROWS || room.board.some(row=>!Array.isArray(row) || row.length!==COLS)){
+    console.error('[online] ignoring malformed board', mapType, ROWS, COLS, room.board && room.board.length);
+    return;
+  }
   board = room.board; currentPlayer = room.currentPlayer; buffs = room.buffs;
   window.factions = {1:room.hostFaction, 2:room.guestFaction};
   window.playerNames = {1:room.hostName, 2:room.guestName};
