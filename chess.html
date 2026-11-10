@@ -43,6 +43,9 @@
   #robotChat .robot-line{font-size:.82em;line-height:1.35;color:#eef4ff;overflow-wrap:anywhere}
   #robotChat .robot-meta{font-size:.66em;color:#aab7cc;margin-top:6px;line-height:1.3}
   #gameMain{min-width:0;}
+  /* Online matches: no Arena Commentator, board always gets the full width. */
+  #game.online-mode #robotSidebar{display:none !important;}
+  #game.online-mode #gameLayout{grid-template-columns:minmax(0,1fr);}
   /* Long player names or status text must wrap, never widen the page (a wider page makes the board look smaller). */
   html,body{overflow-x:hidden;}
   #matchupHeader,#turn-indicator,#status,#connBadge,#topbar>*{min-width:0; max-width:100%; overflow-wrap:anywhere; word-break:break-word;}
@@ -966,6 +969,7 @@ function schedulePoll(ms){
 }
 function leaveRoom(){
   restoreSavedMode();
+  { const g=document.getElementById('game'); if(g) g.classList.remove('online-mode'); const rs=document.getElementById('robotSidebar'); if(rs) rs.style.display=''; }
   stopPolling();
   stopHeartbeat();
   window.onlineActive = false;
@@ -1208,6 +1212,8 @@ function enterOnlineGameUI(room){
   setSearchingUI(false);
   document.getElementById('setup').style.display='none';
   document.getElementById('game').style.display='block';
+  document.getElementById('game').classList.add('online-mode');
+  const rs=document.getElementById('robotSidebar'); if(rs) rs.style.display='none';
   document.getElementById('status').textContent='';
   const restartBtn = document.getElementById('restartBtn');
   restartBtn.textContent = '🏳️ Leave Match (Forfeit)';
@@ -1228,6 +1234,8 @@ function updateMatchupHeader(room){
 function applyOnlineState(room){
   forceOnlineHardcore();
   window.roomData = room;
+  window.controls = {1:'human', 2:'human'};   // online is always human vs human (no stale bot settings from an earlier local game)
+  { const g=document.getElementById('game'); if(g) g.classList.add('online-mode'); }
   mapType = room.mapType; setDims();                       // dimensions always come from the map type, never from stale numbers
   if(!Array.isArray(room.board) || room.board.length!==ROWS || room.board.some(row=>!Array.isArray(row) || row.length!==COLS)){
     console.error('[online] ignoring malformed board', mapType, ROWS, COLS, room.board && room.board.length);
@@ -1274,6 +1282,7 @@ async function pushOnlineState(extra){
 const p1nameInput = document.getElementById('p1nameInput');
 const p2nameInput = document.getElementById('p2nameInput');
 document.getElementById('startBtn').onclick = ()=>{
+  document.getElementById('game').classList.remove('online-mode');   // local/bot games keep the commentator
   const c1 = document.getElementById('p1control').value;
   const c2 = document.getElementById('p2control').value;
   window.onlineActive = false;
@@ -2686,6 +2695,7 @@ function onRightClick(r,c){
   render();
 }
 function updateRobotChat(player,from,move,result){
+  if(window.onlineActive){ const sb=document.getElementById('robotSidebar'); if(sb) sb.style.display='none'; return; }   // no commentator in online matches
   const line=document.getElementById('robotLine'), meta=document.getElementById('robotMeta');
   const controlsNow=window.controls||{};
   const humanVsHuman=(!controlsNow[1]||controlsNow[1]==='human') && (!controlsNow[2]||controlsNow[2]==='human');
