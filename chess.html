@@ -359,6 +359,7 @@
             <option value="medium">🤖 Bot — Medium</option>
             <option value="hard">🤖 Bot — Hard</option>
             <option value="impossible">💀 Bot — Impossible</option>
+            <option value="oracle">🔮 Bot — Oracle (calculates the future)</option>
           </select>
         </div>
         <div class="setup-col p2">
@@ -370,6 +371,7 @@
             <option value="medium">🤖 Bot — Medium</option>
             <option value="hard">🤖 Bot — Hard</option>
             <option value="impossible">💀 Bot — Impossible</option>
+            <option value="oracle">🔮 Bot — Oracle (calculates the future)</option>
           </select>
         </div>
       </div>
@@ -455,6 +457,18 @@
     <button class="big" id="undoBtn" type="button" style="display:none; margin-top:14px; background:#2d4a3a;">↶ Undo Move</button>
     <button class="big" id="restartBtn">↺ New Game</button>
       </div>
+    </div>
+  </div>
+</div>
+
+<div id="drawOffer" style="display:none; position:fixed; inset:0; z-index:9999; background:rgba(8,6,20,.72); align-items:center; justify-content:center; padding:16px;">
+  <div style="max-width:380px; width:100%; background:linear-gradient(135deg,#1b1530,#142437); border:1px solid #7a5cff; border-radius:16px; padding:22px; box-shadow:0 12px 40px rgba(0,0,0,.6); text-align:center;">
+    <div style="font-size:2em;">🔮</div>
+    <div style="font-weight:800; letter-spacing:.5px; color:#b9a6ff; margin:4px 0 8px;">THE ORACLE OFFERS A DRAW</div>
+    <div id="drawOfferText" style="color:#eef4ff; line-height:1.4; margin-bottom:16px;"></div>
+    <div style="display:flex; gap:10px; justify-content:center;">
+      <button class="big" id="drawAcceptBtn" type="button" style="background:#2d4a3a;">🤝 Accept Draw</button>
+      <button class="big" id="drawDeclineBtn" type="button" style="background:#4a2d2d;">✖ Decline</button>
     </div>
   </div>
 </div>
@@ -1516,6 +1530,7 @@ function undoMove(){
   hideStopChainBtn();
   document.getElementById('status').textContent='';
   render();
+  try{ oracleOnUndo(); }catch(e){}
 }
 document.getElementById('undoBtn').onclick=undoMove;
 
@@ -2144,7 +2159,7 @@ function botChooseMove(player, difficulty){
   const moves = allMovesOn(board, player, true);
   if(moves.length===0) return null;
   const opp = player===1?2:1;
-  if(difficulty==='impossible') return impossibleMove(player);
+  if(difficulty==='impossible' || difficulty==='oracle') return impossibleMove(player);
 
   if(difficulty==='easy'){
     // Easy still prefers free captures over pure randomness, but stays shallow and noisy.
@@ -2212,7 +2227,7 @@ const AI_INF=1e9, AI_MATE=1e6, AI_ABORT={abort:true};
 let aiCtx=null;
 const AI_BLANK=()=>({n:0,caps:0,fwd:0,back:0,rush:0,lead:0,quiet:0,adv:0});
 window.styleStats={1:AI_BLANK(),2:AI_BLANK()};
-function resetStyleStats(){ window.styleStats={1:AI_BLANK(),2:AI_BLANK()}; window.robotChatMoveHistory={1:[],2:[]}; }
+function resetStyleStats(){ window.styleStats={1:AI_BLANK(),2:AI_BLANK()}; window.robotChatMoveHistory={1:[],2:[]}; try{ resetOracleState(); }catch(e){} }
 // Learns how each side plays (called for every move, human or bot). Called BEFORE the move is applied.
 function recordStyle(player,r,c,dest,newTurn){
   const s=window.styleStats[player]; if(!s) return;
@@ -2258,10 +2273,23 @@ function aiIsPawnLike(p){
 }
 const AI_RUN_TAB=[0,650,320,150,60];
 // Static evaluation from the bot's point of view (centipawns).
+// Search-evaluation piece values. The Cannon (Xiangqi / Janggi) is far stronger than its textbook 4.5:
+// it captures THROUGH any piece used as a screen, so the more pieces on the board (and the more of them
+// are chess-style pieces that also work as screens), the more valuable it is. Giving it up for a Chess
+// Rook (5) is a bad trade, so the bot values it above a Rook and above a Knight+Bishop-type exchange.
+function aiPieceValue(p,pieceCount){
+  const v=pieceValue(p);
+  if(p.type==='XC'||p.type==='JC'){
+    const crowd=Math.min(1,Math.max(0,(pieceCount-10)/22));   // 0 in a bare endgame -> 1 on a full board
+    return v + 1.5 + 2.0*crowd;                                // 6.0 (endgame) .. 8.0 (crowded board)
+  }
+  return v;
+}
 function aiEvalMe(b){
   const me=aiCtx.me, W=aiCtx.W, opp=other(me);
   const cr=(ROWS-1)/2, cc=(COLS-1)/2;
   let score=0, total=0, mat=0;
+  let pieceCount=0; for(let r0=0;r0<ROWS;r0++)for(let c0=0;c0<COLS;c0++) if(b[r0][c0]) pieceCount++;
   const leader={}, pl={1:[],2:[]}, pawns={1:[],2:[]}, homeGuard={1:0,2:0};
   for(let r=0;r<ROWS;r++)for(let c=0;c<COLS;c++){
     const p=b[r][c]; if(!p) continue;
@@ -2269,7 +2297,7 @@ function aiEvalMe(b){
     total++;
     pl[p.player].push({r,c,p});
     if(p.isLeader){ leader[p.player]={r,c}; continue; }
-    const val=pieceValue(p)*100;
+    const val=aiPieceValue(p,pieceCount)*100;
     mat += sgn*val;
     const prog = p.player===1 ? (ROWS-1-r) : r;
     let pos=0;
@@ -2442,7 +2470,7 @@ function aiNeg(b,side,depth,alpha,beta,ply){
   for(const x of moves){
     let sc;
     const quiet=!x.m.capture && !x.m.promoteTo && !x.m.promo;
-    if(i>=4 && depth>=3 && quiet && !aiIsRunnerMove(b[x.fr][x.fc],x.m)){
+    if(!aiCtx.full && i>=4 && depth>=3 && quiet && !aiIsRunnerMove(b[x.fr][x.fc],x.m)){
       // late move reduction, verified by a full-depth re-search if it looks good
       sc=aiScoreMove(b,side,x.fr,x.fc,x.m,depth-2,alpha,alpha+1,ply);
       if(sc>alpha) sc=aiScoreMove(b,side,x.fr,x.fc,x.m,depth,alpha,beta,ply);
@@ -2550,6 +2578,212 @@ function impossibleMoveAsync(player,done){
   };
   step();
 }
+
+// ================= ORACLE: calculates every line, then double-checks the future =================
+// Full-width alpha-beta (no late-move reductions: every legal move is searched to full depth).
+// ADAPTIVE THINKING: the time budget depends on how hard the position is (many moves, check, captures
+// on the board = think longer), it is EXTENDED when the search is still changing its mind or sees the
+// evaluation getting worse, and it STOPS EARLY when one move is clearly best and stable.
+// Then a "future check": the top candidates are re-searched several plies deeper and the bot only
+// plays a move whose evaluation HOLDS UP in that deeper future.
+const AI_ORACLE_MS=5000;
+window.oracleInfo=null;
+function oracleMoveAsync(player,done){
+  const roots=aiRootMoves(player);
+  if(roots.length===0){ done(null); return; }
+  if(roots.length===1){ window.oracleInfo={depth:0,nodes:0,score:0,forced:true,secs:0}; done(roots[0]); return; }
+  const b0=board, opp=other(player);
+  let pieces=0; for(let r=0;r<ROWS;r++)for(let c=0;c<COLS;c++) if(board[r][c]) pieces++;
+  // ---- how hard is this position? ----
+  const ourCaps=roots.filter(x=>x.move.capture).length;
+  let oppCaps=0; try{ oppCaps=aiGen(board,opp,null,true).length; }catch(e){}
+  let checked=false; try{ checked=!!inCheck(board,player); }catch(e){}
+  let cx=0.4 + Math.min(0.5,roots.length/80) + (checked?0.25:0) + (ourCaps>0?0.15:0) + (oppCaps>0?0.2:0);
+  cx=Math.max(0.35,Math.min(1.5,cx));
+  if(roots.length<=3) cx=Math.min(cx,0.5);                  // almost no choice: don't waste time
+  let total=AI_ORACLE_MS*cx*(pieces<=14?1.3:1);
+  const hardCap=AI_ORACLE_MS*2.2;
+  const start=performance.now();
+  let searchEnd=start+total*0.8, end=start+total, extra=0;
+  aiCtx=aiMakeCtx(player,total); aiCtx.full=true;
+  // keep the transposition table between moves: positions already calculated last turn are not recalculated (faster)
+  window.oracleTT=window.oracleTT||{}; if(!window.oracleTT[player]) window.oracleTT[player]=new Map(); aiCtx.tt=window.oracleTT[player];
+  const ctx=aiCtx;
+  roots.forEach(x=>{ x.s=0; x.r0=Math.random(); });
+  roots.sort((a,b)=>b.r0-a.r0);
+  let bestMove=roots[0], d=2, idx=0, iterBest=null, iterScore=-AI_INF, finished=false, depthDone=1;
+  let phase='search', verify=[], vi=0, vDepth=0, vScores=[], prevBest=null, prevScore=null, stable=0;
+  const rootScore=(x,dd,alpha)=>{
+    if(x.move.drop){
+      const nb=simulateMoveOn(board,null,x.move);
+      const dv=aiPieceValue(dropPiece(x.move.player,x.move.drop),pieces)*100;
+      return -aiNeg(nb,opp,dd-1,-AI_INF,-alpha,1) - dv + 5;
+    }
+    return aiScoreMove(board,player,x.from.r,x.from.c,x.move,dd,alpha,AI_INF,0);
+  };
+  const pick=(mv,score)=>{
+    if(finished) return; finished=true;
+    window.oracleInfo={depth:depthDone,nodes:ctx.nodes,score:score,secs:(performance.now()-start)/1000};
+    done(mv);
+  };
+  const beginVerify=()=>{
+    // the 4 best candidates (by search score) get a deeper "future check"
+    verify=roots.slice().sort((a,b)=>b.s-a.s).slice(0,4);
+    if(verify.length<2 || Math.abs(bestMove.s)>AI_MATE-200){ pick(bestMove,bestMove.s); return; }
+    phase='verify'; vi=0; vDepth=depthDone+3; vScores=[];
+  };
+  const step=()=>{
+    if(finished) return;
+    if(board!==b0 || gameOver){ finished=true; return; }       // game was reset meanwhile
+    const now=performance.now();
+    if(now>=end){ finishUp(); return; }
+    aiCtx=ctx; ctx.deadline=Math.min(end, now+22);
+    if(ctx.tt.size>1500000) ctx.tt.clear();
+    try{
+      if(phase==='search'){
+        while(idx<roots.length){
+          const x=roots[idx];
+          const sc=rootScore(x,d,iterScore);
+          x.s=sc;
+          if(sc>iterScore){ iterScore=sc; iterBest=x; }
+          idx++;
+        }
+        bestMove=iterBest; depthDone=d;
+        if(Math.abs(iterScore)>AI_MATE-200 || d>=40){ pick(bestMove,iterScore); return; }  // forced win/loss fully calculated
+        // ---- adapt the thinking time to what the search just learned ----
+        let second=-AI_INF; roots.forEach(x=>{ if(x!==bestMove && x.s>second) second=x.s; });   // (bounds <= best)
+        const gap=iterScore-second;
+        stable = (prevBest===bestMove) ? stable+1 : 0;
+        const unsettled = d>=4 && prevBest && (prevBest!==bestMove || iterScore < prevScore-80);
+        if(unsettled && extra<total*0.8 && (end-start)<hardCap){   // still changing its mind / future got worse: think longer
+          const add=total*0.4; searchEnd+=add; end+=add; extra+=add;
+        }
+        prevBest=bestMove; prevScore=iterScore;
+        const used=performance.now()-start;
+        if(d>=6 && stable>=3 && gap>=250){ pick(bestMove,iterScore); return; }             // obvious move: play fast
+        if(d>=6 && stable>=4 && gap>=120 && used>total*0.35){ beginVerify(); aiYield(step); return; }
+        if(performance.now()>=searchEnd){ beginVerify(); }
+        else { d++; idx=0; iterBest=null; iterScore=-AI_INF; roots.sort((a,b)=> (b===bestMove)-(a===bestMove) || b.s-a.s); }
+      } else {
+        // FUTURE CHECK: full-window search of each candidate several plies deeper
+        while(vi<verify.length){
+          const x=verify[vi];
+          const sc=rootScore(x,vDepth,-AI_INF);
+          vScores[vi]=sc; vi++;
+        }
+        finishUp(); return;
+      }
+    } catch(e){
+      if(e!==AI_ABORT) throw e;
+      if(phase==='search' && iterBest && idx>=1) bestMove=iterBest;
+    }
+    aiYield(step);
+  };
+  const finishUp=()=>{
+    if(finished) return;
+    if(phase==='verify' && vScores.length){
+      // choose the candidate whose DEEP evaluation is best; only fully-checked candidates count.
+      let bi=-1, bs=-AI_INF;
+      for(let i=0;i<vScores.length;i++){ if(vScores[i]!==undefined && vScores[i]>bs){ bs=vScores[i]; bi=i; } }
+      if(bi>=0){ depthDone=vDepth; pick(verify[bi],bs); return; }
+    }
+    pick(bestMove,bestMove.s);
+  };
+  step();
+}
+
+// zero-delay yielding (setTimeout is clamped to >=4ms when nested, which wastes thinking time)
+const aiYield=(function(){
+  try{ const ch=new MessageChannel(), q=[]; ch.port1.onmessage=()=>{ const f=q.shift(); if(f) f(); }; return fn=>{ q.push(fn); ch.port2.postMessage(0); }; }
+  catch(e){ return fn=>setTimeout(fn,0); }
+})();
+
+// ---------------- The Oracle's voice + draw offers ----------------
+const ORACLE_TITLE='🔮 THE ORACLE · THE FUTURE HAS BEEN SEEN';
+function resetOracleState(){ window.oracleState={hist:[],n:0,offers:0,lastOffer:-99,undos:0,lastLine:''}; window.oracleTT={}; window.oracleInfo=null; const d=document.getElementById('drawOffer'); if(d) d.style.display='none'; }
+resetOracleState();
+function oraclePickLine(list){
+  const st=window.oracleState; let l, tries=0;
+  do{ l=list[Math.floor(Math.random()*list.length)]; tries++; } while(l===st.lastLine && tries<8);
+  st.lastLine=l; return l;
+}
+// score = Oracle's evaluation of the future from ITS point of view (centipawns, ~100 = one pawn)
+function oracleLine(score){
+  if(score>AI_MATE-200 || score>=500) return oraclePickLine([
+    "The future has been seen. You have no reason to keep trying.",
+    "I have seen every possibility. There is no way you can kill me.",
+    "Every path ends the same way. Keep walking it if you wish — it changes nothing."]);
+  if(score>=150) return oraclePickLine([
+    "I have seen every possibility — there's no way you can kill me.",
+    "You are losing, you know.",
+    "So… is that all you've got?",
+    "The future has been seen. You have no reason to keep trying."]);
+  if(score>=50) return oraclePickLine([
+    "So… is that all you've got?",
+    "You are losing, you know. Slowly — but you are.",
+    "I have already walked this line to its end. It favours me."]);
+  if(score>-100) return oraclePickLine([
+    "The future is thin here, but I have still calculated every line.",
+    "Is that all you've got? Show me something I haven't calculated.",
+    "Interesting. Many futures remain — I am reading all of them."]);
+  return oraclePickLine([
+    "A branch I had not weighted… the future is less certain than I thought.",
+    "Don't mistake one good move for victory. I am still calculating.",
+    "Hm. You are harder to read than I expected."]);
+}
+function oracleSay(text){
+  if(window.onlineActive) return;
+  const sb=document.getElementById('robotSidebar'), line=document.getElementById('robotLine'), t=document.querySelector('#robotChat .robot-title');
+  if(!line) return;
+  if(sb) sb.style.display='block';
+  if(t) t.textContent=ORACLE_TITLE;
+  line.textContent=text;
+}
+function oracleOnUndo(){
+  const c=window.controls||{}; if(c[1]!=='oracle' && c[2]!=='oracle') return;
+  const st=window.oracleState; st.undos++; st.hist.pop(); st.n=Math.max(0,st.n-1);
+  oracleSay(oraclePickLine(st.undos>=3 ? [
+    "Again? The future bends to you, but only so far. I will see it all again.",
+    "You keep rewriting time. Every version still ends in my favour."] : [
+    "It seems the future is unpredictable… you rewrote it. Let me calculate it all again.",
+    "You reached back and changed time itself? Very well. I will see the future again."]));
+}
+// The Oracle offers a draw when it has seen that the position is dead equal (stable over several moves),
+// or when its own future looks bad. It never offers while it is winning.
+function oracleMaybeOfferDraw(player){
+  const st=window.oracleState, oi=window.oracleInfo;
+  if(!st||!oi||oi.forced||gameOver||window.onlineActive) return;
+  const opp=other(player);
+  if(window.controls[opp]!=='human') return;
+  st.n++; st.hist.push(oi.score);
+  if(st.n<10 || st.offers>=3 || st.n-st.lastOffer<10) return;
+  const h3=st.hist.slice(-3), h2=st.hist.slice(-2);
+  const equal = h3.length>=3 && h3.every(v=>Math.abs(v)<=70);
+  const losing = h2.length>=2 && h2.every(v=>v<=-250 && v>-(AI_MATE-200));
+  if(!equal && !losing) return;
+  st.offers++; st.lastOffer=st.n;
+  const msg = equal
+    ? "I have seen every possible future from here. Almost all of them end in a draw. Shall we call it?"
+    : "Hm. The future is clouded — even I cannot see a clear victory. Let us call it a draw.";
+  const box=document.getElementById('drawOffer'), txt=document.getElementById('drawOfferText');
+  if(!box||!txt) return;
+  txt.textContent=msg; box.style.display='flex';
+  oracleSay(msg);
+  document.getElementById('drawAcceptBtn').onclick=()=>{
+    box.style.display='none';
+    if(gameOver) return;
+    gameOver=true; chainActive=false; selected=null; legalMoves=[];
+    gameOverMsg='🤝 Draw agreed — the Oracle and '+nameOf(opp)+' call it even!';
+    oracleSay("A draw. The future was balanced after all… for now.");
+    render();
+  };
+  document.getElementById('drawDeclineBtn').onclick=()=>{
+    box.style.display='none';
+    oracleSay(equal ? "Declined. Then play on — I will see where this path truly ends."
+                    : "Declined. Do not mistake my offer for weakness. I am still calculating.");
+  };
+}
+
 const AI_THINK_MS=1800;   // max thinking time (ms); bot also stops early when its choice is stable
 function impossibleMove(player){
   const roots=aiRootMoves(player);
@@ -2591,14 +2825,14 @@ function impossibleMove(player){
   return bestMove;
 }
 // Checkers chain: pick the best next jump, or stop if stopping is better.
-function impossibleChainPick(player,r,c,further){
-  aiCtx=aiMakeCtx(player,700);
+function impossibleChainPick(player,r,c,further,deep){
+  aiCtx=aiMakeCtx(player,deep?2500:700); if(deep) aiCtx.full=true;
   const opp=other(player);
   let bestM=null, bestS=-AI_INF, stop=-AI_INF;
   try{
-    stop=-aiNeg(board,opp,5,-AI_INF,AI_INF,1);
+    stop=-aiNeg(board,opp,deep?7:5,-AI_INF,AI_INF,1);
     for(const f of further){
-      const sc=aiScoreMove(board,player,r,c,f,6,-AI_INF,AI_INF,0);
+      const sc=aiScoreMove(board,player,r,c,f,deep?8:6,-AI_INF,AI_INF,0);
       if(sc>bestS){ bestS=sc; bestM=f; }
     }
   } catch(e){
@@ -2616,8 +2850,8 @@ function botContinueChain(player, difficulty, r, c){
     let mv;
     if(difficulty==='easy'){
       mv = further[Math.floor(Math.random()*further.length)];
-    } else if(difficulty==='impossible'){
-      mv = impossibleChainPick(player, r, c, further);
+    } else if(difficulty==='impossible' || difficulty==='oracle'){
+      mv = impossibleChainPick(player, r, c, further, difficulty==='oracle');
       if(!mv){ hideStopChainBtn(); render(); endTurn(player===1?2:1); return; }
     } else {
       mv = further[0]; let bestVal=-1;
@@ -2638,7 +2872,7 @@ function maybeBotMove(){
   const ctrl = window.controls && window.controls[currentPlayer];
   if(!ctrl || ctrl==='human'){ render(); return; }
   render();
-  document.getElementById('status').textContent = '🤖 Bot is thinking…';
+  document.getElementById('status').textContent = ctrl==='oracle' ? '🔮 Oracle is calculating every possibility and checking the future…' : '🤖 Bot is thinking…';
   setTimeout(()=>{
     if(gameOver) return;
     const player = currentPlayer, b0 = board;
@@ -2660,9 +2894,10 @@ function maybeBotMove(){
     }
     render();
     endTurn(opp);
+    if(ctrl==='oracle'){ try{ oracleMaybeOfferDraw(player); }catch(e){ console.warn('draw offer skipped',e); } }
     };
-    if(ctrl==='impossible') impossibleMoveAsync(player, go); else go(botChooseMove(player, ctrl));
-  }, 250);
+    if(ctrl==='oracle') oracleMoveAsync(player, go); else if(ctrl==='impossible') impossibleMoveAsync(player, go); else go(botChooseMove(player, ctrl));
+  }, ctrl==='oracle' ? 40 : 250);
 }
 
 // Full movement pattern of a piece ignoring blockers: union of its moves on an empty board and on a board
@@ -2941,7 +3176,7 @@ function updateRobotChat(player,from,move,result){
   }
   // If bot difficulty levels differ, make the skill-gap matchup part of the banter.
   const controls=window.controls||{};
-  const rank={human:0,easy:1,medium:2,hard:3,impossible:4};
+  const rank={human:0,easy:1,medium:2,hard:3,impossible:4,oracle:5};
   const myLevel=controls[player]||'human', foeLevel=controls[other(player)]||'human';
   if(myLevel!=='human' && foeLevel!=='human' && rank[myLevel]!==rank[foeLevel]){
     const gap=Math.abs(rank[myLevel]-rank[foeLevel]);
@@ -2972,6 +3207,15 @@ function updateRobotChat(player,from,move,result){
   meta.textContent=humanVsHuman
     ? `Human vs Human · ${moverFaction} move · ${style} · ${insight}`
     : `Reading ${nameOf(player)} · ${moverFaction} · Style: ${style} · ${insight}`;
+  { const tEl=document.querySelector('#robotChat .robot-title'); if(tEl) tEl.textContent = controlsNow[player]==='oracle' ? ORACLE_TITLE : '🤖 ARENA COMMENTATOR · LIVE CHAT'; }
+  if(controlsNow[player]==='oracle' && window.oracleInfo && !window.oracleInfo.forced) line.textContent=oracleLine(window.oracleInfo.score);
+  else if(controlsNow[player]==='oracle' && window.oracleInfo) line.textContent='Only one path was ever open to me. I walk it.';
+  if(controlsNow[player]==='oracle' && window.oracleInfo){
+    const oi=window.oracleInfo, mate=Math.abs(oi.score)>AI_MATE-200;
+    const ev=mate ? (oi.score>0?'forced win found':'forced loss ahead') : ((oi.score>=0?'+':'')+(oi.score/100).toFixed(1));
+    const verdict=mate ? (oi.score>0?'winning future':'losing future') : (oi.score>150?'good future':oi.score<-150?'difficult future':'balanced future');
+    meta.textContent += oi.forced ? ' · 🔮 only one legal move' : ` · 🔮 Oracle: ${verdict} (eval ${ev}, ${oi.depth} plies deep, ${Math.round(oi.nodes/1000)}k positions, thought ${(oi.secs||0).toFixed(1)}s)`;
+  }
 }
 function doMove(from,move){
   const mover=currentPlayer;
