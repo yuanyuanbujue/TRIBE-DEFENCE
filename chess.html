@@ -427,9 +427,9 @@
     <div id="gameLayout">
       <aside id="robotSidebar">
         <div id="robotChat" aria-live="polite">
-          <div class="robot-title">🤖 ARENA COMMENTATOR · LIVE CHAT</div>
-          <div class="robot-line" id="robotLine">I'm watching your opening moves. Show me your strategy, and I'll adapt.</div>
-          <div class="robot-meta" id="robotMeta">Style: still gathering data · Predictions are tactical estimates</div>
+          <div class="robot-title">🔮 THE ORACLE · THE FUTURE HAS BEEN SEEN</div>
+          <div class="robot-line" id="robotLine">I have seen every possibility.</div>
+          <div class="robot-meta" id="robotMeta" style="display:none"></div>
         </div>
       </aside>
       <div id="gameMain">
@@ -1552,15 +1552,16 @@ function startGame(f1,f2,controls){
   document.getElementById('status').textContent='';
   const robotLine = document.getElementById('robotLine');
   const robotMeta = document.getElementById('robotMeta');
-  if(robotLine) robotLine.textContent = (window.controls[1]==='human' && window.controls[2]==='human')
-    ? 'Both players are human. I’ll comment on threats, repeated moves, captures, and tricky choices as the battle unfolds.'
-    : 'New match detected. I’m watching for tactics, exposed pieces, repeated moves, and turning points.';
-  if(robotMeta) robotMeta.textContent = `Match: ${FACTIONS[f1].label} vs ${FACTIONS[f2].label} · Live commentary enabled`;
   const robotSidebar = document.getElementById('robotSidebar');
   const gameLayout = document.getElementById('gameLayout');
-  const humanVsHuman = window.controls[1] === 'human' && window.controls[2] === 'human';
-  if(robotSidebar) robotSidebar.style.display = humanVsHuman ? 'none' : 'block';
-  if(gameLayout) gameLayout.style.gridTemplateColumns = humanVsHuman ? 'minmax(0,1fr)' : '';
+  const hasOracle = window.controls[1]==='oracle' || window.controls[2]==='oracle';
+  if(robotMeta) robotMeta.style.display='none';
+  if(hasOracle){
+    const rt=document.querySelector('#robotChat .robot-title'); if(rt) rt.textContent=ORACLE_TITLE;
+    if(robotLine) robotLine.textContent='I have seen every possibility. Make your first move — it changes nothing.';
+  }
+  if(robotSidebar) robotSidebar.style.display = hasOracle ? 'block' : 'none';
+  if(gameLayout) gameLayout.style.gridTemplateColumns = hasOracle ? '' : 'minmax(0,1fr)';
   render();
   maybeBotMove();
 }
@@ -2930,291 +2931,14 @@ function onRightClick(r,c){
   render();
 }
 function updateRobotChat(player,from,move,result){
-  if(window.onlineActive){ const sb=document.getElementById('robotSidebar'); if(sb) sb.style.display='none'; return; }   // no commentator in online matches
-  const line=document.getElementById('robotLine'), meta=document.getElementById('robotMeta');
-  const controlsNow=window.controls||{};
-  const humanVsHuman=(!controlsNow[1]||controlsNow[1]==='human') && (!controlsNow[2]||controlsNow[2]==='human');
-  const sidebar=document.getElementById('robotSidebar');
-  if(humanVsHuman){ if(sidebar) sidebar.style.display='none'; return; }
-  if(!line||!meta||!window.factions) return;
-  const f=window.factions[player], foe=window.factions[other(player)];
-  const stats=window.styleStats[player]||AI_BLANK();
-  const turns=Math.max(1,stats.n), capture=!!(result&&result.wasCapture);
-  const moverFaction=FACTIONS[f]?.label||f;
-  const foeFaction=FACTIONS[foe]?.label||foe;
-  const aggression=(stats.caps/turns)+(stats.fwd/turns)*.35;
-  const rush=stats.rush/turns, retreat=stats.back/turns;
-  // Track each side's moves so the robot can call out repeated moves and short cycles.
-  if(!window.robotChatMoveHistory) window.robotChatMoveHistory={1:[],2:[]};
-  const hist=window.robotChatMoveHistory[player]||(window.robotChatMoveHistory[player]=[]);
-  const fromKey=from?`${from.r},${from.c}`:'drop';
-  const toKey=move?`${move.r},${move.c}`:'?';
-  const moveKey=`${fromKey}>${toKey}`;
-  const sameCount=hist.filter(x=>x.key===moveKey).length;
-  const previous=hist[hist.length-1];
-  const twoMoveLoop=hist.length>=2 && previous && hist[hist.length-2] &&
-    previous.from===toKey && previous.to===fromKey && hist[hist.length-2].from===fromKey && hist[hist.length-2].to===toKey;
-  hist.push({key:moveKey,from:fromKey,to:toKey,faction:f});
-  if(hist.length>18) hist.shift();
-  let style='balanced', insight='Your pattern is still developing.';
-  if(turns>=3 && rush>.22){style='promotion rusher';insight='You repeatedly advance pawn-like pieces toward promotion.';}
-  else if(turns>=3 && stats.caps/turns>.55){style='aggressive tactician';insight='You favor captures and material trades.';}
-  else if(turns>=4 && retreat>.35 && aggression<.45){style='defensive / patient';insight='You often reposition or retreat instead of forcing trades.';}
-  else if(turns>=3 && stats.adv/turns>.45){style='piece developer';insight='You bring stronger pieces forward to build pressure.';}
-
-  // Keep the banter varied, but tie it to what actually happened on the board.
-  const choose=a=>a[Math.floor(Math.random()*a.length)];
-  const isBot=!!(controlsNow[player] && controlsNow[player]!=='human');
-  const who=isBot?'my move':'your move';
-  const options=[];
-  if(humanVsHuman){
-    options.push(...[
-      'Arena commentary: scan both sides before choosing your next move.',
-      'Two humans, one board. Watch for hanging pieces and hidden counterattacks.',
-      'No bot is playing either side—I’m here to call out the tactics and tough decisions.',
-      'Pause and check every threat. The best-looking move is not always the safest one.'
-    ]);
-  }
-  // Tactical fork awareness: call out when two or more of the mover's pieces are attacked.
-  // squareAttacked uses each variant's own capture generator, so this also works across mixed matchups.
-  const threatened=[];
-  try {
-    for(let rr=0;rr<ROWS;rr++) for(let cc=0;cc<COLS;cc++) {
-      const p=board[rr][cc];
-      if(p && p.player===player && squareAttacked(board,rr,cc,other(player))) {
-        threatened.push({r:rr,c:cc,piece:p});
-      }
-    }
-  } catch(threatError) { console.warn('Threat scan skipped:',threatError); }
-  const pieceName=p=>{
-    if(!p) return 'piece';
-    const faction=(FACTIONS[p.faction]?.label||p.faction||'').replace(/s$/,'');
-    const typeNames={K:'king',Q:'queen',R:'rook',B:'bishop',N:'knight',P:'pawn',XG:'general',XC:'cannon',XS:'soldier',CK:'checker',SP:'pawn',SL:'lance',SN:'knight',SS:'silver general',SG:'gold general',SB:'bishop',SR:'rook',XH:'horse',XE:'elephant',XA:'advisor',XR:'chariot',JG:'general',JA:'guard',JE:'elephant',JH:'horse',JC:'cannon',JR:'chariot',JS:'soldier'};
-    return `${typeNames[p.type]||String(p.type||'piece').toLowerCase()} (${faction})`;
-  };
-  if(threatened.length>=2) {
-    const names=threatened.slice(0,3).map(t=>pieceName(t.piece));
-    const pairText=names.length>=2?`${names[0]} and ${names[1]}`:'two pieces';
-    options.push(...(isBot?[
-      `Uh-oh, ${threatened.length} of my pieces are under attack. Which one am I saving—and can I counterattack instead?`,
-      `Two targets, one move: ${pairText} are threatened. I can't save everything for free.`,
-      `You've overloaded my defence! Do I protect the valuable piece, or let one go to launch a counterattack?`,
-      `A double threat? Nasty. I need to choose what survives instead of pretending I can defend everything.`
-    ]:[
-      `Two of your pieces are under attack! Which one are you choosing to protect?`,
-      `You've got a dilemma: ${pairText} are both threatened. Save one, trade, or find a counterattack?`,
-      `Oof, a double attack. You may not be able to save both—what's your priority?`,
-      `The opponent is asking a brutal question: which piece matters more to your plan?`,
-      `Two alarms at once! Don't defend automatically—check whether a counter-threat is stronger.`,
-      `One move, two problems. Which piece are you willing to let go, if you have to?`
-    ]));
-  } else if(threatened.length===1) {
-    options.push(...(isBot?[
-      `One of my pieces is hanging: ${pieceName(threatened[0].piece)}. Can I save it without losing the initiative?`,
-      `They've spotted an exposed piece. I should defend it—or make a stronger threat.`
-    ]:[
-      `Careful—your ${pieceName(threatened[0].piece)} is under attack. Are you saving it, trading it, or counterattacking?`,
-      `Your opponent has a target. Check whether that piece can escape or whether you have a better threat.`
-    ]));
-  }
-  // Repetition call-outs get priority so the bot notices when a player is spinning wheels.
-  if(sameCount>=1 || twoMoveLoop){
-    options.push(...(isBot?[
-      twoMoveLoop ? "We're doing the same little dance again. Is this a plan, or are we both stuck?" : "I remember that move. Repeating it won't magically make it stronger.",
-      "Déjà vu on the board. Surely you've got a fresh idea somewhere?",
-      "Same move again? I'm starting to think you're trying to waste my clock.",
-      "You can repeat the move, but the position hasn't forgotten what happened last time."
-    ]:[
-      twoMoveLoop ? "We're cycling the same two moves. Are you waiting for me to blink, or are we wasting time?" : "You just repeated that move. Is that your plan, or are you running out of ideas?",
-      "Same move again? I noticed. Try giving me a new problem to solve.",
-      "Déjà vu! If you're trying to waste time, at least make it interesting.",
-      "You moved that piece the same way before. What changed this time—besides your confidence?"
-    ]));
-  }
-  if(result&&result.capturedLeader){
-    options.push(...(isBot?[
-      "That was the plan. You saw it a move too late!",
-      "Checkmate energy! I told you I was watching your leader.",
-      "And that's the opening I needed. Nicely played—but not enough!"
-    ]:[
-      "Leader captured! Okay, you actually pulled that off. Respect.",
-      "You got my leader this time. Enjoy the victory speech!",
-      "Oof, clean finish. I'll be reviewing that one."
-    ]));
-  } else if(capture){
-    options.push(...(isBot?[
-      "You wanted that piece back? Too bad—I got there first.",
-      "A capture? I hope you checked what I'm threatening next.",
-      "Thanks for lining that trade up. I can work with this.",
-      "You left that piece exposed. I wasn't going to ignore it.",
-      "One piece off the board. Now, what's your answer?"
-    ]:[
-      "A capture! You're making me rethink the whole position.",
-      "You took that piece? Bold. Let's see if the trade was worth it.",
-      "Oho, you spotted a weakness. I'll give you that one.",
-      "That exchange stings a little. I need a better reply.",
-      "Nice tactic—but don't celebrate before you see my response."
-    ]));
-  }
-  if(from && move && ((player===1&&move.r<from.r)||(player===2&&move.r>from.r))){
-    options.push(...(isBot?[
-      "I'm pushing forward. Did you think I'd just sit here and let you plan?",
-      "Pressure time. Let's see if you can defend both sides at once.",
-      "I'm taking space now. Your move—don't panic.",
-      "That advance has a purpose. Can you figure it out before it's too late?"
-    ]:[
-      "You're coming forward? I see you. I'm not giving you that lane for free.",
-      "Trying to corner me with that advance? Cute plan. I've got a reply.",
-      "You're pressing the attack. Now I need to find the crack in your setup.",
-      "Forward move noted. I'll be watching what that piece leaves behind."
-    ]));
-  }
-  if(rush>.18){
-    options.push(...(isBot?[
-      "Those runners are getting dangerous. I should probably stop them… soon.",
-      "Promotion race! I wonder if you'll notice the threat in time.",
-      "I'm sending a runner up the board. Try not to blink."
-    ]:[
-      "Those promotion runners are starting to look scary. I need to deal with them.",
-      "You're racing for promotion again? I ain't letting that happen for free.",
-      "I see the promotion plan. I'll need to block that route."
-    ]));
-  }
-  if(retreat>.3 && turns>=3){
-    options.push(...(isBot?[
-      "A little patience. Not every problem needs to be solved by charging forward.",
-      "I'm repositioning. The real plan might take a couple of moves to show.",
-      "You expected an attack? I'm setting the board up first."
-    ]:[
-      "You're playing patiently. Is that a trap, or are you just making me work for it?",
-      "You're pulling back instead of trading. Okay… what are you setting up?",
-      "Defensive setup spotted. I'll have to tempt you out of that shell."
-    ]));
-  }
-  if(turns>=3 && stats.caps/turns>.55){
-    options.push(...(isBot?[
-      "You like trading pieces? Fine by me—as long as the final position favors me.",
-      "Aggressive play detected. I'll make you prove every single capture.",
-      "You're hunting pieces. Just make sure you don't leave your own exposed."
-    ]:[
-      "You keep looking for captures. I need to stop handing you easy targets.",
-      "You're an aggressive tactician, huh? I won't let you dictate every exchange.",
-      "Lots of trades in your plan. Let's see if your attack has a second act."
-    ]));
-  }
-  if(turns>=3 && stats.adv/turns>.45){
-    options.push(...(isBot?[
-      "I'm developing pressure one piece at a time. No need to rush the setup.",
-      "Pieces are coming into position. The threat will make sense soon enough.",
-      "Building pressure first, attacking second. Keep up."
-    ]:[
-      "You're developing pieces with a plan. I should disrupt that before it clicks.",
-      "You're building pressure instead of rushing. That's more dangerous than it looks.",
-      "Your pieces are coordinating now. I need to break up that teamwork."
-    ]));
-  }
-  // General competitive lines make the chat feel alive even when a move is quiet.
-  options.push(...(isBot?[
-    "Did you just try to win me with that plan? I ain't gonna let it happen!",
-    "I see what you're trying to do. Nice idea—now deal with my answer.",
-    "You think you've got me figured out? Keep watching.",
-    "That move has me thinking. But don't mistake thinking for fear.",
-    "Interesting plan. I've got a few surprises of my own.",
-    "You made your move. Now let's see how you handle mine.",
-    "I'm not falling for the obvious trap. Got a plan B?",
-    "You want to control the board? Then you're going to have to earn it.",
-    "I can see your strategy taking shape. Time to put it under pressure.",
-    "Not bad. But one clever move doesn't win the whole game."
-  ]:[
-    "Did you just try to win me with that plan? I ain't gonna let it happen!",
-    "Wait… was that your master plan? I might have a counter for it.",
-    "You're making me work for this win. Good—let's keep it interesting.",
-    "I see your plan now. At least, I think I do. Don't prove me wrong.",
-    "Sneaky move. I'll be checking every square before I answer.",
-    "You're trying to lure me somewhere, aren't you? I'm suspicious.",
-    "Okay, that's clever. But I haven't run out of ideas yet.",
-    "You want me to chase that piece? Hmm… not so fast.",
-    "I'm watching your setup. You won't catch me napping that easily.",
-    "Bold strategy. Let's see if it survives the next move."
-  ]));
-  if(f!==foe){
-    options.push(`Matchup note: ${moverFaction} versus ${foeFaction} means ${isBot?'I':'you'} need to account for different movement rules.`);
-    const pair=[f,foe].sort().join(':');
-    const matchupLines={
-      'checkers:chess':[
-        'Checkers versus Chess? Tiny jumpers versus long-range tactics. Fair? The board will decide.',
-        'A Checkers–Chess clash: one side hunts jumps, the other threatens from across the board. No autopilot allowed.',
-        'Checkers against Chess is a weird matchup—if you underestimate the jump rules, you deserve the surprise.'
-      ],
-      'checkers:shogi':[
-        'Checkers versus Shogi? Simple-looking jumps meet a game where captured pieces can come back. That can get messy fast.',
-        'Checkers against Shogi: fewer move types, but one bad jump can still swing the whole board.',
-        'Is Checkers versus Shogi fair? Depends whether you planned for the drop-piece chaos.'
-      ],
-      'checkers:xiangqi':[
-        'Checkers versus Xiangqi? Jump tactics against cannons, guards, and generals. That is not a quiet afternoon.',
-        'Checkers versus Xiangqi looks uneven on paper—but one missed jump or cannon line can flip the story.',
-        'A Checkers–Xiangqi matchup? Different toolkits, same rule: stop assuming the other side moves like you do.'
-      ],
-      'chess:xiangqi':[
-        'Chess versus Xiangqi—fair? Both have serious tactics, but their pieces obey very different rules. No easy comparison.',
-        'Chess meets Xiangqi: knights and bishops versus cannons and a palace-bound general. Learn the rules before calling it unfair.',
-        'Is Chess versus Xiangqi fair? Not identical, not automatically unbalanced—just a very different tactical puzzle.'
-      ],
-      'chess:shogi':[
-        'Chess versus Shogi: captured pieces returning as drops changes everything. A material lead may not stay safe.',
-        'Chess against Shogi? You can win a trade and still hand over a dangerous drop. Stay alert.',
-        'This Chess–Shogi matchup is less about whose pieces look stronger and more about who understands the extra rules.'
-      ],
-      'shogi:xiangqi':[
-        'Shogi versus Xiangqi: drops and promotions meet cannons and palace rules. Calling this fair is missing the point—it is a different puzzle.',
-        'Shogi against Xiangqi? Both reward tactics, but the threats come from completely different places.',
-        'Two rulebooks, one board. If you treat Shogi and Xiangqi pieces as interchangeable, this gets ugly for your strategy.'
-      ]
-    };
-    const matchup=matchupLines[pair]; if(matchup) options.push(...matchup);
-  }
-  // If bot difficulty levels differ, make the skill-gap matchup part of the banter.
-  const controls=window.controls||{};
-  const rank={human:0,easy:1,medium:2,hard:3,impossible:4,oracle:5};
-  const myLevel=controls[player]||'human', foeLevel=controls[other(player)]||'human';
-  if(myLevel!=='human' && foeLevel!=='human' && rank[myLevel]!==rank[foeLevel]){
-    const gap=Math.abs(rank[myLevel]-rank[foeLevel]);
-    if(gap>=2) options.push(...(rank[myLevel]>rank[foeLevel] ? [
-      `Difficulty gap detected: ${myLevel} versus ${foeLevel}. No excuses—show me that the stronger setting can convert its advantage.`,
-      "High-level bot versus low-level bot? This could be a lesson… or a spectacular blunder."
-    ] : [
-      `You're on ${myLevel} against ${foeLevel}. The tougher opponent won't hand you a win—look for tactics and stay patient.`,
-      "Low skill setting versus high skill setting? Underdog story incoming, if you can find the right plan."
-    ]));
-    else options.push(`Small difficulty gap: ${myLevel} versus ${foeLevel}. Close enough that one careless move could decide it.`);
-  }
-  // Comment on apparent advantage without pretending the variants have identical piece values.
-  const mine=countPieces(player), theirs=countPieces(other(player));
-  if(mine+theirs>0 && Math.abs(mine-theirs)>=3){
-    options.push(...(mine>theirs?[
-      `You're ahead on piece count (${mine} to ${theirs}), but don't celebrate early—variant rules can turn a lead into a mess.`,
-      `Material says you're ahead, ${mine}–${theirs}. Now prove you can convert it instead of giving pieces back.`
-    ]:[
-      `You're down on piece count, ${mine}–${theirs}. Time for a clever tactic, not a panic move.`,
-      `The board count is against you (${mine} to ${theirs}). A comeback needs a plan, not another random shuffle.`
-    ]));
-  }
-  if(result&&result.capturedLeader) options.unshift(isBot?"Leader captured. Tactical analysis complete — I win this battle!":"Leader captured. Tactical analysis complete — you won this battle.");
-  else if(result&&result.wasCapture) options.unshift(isBot?"That capture changes the material balance; let's see how you respond.":"That capture changes the material balance; I'll recalculate the threats.");
-  if(sidebar) sidebar.style.display='block';
-  line.textContent=choose(options);
-  meta.textContent=humanVsHuman
-    ? `Human vs Human · ${moverFaction} move · ${style} · ${insight}`
-    : `Reading ${nameOf(player)} · ${moverFaction} · Style: ${style} · ${insight}`;
-  { const tEl=document.querySelector('#robotChat .robot-title'); if(tEl) tEl.textContent = controlsNow[player]==='oracle' ? ORACLE_TITLE : '🤖 ARENA COMMENTATOR · LIVE CHAT'; }
-  if(controlsNow[player]==='oracle' && window.oracleInfo && !window.oracleInfo.forced) line.textContent=oracleLine(window.oracleInfo.score);
-  else if(controlsNow[player]==='oracle' && window.oracleInfo) line.textContent='Only one path was ever open to me. I walk it.';
-  if(controlsNow[player]==='oracle' && window.oracleInfo){
-    const oi=window.oracleInfo, mate=Math.abs(oi.score)>AI_MATE-200;
-    const ev=mate ? (oi.score>0?'forced win found':'forced loss ahead') : ((oi.score>=0?'+':'')+(oi.score/100).toFixed(1));
-    const verdict=mate ? (oi.score>0?'winning future':'losing future') : (oi.score>150?'good future':oi.score<-150?'difficult future':'balanced future');
-    meta.textContent += oi.forced ? ' · 🔮 only one legal move' : ` · 🔮 Oracle: ${verdict} (eval ${ev}, ${oi.depth} plies deep, ${Math.round(oi.nodes/1000)}k positions, thought ${(oi.secs||0).toFixed(1)}s)`;
+  // No AI commentator any more: the sidebar only shows what the Oracle bot itself says.
+  const sidebar=document.getElementById('robotSidebar'), line=document.getElementById('robotLine'), meta=document.getElementById('robotMeta');
+  const c=window.controls||{};
+  const hasOracle=!window.onlineActive && (c[1]==='oracle' || c[2]==='oracle');
+  if(!hasOracle){ if(sidebar) sidebar.style.display='none'; return; }
+  if(meta) meta.style.display='none';
+  if(c[player]==='oracle' && window.oracleInfo && line){
+    oracleSay(window.oracleInfo.forced ? 'Only one path was ever open to me. I walk it.' : oracleLine(window.oracleInfo.score));
   }
 }
 function doMove(from,move){
